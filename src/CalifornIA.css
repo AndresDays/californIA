@@ -4,23 +4,34 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Codec Pro', sans-serif;
   background-image: url('./assets/FONDO.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
-}
-
-body {
-  font-family: 'Codec Pro', sans-serif;
+  height: 100%;
+  width: 100%;
 }
 
 .container {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
   color: white;
   display: flex;
   flex-direction: column;
   padding: 2rem;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -28,7 +39,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4rem;
+  padding-bottom: 2rem;
 }
 
 .header-left {
@@ -188,8 +199,9 @@ body {
   align-items: center;
   gap: 4rem;
   max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }
 
 .text-content {
@@ -273,8 +285,9 @@ body {
 
 /* Footer */
 .footer {
-  margin-top: 4rem;
   text-align: center;
+  padding-top: 2rem;
+  padding-bottom: 1rem;
 }
 
 .disclaimer {
