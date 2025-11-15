@@ -1,0 +1,229 @@
+/* Login CalifornIA - Diseño exacto del mockup */
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.login-container {
+  min-height: 100vh;
+    background-image: url('../assets/fondo-login.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  font-family: 'Codec Pro', sans-serif;
+}
+
+/* Header - Logo y subtítulo */
+.login-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.login-logo-img {
+  width: auto;
+  height: 120px;
+  margin-bottom: 1rem;
+  object-fit: contain;
+}
+
+.login-logo-text {
+  font-size: 4rem;
+  font-weight: 600;
+  color: #6FB3D2;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.login-logo-icon {
+  font-size: 3.5rem;
+}
+
+.login-subtitle {
+  color: #6FB3D2;
+  font-size: 1rem;
+  margin: 0;
+  opacity: 0.9;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+/* Card del formulario */
+.login-card {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(10, 20, 35, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 3rem 2.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Formulario */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Grupo de input */
+.login-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Label */
+.login-label {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 400;
+  margin: 0;
+}
+
+/* Input */
+.login-input {
+  width: 100%;
+  padding: 0.75rem 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #ffffff;
+  color: #ffffff;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.login-input:focus {
+  border-bottom-color: #6FB3D2;
+}
+
+.login-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mensaje de error */
+.login-error {
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  text-align: center;
+  background: rgba(255, 107, 107, 0.1);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: -0.5rem 0;
+}
+
+/* Botón de inicio de sesión */
+.login-button {
+  width: 100%;
+  background: #4A7FA8;
+  color: rgba(0, 0, 0, 0.8);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0.5rem;
+}
+
+.login-button:hover:not(:disabled) {
+  background: #5a90b8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 127, 168, 0.4);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Link de recuperar contraseña */
+.login-forgot-link {
+  text-align: center;
+  margin-top: -0.5rem;
+}
+
+.login-forgot-link a {
+  color: #ffffff;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.login-forgot-link a:hover {
+  color: #6FB3D2;
+}
+
+/* Disclaimer */
+.login-disclaimer {
+  margin-top: 3rem;
+  max-width: 90%;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.login-disclaimer p {
+  color: #6FB3D2;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.8;
+  font-weight: 300;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .login-logo-text {
+    font-size: 3rem;
+  }
+
+  .login-logo-icon {
+    font-size: 2.5rem;
+  }
+
+  .login-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .login-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .login-disclaimer p {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 1rem;
+  }
+
+  .login-header {
+    margin-bottom: 2rem;
+  }
+
+  .login-logo-text {
+    font-size: 2.5rem;
+  }
+
+  .login-card {
+    padding: 1.5rem 1.25rem;
+  }
+}
