@@ -54,8 +54,11 @@ body {
 }
 
 .notification-icon {
-  font-size: 1.5rem;
+  width: 25px;
+  height: 25px;
   cursor: pointer;
+  object-fit: contain;
+  transition: transform 0.2s ease;
 }
 
 .title {

@@ -8,6 +8,7 @@ import californIA from '../assets/CalifornIA.png';
 import usericon from '../assets/usericon.png';
 import btnrad from '../assets/btnrad.png';
 import btnlab from '../assets/btnlab.png';
+import notiIcon from '../assets/notificaciones.png';
 
 const Dashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -94,12 +95,32 @@ const Dashboard = () => {
     return nombreCompleto.split(' ')[0]
   }
 
+  const formatPuesto = (puesto) => {
+    if (!puesto) return 'Usuario'
+    
+    const puestos = {
+      'administrador': 'Administrador',
+      'radiologo': 'Radiólogo - Director',
+      'medico': 'Médico',
+      'tecnico_radiologia': 'Técnico en Radiología',
+      'quimico': 'Químico',
+      'recepcionista': 'Recepcionista'
+    }
+    
+    return puestos[puesto] || puesto
+  }
+
   return (
     <div className="container">
       <header className="header">
         <div className="header-left">
-          <span className="notification-icon">🔔</span>
-          <h1 className="title">Radiólogo - Director</h1>
+          <img 
+            src={notiIcon}
+            alt="Usuario" 
+            className="notification-icon"
+            onClick={toggleMenu}
+          />
+          <h1 className="title">{empleadoData ? formatPuesto(empleadoData.puesto) : 'CalifornIA'}</h1>
         </div>
 
         <nav className="menu">
