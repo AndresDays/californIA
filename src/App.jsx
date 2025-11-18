@@ -9,22 +9,20 @@ import Laboratorio from './pages/laboratorio'
 import Usuarios from './pages/usuarios'
 import Pacientes from './pages/pacientes'
 import Perfil from './pages/perfil'
+import './App.css';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Ruta raíz - redirige al login */}
+        
           <Route path="/" element={<Navigate to="/login" replace />} />
           
-          {/* Ruta de login */}
           <Route path="/login" element={<Login />} />
           
-          {/* Ruta de recuperación de contraseña */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           
-          {/* Rutas protegidas */}
           <Route 
             path="/dashboard" 
             element={

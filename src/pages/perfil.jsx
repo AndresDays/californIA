@@ -20,7 +20,7 @@ const Perfil = () => {
           .select('id_empleado')
           .eq('id', user.id)
           .single()
-
+        
         if (perfil && perfil.id_empleado) {
           const { data: empleado } = await supabase
             .from('empleados')
