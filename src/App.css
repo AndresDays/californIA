@@ -1,46 +1,57 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* index.css - Estilos globales para CalifornIA */
+
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  height: 100%;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Prevenir scroll horizontal en toda la app */
+* {
+  max-width: 100%;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+::-webkit-scrollbar-track {
+  background: rgba(26, 35, 50, 0.3);
 }
 
-.card {
-  padding: 2em;
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 179, 214, 0.5);
+  border-radius: 5px;
 }
 
-.read-the-docs {
-  color: #888;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 179, 214, 0.7);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 179, 214, 0.5) rgba(26, 35, 50, 0.3);
 }
