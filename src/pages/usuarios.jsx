@@ -198,7 +198,7 @@ const Usuarios = () => {
 
         <nav className="header-menu">
           <a href="/dashboard" className="menu-link">INICIO</a>
-          {/* <a href="/usuarios" className="menu-link active">USUARIOS</a> */}
+          <a href="/usuarios" className="menu-link active">USUARIOS</a>
           <a href="/pacientes" className="menu-link">PACIENTES</a>
         </nav>
 

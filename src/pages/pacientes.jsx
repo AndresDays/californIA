@@ -255,7 +255,7 @@ const Pacientes = () => {
 
         <nav className="header-menu">
           <button onClick={() => navigate('/dashboard')} className="menu-link">INICIO</button>
-          {/* <button onClick={() => navigate('/usuarios')} className="menu-link">USUARIOS</button> */}
+          <button onClick={() => navigate('/usuarios')} className="menu-link">USUARIOS</button>
           <button onClick={() => navigate('/pacientes')} className="menu-link active">PACIENTES</button>
         </nav>
 
@@ -312,10 +312,6 @@ const Pacientes = () => {
                   />
                 </div>
               </div>
-
-              <button className="primary-btn add-btn-top" onClick={handleAddPaciente}>
-                ➕ NUEVO PACIENTE
-              </button>
             </div>
 
             <div className="filter-buttons">

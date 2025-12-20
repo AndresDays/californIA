@@ -1,0 +1,315 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.tipo-muestra-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Codec Pro', sans-serif;
+  color: white;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.tipo-muestra-header {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.8);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.tipo-muestra-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.tipo-muestra-content {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.controles-superiores-muestra {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btn-agregar-muestra {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.btn-agregar-muestra:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.controles-tabla-muestra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.mostrar-registros-muestra {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.select-registros-muestra {
+  padding: 0.5rem 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.select-registros-muestra:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.select-registros-muestra option {
+  background: #0a1929;
+  color: white;
+}
+
+.buscar-muestra-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.input-buscar-muestra {
+  padding: 0.5rem 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+.input-buscar-muestra:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.tabla-muestra-container {
+  flex: 1;
+  overflow: auto;
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.tabla-muestra {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-muestra thead {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 25, 41, 0.95);
+  z-index: 10;
+}
+
+.tabla-muestra th {
+  padding: 0.9rem 0.7rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tabla-muestra th:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-muestra tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+}
+
+.tabla-muestra tbody tr:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-muestra td {
+  padding: 0.9rem 0.7rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.sin-muestras {
+  text-align: center;
+  padding: 3rem !important;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.btn-editar-muestra {
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: #ffc107;
+  color: #333;
+}
+
+.btn-editar-muestra:hover {
+  background: #e0a800;
+  transform: scale(1.1);
+}
+
+.paginacion-muestra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.contador-muestra {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.botones-paginacion-muestra {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-pag-muestra,
+.btn-pag-numero-muestra {
+  padding: 0.5rem 1rem;
+  background: rgba(10, 25, 41, 0.8);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-pag-muestra:hover:not(:disabled),
+.btn-pag-numero-muestra:hover {
+  background: rgba(111, 179, 210, 0.2);
+  border-color: #6FB3D2;
+}
+
+.btn-pag-muestra:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-pag-numero-muestra.activo {
+  background: #007bff;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+.tabla-muestra-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tabla-muestra-container::-webkit-scrollbar-track {
+  background: rgba(10, 25, 41, 0.3);
+}
+
+.tabla-muestra-container::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 4px;
+}
+
+.tabla-muestra-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
+@media (max-width: 768px) {
+  .tipo-muestra-header {
+    padding: 1rem;
+  }
+
+  .tipo-muestra-content {
+    padding: 1rem;
+  }
+
+  .controles-tabla-muestra {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .buscar-muestra-grupo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input-buscar-muestra {
+    min-width: 100%;
+  }
+
+  .paginacion-muestra {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .botones-paginacion-muestra {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tabla-muestra-container {
+  animation: fadeIn 0.5s ease;
+}

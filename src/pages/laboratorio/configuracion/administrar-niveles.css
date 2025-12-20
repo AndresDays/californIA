@@ -1,0 +1,205 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.admin-niveles-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Codec Pro', sans-serif;
+  color: white;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.admin-niveles-header {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.8);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.admin-niveles-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.admin-niveles-content {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.controles-superiores-niveles {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btn-agregar-nivel {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.btn-agregar-nivel:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.controles-tabla-niveles {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.mostrar-registros-niveles {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.select-registros-niveles {
+  padding: 0.5rem 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.select-registros-niveles:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.select-registros-niveles option {
+  background: #0a1929;
+  color: white;
+}
+
+.buscar-niveles-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.input-buscar-niveles {
+  padding: 0.5rem 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+.input-buscar-niveles:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.paginacion-niveles {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.contador-niveles {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.botones-paginacion-niveles {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-pag-niveles,
+.btn-pag-numero-niveles {
+  padding: 0.5rem 1rem;
+  background: rgba(10, 25, 41, 0.8);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-pag-niveles:hover:not(:disabled),
+.btn-pag-numero-niveles:hover {
+  background: rgba(111, 179, 210, 0.2);
+  border-color: #6FB3D2;
+}
+
+.btn-pag-niveles:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-pag-numero-niveles.activo {
+  background: #007bff;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .admin-niveles-header {
+    padding: 1rem;
+  }
+
+  .admin-niveles-content {
+    padding: 1rem;
+  }
+
+  .controles-tabla-niveles {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .buscar-niveles-grupo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input-buscar-niveles {
+    min-width: 100%;
+  }
+
+  .paginacion-niveles {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .botones-paginacion-niveles {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

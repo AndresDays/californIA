@@ -1,0 +1,334 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Wrapper Principal */
+.reporte-ventas-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Codec Pro', sans-serif;
+  color: white;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Header de Página */
+.reporte-ventas-header {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.8);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.reporte-ventas-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 1px;
+}
+
+/* Contenido Principal */
+.reporte-ventas-content {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: auto;
+}
+
+/* Controles Superiores - Fila 1 */
+.controles-reporte-fila1 {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Fecha con Fondo Oscuro */
+.fecha-grupo-reporte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 180px;
+}
+
+.fecha-grupo-reporte label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.input-fecha-reporte {
+  padding: 0.65rem 0.85rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+}
+
+.input-fecha-reporte:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+/* Selectores */
+.select-reporte {
+  padding: 0.65rem 0.85rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 180px;
+  flex: 1;
+}
+
+.select-reporte:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.select-reporte option {
+  background: #0a1929;
+  color: white;
+}
+
+/* Controles Superiores - Fila 2 */
+.controles-reporte-fila2 {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.input-buscar-estudio-reporte {
+  flex: 1;
+  padding: 0.65rem 0.85rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  min-width: 250px;
+}
+
+.input-buscar-estudio-reporte:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.input-buscar-estudio-reporte::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-generar-graficas {
+  padding: 0.7rem 1.75rem;
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-generar-graficas:hover {
+  background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+}
+
+/* Botones de Reportes */
+.botones-reportes {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-reporte {
+  padding: 0.75rem 1.75rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-reporte.verde {
+  background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+}
+
+.btn-reporte.verde:hover {
+  background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Área de Gráficas */
+.area-graficas {
+  background: #5DD3D3;
+  border-radius: 12px;
+  min-height: 350px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.grafico-ventas-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.1);
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.icon-grafico {
+  font-size: 1.3rem;
+}
+
+.grafico-ventas-contenido {
+  padding: 1.5rem;
+  min-height: 300px;
+}
+
+/* Secciones Inferiores */
+.secciones-inferiores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.productos-vendidos-section,
+.ventas-vendedores-section {
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.titulo-seccion {
+  margin: 0 0 1.25rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+}
+
+/* Lista de Productos */
+.lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.producto-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.producto-circulo {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.producto-porcentaje {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.icono-flecha {
+  color: #ffc107;
+  font-size: 1rem;
+}
+
+/* Lista de Vendedores */
+.lista-vendedores {
+  min-height: 200px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .secciones-inferiores {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .reporte-ventas-header {
+    padding: 1rem;
+  }
+
+  .reporte-ventas-content {
+    padding: 1rem;
+  }
+
+  .controles-reporte-fila1,
+  .controles-reporte-fila2 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fecha-grupo-reporte,
+  .select-reporte,
+  .input-buscar-estudio-reporte {
+    min-width: 100%;
+  }
+
+  .botones-reportes {
+    flex-direction: column;
+  }
+
+  .btn-reporte {
+    width: 100%;
+  }
+
+  .area-graficas {
+    min-height: 250px;
+  }
+
+  .grafico-ventas-contenido {
+    padding: 1rem;
+    min-height: 200px;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.area-graficas,
+.secciones-inferiores {
+  animation: fadeIn 0.5s ease;
+}

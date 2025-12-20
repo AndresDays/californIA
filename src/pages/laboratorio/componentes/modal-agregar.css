@@ -1,0 +1,190 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.modal-overlay-agregar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-container-agregar {
+  background: rgba(30, 40, 50, 0.98);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s ease;
+  overflow: hidden;
+  border: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.modal-header-agregar {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title-agregar {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.modal-close-btn-agregar {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.modal-close-btn-agregar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body-agregar {
+  padding: 2rem 1.5rem;
+}
+
+.input-grupo-agregar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s;
+}
+
+.input-grupo-agregar:focus-within {
+  border-color: #17a2b8;
+  background: rgba(10, 25, 41, 0.8);
+}
+
+.input-icon-agregar {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+}
+
+.input-agregar {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.input-agregar::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.modal-footer-agregar {
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: rgba(10, 25, 41, 0.3);
+  border-top: 1px solid rgba(111, 179, 210, 0.1);
+}
+
+.btn-salir-agregar,
+.btn-guardar-agregar {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-salir-agregar {
+  background: rgba(108, 117, 125, 0.8);
+  color: white;
+}
+
+.btn-salir-agregar:hover {
+  background: rgba(108, 117, 125, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+}
+
+.btn-guardar-agregar {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  color: white;
+}
+
+.btn-guardar-agregar:hover {
+  background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .modal-container-agregar {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .modal-header-agregar {
+    padding: 1rem;
+  }
+
+  .modal-body-agregar {
+    padding: 1.5rem 1rem;
+  }
+
+  .modal-footer-agregar {
+    padding: 1rem;
+    flex-direction: column;
+  }
+
+  .btn-salir-agregar,
+  .btn-guardar-agregar {
+    width: 100%;
+  }
+}

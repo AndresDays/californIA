@@ -1,0 +1,205 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../../lib/supabase-client';
+import { useAuth } from '../../../context/auth-context';
+import Layout from '../../../components/layout';
+import Header from '../../../components/header-laboratorio.jsx';
+import Tabla from '../componentes/tabla';
+import ModalAgregar from '../componentes/modal-agregar';
+import './administrar-equipos.css';
+
+const AdministrarEquipos = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [buscarEquipo, setBuscarEquipo] = useState('');
+  const [equipos, setEquipos] = useState([]);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalEquipos, setTotalEquipos] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    cargarEquipos();
+  }, [paginaActual, registrosPorPagina, buscarEquipo]);
+
+  const cargarEquipos = async () => {
+    try {
+      let query = supabase
+        .from('equipos_lab')
+        .select('*', { count: 'exact' });
+
+      if (buscarEquipo.trim()) {
+        query = query.ilike('nombre', `%${buscarEquipo}%`);
+      }
+
+      const desde = (paginaActual - 1) * registrosPorPagina;
+      const hasta = desde + registrosPorPagina - 1;
+
+      const { data, error, count } = await query
+        .range(desde, hasta)
+        .order('id', { ascending: true });
+
+      if (error) throw error;
+
+      setTotalEquipos(count || 0);
+      setEquipos(data || []);
+    } catch (error) {
+      console.error('Error al cargar equipos:', error);
+    }
+  };
+
+  const handleAgregarEquipo = () => {
+    setModalOpen(true);
+  };
+
+  const handleGuardarEquipo = async (nombre) => {
+    try {
+      const { data, error } = await supabase
+        .from('equipos_lab')
+        .insert([{ nombre: nombre }]);
+
+      if (error) throw error;
+
+      cargarEquipos();
+    } catch (error) {
+      console.error('Error al guardar equipo:', error);
+      alert('Error al guardar el equipo');
+    }
+  };
+
+  const handleEditarEquipo = (id) => {
+    navigate(`/configuracion/equipos/editar/${id}`);
+  };
+
+  const paginaSiguiente = () => {
+    if (paginaActual * registrosPorPagina < totalEquipos) {
+      setPaginaActual(paginaActual + 1);
+    }
+  };
+
+  const paginaAnterior = () => {
+    if (paginaActual > 1) {
+      setPaginaActual(paginaActual - 1);
+    }
+  };
+
+  const irAPagina = (pagina) => {
+    setPaginaActual(pagina);
+  };
+
+  const equipoInicio = (paginaActual - 1) * registrosPorPagina + 1;
+  const equipoFin = Math.min(paginaActual * registrosPorPagina, totalEquipos);
+  const totalPaginas = Math.ceil(totalEquipos / registrosPorPagina);
+
+  return (
+    <Layout>
+      <div className="admin-equipos-wrapper">
+        <Header />
+
+        <div className="admin-equipos-header">
+          <h1 className="admin-equipos-title">Administrar Equipos</h1>
+          <div className="breadcrumb-equipos">
+            <span className="breadcrumb-icon">🏠</span>
+            <span>Inicio</span>
+            <span className="breadcrumb-separator">{'>'}</span>
+            <span>Administrar Equipos</span>
+          </div>
+        </div>
+
+        <div className="admin-equipos-content">
+          <div className="controles-superiores-equipos">
+            <button className="btn-agregar-equipo" onClick={handleAgregarEquipo}>
+              Agregar Equipo
+            </button>
+          </div>
+
+          <div className="controles-tabla-equipos">
+            <div className="mostrar-registros-equipos">
+              <span>Mostrar</span>
+              <select
+                value={registrosPorPagina}
+                onChange={(e) => {
+                  setRegistrosPorPagina(parseInt(e.target.value));
+                  setPaginaActual(1);
+                }}
+                className="select-registros-equipos"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span>registros</span>
+            </div>
+
+            <div className="buscar-equipos-grupo">
+              <span>Buscar:</span>
+              <input
+                type="text"
+                value={buscarEquipo}
+                onChange={(e) => {
+                  setBuscarEquipo(e.target.value);
+                  setPaginaActual(1);
+                }}
+                className="input-buscar-equipos"
+              />
+            </div>
+          </div>
+
+          <Tabla
+            headers={['Equipo']}
+            datos={equipos.map(e => ({ id: e.id, equipo: e.nombre }))}
+            paginaInicio={equipoInicio}
+            onEditar={handleEditarEquipo}
+            textoVacio="No hay equipos para mostrar"
+          />
+
+          <div className="paginacion-equipos">
+            <div className="contador-equipos">
+              Mostrando registros del {equipoInicio} al {equipoFin} de un total de {totalEquipos}
+            </div>
+
+            <div className="botones-paginacion-equipos">
+              <button 
+                className="btn-pag-equipos"
+                onClick={paginaAnterior}
+                disabled={paginaActual === 1}
+              >
+                Anterior
+              </button>
+              
+              {[...Array(totalPaginas)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  className={`btn-pag-numero-equipos ${paginaActual === i + 1 ? 'activo' : ''}`}
+                  onClick={() => irAPagina(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              
+              <button 
+                className="btn-pag-equipos"
+                onClick={paginaSiguiente}
+                disabled={paginaActual >= totalPaginas}
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ModalAgregar
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onGuardar={handleGuardarEquipo}
+          titulo="Agregar Equipo"
+          placeholder="Ingresar Equipo"
+          icono="⚙️"
+        />
+      </div>
+    </Layout>
+  );
+};
+
+export default AdministrarEquipos;

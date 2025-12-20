@@ -71,7 +71,6 @@ body, html {
 .menu-link {
   color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
-  font-weight: 500;
   font-size: 1rem;
   letter-spacing: 0.05em;
   transition: all 0.3s ease;
@@ -87,7 +86,6 @@ body, html {
 .menu-link.active {
   color: #5eb3d6;
   background: rgba(94, 179, 214, 0.15);
-  font-weight: 600;
 }
 
 .header-right {
