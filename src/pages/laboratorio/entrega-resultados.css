@@ -1,0 +1,569 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Wrapper Principal */
+.entrega-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Codec Pro', sans-serif;
+  color: white;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Título */
+.entrega-title-section {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.7);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.entrega-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 1px;
+}
+
+/* Controles Superiores */
+.entrega-controls-top {
+  background: rgba(10, 25, 41, 0.7);
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.controls-row-1,
+.controls-row-2 {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.fecha-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fecha-grupo label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.input-fecha-entrega {
+  padding: 0.6rem 0.9rem;
+  background: rgba(100, 120, 40, 0.6);
+  border: 1px solid rgba(150, 180, 60, 0.5);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.input-fecha-entrega:focus {
+  outline: none;
+  border-color: rgba(150, 180, 60, 0.8);
+}
+
+.checkbox-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.checkbox-control input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.select-idioma-entrega {
+  padding: 0.6rem 0.9rem;
+  background: rgba(10, 25, 41, 0.8);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.select-idioma-entrega option {
+  background: #0a1929;
+  color: white;
+}
+
+.btn-imprimir-entrega {
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-left: auto;
+}
+
+.btn-imprimir-entrega:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
+}
+
+/* Row 2 Buttons */
+.btn-email,
+.btn-whatsapp {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-email {
+  background: rgba(80, 95, 110, 0.8);
+}
+
+.btn-email:hover {
+  background: rgba(80, 95, 110, 1);
+  transform: translateY(-2px);
+}
+
+.btn-whatsapp {
+  background: rgba(80, 95, 110, 0.8);
+}
+
+.btn-whatsapp:hover {
+  background: rgba(80, 95, 110, 1);
+  transform: translateY(-2px);
+}
+
+.buscar-folio-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.barcode-icon {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.input-buscar-folio {
+  flex: 1;
+  padding: 0.6rem 0.9rem;
+  background: rgba(10, 25, 41, 0.8);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+}
+
+.input-buscar-folio:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.input-buscar-folio::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Contenido Principal */
+.entrega-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+/* Panel Izquierdo - Pacientes */
+.panel-pacientes-entrega {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.buscar-nombre-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.buscar-nombre-section label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.input-buscar-nombre {
+  padding: 0.7rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+}
+
+.input-buscar-nombre:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+/* Tabla Pacientes */
+.tabla-pacientes-entrega-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid rgba(111, 179, 210, 0.2);
+  border-radius: 8px;
+}
+
+.tabla-pacientes-entrega {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-pacientes-entrega thead {
+  position: sticky;
+  top: 0;
+  background: rgba(30, 40, 50, 0.95);
+  z-index: 10;
+}
+
+.tabla-pacientes-entrega th {
+  padding: 0.8rem 0.6rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+}
+
+.tabla-pacientes-entrega tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.tabla-pacientes-entrega tbody tr:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-pacientes-entrega tbody tr.selected {
+  background: rgba(111, 179, 210, 0.25);
+  border-left: 3px solid #6FB3D2;
+}
+
+.tabla-pacientes-entrega td {
+  padding: 0.8rem 0.6rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.registros-info {
+  padding: 0.75rem;
+  background: rgba(10, 25, 41, 0.4);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+/* Panel Derecho - Detalles */
+.panel-detalles-entrega {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+/* Observaciones */
+.observaciones-entrega-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.observaciones-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.observaciones-header label {
+  font-size: 0.9rem;
+  color: #6FB3D2;
+  font-weight: 500;
+}
+
+.btn-guardar-obs {
+  background: rgba(111, 179, 210, 0.2);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+  color: #6FB3D2;
+}
+
+.btn-guardar-obs:hover {
+  background: rgba(111, 179, 210, 0.3);
+  transform: scale(1.05);
+}
+
+.textarea-observaciones-entrega {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.textarea-observaciones-entrega:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+/* Historial */
+.historial-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historial-section label {
+  font-size: 0.9rem;
+  color: #6FB3D2;
+  font-weight: 500;
+}
+
+.historial-container {
+  background: rgba(10, 25, 41, 0.4);
+  border: 1px solid rgba(111, 179, 210, 0.2);
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-height: 100px;
+}
+
+.sin-historial {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2rem;
+  font-style: italic;
+}
+
+.tabla-historial {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-historial th {
+  padding: 0.6rem;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #6FB3D2;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.tabla-historial td {
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Tabla Estudios */
+.estudios-entrega-section {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid rgba(111, 179, 210, 0.2);
+  border-radius: 8px;
+}
+
+.tabla-estudios-entrega {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-estudios-entrega thead {
+  position: sticky;
+  top: 0;
+  background: rgba(30, 40, 50, 0.95);
+  z-index: 10;
+}
+
+.tabla-estudios-entrega th {
+  padding: 0.8rem 0.6rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+}
+
+.tabla-estudios-entrega tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: background 0.2s;
+}
+
+.tabla-estudios-entrega tbody tr:hover {
+  background: rgba(111, 179, 210, 0.05);
+}
+
+.tabla-estudios-entrega td {
+  padding: 0.8rem 0.6rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.sin-estudios {
+  text-align: center;
+  padding: 3rem !important;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.estatus-badge {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.estatus-badge.validado {
+  background: rgba(66, 165, 245, 0.3);
+  color: #42A5F5;
+  border: 1px solid rgba(66, 165, 245, 0.5);
+}
+
+.estatus-badge.entregado {
+  background: rgba(102, 187, 106, 0.3);
+  color: #66BB6A;
+  border: 1px solid rgba(102, 187, 106, 0.5);
+}
+
+.btn-entregar {
+  background: rgba(102, 187, 106, 0.2);
+  border: 1px solid rgba(102, 187, 106, 0.3);
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #66BB6A;
+  transition: all 0.2s;
+}
+
+.btn-entregar:hover {
+  background: rgba(102, 187, 106, 0.3);
+  transform: scale(1.1);
+}
+
+/* Scrollbar */
+.tabla-pacientes-entrega-container::-webkit-scrollbar,
+.estudios-entrega-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tabla-pacientes-entrega-container::-webkit-scrollbar-track,
+.estudios-entrega-section::-webkit-scrollbar-track {
+  background: rgba(10, 25, 41, 0.3);
+}
+
+.tabla-pacientes-entrega-container::-webkit-scrollbar-thumb,
+.estudios-entrega-section::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 4px;
+}
+
+.tabla-pacientes-entrega-container::-webkit-scrollbar-thumb:hover,
+.estudios-entrega-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .entrega-content {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-pacientes-entrega {
+    max-height: 50vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .entrega-title-section {
+    padding: 1rem;
+  }
+
+  .entrega-controls-top {
+    padding: 1rem;
+  }
+
+  .controls-row-1,
+  .controls-row-2 {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-imprimir-entrega {
+    margin-left: 0;
+  }
+
+  .entrega-content {
+    padding: 1rem;
+  }
+
+  .tabla-pacientes-entrega,
+  .tabla-estudios-entrega {
+    font-size: 0.8rem;
+  }
+
+  .tabla-pacientes-entrega th,
+  .tabla-pacientes-entrega td,
+  .tabla-estudios-entrega th,
+  .tabla-estudios-entrega td {
+    padding: 0.5rem 0.4rem;
+  }
+}

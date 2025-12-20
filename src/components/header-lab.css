@@ -1,0 +1,158 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.85rem 2rem;
+  background: rgba(10, 25, 41, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  position: relative;
+  min-height: 60px;
+  font-family: 'Codec Pro', sans-serif;
+}
+
+/* Variante azul para páginas como Captura */
+.app-header.azul {
+  background: linear-gradient(135deg, rgba(41, 128, 185, 0.85) 0%, rgba(52, 152, 219, 0.85) 100%);
+}
+
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.header-logo {
+  height: 42px;
+  object-fit: contain;
+}
+
+.header-right {
+  position: absolute;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name {
+  font-size: 0.95rem;
+  color: white;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border-radius: 50%;
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+}
+
+/* Dropdown Menu */
+.user-dropdown-menu {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: rgba(80, 95, 110, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2.5rem 1rem 1rem 1rem;
+  min-width: 180px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  animation: fadeInMenu 0.2s ease;
+}
+
+.close-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.menu-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 8px;
+  margin-bottom: 0.3rem;
+}
+
+.menu-item:hover {
+  background: rgba(111, 179, 210, 0.2);
+  color: #6FB3D2;
+}
+
+.menu-item.logout {
+  color: #ff6b6b;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.menu-item.logout:hover {
+  background: rgba(255, 107, 107, 0.2);
+}
+
+/* Animación */
+@keyframes fadeInMenu {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .header-right {
+    right: 1rem;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .user-dropdown-menu {
+    right: 0;
+    min-width: 160px;
+  }
+}

@@ -12,12 +12,6 @@ import notiIcon from '../assets/notificaciones.png';
 const Dashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [empleadoData, setEmpleadoData] = useState(null);
-  const [stats, setStats] = useState({
-    pacientes: 0,
-    estudios: 0,
-    usuarios: 0
-  });
-  const [loading, setLoading] = useState(true);
   const menuRef = useRef(null);
 
   const { user, signOut } = useAuth();
@@ -52,45 +46,11 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error('Error:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchEmpleadoData();
   }, [user]);
-
-  // Cargar estadísticas
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Contar pacientes
-        const { count: pacientesCount } = await supabase
-          .from('paciente')
-          .select('*', { count: 'exact', head: true });
-
-        // Contar usuarios/empleados
-        const { count: usuariosCount } = await supabase
-          .from('empleados')
-          .select('*', { count: 'exact', head: true });
-
-        // Contar estudios (si existe la tabla)
-        const { count: estudiosCount } = await supabase
-          .from('estudios')
-          .select('*', { count: 'exact', head: true });
-
-        setStats({
-          pacientes: pacientesCount || 0,
-          estudios: estudiosCount || 0,
-          usuarios: usuariosCount || 0
-        });
-      } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
-      }
-    };
-
-    fetchStats();
-  }, []);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -138,12 +98,6 @@ const Dashboard = () => {
     return puestos[puesto] || puesto;
   };
 
-  const puedeInvitarUsuarios = () => {
-    if (!empleadoData || !empleadoData.puesto) return false;
-    const puestosAutorizados = ['desarrollador', 'administrador'];
-    return puestosAutorizados.includes(empleadoData.puesto);
-  };
-
   const handleNavigation = (path) => {
     navigate(path);
   };
@@ -166,9 +120,9 @@ const Dashboard = () => {
           <button onClick={() => navigate('/dashboard')} className="menu-link active">
             INICIO
           </button>
-          {/* <button onClick={() => navigate('/usuarios')} className="menu-link">
+          <button onClick={() => navigate('/usuarios')} className="menu-link">
             USUARIOS
-          </button> */}
+          </button>
           <button onClick={() => navigate('/pacientes')} className="menu-link">
             PACIENTES
           </button>
@@ -176,7 +130,7 @@ const Dashboard = () => {
 
         <div className="header-right" ref={menuRef}>
           <span className="user-name">
-            {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Cargando...'}
+            {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Cargando..'}
           </span>
           <img
             src={usericon}
@@ -199,126 +153,43 @@ const Dashboard = () => {
       </header>
 
       <main className="dashboard-main">
-        <div className="dashboard-content">
-          {/* Welcome Section */}
-          <div className="welcome-section">
-            <div className="welcome-text">
-              <h2 className="welcome-title">
-                Bienvenido, {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Usuario'}
-              </h2>
-              <p className="welcome-subtitle">
-                Confianza médica, potenciada con Inteligencia Artificial
-              </p>
-            </div>
-            <img src={californIA} alt="CalifornIA" className="california-logo" />
-          </div>
-
-          {/* Stats Cards */}
-          <div className="stats-section">
-            <div className="stat-card">
-              <div className="stat-icon patients">👥</div>
-              <div className="stat-info">
-                <span className="stat-number">{stats.pacientes}</span>
-                <span className="stat-label">Pacientes</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon studies">📊</div>
-              <div className="stat-info">
-                <span className="stat-number">{stats.estudios}</span>
-                <span className="stat-label">Estudios</span>
-              </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-icon users">👨‍⚕️</div>
-              <div className="stat-info">
-                <span className="stat-number">{stats.usuarios}</span>
-                <span className="stat-label">Usuarios</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="quick-actions-section">
-            <h3 className="section-title">Accesos Rápidos</h3>
+        <div className="dashboard-hero">
+          {/* Texto y logo a la izquierda */}
+          <div className="hero-left">
+            <h1 className="hero-title">
+              Confianza médica, potenciada <br />
+              <span className="hero-highlight">con Inteligencia Artificial.</span>
+            </h1>
             
-            <div className="actions-grid">
-              <div className="action-card radiologia" onClick={() => handleNavigation('/radiologia')}>
-                <div className="action-card-content">
-                  <img src={btnrad} alt="Radiología" className="action-icon" />
-                  <h4 className="action-title">Radiología</h4>
-                  <p className="action-description">
-                    Análisis de rayos X con IA para detección de patologías
-                  </p>
-                </div>
-                <button className="action-button">
-                  Acceder →
-                </button>
-              </div>
-
-              <div className="action-card laboratorio" onClick={() => handleNavigation('/laboratorio')}>
-                <div className="action-card-content">
-                  <img src={btnlab} alt="Laboratorio" className="action-icon" />
-                  <h4 className="action-title">Laboratorio</h4>
-                  <p className="action-description">
-                    Gestión y análisis de estudios de laboratorio clínico
-                  </p>
-                </div>
-                <button className="action-button">
-                  Acceder →
-                </button>
-              </div>
-
-              {/* <div className="action-card pacientes" onClick={() => handleNavigation('/pacientes')}>
-                <div className="action-card-content">
-                  <div className="action-icon-text">👥</div>
-                  <h4 className="action-title">Pacientes</h4>
-                  <p className="action-description">
-                    Gestión completa de expedientes de pacientes
-                  </p>
-                </div>
-                <button className="action-button">
-                  Acceder →
-                </button>
-              </div> */}
-
-              {puedeInvitarUsuarios() && (
-                <div className="action-card usuarios" onClick={() => handleNavigation('/usuarios')}>
-                  <div className="action-card-content">
-                    <div className="action-icon-text">⚙️</div>
-                    <h4 className="action-title">Administración</h4>
-                    <p className="action-description">
-                      Gestión de usuarios y configuración del sistema
-                    </p>
-                  </div>
-                  <button className="action-button">
-                    Acceder →
-                  </button>
-                </div>
-              )}
-            </div>
+            <img 
+              src={californIA} 
+              alt="CalifornIA" 
+              className="hero-logo"
+            />
           </div>
 
-          {/* Recent Activity */}
-          <div className="recent-activity-section">
-            <h3 className="section-title">Actividad Reciente</h3>
-            <div className="activity-container">
-              <div className="activity-placeholder">
-                <span className="placeholder-icon">📋</span>
-                <p className="placeholder-text">No hay actividad reciente</p>
-                <p className="placeholder-subtext">La actividad del sistema aparecerá aquí</p>
-              </div>
-            </div>
+          {/* Cards a la derecha */}
+          <div className="hero-right">
+            <img 
+              src={btnrad} 
+              alt="Radiología" 
+              className="hero-btn-image"
+              onClick={() => handleNavigation('/radiologia')}
+            />
+
+            <img 
+              src={btnlab} 
+              alt="Laboratorio" 
+              className="hero-btn-image"
+              onClick={() => handleNavigation('/laboratorio')}
+            />
           </div>
         </div>
       </main>
 
       <footer className="dashboard-footer">
         <p className="footer-disclaimer">
-          <span className="disclaimer-icon">⚕️</span>
-          La información generada por CalifornIA tiene únicamente fines de apoyo clínico.
+          La información generada por CalifornIA tiene únicamente fines de apoyo clínico. 
           Cualquier resultado debe interpretarse como orientación y validarse por un especialista.
         </p>
       </footer>

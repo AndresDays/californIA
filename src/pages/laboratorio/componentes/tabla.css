@@ -1,0 +1,144 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.tabla-generica-container {
+  flex: 1;
+  overflow: auto;
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  
+  /* SCROLL VERTICAL */
+  max-height: 600px; /* Altura máxima de la tabla */
+  overflow-y: auto;  /* Scroll vertical */
+  overflow-x: auto;  /* Scroll horizontal si es necesario */
+}
+
+.tabla-generica {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Codec Pro', sans-serif;
+}
+
+.tabla-generica thead {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 25, 41, 0.95);
+  z-index: 10;
+}
+
+.tabla-generica th {
+  padding: 0.9rem 0.7rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tabla-generica th:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-generica tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+}
+
+.tabla-generica tbody tr:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-generica td {
+  padding: 0.9rem 0.7rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.sin-datos {
+  text-align: center;
+  padding: 3rem !important;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.acciones-tabla-generica {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-editar-tabla-generica,
+.btn-eliminar-tabla-generica {
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-editar-tabla-generica {
+  background: #ffc107;
+  color: #333;
+}
+
+.btn-editar-tabla-generica:hover {
+  background: #e0a800;
+  transform: scale(1.1);
+}
+
+.btn-eliminar-tabla-generica {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-eliminar-tabla-generica:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+/* SCROLLBAR PERSONALIZADO */
+.tabla-generica-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tabla-generica-container::-webkit-scrollbar-track {
+  background: rgba(10, 25, 41, 0.3);
+}
+
+.tabla-generica-container::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 4px;
+}
+
+.tabla-generica-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
+/* Para Firefox */
+.tabla-generica-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(111, 179, 210, 0.5) rgba(10, 25, 41, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tabla-generica-container {
+  animation: fadeIn 0.5s ease;
+}

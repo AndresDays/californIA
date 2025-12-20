@@ -1,0 +1,529 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Wrapper principal */
+.captura-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Codec Pro', sans-serif;
+  color: white;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Filtros */
+.filtros-section {
+  background: rgba(10, 25, 41, 0.85);
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.filtros-row {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filtro-fecha,
+.filtro-busqueda,
+.filtro-select {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filtro-fecha label,
+.filtro-busqueda label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.input-fecha,
+.input-busqueda,
+.select-filtro {
+  padding: 0.75rem 1.1rem;
+  background: rgba(10, 25, 41, 0.8);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+
+.input-fecha {
+  min-width: 160px;
+  background: rgba(100, 120, 40, 0.6);
+  border-color: rgba(150, 180, 60, 0.5);
+}
+
+.input-fecha:focus,
+.input-busqueda:focus,
+.select-filtro:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.input-busqueda {
+  min-width: 200px;
+}
+
+.input-busqueda::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.select-filtro {
+  min-width: 160px;
+  cursor: pointer;
+}
+
+.select-filtro option {
+  background: #0a1929;
+  color: white;
+}
+
+/* Contenido Principal */
+.captura-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+/* Panel de Pacientes */
+.panel-pacientes {
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.panel-header-pacientes {
+  background: linear-gradient(135deg, rgba(41, 128, 185, 0.9) 0%, rgba(52, 152, 219, 0.9) 100%);
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.panel-header-pacientes h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pacientes-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.1rem 1.5rem;
+  background: rgba(10, 25, 41, 0.5);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.badge-pac {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+  color: white;
+}
+
+.badge-numero {
+  background: rgba(139, 195, 74, 0.8);
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+/* Tabla de Pacientes */
+.tabla-pacientes-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.tabla-pacientes {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-pacientes thead {
+  position: sticky;
+  top: 0;
+  background: rgba(30, 40, 50, 0.95);
+  z-index: 10;
+}
+
+.tabla-pacientes th {
+  padding: 0.9rem 0.75rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+}
+
+.tabla-pacientes tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.tabla-pacientes tbody tr:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-pacientes tbody tr.selected {
+  background: rgba(111, 179, 210, 0.25);
+  border-left: 3px solid #6FB3D2;
+}
+
+.tabla-pacientes td {
+  padding: 0.9rem 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+.no-data {
+  text-align: center;
+  padding: 2rem !important;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Panel de Captura */
+.panel-captura {
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.panel-header-captura {
+  background: linear-gradient(135deg, rgba(38, 166, 154, 0.9) 0%, rgba(26, 188, 156, 0.9) 100%);
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.panel-header-captura h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.captura-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.1rem 1.5rem;
+  background: rgba(10, 25, 41, 0.5);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  flex-wrap: wrap;
+}
+
+.btn-vista-previa {
+  padding: 0.75rem 1.5rem;
+  background: rgba(96, 125, 139, 0.8);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-vista-previa:hover {
+  background: rgba(96, 125, 139, 1);
+  transform: translateY(-2px);
+}
+
+.select-idioma {
+  padding: 0.75rem 1.1rem;
+  background: rgba(10, 25, 41, 0.8);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.select-idioma option {
+  background: #0a1929;
+  color: white;
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.checkbox-inline input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.btn-imprimir {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-left: auto;
+}
+
+.btn-imprimir:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
+}
+
+/* Observaciones */
+.observaciones-section {
+  padding: 1.1rem 1.5rem;
+  background: rgba(10, 25, 41, 0.3);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.observaciones-section label {
+  display: block;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.6rem;
+}
+
+.textarea-observaciones {
+  width: 100%;
+  padding: 0.8rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.textarea-observaciones:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.textarea-observaciones::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Tabla de Resultados */
+.tabla-resultados-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.tabla-resultados {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-resultados thead {
+  position: sticky;
+  top: 0;
+  background: rgba(30, 40, 50, 0.95);
+  z-index: 10;
+}
+
+.tabla-resultados th {
+  padding: 0.9rem 0.75rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+}
+
+.tabla-resultados tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: background 0.2s;
+}
+
+.tabla-resultados tbody tr:hover {
+  background: rgba(111, 179, 210, 0.05);
+}
+
+.tabla-resultados td {
+  padding: 0.9rem 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+.input-resultado {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 4px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+}
+
+.input-resultado:focus {
+  outline: none;
+  border-color: #6FB3D2;
+  background: rgba(10, 25, 41, 0.8);
+}
+
+.input-resultado::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Acciones de Captura */
+.captura-actions {
+  padding: 1.5rem 1.5rem;
+  background: rgba(10, 25, 41, 0.5);
+  border-top: 1px solid rgba(111, 179, 210, 0.2);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-guardar-captura {
+  padding: 0.9rem 2.25rem;
+  background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+  border: none;
+  border-radius: 7px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 187, 106, 0.3);
+}
+
+.btn-guardar-captura:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 187, 106, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .captura-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .panel-pacientes {
+    max-height: 50vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtros-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtro-fecha,
+  .filtro-busqueda,
+  .filtro-select {
+    width: 100%;
+  }
+
+  .input-fecha,
+  .input-busqueda,
+  .select-filtro {
+    width: 100%;
+  }
+
+  .captura-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-imprimir {
+    margin-left: 0;
+  }
+
+  .tabla-pacientes,
+  .tabla-resultados {
+    font-size: 0.75rem;
+  }
+
+  .tabla-pacientes th,
+  .tabla-pacientes td,
+  .tabla-resultados th,
+  .tabla-resultados td {
+    padding: 0.4rem;
+  }
+}
+
+/* Scrollbar personalizado */
+.tabla-pacientes-container::-webkit-scrollbar,
+.tabla-resultados-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tabla-pacientes-container::-webkit-scrollbar-track,
+.tabla-resultados-container::-webkit-scrollbar-track {
+  background: rgba(10, 25, 41, 0.3);
+}
+
+.tabla-pacientes-container::-webkit-scrollbar-thumb,
+.tabla-resultados-container::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 4px;
+}
+
+.tabla-pacientes-container::-webkit-scrollbar-thumb:hover,
+.tabla-resultados-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}

@@ -1,0 +1,378 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Wrapper Principal */
+.agregar-analitos-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Codec Pro', sans-serif;
+  color: white;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Header de Página */
+.agregar-analitos-header {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.8);
+  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+}
+
+.agregar-analitos-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 1px;
+}
+
+/* Contenido Principal */
+.agregar-analitos-content {
+  flex: 1;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  overflow: auto;
+}
+
+/* Panel Izquierdo */
+.panel-buscar-estudio {
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: fit-content;
+}
+
+/* Buscar Estudio */
+.buscar-estudio-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  padding: 0 1rem;
+}
+
+.icon-buscar {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.input-buscar-estudio-analito {
+  flex: 1;
+  padding: 0.75rem 0;
+  background: transparent;
+  border: none;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+}
+
+.input-buscar-estudio-analito:focus {
+  outline: none;
+}
+
+.input-buscar-estudio-analito::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Botón Vista Previa */
+.btn-vista-previa {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-vista-previa:hover {
+  background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Botones de Acción */
+.botones-accion-analitos {
+  display: flex;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.btn-guardar-analitos,
+.btn-nuevo-analitos {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-guardar-analitos {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.btn-guardar-analitos:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.btn-nuevo-analitos {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+}
+
+.btn-nuevo-analitos:hover {
+  background: linear-gradient(135deg, #e0a800 0%, #d39e00 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+}
+
+/* Panel Derecho - Tabla */
+.panel-tabla-analitos {
+  background: rgba(10, 25, 41, 0.85);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+/* Buscar Analitos */
+.buscar-analitos-grupo {
+  width: 100%;
+}
+
+.input-buscar-analitos {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+}
+
+.input-buscar-analitos:focus {
+  outline: none;
+  border-color: #6FB3D2;
+}
+
+.input-buscar-analitos::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Tabla de Analitos */
+.tabla-analitos-container {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid rgba(111, 179, 210, 0.2);
+  border-radius: 8px;
+}
+
+.tabla-analitos {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-analitos thead {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 25, 41, 0.95);
+  z-index: 10;
+}
+
+.tabla-analitos th {
+  padding: 0.9rem 0.7rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
+  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tabla-analitos th:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-analitos tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+}
+
+.tabla-analitos tbody tr:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-analitos td {
+  padding: 0.9rem 0.7rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.sin-analitos {
+  text-align: center;
+  padding: 3rem !important;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Acciones */
+.acciones-analitos {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-editar-analito,
+.btn-eliminar-analito {
+  padding: 0.4rem 0.7rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-editar-analito {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-editar-analito:hover {
+  background: #5a6268;
+  transform: scale(1.1);
+}
+
+.btn-eliminar-analito {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-eliminar-analito:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+/* Contador de Analitos */
+.contador-analitos {
+  padding: 0.75rem 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: left;
+}
+
+/* Botón Crear Analitos */
+.btn-crear-analitos {
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  align-self: flex-start;
+}
+
+.btn-crear-analitos:hover {
+  background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* Scrollbar */
+.tabla-analitos-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tabla-analitos-container::-webkit-scrollbar-track {
+  background: rgba(10, 25, 41, 0.3);
+}
+
+.tabla-analitos-container::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 4px;
+}
+
+.tabla-analitos-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .agregar-analitos-content {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-buscar-estudio {
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .agregar-analitos-header {
+    padding: 1rem;
+  }
+
+  .agregar-analitos-content {
+    padding: 1rem;
+  }
+
+  .botones-accion-analitos {
+    flex-direction: column;
+  }
+
+  .btn-guardar-analitos,
+  .btn-nuevo-analitos {
+    width: 100%;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-buscar-estudio,
+.panel-tabla-analitos {
+  animation: fadeIn 0.5s ease;
+}
