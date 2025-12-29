@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout';
 import Header from '../../../components/header-laboratorio.jsx';
 import Tabla from '../componentes/tabla';
+import ModalAgregar from '../componentes/modal-agregar.jsx';
 import './administrar-tecnicas.css';
 
 const AdministrarTecnicas = () => {
@@ -16,6 +17,9 @@ const AdministrarTecnicas = () => {
   const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalTecnicas, setTotalTecnicas] = useState(0);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [tecnicasEditando, setTecnicasEditando] = useState(null);
 
   useEffect(() => {
     cargarTecnicas();
@@ -48,12 +52,60 @@ const AdministrarTecnicas = () => {
   };
 
   const handleAgregarTecnica = () => {
-    navigate('/configuracion/tecnica/agregar');
-  };
+        setModalOpen(true);
+        setModoEdicion(false);
+        setTecnicasEditando(null);
+      };
+    
+  const handleGuardarTecnica = async (nombre) => {
+      try {
+        if (modoEdicion && tecnicasEditando) {
+          const { error } = await supabase
+            .from('tecnicas')
+            .update({ nombre: nombre })
+            .eq('id', tecnicasEditando.id);
+  
+          if (error) throw error;
+  
+          alert('Tecnica actualizada correctamente');
+        } else {
+          const { error } = await supabase
+            .from('tecnicas')
+            .insert([{ nombre: nombre }]);
+  
+          if (error) throw error;
+  
+          alert('Tecnica agregada correctamente');
+        }
+  
+        cargarTecnicas();
+        setModalOpen(false);
+        setModoEdicion(false);
+        setTecnicasEditando(null);
+      } catch (error) {
+        console.error('Error al guardar tecnica:', error);
+        alert('Error al guardar tecnica');
+      }
+    };
 
-  const handleEditarTecnica = (id) => {
-    navigate(`/configuracion/tecnica/editar/${id}`);
-  };
+  const handleEditarTecnica = async (id) => {
+      try {
+        const { data, error } = await supabase
+          .from('tecnicas')
+          .select('*')
+          .eq('id', id)
+          .single();
+  
+        if (error) throw error;
+  
+        setModoEdicion(true);
+        setTecnicasEditando(data);
+        setModalOpen(true);
+      } catch (error) {
+        console.error('Error al cargar tecnica para editar:', error);
+        alert('Error al cargar tecnica');
+      }
+    };
 
   const paginaSiguiente = () => {
     if (paginaActual * registrosPorPagina < totalTecnicas) {
@@ -166,6 +218,20 @@ const AdministrarTecnicas = () => {
             </div>
           </div>
         </div>
+        <ModalAgregar
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setTecnicasEditando(null);
+          }}
+          onGuardar={handleGuardarTecnica}
+          titulo={modoEdicion ? "Editar" : "Agregar Tecnica"}
+          placeholder={modoEdicion ? "Editar Tecnica" : "Ingresar Tecnica"}
+          icono="⚙️"
+          valorInicial={modoEdicion ? tecnicasEditando?.nombre : ""}
+          modoEdicion={modoEdicion}
+        />
       </div>
     </Layout>
   );

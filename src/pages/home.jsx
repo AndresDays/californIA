@@ -17,35 +17,28 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Obtener datos del usuario actual
+  // Obtener datos del empleado desde tabla empleados
   useEffect(() => {
     const fetchEmpleadoData = async () => {
-      if (!user) return;
+      if (!user?.id) return;
 
       try {
-        const { data: perfil, error: perfilError } = await supabase
-          .from('perfiles_usuario')
-          .select('id_empleado, nombre')
-          .eq('id', user.id)
-          .single();
+        const { data: empleado, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', user.id)
+          .maybeSingle();
 
-        if (perfilError || !perfil) return;
+        if (error) {
+          console.error('Error al obtener empleado:', error);
+          return;
+        }
 
-        if (perfil.id_empleado) {
-          const { data: empleado } = await supabase
-            .from('empleados')
-            .select('nombre, puesto, cedula_profesional')
-            .eq('id_empleado', perfil.id_empleado)
-            .single();
-
-          if (empleado) {
-            setEmpleadoData(empleado);
-          } else if (perfil.nombre) {
-            setEmpleadoData({ nombre: perfil.nombre, puesto: null });
-          }
+        if (empleado) {
+          setEmpleadoData(empleado);
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al obtener datos del empleado:', error);
       }
     };
 
@@ -82,20 +75,23 @@ const Dashboard = () => {
     return nombreCompleto;
   };
 
-  const formatPuesto = (puesto) => {
-    if (!puesto) return 'Usuario';
+  const formatRol = (rol) => {
+    if (!rol) return 'Usuario';
 
-    const puestos = {
+    const roles = {
+      'admin': 'Administrador',
       'administrador': 'Administrador',
       'radiologo': 'Radiólogo - Director',
+      'doctor': 'Médico',
       'medico': 'Médico',
       'tecnico_radiologia': 'Técnico en Radiología',
+      'tecnico': 'Técnico',
       'quimico': 'Químico',
       'recepcionista': 'Recepcionista',
       'desarrollador': 'Desarrollador'
     };
 
-    return puestos[puesto] || puesto;
+    return roles[rol] || rol;
   };
 
   const handleNavigation = (path) => {
@@ -112,7 +108,7 @@ const Dashboard = () => {
             className="notification-icon"
           />
           <h1 className="header-title">
-            {empleadoData ? formatPuesto(empleadoData.puesto) : 'Cargando...'}
+            {empleadoData ? formatRol(empleadoData.rol) : 'Cargando...'}
           </h1>
         </div>
 

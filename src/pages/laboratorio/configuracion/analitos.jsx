@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout';
 import Header from '../../../components/header-laboratorio.jsx';
+import ModalAnalito from '../componentes/modal-analito';
 import './Analitos.css';
 
 const Analitos = () => {
@@ -15,6 +16,9 @@ const Analitos = () => {
   const [analitos, setAnalitos] = useState([]);
   const [totalAnalitos, setTotalAnalitos] = useState(0);
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [analitoEditando, setAnalitoEditando] = useState(null);
 
   useEffect(() => {
     cargarAnalitos();
@@ -38,14 +42,7 @@ const Analitos = () => {
       if (error) throw error;
 
       setTotalAnalitos(count || 0);
-      
-      const analitosFormateados = data?.map(analito => ({
-        id: analito.id,
-        clave: analito.clave || '',
-        descripcion: analito.descripcion || ''
-      })) || [];
-
-      setAnalitos(analitosFormateados);
+      setAnalitos(data || []);
     } catch (error) {
       console.error('Error al cargar analitos:', error);
     }
@@ -70,11 +67,59 @@ const Analitos = () => {
   };
 
   const handleCrearAnalitos = () => {
-    navigate('/configuracion/analitos/crear');
+    setModoEdicion(false);
+    setAnalitoEditando(null);
+    setModalOpen(true);
   };
 
-  const handleEditarAnalito = (id) => {
-    navigate(`/configuracion/analitos/editar/${id}`);
+  const handleEditarAnalito = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('analitos')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      setModoEdicion(true);
+      setAnalitoEditando(data);
+      setModalOpen(true);
+    } catch (error) {
+      console.error('Error al cargar analito para editar:', error);
+      alert('Error al cargar el analito');
+    }
+  };
+
+  const handleGuardarAnalito = async (analitoData) => {
+    try {
+      if (modoEdicion && analitoEditando) {
+        const { error } = await supabase
+          .from('analitos')
+          .update(analitoData)
+          .eq('id', analitoEditando.id);
+
+        if (error) throw error;
+
+        alert('Analito actualizado correctamente');
+      } else {
+        const { error } = await supabase
+          .from('analitos')
+          .insert([analitoData]);
+
+        if (error) throw error;
+
+        alert('Analito creado correctamente');
+      }
+
+      cargarAnalitos();
+      setModalOpen(false);
+      setModoEdicion(false);
+      setAnalitoEditando(null);
+    } catch (error) {
+      console.error('Error al guardar analito:', error);
+      alert('Error al guardar el analito');
+    }
   };
 
   const handleEliminarAnalito = async (id) => {
@@ -202,6 +247,19 @@ const Analitos = () => {
             </button>
           </div>
         </div>
+
+        {/* Modal para crear/editar analitos */}
+        <ModalAnalito
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setAnalitoEditando(null);
+          }}
+          onGuardar={handleGuardarAnalito}
+          analitoInicial={modoEdicion ? analitoEditando : null}
+          modoEdicion={modoEdicion}
+        />
       </div>
     </Layout>
   );

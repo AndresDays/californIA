@@ -18,6 +18,8 @@ const TipoMuestra = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalMuestras, setTotalMuestras] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [muestraEditando, setMuestraEditando] = useState(null);
 
   useEffect(() => {
     cargarMuestras();
@@ -50,27 +52,60 @@ const TipoMuestra = () => {
   };
 
   const handleAgregarMuestra = () => {
+      setModoEdicion(false);
+      setMuestraEditando(null);
       setModalOpen(true);
     };
-  
-    const handleGuardarMuestra = async (nombre) => {
+
+  const handleEditarMuestra = async (id) => {
       try {
         const { data, error } = await supabase
           .from('tipo_muestra')
-          .insert([{ nombre: nombre }]);
+          .select('*')
+          .eq('id', id)
+          .single();
   
         if (error) throw error;
   
-        cargarMuestras();
+        setModoEdicion(true);
+        setMuestraEditando(data);
+        setModalOpen(true);
       } catch (error) {
-        console.error('Error al guardar muestra:', error);
-        alert('Error al guardar el muestra');
+        console.error('Error al cargar muestra para editar:', error);
+        alert('Error al cargar la muestra');
       }
     };
 
-  const handleEditarMuestra = (id) => {
-    navigate(`/configuracion/tipo-muestra/editar/${id}`);
-  };
+    const handleGuardarMuestra = async (categoria) => {
+        try {
+          if (modoEdicion && muestraEditando) {
+            const { error } = await supabase
+              .from('tipo_muestra')
+              .update({ categoria: categoria })
+              .eq('id', muestraEditando.id);
+    
+            if (error) throw error;
+    
+            alert('Muestra actualizada correctamente');
+          } else {
+            const { error } = await supabase
+              .from('tipo_muestra')
+              .insert([{ categoria: categoria }]);
+    
+            if (error) throw error;
+    
+            alert('Muestra agregada correctamente');
+          }
+    
+          cargarMuestras();
+          setModalOpen(false);
+          setModoEdicion(false);
+          setMuestraEditando(null);
+        } catch (error) {
+          console.error('Error al guardar muestra:', error);
+          alert('Error al guardar la muestra');
+        }
+      };
 
   const paginaSiguiente = () => {
     if (paginaActual * registrosPorPagina < totalMuestras) {
@@ -185,8 +220,17 @@ const TipoMuestra = () => {
         </div>
         <ModalAgregar
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setMuestraEditando(null);
+          }}
           onGuardar={handleGuardarMuestra}
+          titulo={modoEdicion ? "Editar" : "Agregar Muestra"}
+          placeholder={modoEdicion ? "Editar Muestra" : "Ingresar Muestra"}
+          icono="⚙️"
+          valorInicial={modoEdicion ? muestraEditando?.categoria : ""}
+          modoEdicion={modoEdicion}
         />
       </div>
     </Layout>

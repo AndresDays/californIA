@@ -26,7 +26,6 @@ const Laboratorio = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -43,34 +42,27 @@ const Laboratorio = () => {
     };
   }, [menuOpen]);
 
-  // Obtener datos del usuario
   useEffect(() => {
     const fetchEmpleadoData = async () => {
-      if (!user) return;
+      if (!user?.id) return;
 
       try {
-        const { data: perfil, error: perfilError } = await supabase
-          .from('perfiles_usuario')
-          .select('id_empleado, nombre')
-          .eq('id', user.id)
-          .single();
+        const { data: empleado, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', user.id)
+          .maybeSingle();
 
-        if (perfilError || !perfil) return;
+        if (error) {
+          console.error('Error al obtener empleado:', error);
+          return;
+        }
 
-        if (perfil.id_empleado) {
-          const { data: empleado } = await supabase
-            .from('empleados')
-            .select('nombre, puesto, cedula_profesional')
-            .eq('id_empleado', perfil.id_empleado)
-            .single();
-
-          if (empleado) {
-            setEmpleadoData({
-              nombre: empleado.nombre || perfil.nombre,
-              puesto: empleado.puesto,
-              cedula: empleado.cedula_profesional
-            });
-          }
+        if (empleado) {
+          setEmpleadoData({
+            nombre: empleado.nombre,
+            rol: empleado.rol
+          });
         }
       } catch (error) {
         console.error('Error al obtener datos del empleado:', error);
@@ -80,7 +72,6 @@ const Laboratorio = () => {
     fetchEmpleadoData();
   }, [user]);
 
-  // Obtener estudios de laboratorio y estadísticas
   useEffect(() => {
     const fetchEstudios = async () => {
       try {
@@ -211,12 +202,9 @@ const Laboratorio = () => {
   return (
     <Layout>
       <div className="laboratorio-wrapper">
-        {/* Header */}
         <HeaderLab/>
 
-        {/* Main Content */}
         <main className="laboratorio-main">
-          {/* Estadísticas */}
           <div className="stats-section">
             <div className="stat-card">
               <div className="stat-number">{stats.total}</div>
@@ -236,7 +224,6 @@ const Laboratorio = () => {
             </div>
           </div>
 
-          {/* Controles */}
           <div className="controls-section">
             <div className="search-filter-container">
               <input
@@ -261,7 +248,7 @@ const Laboratorio = () => {
 
             <button 
               className="btn-nuevo-estudio"
-              onClick={() => navigate('/laboratorio/nuevo')}
+              onClick={() => navigate('/nuevo-paciente')}
             >
               + Nuevo Estudio
             </button>
@@ -342,8 +329,7 @@ const Laboratorio = () => {
         {/* Footer */}
         <footer className="laboratorio-footer">
           <p className="footer-text">
-            Bienvenido: {empleadoData?.nombre || 'Usuario'} | Puesto: {empleadoData?.puesto || 'N/A'}
-            {empleadoData?.cedula && ` | Cédula: ${empleadoData.cedula}`}
+            Bienvenido: {empleadoData?.nombre || 'Usuario'} | Puesto: {empleadoData?.rol || 'N/A'}
           </p>
         </footer>
 

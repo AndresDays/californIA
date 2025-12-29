@@ -1,0 +1,225 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000; /* Muy alto para estar sobre todo */
+  padding: 2rem;
+}
+
+/* Modal Container */
+.modal-container {
+  background: linear-gradient(135deg, #0a1929 0%, #1a2942 100%);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: 'Codec Pro', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal Header */
+.modal-header {
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: rgba(40, 50, 60, 0.3);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 3px;
+}
+
+/* Form Sections */
+.form-section-modal {
+  margin-bottom: 0.75rem;
+}
+
+/* Form Groups */
+.form-group-modal {
+  margin-bottom: 1rem;
+}
+
+.form-group-modal label {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+}
+
+/* Form Row */
+.form-row-modal {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Inputs */
+.modal-input,
+.modal-select {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 7px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.modal-input:focus,
+.modal-select:focus {
+  outline: none;
+  border-color: #6FB3D2;
+  background: rgba(10, 25, 41, 0.8);
+}
+
+.modal-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.modal-select option {
+  background: #0a1929;
+  color: white;
+}
+
+.modal-input[readonly] {
+  background: rgba(10, 25, 41, 0.4);
+  cursor: not-allowed;
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.4);
+  border-top: 1px solid rgba(111, 179, 210, 0.2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* Buttons */
+.btn-modal-cancel,
+.btn-modal-save {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 7px;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-modal-cancel {
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.btn-modal-cancel:hover {
+  background: rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-modal-save {
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(111, 179, 210, 0.3);
+}
+
+.btn-modal-save:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(111, 179, 210, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-container {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    flex-direction: column;
+  }
+
+  .btn-modal-cancel,
+  .btn-modal-save {
+    width: 100%;
+  }
+
+  .form-row-modal {
+    grid-template-columns: 1fr;
+  }
+}

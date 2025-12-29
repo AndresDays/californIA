@@ -3,7 +3,7 @@
 /* ============================================
    MODAL OVERLAY
    ============================================ */
-.modal-overlay {
+.modal-overlay-analito {
   position: fixed;
   top: 0;
   left: 0;
@@ -21,7 +21,7 @@
 /* ============================================
    MODAL CONTENEDOR
    ============================================ */
-.modal-contenedor {
+.modal-contenedor-analito {
   background: linear-gradient(180deg, 
     rgba(15, 35, 55, 0.98) 0%, 
     rgba(10, 25, 41, 0.98) 100%
@@ -30,7 +30,7 @@
   border: 1px solid rgba(111, 179, 210, 0.3);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   width: 90%;
-  max-width: 500px;
+  max-width: 700px;
   animation: slideDown 0.3s ease;
   font-family: 'Codec Pro', sans-serif;
 }
@@ -38,7 +38,7 @@
 /* ============================================
    MODAL HEADER
    ============================================ */
-.modal-header {
+.modal-header-analito {
   background: linear-gradient(135deg, 
     rgba(41, 128, 185, 0.9) 0%, 
     rgba(52, 152, 219, 0.9) 100%
@@ -51,7 +51,7 @@
   border-bottom: 1px solid rgba(111, 179, 210, 0.3);
 }
 
-.modal-titulo {
+.modal-titulo-analito {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 500;
@@ -59,7 +59,7 @@
   letter-spacing: 0.5px;
 }
 
-.modal-btn-cerrar {
+.modal-btn-cerrar-analito {
   background: transparent;
   border: none;
   color: white;
@@ -76,7 +76,7 @@
   transition: all 0.2s;
 }
 
-.modal-btn-cerrar:hover {
+.modal-btn-cerrar-analito:hover {
   background: rgba(255, 255, 255, 0.15);
   transform: rotate(90deg);
 }
@@ -84,66 +84,91 @@
 /* ============================================
    MODAL CONTENIDO
    ============================================ */
-.modal-contenido {
-  padding: 2rem 1.5rem 1.5rem;
+.modal-contenido-analito {
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.2rem;
 }
 
 /* ============================================
-   CAMPO CON ICONO
+   CAMPOS DEL FORMULARIO
    ============================================ */
-.modal-campo-icon {
-  display: flex;
-  align-items: center;
+.modal-fila-analito {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.modal-fila-tres {
+  grid-template-columns: 1fr 1fr 1.5fr;
+}
+
+.modal-campo-analito {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-campo-analito label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.modal-label-vr {
+  color: #17a2b8 !important;
+  font-weight: 600 !important;
+}
+
+.modal-input-analito,
+.modal-select-analito {
+  padding: 0.8rem 1rem;
   background: rgba(10, 25, 41, 0.6);
   border: 1px solid rgba(111, 179, 210, 0.3);
-  border-radius: 8px;
-  padding: 0 1.2rem;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
   transition: all 0.3s;
 }
 
-.modal-campo-icon:focus-within {
+.modal-input-analito:focus,
+.modal-select-analito:focus {
+  outline: none;
   border-color: #6FB3D2;
   background: rgba(10, 25, 41, 0.8);
   box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.1);
 }
 
-.modal-icon-campo {
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.6);
-  min-width: 28px;
-  text-align: center;
-}
-
-.modal-input-icon {
-  flex: 1;
-  padding: 1rem 0;
-  background: transparent;
-  border: none;
-  color: white;
-  font-family: 'Codec Pro', sans-serif;
-  font-size: 1rem;
-  outline: none;
-}
-
-.modal-input-icon::placeholder {
+.modal-input-analito::placeholder {
   color: rgba(255, 255, 255, 0.4);
+}
+
+.modal-select-analito {
+  cursor: pointer;
+}
+
+.modal-select-analito option {
+  background: #0a1929;
+  color: white;
+  padding: 0.5rem;
 }
 
 /* ============================================
    BOTONES DEL MODAL
    ============================================ */
-.modal-botones {
+.modal-botones-analito {
   display: flex;
   gap: 1rem;
   padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(111, 179, 210, 0.2);
 }
 
-.modal-btn-salir,
-.modal-btn-guardar {
+.modal-btn-salir-analito,
+.modal-btn-guardar-analito {
   flex: 1;
   padding: 0.85rem 1.5rem;
   border: none;
@@ -157,23 +182,23 @@
   text-transform: capitalize;
 }
 
-.modal-btn-salir {
+.modal-btn-salir-analito {
   background: rgba(108, 117, 125, 0.8);
   border: 1px solid rgba(108, 117, 125, 0.5);
 }
 
-.modal-btn-salir:hover {
+.modal-btn-salir-analito:hover {
   background: rgba(90, 98, 104, 0.9);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
 }
 
-.modal-btn-guardar {
+.modal-btn-guardar-analito {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   border: 1px solid rgba(23, 162, 184, 0.5);
 }
 
-.modal-btn-guardar:hover {
+.modal-btn-guardar-analito:hover {
   background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
@@ -206,30 +231,38 @@
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-  .modal-contenedor {
+  .modal-contenedor-analito {
     width: 95%;
     max-width: none;
     margin: 0 1rem;
   }
 
-  .modal-header {
+  .modal-header-analito {
     padding: 1rem 1.2rem;
   }
 
-  .modal-titulo {
+  .modal-titulo-analito {
     font-size: 1.1rem;
   }
 
-  .modal-contenido {
-    padding: 1.5rem 1.2rem 1.2rem;
+  .modal-contenido-analito {
+    padding: 1.2rem;
   }
 
-  .modal-botones {
+  .modal-fila-analito {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-fila-tres {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-botones-analito {
     flex-direction: column;
   }
 
-  .modal-btn-salir,
-  .modal-btn-guardar {
+  .modal-btn-salir-analito,
+  .modal-btn-guardar-analito {
     width: 100%;
   }
 }
@@ -238,12 +271,13 @@
    ACCESIBILIDAD
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  .modal-overlay,
-  .modal-contenedor,
-  .modal-btn-cerrar,
-  .modal-campo-icon,
-  .modal-btn-salir,
-  .modal-btn-guardar {
+  .modal-overlay-analito,
+  .modal-contenedor-analito,
+  .modal-btn-cerrar-analito,
+  .modal-input-analito,
+  .modal-select-analito,
+  .modal-btn-salir-analito,
+  .modal-btn-guardar-analito {
     animation: none;
     transition: none;
   }

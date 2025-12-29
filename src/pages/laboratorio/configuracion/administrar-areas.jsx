@@ -17,6 +17,8 @@ const AdministrarAreas = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalAreas, setTotalAreas] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [areasEditando, setAreasEditando] = useState(null);
 
   useEffect(() => {
     cargarAreas();
@@ -50,25 +52,58 @@ const AdministrarAreas = () => {
 
   const handleAgregarArea = () => {
         setModalOpen(true);
+        setModoEdicion(false);
+        setAreasEditando(null);
       };
     
       const handleGuardarArea = async (nombre) => {
         try {
-          const { data, error } = await supabase
-            .from('areas')
-            .insert([{ nombre: nombre }]);
+          if (modoEdicion && areasEditando) {
+            const { error } = await supabase
+              .from('areas')
+              .update({ nombre: nombre })
+              .eq('id', areasEditando.id);
     
-          if (error) throw error;
+            if (error) throw error;
+    
+            alert('Area actualizada correctamente');
+          } else {
+            const { error } = await supabase
+              .from('areas')
+              .insert([{ nombre: nombre }]);
+    
+            if (error) throw error;
+    
+            alert('Area agregada correctamente');
+          }
     
           cargarAreas();
+          setModalOpen(false);
+          setModoEdicion(false);
+          setAreasEditando(null);
         } catch (error) {
-          console.error('Error al guardar areas:', error);
-          alert('Error al guardar el areas');
+          console.error('Error al guardar area:', error);
+          alert('Error al guardar area');
         }
       };
 
-  const handleEditarArea = (id) => {
-    navigate(`/configuracion/areas/editar/${id}`);
+  const handleEditarArea = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      setModoEdicion(true);
+      setAreasEditando(data);
+      setModalOpen(true);
+    } catch (error) {
+      console.error('Error al cargar area para editar:', error);
+      alert('Error al cargar area');
+    }
   };
 
   const paginaSiguiente = () => {
@@ -219,8 +254,17 @@ const AdministrarAreas = () => {
         </div>
         <ModalAgregar
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setAreasEditando(null);
+          }}
           onGuardar={handleGuardarArea}
+          titulo={modoEdicion ? "Editar" : "Agregar Area"}
+          placeholder={modoEdicion ? "Editar Area" : "Ingresar Area"}
+          icono="⚙️"
+          valorInicial={modoEdicion ? areasEditando?.nombre : ""}
+          modoEdicion={modoEdicion}
         />
       </div>
     </Layout>

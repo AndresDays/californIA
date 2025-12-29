@@ -14,16 +14,24 @@ const EstudiosLab = () => {
   const [estudios, setEstudios] = useState([]);
   const [totalEstudios, setTotalEstudios] = useState(0);
 
+  // Catálogos dinámicos desde BD
+  const [areas, setAreas] = useState([]);
+  const [tiposMuestra, setTiposMuestra] = useState([]);
+  const [recipientes, setRecipientes] = useState([]);
+  const [metodos, setMetodos] = useState([]);
+  const [tecnicas, setTecnicas] = useState([]);
+  const [equipos, setEquipos] = useState([]);
+
   // Campos del formulario
   const [key, setKey] = useState('');
   const [clave, setClave] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [area, setArea] = useState('ANTIGENO COVID');
-  const [tipoMuestra, setTipoMuestra] = useState('Cateter');
-  const [recipiente, setRecipiente] = useState('Frasco');
-  const [metodo, setMetodo] = useState('Floculación');
-  const [tecnica, setTecnica] = useState('Tinción Especial');
-  const [equipo, setEquipo] = useState('Biobas 10');
+  const [area, setArea] = useState('');
+  const [tipoMuestra, setTipoMuestra] = useState('');
+  const [recipiente, setRecipiente] = useState('');
+  const [metodo, setMetodo] = useState('');
+  const [tecnica, setTecnica] = useState('');
+  const [equipo, setEquipo] = useState('');
   const [condicionesPaciente, setCondicionesPaciente] = useState('');
   const [etiquetasExtra, setEtiquetasExtra] = useState('');
   const [diasProceso, setDiasProceso] = useState('');
@@ -37,14 +45,147 @@ const EstudiosLab = () => {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
 
+  // Cargar catálogos y estudios al montar
+  useEffect(() => {
+    cargarCatalogos();
+    cargarEstudios();
+  }, []);
+
+  // Recargar estudios cuando cambia la búsqueda
   useEffect(() => {
     cargarEstudios();
   }, [buscarEstudio]);
 
+  // Cargar todos los catálogos
+  const cargarCatalogos = async () => {
+    await Promise.all([
+      cargarAreas(),
+      cargarTiposMuestra(),
+      cargarRecipientes(),
+      cargarMetodos(),
+      cargarTecnicas(),
+      cargarEquipos()
+    ]);
+  };
+
+  const cargarAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('id, nombre')
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+      setAreas(data || []);
+      
+      // Establecer valor por defecto
+      if (data && data.length > 0 && !area) {
+        setArea(data[0].nombre);
+      }
+    } catch (error) {
+      console.error('Error al cargar áreas:', error);
+    }
+  };
+
+  const cargarTiposMuestra = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tipo_muestra')
+        .select('id, categoria')
+        .order('categoria', { ascending: true });
+
+      if (error) throw error;
+      setTiposMuestra(data || []);
+      
+      // Establecer valor por defecto
+      if (data && data.length > 0 && !tipoMuestra) {
+        setTipoMuestra(data[0].categoria);
+      }
+    } catch (error) {
+      console.error('Error al cargar tipos de muestra:', error);
+    }
+  };
+
+  const cargarRecipientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('recipientes')
+        .select('id, nombre')
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+      setRecipientes(data || []);
+      
+      // Establecer valor por defecto
+      if (data && data.length > 0 && !recipiente) {
+        setRecipiente(data[0].nombre);
+      }
+    } catch (error) {
+      console.error('Error al cargar recipientes:', error);
+    }
+  };
+
+  const cargarMetodos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('metodos')
+        .select('id, nombre')
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+      setMetodos(data || []);
+      
+      // Establecer valor por defecto
+      if (data && data.length > 0 && !metodo) {
+        setMetodo(data[0].nombre);
+      }
+    } catch (error) {
+      console.error('Error al cargar métodos:', error);
+    }
+  };
+
+  const cargarTecnicas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tecnicas')
+        .select('id, nombre')
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+      setTecnicas(data || []);
+      
+      // Establecer valor por defecto
+      if (data && data.length > 0 && !tecnica) {
+        setTecnica(data[0].nombre);
+      }
+    } catch (error) {
+      console.error('Error al cargar técnicas:', error);
+    }
+  };
+
+  const cargarEquipos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('equipos_lab')
+        .select('id, nombre')
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+      setEquipos(data || []);
+      
+      // Establecer valor por defecto
+      if (data && data.length > 0 && !equipo) {
+        setEquipo(data[0].nombre);
+      }
+    } catch (error) {
+      console.error('Error al cargar equipos:', error);
+    }
+  };
+
   const cargarEstudios = async () => {
     try {
       let query = supabase
-        .from('estudios_catalogo')
+        .from('estudios_lab_catalogo')
         .select('*', { count: 'exact' });
 
       if (buscarEstudio.trim()) {
@@ -70,12 +211,12 @@ const EstudiosLab = () => {
     setKey('');
     setClave('');
     setDescripcion('');
-    setArea('ANTIGENO COVID');
-    setTipoMuestra('Cateter');
-    setRecipiente('Frasco');
-    setMetodo('Floculación');
-    setTecnica('Tinción Especial');
-    setEquipo('Biobas 10');
+    setArea(areas.length > 0 ? areas[0].nombre : '');
+    setTipoMuestra(tiposMuestra.length > 0 ? tiposMuestra[0].nombre : '');
+    setRecipiente(recipientes.length > 0 ? recipientes[0].nombre : '');
+    setMetodo(metodos.length > 0 ? metodos[0].nombre : '');
+    setTecnica(tecnicas.length > 0 ? tecnicas[0].nombre : '');
+    setEquipo(equipos.length > 0 ? equipos[0].nombre : '');
     setCondicionesPaciente('');
     setEtiquetasExtra('');
     setDiasProceso('');
@@ -109,7 +250,7 @@ const EstudiosLab = () => {
       };
 
       const { error } = await supabase
-        .from('estudios_catalogo')
+        .from('estudios_lab_catalogo')
         .insert([estudioData]);
 
       if (error) throw error;
@@ -147,7 +288,7 @@ const EstudiosLab = () => {
       };
 
       const { error } = await supabase
-        .from('estudios_catalogo')
+        .from('estudios_lab_catalogo')
         .update(estudioData)
         .eq('id', estudioSeleccionado);
 
@@ -191,7 +332,7 @@ const EstudiosLab = () => {
     if (window.confirm('¿Está seguro de eliminar este estudio?')) {
       try {
         const { error } = await supabase
-          .from('estudios_catalogo')
+          .from('estudios_lab_catalogo')
           .delete()
           .eq('id', id);
 
@@ -264,10 +405,15 @@ const EstudiosLab = () => {
                   onChange={(e) => setArea(e.target.value)}
                   className="select-estudio"
                 >
-                  <option value="ANTIGENO COVID">ANTIGENO COVID</option>
-                  <option value="QUÍMICA CLÍNICA">QUÍMICA CLÍNICA</option>
-                  <option value="HEMATOLOGÍA">HEMATOLOGÍA</option>
-                  <option value="INMUNOLOGÍA">INMUNOLOGÍA</option>
+                  {areas.length === 0 ? (
+                    <option value="">Cargando...</option>
+                  ) : (
+                    areas.map((a) => (
+                      <option key={a.id} value={a.nombre}>
+                        {a.nombre}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -278,10 +424,15 @@ const EstudiosLab = () => {
                   onChange={(e) => setTipoMuestra(e.target.value)}
                   className="select-estudio"
                 >
-                  <option value="Cateter">Cateter</option>
-                  <option value="Sangre">Sangre</option>
-                  <option value="Orina">Orina</option>
-                  <option value="Suero">Suero</option>
+                  {tiposMuestra.length === 0 ? (
+                    <option value="">Cargando...</option>
+                  ) : (
+                    tiposMuestra.map((tm) => (
+                      <option key={tm.id} value={tm.categoria}>
+                        {tm.categoria}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>
@@ -294,9 +445,15 @@ const EstudiosLab = () => {
                   onChange={(e) => setRecipiente(e.target.value)}
                   className="select-estudio"
                 >
-                  <option value="Frasco">Frasco</option>
-                  <option value="Tubo">Tubo</option>
-                  <option value="Jeringa">Jeringa</option>
+                  {recipientes.length === 0 ? (
+                    <option value="">Cargando...</option>
+                  ) : (
+                    recipientes.map((r) => (
+                      <option key={r.id} value={r.nombre}>
+                        {r.nombre}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -307,9 +464,15 @@ const EstudiosLab = () => {
                   onChange={(e) => setMetodo(e.target.value)}
                   className="select-estudio"
                 >
-                  <option value="Floculación">Floculación</option>
-                  <option value="Espectrofotometría">Espectrofotometría</option>
-                  <option value="Colorimetría">Colorimetría</option>
+                  {metodos.length === 0 ? (
+                    <option value="">Cargando...</option>
+                  ) : (
+                    metodos.map((m) => (
+                      <option key={m.id_metodo} value={m.nombre}>
+                        {m.nombre}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>
@@ -322,9 +485,15 @@ const EstudiosLab = () => {
                   onChange={(e) => setTecnica(e.target.value)}
                   className="select-estudio"
                 >
-                  <option value="Tinción Especial">Tinción Especial</option>
-                  <option value="Manual">Manual</option>
-                  <option value="Automatizada">Automatizada</option>
+                  {tecnicas.length === 0 ? (
+                    <option value="">Cargando...</option>
+                  ) : (
+                    tecnicas.map((t) => (
+                      <option key={t.id} value={t.nombre}>
+                        {t.nombre}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -335,9 +504,15 @@ const EstudiosLab = () => {
                   onChange={(e) => setEquipo(e.target.value)}
                   className="select-estudio"
                 >
-                  <option value="Biobas 10">Biobas 10</option>
-                  <option value="Analizador">Analizador</option>
-                  <option value="Microscopio">Microscopio</option>
+                  {equipos.length === 0 ? (
+                    <option value="">Cargando...</option>
+                  ) : (
+                    equipos.map((e) => (
+                      <option key={e.id_equipo} value={e.nombre}>
+                        {e.nombre}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
 import Layout from '../../components/layout';
 import Header from '../../components/header-laboratorio.jsx';
+import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
 import './doctores.css';
 
 const Doctores = () => {
@@ -13,6 +14,10 @@ const Doctores = () => {
   const [buscarDoctor, setBuscarDoctor] = useState('');
   const [doctores, setDoctores] = useState([]);
   const [totalDoctores, setTotalDoctores] = useState(0);
+  
+  // Estados para el modal
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [doctorEditar, setDoctorEditar] = useState(null);
 
   useEffect(() => {
     cargarDoctores();
@@ -21,8 +26,8 @@ const Doctores = () => {
   const cargarDoctores = async () => {
     try {
       let query = supabase
-        .from('medicos')
-        .select('*', { count: 'exact' });
+        .from('doctores')
+        .select('*', { count: 'exact' })
 
       // Filtro de búsqueda
       if (buscarDoctor.trim()) {
@@ -34,17 +39,17 @@ const Doctores = () => {
         );
       }
 
-      const { data, error, count } = await query.order('id_medico', { ascending: true });
+      const { data, error, count } = await query.order('id_doctor', { ascending: true });
 
       if (error) throw error;
 
       setTotalDoctores(count || 0);
       
       const doctoresFormateados = data?.map(doctor => ({
-        id: doctor.id_medico,
+        id: doctor.id_doctor,
         apellidoPaterno: doctor.apellido_paterno || '',
         apellidoMaterno: doctor.apellido_materno || '',
-        nombre: doctor.nombre || '',
+        nombre: doctor.primer_nombre || doctor.nombre || '',
         edad: calcularEdad(doctor.fecha_nacimiento),
         sexo: doctor.sexo || '',
         fechaNacimiento: doctor.fecha_nacimiento || '',
@@ -80,7 +85,74 @@ const Doctores = () => {
   };
 
   const handleAgregarDoctor = () => {
-    alert('Agregar nuevo doctor');
+    setDoctorEditar(null);
+    setModalAbierto(true);
+  };
+
+  const handleEditarDoctor = (doctor) => {
+    setDoctorEditar(doctor);
+    setModalAbierto(true);
+  };
+
+  const handleGuardarDoctor = async (doctorData, isEditMode) => {
+    try {
+      if (isEditMode) {
+        // Actualizar doctor existente
+        const { error } = await supabase
+          .from('doctores')
+          .update({
+            nombre: doctorData.nombre,
+            apellido_paterno: doctorData.apellido_paterno,
+            apellido_materno: doctorData.apellido_materno,
+            primer_nombre: doctorData.primer_nombre,
+            fecha_nacimiento: doctorData.fecha_nacimiento,
+            edad: doctorData.edad,
+            sexo: doctorData.sexo,
+            email: doctorData.email,
+            telefono: doctorData.telefono,
+            usuario: doctorData.usuario,
+            contrasena: doctorData.contrasena,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id_doctor', doctorData.id);
+
+        if (error) throw error;
+        alert('Doctor actualizado correctamente');
+      } else {
+        // Crear nuevo doctor
+        const { error } = await supabase
+          .from('doctores')
+          .insert([doctorData]);
+
+        if (error) throw error;
+        alert('Doctor agregado correctamente');
+      }
+
+      cargarDoctores();
+      setModalAbierto(false);
+    } catch (error) {
+      console.error('Error al guardar doctor:', error);
+      throw error;
+    }
+  };
+
+  const handleEliminarDoctor = async (id) => {
+    if (window.confirm('¿Está seguro de eliminar este doctor?')) {
+      try {
+        const { error } = await supabase
+          .from('doctores')
+          .delete()
+          .eq('id_doctor', id);
+
+        if (error) throw error;
+
+        cargarDoctores();
+        alert('Doctor eliminado correctamente');
+      } catch (error) {
+        console.error('Error al eliminar doctor:', error);
+        alert('Error al eliminar doctor');
+      }
+    }
   };
 
   const handleImprimirTabla = () => {
@@ -93,29 +165,6 @@ const Doctores = () => {
 
   const handleExportarPDF = () => {
     alert('Exportar a PDF');
-  };
-
-  const handleEditarDoctor = (id) => {
-    alert(`Editar doctor ${id}`);
-  };
-
-  const handleEliminarDoctor = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este doctor?')) {
-      try {
-        const { error } = await supabase
-          .from('medicos')
-          .delete()
-          .eq('id_medico', id);
-
-        if (error) throw error;
-
-        cargarDoctores();
-        alert('Doctor eliminado correctamente');
-      } catch (error) {
-        console.error('Error al eliminar doctor:', error);
-        alert('Error al eliminar doctor');
-      }
-    }
   };
 
   return (
@@ -206,7 +255,7 @@ const Doctores = () => {
                         <div className="acciones-doctores">
                           <button
                             className="btn-editar-doctor"
-                            onClick={() => handleEditarDoctor(doctor.id)}
+                            onClick={() => handleEditarDoctor(doctor)}
                             title="Editar doctor"
                           >
                             ✏️
@@ -232,6 +281,14 @@ const Doctores = () => {
             Mostrando registros del 1 al {doctores.length} de un total de {totalDoctores}
           </div>
         </div>
+
+        {/* Modal para Agregar/Editar Doctor */}
+        <ModalAgregarDoctor
+          isOpen={modalAbierto}
+          onClose={() => setModalAbierto(false)}
+          onSave={handleGuardarDoctor}
+          doctorEditar={doctorEditar}
+        />
       </div>
     </Layout>
   );

@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout';
 import Header from '../../../components/header-laboratorio.jsx';
+import ModalAgregarPrecio from '../componentes/modal-agregar-precio';
 import './precios.css';
 
 const Precios = () => {
@@ -17,6 +18,10 @@ const Precios = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalPrecios, setTotalPrecios] = useState(0);
   const [seleccionados, setSeleccionados] = useState([]);
+
+  // Estados para el modal
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [precioEditar, setPrecioEditar] = useState(null);
 
   useEffect(() => {
     cargarPrecios();
@@ -57,7 +62,49 @@ const Precios = () => {
   };
 
   const handleAltaPrecios = () => {
-    navigate('/configuracion/precios/alta');
+    setPrecioEditar(null);
+    setModalAbierto(true);
+  };
+
+  const handleEditarPrecio = (precio) => {
+    setPrecioEditar(precio);
+    setModalAbierto(true);
+  };
+
+  const handleGuardarPrecio = async (precioData, isEditMode) => {
+    try {
+      if (isEditMode) {
+        // Actualizar precio existente
+        const { error } = await supabase
+          .from('precios_estudios')
+          .update({
+            tipo: precioData.tipo,
+            clave: precioData.clave,
+            descripcion: precioData.descripcion,
+            empresa: precioData.empresa,
+            precio: precioData.precio,
+            fecha: precioData.fecha
+          })
+          .eq('id', precioData.id);
+
+        if (error) throw error;
+        alert('Precio actualizado correctamente');
+      } else {
+        // Crear nuevo precio
+        const { error } = await supabase
+          .from('precios_estudios')
+          .insert([precioData]);
+
+        if (error) throw error;
+        alert('Precio agregado correctamente');
+      }
+
+      cargarPrecios();
+      setModalAbierto(false);
+    } catch (error) {
+      console.error('Error al guardar precio:', error);
+      throw error;
+    }
   };
 
   const handleDuplicarLista = () => {
@@ -70,10 +117,6 @@ const Precios = () => {
 
   const handleExportarPDF = () => {
     alert('Exportar a PDF');
-  };
-
-  const handleEditarPrecio = (id) => {
-    navigate(`/configuracion/precios/editar/${id}`);
   };
 
   const handleEliminarPrecio = async (id) => {
@@ -276,7 +319,7 @@ const Precios = () => {
                         <div className="acciones-precios">
                           <button
                             className="btn-editar-precio"
-                            onClick={() => handleEditarPrecio(precio.id)}
+                            onClick={() => handleEditarPrecio(precio)}
                             title="Editar precio"
                           >
                             ✏️
@@ -343,6 +386,14 @@ const Precios = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal para Agregar/Editar Precio */}
+        <ModalAgregarPrecio
+          isOpen={modalAbierto}
+          onClose={() => setModalAbierto(false)}
+          onSave={handleGuardarPrecio}
+          precioEditar={precioEditar}
+        />
       </div>
     </Layout>
   );

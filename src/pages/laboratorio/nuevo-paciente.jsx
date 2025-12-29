@@ -4,14 +4,17 @@ import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
 import Layout from '../../components/layout';
 import './nuevo-paciente.css';
-import californIA from '../../assets/CalifornIA.png';
-import usericon from '../../assets/usericon.png';
-import notiIcon from '../../assets/notificaciones.png';
 import HeaderLab from '../../components/header-laboratorio.jsx';
+import ModalAgregarPaciente from './componentes/modal-agregar-paciente';
+import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
 
 const NuevoPaciente = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Estado del modal
+  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
+  const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
 
   // Estados para el paciente
   const [buscarPaciente, setBuscarPaciente] = useState('');
@@ -79,13 +82,13 @@ const NuevoPaciente = () => {
 
     try {
       const { data: perfil } = await supabase
-        .from('perfiles_usuario')
-        .select('nombre, empleados(nombre)')
-        .eq('id', user.id)
+        .from('empleados')
+        .select('nombre')
+        .eq('auth_uuid', user.id)
         .single();
 
       if (perfil) {
-        setVendedor(perfil.empleados?.nombre || perfil.nombre || user.email);
+        setVendedor(perfil.nombre || user.email);
       }
     } catch (error) {
       console.error('Error al cargar vendedor:', error);
@@ -108,24 +111,52 @@ const NuevoPaciente = () => {
 
   const cargarEstudiosDisponibles = async () => {
     try {
-      // Aquí cargarías los estudios disponibles desde tu base de datos
-      // Por ahora usaré datos de ejemplo
-      const estudiosEjemplo = [
-        { id: 1, clave: 'BH001', descripcion: 'Biometría Hemática', tipo: 'Laboratorio', precio: 150, diasProceso: 1 },
-        { id: 2, clave: 'QS001', descripcion: 'Química Sanguínea', tipo: 'Laboratorio', precio: 200, diasProceso: 1 },
-        { id: 3, clave: 'RXT001', descripcion: 'Rayos X Tórax', tipo: 'Radiología', precio: 350, diasProceso: 1 },
-        { id: 4, clave: 'EGO001', descripcion: 'Examen General de Orina', tipo: 'Laboratorio', precio: 100, diasProceso: 1 },
-        { id: 5, clave: 'PL001', descripcion: 'Perfil de Lípidos', tipo: 'Laboratorio', precio: 250, diasProceso: 2 }
-      ];
-      setEstudiosDisponibles(estudiosEjemplo);
+      const { data, error } = await supabase
+        .from('estudios_lab_catalogo')
+        .select('id, clave, descripcion, area')
+        .order('clave');
+
+      if (error) throw error;
+      
+      setEstudiosDisponibles(data || []);
     } catch (error) {
       console.error('Error al cargar estudios:', error);
+    }
+  };
+
+  const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
+    try {
+      // Si no hay empresa seleccionada, usar precio por defecto
+      if (!nombreEmpresa) {
+        console.log('No hay empresa seleccionada, usando precio por defecto');
+        return 150; // Precio por defecto
+      }
+
+      // Buscar precio en precios_estudios
+      const { data, error } = await supabase
+        .from('precios_estudios')
+        .select('precio')
+        .eq('clave', claveEstudio)
+        .eq('empresa', nombreEmpresa)
+        .single();
+
+      if (error) {
+        console.log(`No se encontró precio para ${claveEstudio} - ${nombreEmpresa}, usando precio por defecto`);
+        return 150; // Precio por defecto si no existe
+      }
+
+      console.log(`Precio encontrado para ${claveEstudio} - ${nombreEmpresa}: $${data.precio}`);
+      return parseFloat(data.precio);
+    } catch (error) {
+      console.error('Error al obtener precio:', error);
+      return 150; // Precio por defecto en caso de error
     }
   };
 
   const buscarPacientes = async (termino) => {
     if (termino.length < 2) {
       setPacientesEncontrados([]);
+      setShowBusquedaPacientes(false);
       return;
     }
 
@@ -133,14 +164,18 @@ const NuevoPaciente = () => {
       const { data, error } = await supabase
         .from('pacientes')
         .select('*')
-        .ilike('nombre', `%${termino}%`)
-        .limit(5);
+        .or(`nombre.ilike.%${termino}%,apellido_paterno.ilike.%${termino}%,apellido_materno.ilike.%${termino}%,telefono.ilike.%${termino}%`)
+        .order('nombre')
+        .limit(10);
 
       if (error) throw error;
+      
       setPacientesEncontrados(data || []);
-      setShowBusquedaPacientes(true);
+      setShowBusquedaPacientes(data && data.length > 0);
     } catch (error) {
       console.error('Error al buscar pacientes:', error);
+      setPacientesEncontrados([]);
+      setShowBusquedaPacientes(false);
     }
   };
 
@@ -148,44 +183,123 @@ const NuevoPaciente = () => {
     setPacienteSeleccionado(paciente);
     setNombreCompleto(paciente.nombre);
     setTelefono(paciente.telefono || '');
-    setCorreo(paciente.correo || '');
-    
-    // Calcular edad desde fecha_nacimiento
-    if (paciente.fecha_nacimiento) {
-      const hoy = new Date();
-      const nacimiento = new Date(paciente.fecha_nacimiento);
-      let edad = hoy.getFullYear() - nacimiento.getFullYear();
-      const mes = hoy.getMonth() - nacimiento.getMonth();
-      if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-        edad--;
-      }
-      setEdad(edad.toString());
-    }
-
+    setCorreo(paciente.email || '');
+    setEdad(paciente.edad?.toString() || '');
     setSexo(paciente.sexo || '');
     setBuscarPaciente(paciente.nombre);
     setShowBusquedaPacientes(false);
   };
 
+  const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
+    try {
+      if (isEditMode) {
+        const { error } = await supabase
+          .from('pacientes')
+          .update({
+            nombre: pacienteData.nombre,
+            apellido_paterno: pacienteData.apellido_paterno,
+            apellido_materno: pacienteData.apellido_materno,
+            primer_nombre: pacienteData.primer_nombre,
+            fecha_nacimiento: pacienteData.fecha_nacimiento,
+            edad: pacienteData.edad,
+            sexo: pacienteData.sexo,
+            direccion: pacienteData.direccion,
+            cedula: pacienteData.cedula,
+            condicion_especial: pacienteData.condicion_especial,
+            email: pacienteData.email,
+            pais: pacienteData.pais,
+            telefono: pacienteData.telefono,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id_paciente', pacienteData.id);
+
+        if (error) throw error;
+        alert('Paciente actualizado correctamente');
+      } else {
+        const { data, error } = await supabase
+          .from('pacientes')
+          .insert([pacienteData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        alert('Paciente guardado correctamente');
+        
+        // Cargar el paciente recién creado
+        seleccionarPaciente(data);
+      }
+    } catch (error) {
+      console.error('Error al guardar paciente:', error);
+      alert('Error al guardar paciente: ' + error.message);
+    }
+  };
+
+  const handleGuardarDoctorModal = async (doctorData, isEditMode) => {
+    try {
+      if (isEditMode) {
+        const { error } = await supabase
+          .from('doctores')
+          .update({
+            nombre: doctorData.nombre,
+            apellido_paterno: doctorData.apellido_paterno,
+            apellido_materno: doctorData.apellido_materno,
+            primer_nombre: doctorData.primer_nombre,
+            fecha_nacimiento: doctorData.fecha_nacimiento,
+            edad: doctorData.edad,
+            sexo: doctorData.sexo,
+            email: doctorData.email,
+            telefono: doctorData.telefono,
+            usuario: doctorData.usuario,
+            contrasena: doctorData.contrasena,
+            rol: doctorData.rol,
+            activo: doctorData.activo,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id_empleado', doctorData.id);
+
+        if (error) throw error;
+        alert('Doctor actualizado correctamente');
+      } else {
+        const { data, error } = await supabase
+          .from('doctores')
+          .insert([doctorData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        alert('Doctor guardado correctamente');
+        
+        // Cargar el doctor recién creado
+        seleccionarDoctor(data);
+      }
+    } catch (error) {
+      console.error('Error al guardar doctor:', error);
+      alert('Error al guardar doctor: ' + error.message);
+    }
+  };
+
   const buscarDoctores = async (termino) => {
     if (termino.length < 2) {
       setDoctoresEncontrados([]);
+      setShowBusquedaDoctores(false);
       return;
     }
 
     try {
       const { data, error } = await supabase
-        .from('empleados')
+        .from('doctores')
         .select('*')
-        .eq('puesto', 'doctor')
-        .ilike('nombre', `%${termino}%`)
-        .limit(5);
+        .or(`nombre.ilike.%${termino}%,apellido_paterno.ilike.%${termino}%`)
+        .order('nombre')
+        .limit(10);
 
       if (error) throw error;
       setDoctoresEncontrados(data || []);
-      setShowBusquedaDoctores(true);
+      setShowBusquedaDoctores(data && data.length > 0);
     } catch (error) {
       console.error('Error al buscar doctores:', error);
+      setDoctoresEncontrados([]);
+      setShowBusquedaDoctores(false);
     }
   };
 
@@ -204,14 +318,30 @@ const NuevoPaciente = () => {
     setShowBusquedaEstudios(true);
   };
 
-  const agregarEstudio = (estudio) => {
+  const agregarEstudio = async (estudio) => {
     // Verificar que no esté ya agregado
     if (estudiosSeleccionados.find(e => e.id === estudio.id)) {
       alert('Este estudio ya fue agregado');
       return;
     }
 
-    setEstudiosSeleccionados([...estudiosSeleccionados, { ...estudio, cantidad: 1 }]);
+    // Obtener el nombre de la empresa seleccionada
+    const empresaObj = empresas.find(emp => emp.id_empresa.toString() === empresaSeleccionada.toString());
+    const nombreEmpresa = empresaObj ? empresaObj.nombre : '';
+
+    // Obtener precio según empresa
+    const precioEstudio = await obtenerPrecioEstudio(estudio.clave, nombreEmpresa);
+
+    // Agregar estudio con el precio correcto
+    const estudioConPrecio = {
+      ...estudio,
+      precio: precioEstudio,
+      cantidad: 1,
+      diasProceso: 1,
+      empresa: nombreEmpresa || 'Sin empresa'
+    };
+
+    setEstudiosSeleccionados([...estudiosSeleccionados, estudioConPrecio]);
     setBuscarEstudio('');
     setShowBusquedaEstudios(false);
   };
@@ -286,8 +416,9 @@ const NuevoPaciente = () => {
             {
               nombre: nombreCompleto,
               telefono: telefono,
-              correo: correo,
+              email: correo,
               sexo: sexo,
+              edad: parseInt(edad) || null,
               tipo: empresaSeleccionada ? 'empresa' : 'particular'
             }
           ])
@@ -301,7 +432,7 @@ const NuevoPaciente = () => {
       // 2. Crear estudios
       const estudiosParaInsertar = estudiosSeleccionados.map(est => ({
         id_paciente: idPaciente,
-        tipo_estudio: est.tipo.toLowerCase(),
+        tipo_estudio: est.area || 'laboratorio',
         fecha_estudio: new Date().toISOString(),
         estado: 'pendiente'
       }));
@@ -319,9 +450,6 @@ const NuevoPaciente = () => {
       alert('¡Venta registrada exitosamente!');
       limpiarFormulario();
       
-      // Opcional: Imprimir ticket o navegar a otra página
-      // navigate('/recepcion');
-
     } catch (error) {
       console.error('Error al guardar:', error);
       alert('Error al guardar la venta: ' + error.message);
@@ -344,7 +472,7 @@ const NuevoPaciente = () => {
             {/* Columna Izquierda - Datos del Paciente */}
             <div className="left-column">
               {/* Agregar Cliente */}
-              <section className="form-section">
+              <section className="form-section form-section-cliente">
                 <h2 className="section-title">Agregar Cliente</h2>
                 
                 <div className="search-container">
@@ -358,22 +486,42 @@ const NuevoPaciente = () => {
                     }}
                     className="search-input"
                   />
-                  <button className="btn-search">👤</button>
-                </div>
+                  <button 
+                    className="btn-search"
+                    onClick={() => setModalAgregarPacienteOpen(true)}
+                    title="Agregar nuevo paciente"
+                  >
+                    👤
+                  </button>
 
-                {showBusquedaPacientes && pacientesEncontrados.length > 0 && (
-                  <div className="search-results">
-                    {pacientesEncontrados.map(pac => (
-                      <div
-                        key={pac.id_paciente}
-                        className="search-result-item"
-                        onClick={() => seleccionarPaciente(pac)}
-                      >
-                        {pac.nombre}
+                  {/* Dropdown DENTRO del search-container */}
+                  {showBusquedaPacientes && pacientesEncontrados.length > 0 && (
+                    <div className="search-results">
+                      {pacientesEncontrados.map(pac => (
+                        <div
+                          key={pac.id_paciente}
+                          className="search-result-item"
+                          onClick={() => seleccionarPaciente(pac)}
+                        >
+                          <div className="result-nombre">{pac.nombre}</div>
+                          <div className="result-info">
+                            {pac.telefono && <span>📞 {pac.telefono}</span>}
+                            {pac.edad && <span>👤 {pac.edad} años</span>}
+                            {pac.sexo && <span>⚧ {pac.sexo}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {showBusquedaPacientes && pacientesEncontrados.length === 0 && buscarPaciente.length >= 2 && (
+                    <div className="search-results">
+                      <div className="search-no-results">
+                        No se encontraron pacientes con "{buscarPaciente}"
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
 
                 <div className="form-group">
                   <label>Nombre Completo</label>
@@ -450,22 +598,32 @@ const NuevoPaciente = () => {
                     }}
                     className="search-input"
                   />
-                  <button className="btn-search">👨‍⚕️</button>
-                </div>
+                  <button 
+                    className="btn-search"
+                    onClick={() => setModalAgregarDoctorOpen(true)}
+                    title="Agregar nuevo doctor"
+                  >
+                    👨‍⚕️
+                  </button>
 
-                {showBusquedaDoctores && doctoresEncontrados.length > 0 && (
-                  <div className="search-results">
-                    {doctoresEncontrados.map(doc => (
-                      <div
-                        key={doc.id_empleado}
-                        className="search-result-item"
-                        onClick={() => seleccionarDoctor(doc)}
-                      >
-                        {doc.nombre}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  {/* Dropdown DENTRO del search-container */}
+                  {showBusquedaDoctores && doctoresEncontrados.length > 0 && (
+                    <div className="search-results">
+                      {doctoresEncontrados.map(doc => (
+                        <div
+                          key={doc.id_empleado}
+                          className="search-result-item"
+                          onClick={() => seleccionarDoctor(doc)}
+                        >
+                          <div className="result-nombre">{doc.nombre}</div>
+                          <div className="result-info">
+                            {doc.telefono && <span>📞 {doc.telefono}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </section>
 
               {/* Observaciones */}
@@ -515,19 +673,28 @@ const NuevoPaciente = () => {
               <section className="estudios-section">
                 <h2 className="section-title">Lista de precios</h2>
                 
+                {!empresaSeleccionada && (
+                  <div className="alert-empresa-requerida">
+                    ⚠️ Primero selecciona una empresa para buscar estudios
+                  </div>
+                )}
+                
                 <div className="search-container" style={{position: 'relative'}}>
                   <input
                     type="text"
-                    placeholder="Buscar Estudios..."
+                    placeholder={empresaSeleccionada ? "Buscar Estudios..." : "Selecciona una empresa primero"}
                     value={buscarEstudio}
                     onChange={(e) => {
-                      setBuscarEstudio(e.target.value);
-                      filtrarEstudios(e.target.value);
+                      if (empresaSeleccionada) {
+                        setBuscarEstudio(e.target.value);
+                        filtrarEstudios(e.target.value);
+                      }
                     }}
                     className="search-input-full"
+                    disabled={!empresaSeleccionada}
                   />
 
-                  {showBusquedaEstudios && buscarEstudio.length >= 2 && (
+                  {showBusquedaEstudios && buscarEstudio.length >= 2 && empresaSeleccionada && (
                     <div className="search-results-estudios">
                       {estudiosFiltrados.map(est => (
                         <div
@@ -535,7 +702,7 @@ const NuevoPaciente = () => {
                           className="search-result-item"
                           onClick={() => agregarEstudio(est)}
                         >
-                          <strong>{est.clave}</strong> - {est.descripcion} (${est.precio})
+                          <strong>{est.clave}</strong> - {est.descripcion}
                         </div>
                       ))}
                     </div>
@@ -548,7 +715,7 @@ const NuevoPaciente = () => {
                       <tr>
                         <th>Clave</th>
                         <th>Descripción</th>
-                        <th>Tipo</th>
+                        <th>Empresa</th>
                         <th>Precio</th>
                         <th>Días Proceso</th>
                         <th>Borrar</th>
@@ -559,7 +726,7 @@ const NuevoPaciente = () => {
                         <tr key={est.id}>
                           <td>{est.clave}</td>
                           <td>{est.descripcion}</td>
-                          <td>{est.tipo}</td>
+                          <td>{est.empresa}</td>
                           <td>${est.precio.toFixed(2)}</td>
                           <td>{est.diasProceso} días</td>
                           <td>
@@ -695,6 +862,20 @@ const NuevoPaciente = () => {
             </div>
           </div>
         </main>
+
+        {/* Modal Agregar Paciente */}
+        <ModalAgregarPaciente
+          isOpen={modalAgregarPacienteOpen}
+          onClose={() => setModalAgregarPacienteOpen(false)}
+          onGuardar={handleGuardarPacienteModal}
+        />
+
+        {/* Modal Agregar Doctor */}
+        <ModalAgregarDoctor
+          isOpen={modalAgregarDoctorOpen}
+          onClose={() => setModalAgregarDoctorOpen(false)}
+          onSave={handleGuardarDoctorModal}
+        />
       </div>
     </Layout>
   );

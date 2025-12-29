@@ -1,0 +1,346 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* ============================================
+   MODAL OVERLAY
+   ============================================ */
+.modal-overlay-paciente {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ============================================
+   MODAL CONTENEDOR
+   ============================================ */
+.modal-contenedor-paciente {
+  background: linear-gradient(180deg, 
+    rgba(25, 35, 45, 0.98) 0%, 
+    rgba(15, 25, 35, 0.98) 100%
+  );
+  border-radius: 12px;
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.3s ease;
+  font-family: 'Codec Pro', sans-serif;
+}
+
+/* ============================================
+   MODAL HEADER
+   ============================================ */
+.modal-header-paciente {
+  background: linear-gradient(135deg, 
+    rgba(52, 108, 145, 0.95) 0%, 
+    rgba(41, 128, 185, 0.95) 100%
+  );
+  padding: 1rem 1.5rem;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+}
+
+.modal-titulo-paciente {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.modal-btn-cerrar-paciente {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.modal-btn-cerrar-paciente:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: rotate(90deg);
+}
+
+/* ============================================
+   MODAL CONTENIDO
+   ============================================ */
+.modal-contenido-paciente {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 180px);
+}
+
+/* ============================================
+   CAMPOS DEL FORMULARIO
+   ============================================ */
+.modal-campo-paciente {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(40, 50, 60, 0.5);
+  border: 1px solid rgba(80, 90, 100, 0.5);
+  border-radius: 6px;
+  padding: 0 0.75rem;
+}
+
+.modal-campo-paciente label {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 24px;
+  text-align: center;
+}
+
+.modal-input-paciente,
+.modal-select-paciente {
+  flex: 1;
+  padding: 0.75rem 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+}
+
+.modal-input-paciente:focus,
+.modal-select-paciente:focus {
+  outline: none;
+}
+
+.modal-input-paciente::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.modal-input-paciente:read-only {
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+.modal-select-paciente {
+  cursor: pointer;
+}
+
+.modal-select-paciente option {
+  background: #1a252f;
+  color: white;
+  padding: 0.5rem;
+}
+
+/* ============================================
+   FECHA DE NACIMIENTO
+   ============================================ */
+.modal-fila-fecha {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.modal-campo-fecha {
+  background: rgba(40, 50, 60, 0.5);
+  border: 1px solid rgba(80, 90, 100, 0.5);
+  border-radius: 6px;
+  padding: 0 0.75rem;
+}
+
+.modal-select-fecha {
+  width: 100%;
+  padding: 0.75rem 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.modal-select-fecha:focus {
+  outline: none;
+}
+
+.modal-select-fecha option {
+  background: #1a252f;
+  color: white;
+}
+
+/* ============================================
+   FILA EDAD
+   ============================================ */
+.modal-fila-edad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* ============================================
+   BOTONES DEL MODAL
+   ============================================ */
+.modal-botones-paciente {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(80, 90, 100, 0.3);
+}
+
+.modal-btn-salir-paciente,
+.modal-btn-guardar-paciente {
+  flex: 1;
+  padding: 0.85rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: capitalize;
+}
+
+.modal-btn-salir-paciente {
+  background: rgba(80, 90, 100, 0.7);
+  border: 1px solid rgba(100, 110, 120, 0.5);
+}
+
+.modal-btn-salir-paciente:hover {
+  background: rgba(70, 80, 90, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(80, 90, 100, 0.3);
+}
+
+.modal-btn-guardar-paciente {
+  background: linear-gradient(135deg, #4A90B8 0%, #3A7FA8 100%);
+  border: 1px solid rgba(74, 144, 184, 0.5);
+}
+
+.modal-btn-guardar-paciente:hover {
+  background: linear-gradient(135deg, #3A7FA8 0%, #2A6F98 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 144, 184, 0.4);
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+.modal-contenido-paciente::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-contenido-paciente::-webkit-scrollbar-track {
+  background: rgba(40, 50, 60, 0.3);
+  border-radius: 4px;
+}
+
+.modal-contenido-paciente::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 4px;
+}
+
+.modal-contenido-paciente::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
+/* ============================================
+   ANIMACIONES
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .modal-contenedor-paciente {
+    width: 95%;
+    max-width: none;
+    margin: 0 1rem;
+  }
+
+  .modal-header-paciente {
+    padding: 0.9rem 1.2rem;
+  }
+
+  .modal-titulo-paciente {
+    font-size: 1.05rem;
+  }
+
+  .modal-contenido-paciente {
+    padding: 1.2rem;
+  }
+
+  .modal-fila-fecha {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-fila-edad {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-botones-paciente {
+    flex-direction: column;
+  }
+
+  .modal-btn-salir-paciente,
+  .modal-btn-guardar-paciente {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   ACCESIBILIDAD
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay-paciente,
+  .modal-contenedor-paciente,
+  .modal-btn-cerrar-paciente,
+  .modal-input-paciente,
+  .modal-select-paciente,
+  .modal-btn-salir-paciente,
+  .modal-btn-guardar-paciente {
+    animation: none;
+    transition: none;
+  }
+}
