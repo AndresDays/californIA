@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout';
 import Header from '../../../components/header-laboratorio.jsx';
 import Tabla from '../componentes/tabla';
-import ModalAgregarNivel from '../componentes/modal-agregar';
+import ModalAgregar from '../componentes/modal-agregar';
 import './administrar-niveles.css';
 
 const AdministrarNiveles = () => {
@@ -18,6 +18,8 @@ const AdministrarNiveles = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalNiveles, setTotalNiveles] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [nivelEditando, setNivelEditando] = useState(null);
 
   useEffect(() => {
     cargarNiveles();
@@ -50,27 +52,60 @@ const AdministrarNiveles = () => {
   };
 
   const handleAgregarNivel = () => {
+    setModoEdicion(false);
+    setNivelEditando(null);
     setModalOpen(true);
   };
 
   const handleGuardarNivel = async (nombre) => {
+      try {
+        if (modoEdicion && nivelEditando) {
+          const { error } = await supabase
+            .from('niveles_mar')
+            .update({ nombre: nombre })
+            .eq('id', nivelEditando.id);
+  
+          if (error) throw error;
+  
+          alert('Nivel actualizado correctamente');
+        } else {
+          // Crear nuevo recipiente
+          const { error } = await supabase
+            .from('niveles_mar')
+            .insert([{ nombre: nombre }]);
+  
+          if (error) throw error;
+  
+          alert('Nivel agregado correctamente');
+        }
+  
+        cargarNiveles();
+        setModalOpen(false);
+        setModoEdicion(false);
+        setNivelEditando(null);
+      } catch (error) {
+        console.error('Error al guardar nivel:', error);
+        alert('Error al guardar el nivel');
+      }
+    };
+
+  const handleEditarNivel = async (id) => {
     try {
-      const { data, error } = await supabase
-        .from('niveles_mar')
-        .insert([{ nombre: nombre }]);
-
-      if (error) throw error;
-
-      // Recargar niveles
-      cargarNiveles();
-    } catch (error) {
-      console.error('Error al guardar nivel:', error);
-      alert('Error al guardar el nivel');
-    }
-  };
-
-  const handleEditarNivel = (id) => {
-    navigate(`/configuracion/nivel-mar/editar/${id}`);
+          const { data, error } = await supabase
+            .from('niveles_mar')
+            .select('*')
+            .eq('id', id)
+            .single();
+    
+          if (error) throw error;
+    
+          setModoEdicion(true);
+          setNivelEditando(data);
+          setModalOpen(true);
+        } catch (error) {
+          console.error('Error al cargar nivel para editar:', error);
+          alert('Error al cargar el nivel');
+        }
   };
 
   const paginaSiguiente = () => {
@@ -185,10 +220,19 @@ const AdministrarNiveles = () => {
           </div>
         </div>
 
-        <ModalAgregarNivel
+        <ModalAgregar
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setNivelEditando(null);
+          }}
           onGuardar={handleGuardarNivel}
+          titulo={modoEdicion ? "Editar" : "Agregar Nivel"}
+          placeholder={modoEdicion ? "Editar Nivel" : "Ingresar Nivel"}
+          icono="⚙️"
+          valorInicial={modoEdicion ? nivelEditando?.nombre : ""}
+          modoEdicion={modoEdicion}
         />
       </div>
     </Layout>

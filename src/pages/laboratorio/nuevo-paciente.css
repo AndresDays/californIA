@@ -23,6 +23,7 @@
   gap: 1.25rem;
   max-width: 1800px;
   margin: 0 auto;
+  overflow: visible; /* Permite que el dropdown se vea */
 }
 
 /* Columnas */
@@ -31,6 +32,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  overflow: visible; /* Permite que el dropdown se vea */
 }
 
 /* Secciones */
@@ -40,6 +42,19 @@
   border: 1px solid rgba(111, 179, 210, 0.3);
   border-radius: 10px;
   padding: 1rem;
+  position: relative;
+  z-index: 1; /* Z-index base bajo */
+  overflow: visible; /* IMPORTANTE: permite que el dropdown se salga */
+}
+
+/* Secciones con búsqueda - Z-INDEX MUY ALTO */
+.form-section-cliente {
+  z-index: 100 !important; /* Alto para que el dropdown se vea sobre todo */
+}
+
+/* Dar z-index alto a CUALQUIER form-section que tenga search-container */
+.form-section:has(.search-container) {
+  z-index: 100 !important;
 }
 
 .section-title {
@@ -111,10 +126,11 @@
 
 /* Search Container */
 .search-container {
-  position: relative;
+  position: relative; /* CRÍTICO: para que el absolute funcione */
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  z-index: 101; /* Justo por encima de la sección */
 }
 
 .search-input {
@@ -161,19 +177,21 @@
   box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
 }
 
-/* Search Results */
+/* Search Results - Z-INDEX MUY ALTO */
 .search-results {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(10, 25, 41, 0.95);
+  background: rgba(10, 25, 41, 0.98);
+  backdrop-filter: blur(10px);
   border: 1px solid rgba(111, 179, 210, 0.3);
   border-radius: 8px;
-  margin-top: 0.5rem;
-  max-height: 200px;
+  margin-top: 0.25rem;
+  max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 102; /* MUY alto para estar sobre todo */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .search-results-estudios {
@@ -192,7 +210,7 @@
 }
 
 .search-result-item {
-  padding: 0.8rem 1rem;
+  padding: 0.9rem 1rem;
   cursor: pointer;
   border-bottom: 1px solid rgba(111, 179, 210, 0.1);
   transition: all 0.2s;
@@ -200,10 +218,65 @@
 
 .search-result-item:hover {
   background: rgba(111, 179, 210, 0.2);
+  border-left: 3px solid #6FB3D2;
+  padding-left: calc(1rem - 3px);
 }
 
 .search-result-item:last-child {
   border-bottom: none;
+}
+
+/* Nuevos estilos para resultados mejorados */
+.result-nombre {
+  font-weight: 500;
+  color: white;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.result-info {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  flex-wrap: wrap;
+}
+
+.result-info span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.search-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Scrollbar para resultados */
+.search-results::-webkit-scrollbar,
+.search-results-estudios::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results::-webkit-scrollbar-track,
+.search-results-estudios::-webkit-scrollbar-track {
+  background: rgba(40, 50, 60, 0.3);
+  border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-thumb,
+.search-results-estudios::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-thumb:hover,
+.search-results-estudios::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
 }
 
 /* Vendedor Display */
@@ -297,7 +370,7 @@
 .estudios-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* Columnas de igual tamaño */
+  table-layout: fixed;
 }
 
 .estudios-table thead {
@@ -316,10 +389,9 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 2px solid rgba(111, 179, 210, 0.3);
-  width: auto; /* Ancho automático igual para todas */
+  width: auto;
 }
 
-/* Ancho específico para la columna de borrar */
 .estudios-table th:last-child,
 .estudios-table td:last-child {
   width: 80px;
@@ -538,6 +610,26 @@
   box-shadow: 0 6px 16px rgba(102, 187, 106, 0.4);
 }
 
+/* Alerta de empresa requerida */
+.alert-empresa-requerida {
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: 7px;
+  padding: 0.75rem 1rem;
+  color: #ffc107;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-input-full:disabled {
+  background: rgba(10, 25, 41, 0.3);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
   .content-grid {
@@ -584,5 +676,10 @@
   .btn-secondary,
   .btn-primary {
     flex: 1;
+  }
+  
+  .result-info {
+    flex-direction: column;
+    gap: 0.3rem;
   }
 }

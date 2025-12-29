@@ -11,7 +11,8 @@ const CierreCaja = () => {
   const navigate = useNavigate();
 
   const [fechaActual, setFechaActual] = useState(new Date().toISOString().split('T')[0]);
-  const [sucursalSeleccionada, setSucursalSeleccionada] = useState('CENTRAL DIAGNOSTIC...');
+  const [sucursales, setSucursales] = useState([]);
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState('JUAN ANDRES DIAZ RODRIGUEZ');
 
   // Monto Apertura
@@ -46,6 +47,11 @@ const CierreCaja = () => {
   const [totalEnCaja, setTotalEnCaja] = useState(0);
   const [totalAdeudos, setTotalAdeudos] = useState(0);
 
+  // Cargar sucursales al montar el componente
+  useEffect(() => {
+    cargarSucursales();
+  }, []);
+
   useEffect(() => {
     calcularTotales();
   }, [
@@ -56,6 +62,26 @@ const CierreCaja = () => {
     credito, ingresosCredito, egresosCredito,
     montoCancelados
   ]);
+
+  const cargarSucursales = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sucursales')
+        .select('id_sucursal, nombre')
+        .order('nombre');
+
+      if (error) throw error;
+
+      setSucursales(data || []);
+      
+      // Seleccionar la primera sucursal por defecto
+      if (data && data.length > 0) {
+        setSucursalSeleccionada(data[0].id_sucursal);
+      }
+    } catch (error) {
+      console.error('Error al cargar sucursales:', error);
+    }
+  };
 
   const calcularTotales = () => {
     // Totales por método de pago
@@ -119,9 +145,12 @@ const CierreCaja = () => {
                 onChange={(e) => setSucursalSeleccionada(e.target.value)}
                 className="select-sucursal-cierre"
               >
-                <option value="CENTRAL DIAGNOSTIC...">CENTRAL DIAGNOSTIC...</option>
-                <option value="SUCURSAL 1">SUCURSAL 1</option>
-                <option value="SUCURSAL 2">SUCURSAL 2</option>
+                <option value="">Selecciona una Sucursal</option>
+                {sucursales.map(sucursal => (
+                  <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
+                    {sucursal.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 

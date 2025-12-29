@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
 import Layout from '../../components/layout';
 import Header from '../../components/header-laboratorio.jsx';
+import ModalAgregarPaciente from './componentes/modal-agregar-paciente.jsx';
 import './Clientes.css';
 
 const Clientes = () => {
@@ -14,6 +15,8 @@ const Clientes = () => {
   const [clientes, setClientes] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalClientes, setTotalClientes] = useState(0);
+  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
+  const [pacienteEditar, setPacienteEditar] = useState(null);
   const clientesPorPagina = 500;
 
   useEffect(() => {
@@ -52,11 +55,16 @@ const Clientes = () => {
         id: cliente.id_paciente,
         apellidoPaterno: cliente.apellido_paterno || '',
         apellidoMaterno: cliente.apellido_materno || '',
-        nombre: cliente.nombre || '',
+        nombre: cliente.primer_nombre || cliente.nombre || '',
         edad: calcularEdad(cliente.fecha_nacimiento),
         sexo: cliente.sexo || '',
         telefono: cliente.telefono || '',
         email: cliente.email || '',
+        fechaNacimiento: cliente.fecha_nacimiento || '',
+        direccion: cliente.direccion || '',
+        cedula: cliente.cedula || '',
+        condicionEspecial: cliente.condicion_especial || '',
+        pais: cliente.pais || 'México',
         fechaRegistro: new Date(cliente.created_at || Date.now()).toLocaleString('es-MX', {
           year: 'numeric',
           month: '2-digit',
@@ -86,15 +94,61 @@ const Clientes = () => {
   };
 
   const handleAgregarCliente = () => {
-    navigate('/pacientes/nuevo');
+    setPacienteEditar(null);
+    setModalAgregarPacienteOpen(true);
+  };
+
+  const handleEditarCliente = (cliente) => {
+    setPacienteEditar(cliente);
+    setModalAgregarPacienteOpen(true);
+  };
+
+  const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
+    try {
+      if (isEditMode) {
+        // Actualizar paciente existente
+        const { error } = await supabase
+          .from('pacientes')
+          .update({
+            nombre: pacienteData.nombre,
+            apellido_paterno: pacienteData.apellido_paterno,
+            apellido_materno: pacienteData.apellido_materno,
+            primer_nombre: pacienteData.primer_nombre,
+            fecha_nacimiento: pacienteData.fecha_nacimiento,
+            edad: pacienteData.edad,
+            sexo: pacienteData.sexo,
+            direccion: pacienteData.direccion,
+            cedula: pacienteData.cedula,
+            condicion_especial: pacienteData.condicion_especial,
+            email: pacienteData.email,
+            pais: pacienteData.pais,
+            telefono: pacienteData.telefono,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id_paciente', pacienteData.id);
+
+        if (error) throw error;
+        alert('Cliente actualizado correctamente');
+      } else {
+        // Crear nuevo paciente
+        const { error } = await supabase
+          .from('pacientes')
+          .insert([pacienteData]);
+
+        if (error) throw error;
+        alert('Cliente guardado correctamente');
+      }
+
+      cargarClientes();
+      setModalAgregarPacienteOpen(false);
+    } catch (error) {
+      console.error('Error al guardar cliente:', error);
+      alert('Error al guardar cliente: ' + error.message);
+    }
   };
 
   const handleImprimirTabla = () => {
     window.print();
-  };
-
-  const handleEditarCliente = (id) => {
-    navigate(`/pacientes/editar/${id}`);
   };
 
   const paginaSiguiente = () => {
@@ -208,7 +262,7 @@ const Clientes = () => {
                       <td>
                         <button
                           className="btn-editar-cliente"
-                          onClick={() => handleEditarCliente(cliente.id)}
+                          onClick={() => handleEditarCliente(cliente)}
                           title="Editar cliente"
                         >
                           ✏️
@@ -221,6 +275,13 @@ const Clientes = () => {
             </table>
           </div>
         </div>
+        <ModalAgregarPaciente
+          isOpen={modalAgregarPacienteOpen}
+          onClose={() => setModalAgregarPacienteOpen(false)}
+          onGuardar={handleGuardarPacienteModal}
+          pacienteEditar={pacienteEditar}
+        />
+
       </div>
     </Layout>
   );

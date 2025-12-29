@@ -20,10 +20,15 @@ const Captura = () => {
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [buscarPaciente, setBuscarPaciente] = useState('');
 
-  // Filtros
-  const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
-  const [areasSeleccionadas, setAreasSeleccionadas] = useState([]);
-  const [areaFiltro, setAreaFiltro] = useState('todas');
+  // Filtros - Catálogos
+  const [sucursales, setSucursales] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+  const [areas, setAreas] = useState([]);
+
+  // Filtros - Seleccionados
+  const [sucursalFiltro, setSucursalFiltro] = useState('');
+  const [empresaFiltro, setEmpresaFiltro] = useState('');
+  const [areaFiltro, setAreaFiltro] = useState('');
   const [soloPendientes, setSoloPendientes] = useState(false);
 
   // Pacientes
@@ -42,6 +47,9 @@ const Captura = () => {
 
   useEffect(() => {
     cargarUsuario();
+    cargarSucursales();
+    cargarEmpresas();
+    cargarAreas();
     cargarPacientes();
   }, []);
 
@@ -50,16 +58,58 @@ const Captura = () => {
 
     try {
       const { data: perfil } = await supabase
-        .from('perfiles_usuario')
-        .select('nombre, empleados(nombre)')
-        .eq('id', user.id)
+        .from('empleados')
+        .select('nombre')
+        .eq('auth_uuid', user.id)
         .single();
 
       if (perfil) {
-        setUsuarioActual(perfil.empleados?.nombre || perfil.nombre || user.email);
+        setUsuarioActual(perfil.nombre || user.email);
       }
     } catch (error) {
       console.error('Error al cargar usuario:', error);
+    }
+  };
+
+  const cargarSucursales = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sucursales')
+        .select('id_sucursal, nombre')
+        .order('nombre');
+
+      if (error) throw error;
+      setSucursales(data || []);
+    } catch (error) {
+      console.error('Error al cargar sucursales:', error);
+    }
+  };
+
+  const cargarEmpresas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('empresas')
+        .select('id_empresa, nombre')
+        .order('nombre');
+
+      if (error) throw error;
+      setEmpresas(data || []);
+    } catch (error) {
+      console.error('Error al cargar empresas:', error);
+    }
+  };
+
+  const cargarAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('id_area, nombre')
+        .order('nombre');
+
+      if (error) throw error;
+      setAreas(data || []);
+    } catch (error) {
+      console.error('Error al cargar áreas:', error);
     }
   };
 
@@ -163,6 +213,7 @@ const Captura = () => {
   };
 
   const calcularEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return 'N/A';
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -189,6 +240,10 @@ const Captura = () => {
       pac.pacientes?.nombre.toLowerCase().includes(buscarPaciente.toLowerCase());
     const matchEstudio = buscarEstudio === '' || 
       pac.tipo_estudio.toLowerCase().includes(buscarEstudio.toLowerCase());
+    
+    // Aquí podrías agregar filtros adicionales por sucursal, empresa y área
+    // si tienes esos campos en los datos
+    
     return matchPaciente && matchEstudio;
   });
 
@@ -243,14 +298,32 @@ const Captura = () => {
             </div>
 
             <div className="filtro-select">
-              <select className="select-filtro">
-                <option>All selected (3)</option>
+              <select 
+                value={sucursalFiltro}
+                onChange={(e) => setSucursalFiltro(e.target.value)}
+                className="select-filtro"
+              >
+                <option value="">Todas las Sucursales ({sucursales.length})</option>
+                {sucursales.map(sucursal => (
+                  <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
+                    {sucursal.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="filtro-select">
-              <select className="select-filtro">
-                <option>All selected (19)</option>
+              <select 
+                value={empresaFiltro}
+                onChange={(e) => setEmpresaFiltro(e.target.value)}
+                className="select-filtro"
+              >
+                <option value="">Todas las Empresas ({empresas.length})</option>
+                {empresas.map(empresa => (
+                  <option key={empresa.id_empresa} value={empresa.id_empresa}>
+                    {empresa.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -260,9 +333,12 @@ const Captura = () => {
                 onChange={(e) => setAreaFiltro(e.target.value)}
                 className="select-filtro"
               >
-                <option value="todas">Todas Áreas</option>
-                <option value="laboratorio">Laboratorio</option>
-                <option value="radiologia">Radiología</option>
+                <option value="">Todas las Áreas ({areas.length})</option>
+                {areas.map(area => (
+                  <option key={area.id_area} value={area.nombre}>
+                    {area.nombre}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

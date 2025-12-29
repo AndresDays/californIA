@@ -132,6 +132,95 @@
   transform: scale(1.1);
 }
 
+/* Tabla de Estudios del Paquete */
+.tabla-estudios-paquete-container {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid rgba(111, 179, 210, 0.2);
+  border-radius: 6px;
+  background: rgba(10, 25, 41, 0.4);
+}
+
+.tabla-estudios-paquete {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-estudios-paquete thead {
+  position: sticky;
+  top: 0;
+  background: rgba(10, 25, 41, 0.95);
+  z-index: 5;
+}
+
+.tabla-estudios-paquete th {
+  padding: 0.7rem 0.6rem;
+  text-align: left;
+  font-weight: 500;
+  color: white;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+  white-space: nowrap;
+}
+
+.tabla-estudios-paquete tbody tr {
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+}
+
+.tabla-estudios-paquete tbody tr:hover {
+  background: rgba(111, 179, 210, 0.1);
+}
+
+.tabla-estudios-paquete td {
+  padding: 0.6rem 0.6rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.82rem;
+}
+
+.sin-estudios-paquete {
+  text-align: center;
+  padding: 2rem !important;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.btn-eliminar-estudio-paquete {
+  background: #dc3545;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-eliminar-estudio-paquete:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+/* Scrollbar para tabla de estudios */
+.tabla-estudios-paquete-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tabla-estudios-paquete-container::-webkit-scrollbar-track {
+  background: rgba(10, 25, 41, 0.3);
+  border-radius: 3px;
+}
+
+.tabla-estudios-paquete-container::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 3px;
+}
+
+.tabla-estudios-paquete-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
 /* Botones del Formulario */
 .botones-formulario-paquetes {
   display: flex;
@@ -232,9 +321,12 @@
 /* Tabla de Paquetes */
 .tabla-paquetes-container {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto; /* Scroll vertical siempre visible cuando necesario */
+  overflow-x: auto; /* Scroll horizontal si la tabla es muy ancha */
   border: 1px solid rgba(111, 179, 210, 0.2);
   border-radius: 8px;
+  max-height: 500px; /* Altura máxima - ajusta según necesites */
+  min-height: 200px; /* Altura mínima para mantener diseño */
 }
 
 .tabla-paquetes {
@@ -313,29 +405,39 @@
   text-align: left;
 }
 
-/* Scrollbar */
+/* Scrollbar Personalizado */
 .tabla-paquetes-container::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 .tabla-paquetes-container::-webkit-scrollbar-track {
-  background: rgba(10, 25, 41, 0.3);
-}
-
-.tabla-paquetes-container::-webkit-scrollbar-thumb {
-  background: rgba(111, 179, 210, 0.5);
+  background: rgba(10, 25, 41, 0.5);
   border-radius: 4px;
 }
 
+.tabla-paquetes-container::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.6);
+  border-radius: 4px;
+  border: 2px solid rgba(10, 25, 41, 0.5);
+}
+
 .tabla-paquetes-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 179, 210, 0.7);
+  background: rgba(111, 179, 210, 0.8);
+}
+
+.tabla-paquetes-container::-webkit-scrollbar-corner {
+  background: rgba(10, 25, 41, 0.5);
 }
 
 /* Responsive */
 @media (max-width: 1200px) {
   .agregar-paquetes-content {
     grid-template-columns: 1fr;
+  }
+  
+  .tabla-paquetes-container {
+    max-height: 400px; /* Altura menor en pantallas medianas */
   }
 }
 
@@ -365,6 +467,10 @@
 
   .input-buscar-paquetes {
     min-width: 100%;
+  }
+  
+  .tabla-paquetes-container {
+    max-height: 350px; /* Altura menor en móviles */
   }
 }
 

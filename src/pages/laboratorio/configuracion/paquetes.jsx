@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout';
 import Header from '../../../components/header-laboratorio.jsx';
-import './Paquetes.css';
+import './paquetes.css';
 
 const Paquetes = () => {
   const { user } = useAuth();
@@ -19,7 +19,11 @@ const Paquetes = () => {
   const [descripcionPerfil, setDescripcionPerfil] = useState('');
   const [condicionesPaciente, setCondicionesPaciente] = useState('');
   const [diasProceso, setDiasProceso] = useState('');
-  const [busqueda, setBusqueda] = useState('');
+  const [busquedaEstudio, setBusquedaEstudio] = useState('');
+
+  // Estados para estudios
+  const [estudiosDelPaquete, setEstudiosDelPaquete] = useState([]);
+  const [estudioEncontrado, setEstudioEncontrado] = useState(null);
 
   const [modoEdicion, setModoEdicion] = useState(false);
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(null);
@@ -53,17 +57,159 @@ const Paquetes = () => {
     }
   };
 
+  const cargarEstudiosDelPaquete = async (idPaquete) => {
+    try {
+      const { data, error } = await supabase
+        .from('paquetes_estudios')
+        .select(`
+          id,
+          orden,
+          estudios_lab_catalogo (
+            id,
+            clave,
+            descripcion
+          )
+        `)
+        .eq('id_paquete', idPaquete)
+        .order('orden', { ascending: true });
+
+      if (error) throw error;
+
+      // Formatear datos
+      const estudiosFormateados = data?.map(pe => ({
+        id_relacion: pe.id,
+        id_estudio: pe.estudios_lab_catalogo.id,
+        clave: pe.estudios_lab_catalogo.clave,
+        descripcion: pe.estudios_lab_catalogo.descripcion,
+        orden: pe.orden
+      })) || [];
+
+      setEstudiosDelPaquete(estudiosFormateados);
+    } catch (error) {
+      console.error('Error al cargar estudios del paquete:', error);
+    }
+  };
+
+  const buscarEstudio = async (e) => {
+    e.preventDefault();
+    
+    if (!busquedaEstudio.trim()) {
+      alert('Por favor, ingresa una clave o descripción de estudio');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('estudios_lab_catalogo')
+        .select('id, clave, descripcion')
+        .or(
+          `clave.ilike.%${busquedaEstudio}%,` +
+          `descripcion.ilike.%${busquedaEstudio}%`
+        )
+        .limit(1)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          alert('No se encontró ningún estudio con esa clave o descripción');
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      // Verificar si el estudio ya está en el paquete
+      const yaExiste = estudiosDelPaquete.some(e => e.id_estudio === data.id);
+      if (yaExiste) {
+        alert('Este estudio ya está agregado al paquete');
+        return;
+      }
+
+      setEstudioEncontrado(data);
+      await agregarEstudioAlPaquete(data);
+    } catch (error) {
+      console.error('Error al buscar estudio:', error);
+      alert('Error al buscar el estudio');
+    }
+  };
+
+  const agregarEstudioAlPaquete = async (estudio) => {
+    if (!paqueteSeleccionado) {
+      alert('Primero debes seleccionar o guardar un paquete');
+      return;
+    }
+
+    try {
+      const orden = estudiosDelPaquete.length + 1;
+
+      const { data, error } = await supabase
+        .from('paquetes_estudios')
+        .insert([{
+          id_paquete: paqueteSeleccionado,
+          id_estudio: estudio.id,
+          orden: orden
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Agregar a la lista local
+      setEstudiosDelPaquete([...estudiosDelPaquete, {
+        id_relacion: data.id,
+        id_estudio: estudio.id,
+        clave: estudio.clave,
+        descripcion: estudio.descripcion,
+        orden: orden
+      }]);
+
+      setBusquedaEstudio('');
+      setEstudioEncontrado(null);
+    } catch (error) {
+      console.error('Error al agregar estudio al paquete:', error);
+      alert('Error al agregar el estudio');
+    }
+  };
+
+  const eliminarEstudioDelPaquete = async (idRelacion, idEstudio) => {
+    if (!window.confirm('¿Está seguro de eliminar este estudio del paquete?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('paquetes_estudios')
+        .delete()
+        .eq('id', idRelacion);
+
+      if (error) throw error;
+
+      // Eliminar de la lista local
+      setEstudiosDelPaquete(estudiosDelPaquete.filter(e => e.id_estudio !== idEstudio));
+    } catch (error) {
+      console.error('Error al eliminar estudio del paquete:', error);
+      alert('Error al eliminar el estudio');
+    }
+  };
+
   const limpiarFormulario = () => {
     setClavePerfil('');
     setDescripcionPerfil('');
     setCondicionesPaciente('');
     setDiasProceso('');
-    setBusqueda('');
+    setBusquedaEstudio('');
+    setEstudiosDelPaquete([]);
+    setEstudioEncontrado(null);
     setModoEdicion(false);
     setPaqueteSeleccionado(null);
   };
 
   const handleGuardar = async () => {
+    if (!clavePerfil.trim() || !descripcionPerfil.trim()) {
+      alert('Por favor, completa al menos la clave y descripción');
+      return;
+    }
+
     try {
       const paqueteData = {
         clave: clavePerfil,
@@ -72,14 +218,20 @@ const Paquetes = () => {
         dias_proceso: parseInt(diasProceso) || 0
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('paquetes')
-        .insert([paqueteData]);
+        .insert([paqueteData])
+        .select()
+        .single();
 
       if (error) throw error;
 
       alert('Paquete guardado correctamente');
-      limpiarFormulario();
+      
+      // Establecer el paquete recién creado como seleccionado
+      setPaqueteSeleccionado(data.id);
+      setModoEdicion(true);
+      
       cargarPaquetes();
     } catch (error) {
       console.error('Error al guardar paquete:', error);
@@ -113,7 +265,6 @@ const Paquetes = () => {
       if (error) throw error;
 
       alert('Paquete actualizado correctamente');
-      limpiarFormulario();
       cargarPaquetes();
     } catch (error) {
       console.error('Error al actualizar paquete:', error);
@@ -121,13 +272,16 @@ const Paquetes = () => {
     }
   };
 
-  const cargarPaqueteParaEditar = (paquete) => {
+  const cargarPaqueteParaEditar = async (paquete) => {
     setClavePerfil(paquete.clave || '');
     setDescripcionPerfil(paquete.descripcion || '');
     setCondicionesPaciente(paquete.condiciones || '');
     setDiasProceso(paquete.dias_proceso?.toString() || '');
     setModoEdicion(true);
     setPaqueteSeleccionado(paquete.id);
+    
+    // Cargar estudios asociados
+    await cargarEstudiosDelPaquete(paquete.id);
   };
 
   return (
@@ -186,18 +340,64 @@ const Paquetes = () => {
               />
             </div>
 
-            <div className="campo-busqueda-paquete">
+            {/* Campo de búsqueda de estudios */}
+            <form onSubmit={buscarEstudio} className="campo-busqueda-paquete">
               <input
                 type="text"
                 placeholder="Search..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
+                value={busquedaEstudio}
+                onChange={(e) => setBusquedaEstudio(e.target.value)}
                 className="input-busqueda-paquete"
+                disabled={!paqueteSeleccionado}
               />
-              <button className="btn-buscar-paquete">
+              <button 
+                type="submit"
+                className="btn-buscar-paquete"
+                disabled={!paqueteSeleccionado}
+              >
                 🔍
               </button>
-            </div>
+            </form>
+
+            {/* Tabla de estudios del paquete */}
+            {paqueteSeleccionado && (
+              <div className="tabla-estudios-paquete-container">
+                <table className="tabla-estudios-paquete">
+                  <thead>
+                    <tr>
+                      <th>Clave</th>
+                      <th>Descripcion</th>
+                      <th>Eliminar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {estudiosDelPaquete.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="sin-estudios-paquete">
+                          No hay estudios agregados
+                        </td>
+                      </tr>
+                    ) : (
+                      estudiosDelPaquete.map((estudio) => (
+                        <tr key={estudio.id_estudio}>
+                          <td>{estudio.clave}</td>
+                          <td>{estudio.descripcion}</td>
+                          <td>
+                            <button
+                              className="btn-eliminar-estudio-paquete"
+                              onClick={() => eliminarEstudioDelPaquete(estudio.id_relacion, estudio.id_estudio)}
+                              title="Eliminar estudio"
+                            >
+                              ✖
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             <div className="botones-formulario-paquetes">
               <button className="btn-guardar-paquete" onClick={handleGuardar}>

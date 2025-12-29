@@ -1,0 +1,310 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Modal Overlay */
+.modal-overlay-precio {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+  padding: 2rem;
+}
+
+/* Modal Container */
+.modal-container-precio {
+  background: linear-gradient(135deg, #0a1929 0%, #1a2942 100%);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: 'Codec Pro', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal Header */
+.modal-header-precio {
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-titulo-precio {
+  margin: 0;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.modal-btn-cerrar-precio {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.modal-btn-cerrar-precio:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal Body */
+.modal-body-precio {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Form Groups */
+.form-group-precio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group-precio label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+/* Search Container */
+.search-container-precio {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-buscar-estudio {
+  flex: 1;
+  padding: 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 7px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.input-buscar-estudio:focus {
+  outline: none;
+  border-color: #6FB3D2;
+  background: rgba(10, 25, 41, 0.8);
+}
+
+.input-buscar-estudio::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.input-buscar-estudio:disabled {
+  background: rgba(10, 25, 41, 0.3);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-search-precio {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  border: none;
+  border-radius: 7px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-search-precio:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
+}
+
+/* Search Results */
+.search-results-precio {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(10, 25, 41, 0.98);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.search-result-item-precio {
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.search-result-item-precio:hover {
+  background: rgba(111, 179, 210, 0.2);
+  border-left: 3px solid #6FB3D2;
+  padding-left: calc(1rem - 3px);
+}
+
+.search-result-item-precio:last-child {
+  border-bottom: none;
+}
+
+.search-result-item-precio strong {
+  color: #6FB3D2;
+}
+
+/* Form Row */
+.form-row-precio {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+/* Inputs y Selects */
+.select-empresa-precio,
+.input-precio {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(10, 25, 41, 0.6);
+  border: 1px solid rgba(111, 179, 210, 0.3);
+  border-radius: 7px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.select-empresa-precio:focus,
+.input-precio:focus {
+  outline: none;
+  border-color: #6FB3D2;
+  background: rgba(10, 25, 41, 0.8);
+}
+
+.select-empresa-precio option {
+  background: #0a1929;
+  color: white;
+}
+
+.input-precio::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Modal Footer */
+.modal-footer-precio {
+  padding: 1.5rem 2rem;
+  background: rgba(10, 25, 41, 0.4);
+  border-top: 1px solid rgba(111, 179, 210, 0.2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Buttons */
+.btn-salir-precio,
+.btn-guardar-precio {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 7px;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-salir-precio {
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.btn-salir-precio:hover {
+  background: rgba(255, 107, 107, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-guardar-precio {
+  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(111, 179, 210, 0.3);
+}
+
+.btn-guardar-precio:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(111, 179, 210, 0.4);
+}
+
+/* Scrollbar */
+.search-results-precio::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results-precio::-webkit-scrollbar-track {
+  background: rgba(40, 50, 60, 0.3);
+}
+
+.search-results-precio::-webkit-scrollbar-thumb {
+  background: rgba(111, 179, 210, 0.5);
+  border-radius: 3px;
+}
+
+.search-results-precio::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 179, 210, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-container-precio {
+    max-width: 95%;
+  }
+
+  .modal-header-precio {
+    padding: 1rem 1.5rem;
+  }
+
+  .modal-body-precio {
+    padding: 1.5rem;
+  }
+
+  .modal-footer-precio {
+    padding: 1rem 1.5rem;
+    flex-direction: column;
+  }
+
+  .btn-salir-precio,
+  .btn-guardar-precio {
+    width: 100%;
+  }
+
+  .form-row-precio {
+    grid-template-columns: 1fr;
+  }
+}

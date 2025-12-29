@@ -18,6 +18,8 @@ const AdministrarRecipientes = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalRecipientes, setTotalRecipientes] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [recipienteEditando, setRecipienteEditando] = useState(null);
 
   useEffect(() => {
     cargarRecipientes();
@@ -50,26 +52,61 @@ const AdministrarRecipientes = () => {
   };
 
   const handleAgregarRecipiente = () => {
+    setModoEdicion(false);
+    setRecipienteEditando(null);
+    setModalOpen(true);
+  };
+
+  const handleEditarRecipiente = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('recipientes')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      setModoEdicion(true);
+      setRecipienteEditando(data);
       setModalOpen(true);
-    };
-  
-    const handleGuardarRecipiente = async (nombre) => {
-      try {
-        const { data, error } = await supabase
+    } catch (error) {
+      console.error('Error al cargar recipiente para editar:', error);
+      alert('Error al cargar el recipiente');
+    }
+  };
+
+  const handleGuardarRecipiente = async (nombre) => {
+    try {
+      if (modoEdicion && recipienteEditando) {
+        // Actualizar recipiente existente
+        const { error } = await supabase
+          .from('recipientes')
+          .update({ nombre: nombre })
+          .eq('id', recipienteEditando.id);
+
+        if (error) throw error;
+
+        alert('Recipiente actualizado correctamente');
+      } else {
+        // Crear nuevo recipiente
+        const { error } = await supabase
           .from('recipientes')
           .insert([{ nombre: nombre }]);
-  
-        if (error) throw error;
-  
-        cargarRecipientes();
-      } catch (error) {
-        console.error('Error al guardar recipiente:', error);
-        alert('Error al guardar el recipiente');
-      }
-    };
 
-  const handleEditarRecipiente = (id) => {
-    navigate(`/configuracion/recipientes/editar/${id}`);
+        if (error) throw error;
+
+        alert('Recipiente agregado correctamente');
+      }
+
+      cargarRecipientes();
+      setModalOpen(false);
+      setModoEdicion(false);
+      setRecipienteEditando(null);
+    } catch (error) {
+      console.error('Error al guardar recipiente:', error);
+      alert('Error al guardar el recipiente');
+    }
   };
 
   const paginaSiguiente = () => {
@@ -183,13 +220,20 @@ const AdministrarRecipientes = () => {
             </div>
           </div>
         </div>
+
         <ModalAgregar
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setRecipienteEditando(null);
+          }}
           onGuardar={handleGuardarRecipiente}
-          titulo="Agregar Recipiente"
-          placeholder="Ingresar Recipiente"
+          titulo={modoEdicion ? "Editar" : "Agregar Recipiente"}
+          placeholder={modoEdicion ? "Editar Recipiente" : "Ingresar Recipiente"}
           icono="⚙️"
+          valorInicial={modoEdicion ? recipienteEditando?.nombre : ""}
+          modoEdicion={modoEdicion}
         />
       </div>
     </Layout>

@@ -18,6 +18,8 @@ const AdministrarEquipos = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalEquipos, setTotalEquipos] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [equiposEditando, setEquiposEditando] = useState(null);
 
   useEffect(() => {
     cargarEquipos();
@@ -51,25 +53,58 @@ const AdministrarEquipos = () => {
 
   const handleAgregarEquipo = () => {
     setModalOpen(true);
+    setModoEdicion(false);
+    setEquiposEditando(null);
   };
 
   const handleGuardarEquipo = async (nombre) => {
     try {
-      const { data, error } = await supabase
-        .from('equipos_lab')
-        .insert([{ nombre: nombre }]);
+      if (modoEdicion && equiposEditando) {
+        const { error } = await supabase
+          .from('equipos_lab')
+          .update({ nombre: nombre })
+          .eq('id', equiposEditando.id);
 
-      if (error) throw error;
+        if (error) throw error;
+
+        alert('Equipo actualizado correctamente');
+      } else {
+        const { error } = await supabase
+          .from('equipos_lab')
+          .insert([{ nombre: nombre }]);
+
+        if (error) throw error;
+
+        alert('Equipo agregado correctamente');
+      }
 
       cargarEquipos();
+      setModalOpen(false);
+      setModoEdicion(false);
+      setEquiposEditando(null);
     } catch (error) {
       console.error('Error al guardar equipo:', error);
       alert('Error al guardar el equipo');
     }
   };
 
-  const handleEditarEquipo = (id) => {
-    navigate(`/configuracion/equipos/editar/${id}`);
+  const handleEditarEquipo = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('equipos_lab')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      setModoEdicion(true);
+      setEquiposEditando(data);
+      setModalOpen(true);
+    } catch (error) {
+      console.error('Error al cargar equipo para editar:', error);
+      alert('Error al cargar el equipo');
+    }
   };
 
   const paginaSiguiente = () => {
@@ -191,11 +226,17 @@ const AdministrarEquipos = () => {
 
         <ModalAgregar
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setEquiposEditando(null);
+          }}
           onGuardar={handleGuardarEquipo}
-          titulo="Agregar Equipo"
-          placeholder="Ingresar Equipo"
+          titulo={modoEdicion ? "Editar" : "Agregar Equipo"}
+          placeholder={modoEdicion ? "Editar Equipo" : "Ingresar Equipo"}
           icono="⚙️"
+          valorInicial={modoEdicion ? equiposEditando?.nombre : ""}
+          modoEdicion={modoEdicion}
         />
       </div>
     </Layout>

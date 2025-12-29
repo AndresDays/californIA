@@ -18,6 +18,8 @@ const AdministrarMetodos = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalMetodos, setTotalMetodos] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [metodosEditando, setMetodosEditando] = useState(null);
 
   useEffect(() => {
     cargarMetodos();
@@ -51,26 +53,58 @@ const AdministrarMetodos = () => {
 
   const handleAgregarMetodo = () => {
     setModalOpen(true);
+    setModoEdicion(false);
+    setMetodosEditando(null);
   };
 
   const handleGuardarMetodo = async (nombre) => {
       try {
-        const { data, error } = await supabase
-          .from('metodos')
-          .insert([{ nombre: nombre }]);
+        if (modoEdicion && metodosEditando) {
+          const { error } = await supabase
+            .from('metodos')
+            .update({ nombre: nombre })
+            .eq('id', metodosEditando.id);
   
-        if (error) throw error;
+          if (error) throw error;
   
-        // Recargar equipos
+          alert('Metodo actualizado correctamente');
+        } else {
+          const { error } = await supabase
+            .from('metodos')
+            .insert([{ nombre: nombre }]);
+  
+          if (error) throw error;
+  
+          alert('Metodo agregado correctamente');
+        }
+  
         cargarMetodos();
+        setModalOpen(false);
+        setModoEdicion(false);
+        setMetodosEditando(null);
       } catch (error) {
         console.error('Error al guardar metodo:', error);
-        alert('Error al guardar el metodo');
+        alert('Error al guardar metodo');
       }
     };
 
-  const handleEditarMetodo = (id) => {
-    navigate(`/configuracion/metodo/editar/${id}`);
+  const handleEditarMetodo = async (id) => {
+    try {
+      const { data, error } = await supabase
+        .from('metodos')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      setModoEdicion(true);
+      setMetodosEditando(data);
+      setModalOpen(true);
+    } catch (error) {
+      console.error('Error al cargar metodo para editar:', error);
+      alert('Error al cargar metodo');
+    }
   };
 
   const paginaSiguiente = () => {
@@ -186,11 +220,17 @@ const AdministrarMetodos = () => {
         </div>
         <ModalAgregar
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => {
+            setModalOpen(false);
+            setModoEdicion(false);
+            setMetodosEditando(null);
+          }}
           onGuardar={handleGuardarMetodo}
-          titulo="Agregar Metodo"
-          placeholder="Ingresar Metodo"
+          titulo={modoEdicion ? "Editar" : "Agregar Metodo"}
+          placeholder={modoEdicion ? "Editar Metodo" : "Ingresar Metodo"}
           icono="⚙️"
+          valorInicial={modoEdicion ? metodosEditando?.nombre : ""}
+          modoEdicion={modoEdicion}
         />
       </div>
     </Layout>
