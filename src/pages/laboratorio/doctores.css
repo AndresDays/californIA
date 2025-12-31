@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .admin-doctores-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .admin-doctores-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .admin-doctores-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: hidden;
 }
 
-/* Controles Superiores */
 .controles-admin-doctores {
   display: flex;
   justify-content: space-between;
@@ -71,7 +67,6 @@
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
-/* Exportación y Búsqueda */
 .exportacion-busqueda {
   display: flex;
   justify-content: space-between;
@@ -104,7 +99,6 @@
   border-color: #6FB3D2;
 }
 
-/* Búsqueda */
 .busqueda-doctores {
   display: flex;
   align-items: center;
@@ -134,7 +128,6 @@
   box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.2);
 }
 
-/* Tabla de Doctores */
 .tabla-admin-doctores-container {
   flex: 1;
   overflow: auto;
@@ -196,7 +189,6 @@
   font-style: italic;
 }
 
-/* Acciones */
 .acciones-doctores {
   display: flex;
   gap: 0.5rem;
@@ -228,7 +220,6 @@
   transform: scale(1.2);
 }
 
-/* Contador de Registros */
 .contador-registros {
   padding: 0.75rem 1rem;
   background: rgba(10, 25, 41, 0.6);
@@ -238,7 +229,6 @@
   text-align: left;
 }
 
-/* Scrollbar */
 .tabla-admin-doctores-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -261,7 +251,6 @@
   background: rgba(10, 25, 41, 0.3);
 }
 
-/* Responsive */
 @media (max-width: 1400px) {
   .tabla-admin-doctores {
     min-width: 1600px;
@@ -314,7 +303,6 @@
   }
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -330,7 +318,6 @@
   animation: fadeIn 0.5s ease;
 }
 
-/* Estilos para Impresión */
 @media print {
   .admin-doctores-header,
   .controles-admin-doctores,

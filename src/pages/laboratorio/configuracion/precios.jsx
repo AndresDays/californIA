@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import ModalAgregarPrecio from '../componentes/modal-agregar-precio';
 import './precios.css';
@@ -19,7 +19,6 @@ const Precios = () => {
   const [totalPrecios, setTotalPrecios] = useState(0);
   const [seleccionados, setSeleccionados] = useState([]);
 
-  // Estados para el modal
   const [modalAbierto, setModalAbierto] = useState(false);
   const [precioEditar, setPrecioEditar] = useState(null);
 
@@ -74,7 +73,6 @@ const Precios = () => {
   const handleGuardarPrecio = async (precioData, isEditMode) => {
     try {
       if (isEditMode) {
-        // Actualizar precio existente
         const { error } = await supabase
           .from('precios_estudios')
           .update({
@@ -90,7 +88,6 @@ const Precios = () => {
         if (error) throw error;
         alert('Precio actualizado correctamente');
       } else {
-        // Crear nuevo precio
         const { error } = await supabase
           .from('precios_estudios')
           .insert([precioData]);
@@ -387,7 +384,6 @@ const Precios = () => {
           </div>
         </div>
 
-        {/* Modal para Agregar/Editar Precio */}
         <ModalAgregarPrecio
           isOpen={modalAbierto}
           onClose={() => setModalAbierto(false)}

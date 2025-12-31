@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper principal */
 .nuevo-paciente-wrapper {
   min-height: 100vh;
   display: flex;
@@ -9,7 +8,6 @@
   color: white;
 }
 
-/* Main Content */
 .page-main {
   flex: 1;
   padding: 1.25rem;
@@ -23,19 +21,17 @@
   gap: 1.25rem;
   max-width: 1800px;
   margin: 0 auto;
-  overflow: visible; /* Permite que el dropdown se vea */
+  overflow: visible; 
 }
 
-/* Columnas */
 .left-column,
 .right-column {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  overflow: visible; /* Permite que el dropdown se vea */
+  overflow: visible; 
 }
 
-/* Secciones */
 .form-section {
   background: rgba(10, 25, 41, 0.6);
   backdrop-filter: blur(10px);
@@ -43,16 +39,14 @@
   border-radius: 10px;
   padding: 1rem;
   position: relative;
-  z-index: 1; /* Z-index base bajo */
-  overflow: visible; /* IMPORTANTE: permite que el dropdown se salga */
+  z-index: 1; 
+  overflow: visible; 
 }
 
-/* Secciones con búsqueda - Z-INDEX MUY ALTO */
 .form-section-cliente {
-  z-index: 100 !important; /* Alto para que el dropdown se vea sobre todo */
+  z-index: 100 !important;
 }
 
-/* Dar z-index alto a CUALQUIER form-section que tenga search-container */
 .form-section:has(.search-container) {
   z-index: 100 !important;
 }
@@ -68,7 +62,6 @@
   padding-bottom: 0.4rem;
 }
 
-/* Form Groups */
 .form-group {
   margin-bottom: 0.75rem;
 }
@@ -117,20 +110,18 @@
   min-height: 70px;
 }
 
-/* Form Row */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-/* Search Container */
 .search-container {
-  position: relative; /* CRÍTICO: para que el absolute funcione */
+  position: relative;
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  z-index: 101; /* Justo por encima de la sección */
+  z-index: 101;
 }
 
 .search-input {
@@ -177,7 +168,7 @@
   box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
 }
 
-/* Search Results - Z-INDEX MUY ALTO */
+
 .search-results {
   position: absolute;
   top: 100%;
@@ -190,7 +181,7 @@
   margin-top: 0.25rem;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 102; /* MUY alto para estar sobre todo */
+  z-index: 102; 
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
@@ -226,7 +217,6 @@
   border-bottom: none;
 }
 
-/* Nuevos estilos para resultados mejorados */
 .result-nombre {
   font-weight: 500;
   color: white;
@@ -256,7 +246,6 @@
   font-size: 0.9rem;
 }
 
-/* Scrollbar para resultados */
 .search-results::-webkit-scrollbar,
 .search-results-estudios::-webkit-scrollbar {
   width: 6px;
@@ -279,7 +268,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Vendedor Display */
 .vendedor-display {
   background: rgba(111, 179, 210, 0.1);
   border: 1px solid rgba(111, 179, 210, 0.3);
@@ -293,7 +281,6 @@
   color: #6FB3D2;
 }
 
-/* Top Controls */
 .top-controls {
   display: flex;
   justify-content: space-between;
@@ -350,7 +337,6 @@
   box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
 }
 
-/* Estudios Section */
 .estudios-section {
   background: rgba(10, 25, 41, 0.6);
   backdrop-filter: blur(10px);
@@ -439,7 +425,6 @@
   font-style: italic;
 }
 
-/* Totales Section */
 .totales-section {
   background: rgba(10, 25, 41, 0.6);
   backdrop-filter: blur(10px);
@@ -569,7 +554,6 @@
   color: #66BB6A;
 }
 
-/* Botones Finales */
 .action-buttons-final {
   display: flex;
   justify-content: flex-end;
@@ -610,7 +594,6 @@
   box-shadow: 0 6px 16px rgba(102, 187, 106, 0.4);
 }
 
-/* Alerta de empresa requerida */
 .alert-empresa-requerida {
   background: rgba(255, 193, 7, 0.15);
   border: 1px solid rgba(255, 193, 7, 0.4);
@@ -630,7 +613,6 @@
   opacity: 0.6;
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .content-grid {
     grid-template-columns: 1fr;

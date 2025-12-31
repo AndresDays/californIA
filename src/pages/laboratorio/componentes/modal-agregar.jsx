@@ -8,12 +8,11 @@ const ModalAgregar = ({
   titulo = "Agregar", 
   placeholder = "Ingrese un valor",
   icono = "➕",
-  valorInicial = "", // Para edición
-  modoEdicion = false // true cuando es editar, false cuando es agregar
+  valorInicial = "", 
+  modoEdicion = false 
 }) => {
   const [valor, setValor] = useState('');
 
-  // Actualizar valor cuando cambia valorInicial (modo edición)
   useEffect(() => {
     if (isOpen) {
       setValor(valorInicial || '');
@@ -43,7 +42,6 @@ const ModalAgregar = ({
   return (
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-contenedor" onClick={(e) => e.stopPropagation()}>
-        {/* Header del Modal */}
         <div className="modal-header">
           <h2 className="modal-titulo">{titulo}</h2>
           <button className="modal-btn-cerrar" onClick={handleClose}>
@@ -51,7 +49,6 @@ const ModalAgregar = ({
           </button>
         </div>
 
-        {/* Contenido del Modal */}
         <form onSubmit={handleSubmit} className="modal-contenido">
           <div className="modal-campo-icon">
             <span className="modal-icon-campo">{icono}</span>
@@ -65,7 +62,6 @@ const ModalAgregar = ({
             />
           </div>
 
-          {/* Botones */}
           <div className="modal-botones">
             <button
               type="button"

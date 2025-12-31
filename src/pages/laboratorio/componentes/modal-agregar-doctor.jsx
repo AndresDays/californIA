@@ -3,12 +3,10 @@ import { supabase } from '../../../lib/supabase-client';
 import './modal-agregar-doctor.css';
 
 const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) => {
-  // Estados para los campos
   const [apellidoPaterno, setApellidoPaterno] = useState('');
   const [apellidoMaterno, setApellidoMaterno] = useState('');
   const [nombre, setNombre] = useState('');
   
-  // Fecha de nacimiento
   const [dia, setDia] = useState('');
   const [mes, setMes] = useState('');
   const [ano, setAno] = useState('');
@@ -18,14 +16,11 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
   
-  // Nuevos campos: usuario y contraseña
   const [usuario, setUsuario] = useState('');
   const [contrasena, setContrasena] = useState('');
 
-  // Determinar si es modo edición
   const isEditMode = !!doctorEditar;
 
-  // Generar arrays para selectores
   const dias = Array.from({ length: 31 }, (_, i) => i + 1);
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -34,10 +29,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   const currentYear = new Date().getFullYear();
   const anos = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
-  // Cargar datos del doctor cuando el modal se abre
   useEffect(() => {
     if (isOpen && doctorEditar) {
-      // Modo edición: cargar datos
       setApellidoPaterno(doctorEditar.apellidoPaterno || '');
       setApellidoMaterno(doctorEditar.apellidoMaterno || '');
       setNombre(doctorEditar.nombre || '');
@@ -47,7 +40,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       setUsuario(doctorEditar.usuario || '');
       setContrasena(doctorEditar.contrasena || '');
       
-      // Cargar fecha de nacimiento si existe
       if (doctorEditar.fechaNacimiento) {
         const fecha = new Date(doctorEditar.fechaNacimiento);
         setDia(fecha.getDate().toString());
@@ -57,12 +49,10 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       
       setEdad(doctorEditar.edad?.toString() || '');
     } else if (isOpen && !doctorEditar) {
-      // Modo agregar: limpiar campos
       limpiarCampos();
     }
   }, [isOpen, doctorEditar]);
 
-  // Calcular edad cuando cambia la fecha de nacimiento
   useEffect(() => {
     if (dia && mes && ano) {
       calcularEdad();
@@ -101,16 +91,13 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   };
 
   const handleGuardar = async () => {
-    // Validaciones básicas
     if (!apellidoPaterno || !nombre) {
       alert('Por favor completa al menos Apellido Paterno y Nombre');
       return;
     }
 
-    // Construir nombre completo
     const nombreCompleto = `${apellidoPaterno.toUpperCase()} ${apellidoMaterno.toUpperCase()} ${nombre.toUpperCase()}`.trim();
 
-    // Construir fecha de nacimiento
     let fechaNacimiento = null;
     if (dia && mes && ano) {
       const mesIndex = meses.indexOf(mes) + 1;
@@ -132,13 +119,11 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       activo: true
     };
 
-    // Si es modo edición, agregar el ID
     if (isEditMode && doctorEditar.id) {
       doctorData.id = doctorEditar.id;
     }
 
     try {
-      // Guardar en Supabase
       if (onSave) {
         await onSave(doctorData, isEditMode);
       }
@@ -165,7 +150,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
         </div>
 
         <div className="modal-body">
-          {/* Apellidos y Nombre */}
           <div className="form-section-modal">
             <div className="form-group-modal">
               <label>Apellido Paterno *</label>
@@ -201,7 +185,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
           </div>
 
-          {/* Fecha de Nacimiento y Edad */}
           <div className="form-section-modal">
             <div className="form-row-modal">
               <div className="form-group-modal">
@@ -260,7 +243,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
           </div>
 
-          {/* Sexo */}
           <div className="form-section-modal">
             <div className="form-group-modal">
               <label>Sexo</label>
@@ -277,7 +259,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
           </div>
 
-          {/* Contacto */}
           <div className="form-section-modal">
             <div className="form-group-modal">
               <label>Email</label>
@@ -302,7 +283,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
           </div>
 
-          {/* Usuario y Contraseña */}
           <div className="form-section-modal">
             <div className="form-group-modal">
               <label>Usuario</label>

@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
 import './Login.css'
 
-// Importar logo (si existe, sino usará texto)
 let logoSrc
 try {
   logoSrc = new URL('../assets/CalifornIA.png', import.meta.url).href
@@ -43,7 +42,6 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      {/* Logo y título */}
       <div className="login-header">
         {logoSrc ? (
           <img src={logoSrc} alt="CalifornIA" className="login-logo-img" />
@@ -57,10 +55,8 @@ const Login = () => {
         </p>
       </div>
 
-      {/* Formulario de login */}
       <div className="login-card">
         <form onSubmit={handleSubmit} className="login-form">
-          {/* Campo de correo electrónico */}
           <div className="login-input-group">
             <label htmlFor="email" className="login-label">
               Correo Electrónico:
@@ -75,7 +71,6 @@ const Login = () => {
             />
           </div>
 
-          {/* Campo de contraseña */}
           <div className="login-input-group">
             <label htmlFor="password" className="login-label">
               Contraseña:
@@ -90,14 +85,12 @@ const Login = () => {
             />
           </div>
 
-          {/* Mensaje de error */}
           {errorMessage && (
             <div className="login-error">
               {errorMessage}
             </div>
           )}
 
-          {/* Botón de iniciar sesión */}
           <button
             type="submit"
             disabled={loading}
@@ -106,7 +99,6 @@ const Login = () => {
             {loading ? 'INICIANDO SESIÓN...' : 'INICIAR SESIÓN'}
           </button>
 
-          {/* Link de recuperación de contraseña */}
           <div className="login-forgot-link">
             <Link to="/forgot-password">
               ¿Has olvidado tu contraseña?
@@ -115,7 +107,6 @@ const Login = () => {
         </form>
       </div>
 
-      {/* Disclaimer legal */}
       <div className="login-disclaimer">
         <p>
           La información generada por CalifornIA tiene únicamente fines de apoyo clínico. 

@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .cotizacion-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .cotizacion-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .cotizacion-content {
   flex: 1;
   display: grid;
@@ -38,14 +35,12 @@
   overflow: auto;
 }
 
-/* Panel Izquierdo */
 .panel-datos-cotizacion {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* Datos para Cotización */
 .datos-cotizacion-section {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -57,7 +52,6 @@
   gap: 1rem;
 }
 
-/* Títulos de Secciones */
 .section-title {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
@@ -76,7 +70,6 @@
   color: white;
 }
 
-/* Campos con Íconos */
 .campo-icon-grupo {
   display: flex;
   align-items: center;
@@ -121,7 +114,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Condiciones */
 .condiciones-grupo {
   display: flex;
   flex-direction: column;
@@ -152,7 +144,6 @@
   border-color: #6FB3D2;
 }
 
-/* Historial Cotizaciones */
 .historial-cotizaciones-section {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -189,7 +180,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Tabla Cotizaciones */
 .tabla-cotizaciones-container {
   flex: 1;
   overflow-y: auto;
@@ -279,7 +269,6 @@
   text-align: center;
 }
 
-/* Panel Derecho - Estudios */
 .panel-estudios-cotizacion {
   display: flex;
   flex-direction: column;
@@ -321,7 +310,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Tabla Estudios */
 .tabla-estudios-cot-container {
   flex: 1;
   overflow-y: auto;
@@ -390,7 +378,6 @@
   transform: scale(1.1);
 }
 
-/* Totales */
 .totales-cotizacion {
   display: flex;
   gap: 1rem;
@@ -426,7 +413,6 @@
   border-color: #6FB3D2;
 }
 
-/* Botones Finales */
 .botones-cotizacion {
   display: flex;
   gap: 1rem;
@@ -483,7 +469,6 @@
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
-/* Scrollbars */
 .tabla-cotizaciones-container::-webkit-scrollbar,
 .tabla-estudios-cot-container::-webkit-scrollbar {
   width: 8px;
@@ -505,7 +490,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .cotizacion-content {
     grid-template-columns: 1fr;

@@ -194,7 +194,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   const handleNavigate = (path) => {
     navigate(path);
-    // En móvil, cerrar el sidebar después de navegar
     if (window.innerWidth < 768) {
       setIsOpen(false);
     }
@@ -204,14 +203,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     return location.pathname === path;
   };
 
-  // 🔧 FIX: Cambiar de === a .startsWith() para detectar mejor las rutas activas
   const isSubmenuActive = (submenu) => {
     return submenu?.some(item => location.pathname.startsWith(item.path));
   };
 
-  // 🔧 FIX: Auto-expandir menús cuando estás en una de sus rutas
   useEffect(() => {
-    // Auto-expandir Recepción
     const recepcionItem = menuItems.find(item => item.id === 'recepcion');
     if (recepcionItem && isSubmenuActive(recepcionItem.submenu)) {
       setExpandedMenus(prev => ({
@@ -220,7 +216,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       }));
     }
 
-    // Auto-expandir Configuración
     const configItem = menuItems.find(item => item.id === 'configuracion');
     if (configItem && isSubmenuActive(configItem.submenu)) {
       setExpandedMenus(prev => ({
@@ -232,7 +227,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   return (
     <>
-      {/* Botón Hamburger */}
       <button 
         className={`hamburger-btn ${isOpen ? 'active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
@@ -243,7 +237,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <span></span>
       </button>
 
-      {/* Overlay para cerrar en móvil */}
       {isOpen && (
         <div 
           className="sidebar-overlay"
@@ -251,9 +244,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         />
       )}
 
-      {/* Sidebar */}
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        {/* Logo */}
         <div className="sidebar-header">
           <img 
             src={californIA} 
@@ -262,7 +253,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           />
         </div>
 
-        {/* Menú de navegación */}
         <nav className="sidebar-nav">
           {menuItems.map((item) => (
             <div key={item.id} className="sidebar-item-wrapper">
@@ -287,7 +277,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 )}
               </button>
 
-              {/* Submenú */}
               {item.hasSubmenu && expandedMenus[item.id] && (
                 <div className={`sidebar-submenu ${item.id === 'configuracion' ? 'grid-2-cols' : ''}`}>
                   {item.submenu.map((subItem) => (
@@ -295,7 +284,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                       key={subItem.id}
                       className={`sidebar-subitem ${isActive(subItem.path) ? 'active' : ''}`}
                       onClick={(e) => {
-                        e.stopPropagation(); // 🔧 FIX: Prevenir que se cierre el menú
+                        e.stopPropagation(); 
                         handleNavigate(subItem.path);
                       }}
                     >
@@ -309,7 +298,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           ))}
         </nav>
 
-        {/* Footer del sidebar */}
         <div className="sidebar-footer">
           <p className="sidebar-version">CalifornIA v1.0</p>
           <p className="sidebar-copyright">© 2024</p>

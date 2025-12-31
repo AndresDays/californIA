@@ -1,8 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* ============================================
-   MODAL OVERLAY
-   ============================================ */
 .modal-overlay-paciente {
   position: fixed;
   top: 0;
@@ -18,9 +15,6 @@
   animation: fadeIn 0.2s ease;
 }
 
-/* ============================================
-   MODAL CONTENEDOR
-   ============================================ */
 .modal-contenedor-paciente {
   background: linear-gradient(180deg, 
     rgba(25, 35, 45, 0.98) 0%, 
@@ -39,9 +33,6 @@
   font-family: 'Codec Pro', sans-serif;
 }
 
-/* ============================================
-   MODAL HEADER
-   ============================================ */
 .modal-header-paciente {
   background: linear-gradient(135deg, 
     rgba(52, 108, 145, 0.95) 0%, 
@@ -85,9 +76,6 @@
   transform: rotate(90deg);
 }
 
-/* ============================================
-   MODAL CONTENIDO
-   ============================================ */
 .modal-contenido-paciente {
   padding: 1.5rem;
   display: flex;
@@ -97,9 +85,6 @@
   max-height: calc(90vh - 180px);
 }
 
-/* ============================================
-   CAMPOS DEL FORMULARIO
-   ============================================ */
 .modal-campo-paciente {
   display: flex;
   align-items: center;
@@ -152,9 +137,6 @@
   padding: 0.5rem;
 }
 
-/* ============================================
-   FECHA DE NACIMIENTO
-   ============================================ */
 .modal-fila-fecha {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -188,18 +170,12 @@
   color: white;
 }
 
-/* ============================================
-   FILA EDAD
-   ============================================ */
 .modal-fila-edad {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
 
-/* ============================================
-   BOTONES DEL MODAL
-   ============================================ */
 .modal-botones-paciente {
   display: flex;
   gap: 0.75rem;
@@ -245,9 +221,6 @@
   box-shadow: 0 4px 12px rgba(74, 144, 184, 0.4);
 }
 
-/* ============================================
-   SCROLLBAR
-   ============================================ */
 .modal-contenido-paciente::-webkit-scrollbar {
   width: 8px;
 }
@@ -266,9 +239,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* ============================================
-   ANIMACIONES
-   ============================================ */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -289,9 +259,6 @@
   }
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
 @media (max-width: 768px) {
   .modal-contenedor-paciente {
     width: 95%;
@@ -329,9 +296,6 @@
   }
 }
 
-/* ============================================
-   ACCESIBILIDAD
-   ============================================ */
 @media (prefers-reduced-motion: reduce) {
   .modal-overlay-paciente,
   .modal-contenedor-paciente,

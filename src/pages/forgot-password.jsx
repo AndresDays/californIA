@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
 import './Login.css'
 
-// Importar logo (si existe, sino usará texto)
 let logoSrc
 try {
   logoSrc = new URL('../assets/CalifornIA.png', import.meta.url).href
@@ -44,7 +43,6 @@ const ForgotPassword = () => {
 
   return (
     <div className="login-container">
-      {/* Logo y título */}
       <div className="login-header">
         {logoSrc ? (
           <img src={logoSrc} alt="CalifornIA" className="login-logo-img" />
@@ -58,14 +56,12 @@ const ForgotPassword = () => {
         </p>
       </div>
 
-      {/* Formulario */}
       <div className="login-card">
         <form onSubmit={handleSubmit} className="login-form">
           <p className="login-instructions">
             Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.
           </p>
 
-          {/* Campo de correo electrónico */}
           <div className="login-input-group">
             <label htmlFor="email" className="login-label">
               Correo Electrónico:
@@ -80,21 +76,18 @@ const ForgotPassword = () => {
             />
           </div>
 
-          {/* Mensaje de éxito */}
           {message && (
             <div className="login-success">
               {message}
             </div>
           )}
 
-          {/* Mensaje de error */}
           {error && (
             <div className="login-error">
               {error}
             </div>
           )}
 
-          {/* Botón de enviar */}
           <button
             type="submit"
             disabled={loading}
@@ -103,7 +96,6 @@ const ForgotPassword = () => {
             {loading ? 'ENVIANDO...' : 'ENVIAR INSTRUCCIONES'}
           </button>
 
-          {/* Link para regresar al login */}
           <div className="login-forgot-link">
             <Link to="/login">
               ← Volver al inicio de sesión
@@ -112,7 +104,6 @@ const ForgotPassword = () => {
         </form>
       </div>
 
-      {/* Disclaimer legal */}
       <div className="login-disclaimer">
         <p>
           La información generada por CalifornIA tiene únicamente fines de apoyo clínico. 

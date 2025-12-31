@@ -2,19 +2,16 @@ import React, { useState, useEffect } from 'react';
 import './modal-agregar-paciente.css';
 
 const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = null }) => {
-  // Datos personales
   const [apellidoPaterno, setApellidoPaterno] = useState('');
   const [apellidoMaterno, setApellidoMaterno] = useState('');
   const [nombre, setNombre] = useState('');
   
-  // Fecha de nacimiento
   const [dia, setDia] = useState('');
   const [mes, setMes] = useState('');
   const [ano, setAno] = useState('');
   const [edad, setEdad] = useState('');
-  const [unidadEdad, setUnidadEdad] = useState('Años'); // Años, Meses, Semanas, Días
+  const [unidadEdad, setUnidadEdad] = useState('Años'); 
   
-  // Otros datos
   const [sexo, setSexo] = useState('');
   const [direccion, setDireccion] = useState('');
   const [cedula, setCedula] = useState('');
@@ -23,16 +20,12 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   const [pais, setPais] = useState('México');
   const [telefono, setTelefono] = useState('');
 
-  // Niveles MAR (condiciones especiales)
   const [nivelesMAR, setNivelesMAR] = useState([]);
 
-  // Determinar si es modo edición
   const isEditMode = !!pacienteEditar;
 
-  // Cargar datos del paciente cuando el modal se abre
   useEffect(() => {
     if (isOpen && pacienteEditar) {
-      // Modo edición: cargar datos
       setApellidoPaterno(pacienteEditar.apellidoPaterno || '');
       setApellidoMaterno(pacienteEditar.apellidoMaterno || '');
       setNombre(pacienteEditar.nombre || '');
@@ -44,7 +37,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       setPais(pacienteEditar.pais || 'México');
       setTelefono(pacienteEditar.telefono || '');
       
-      // Cargar fecha de nacimiento si existe
       if (pacienteEditar.fechaNacimiento) {
         const fecha = new Date(pacienteEditar.fechaNacimiento);
         setDia(fecha.getDate().toString());
@@ -54,12 +46,10 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       
       setEdad(pacienteEditar.edad?.toString() || '');
     } else if (isOpen && !pacienteEditar) {
-      // Modo agregar: limpiar campos
       limpiarCampos();
     }
   }, [isOpen, pacienteEditar]);
 
-  // Cargar niveles MAR al abrir el modal
   useEffect(() => {
     if (isOpen) {
       cargarNivelesMAR();
@@ -81,13 +71,11 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     }
   };
 
-  // Calcular edad cuando cambia la fecha o la unidad
   useEffect(() => {
     if (dia && mes && ano) {
       const fechaNac = new Date(ano, mes - 1, dia);
       const hoy = new Date();
       
-      // Diferencia en milisegundos
       const diffMs = hoy - fechaNac;
       const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       
@@ -171,7 +159,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       tipo: 'particular'
     };
 
-    // Si es modo edición, agregar el ID
     if (isEditMode && pacienteEditar.id) {
       pacienteData.id = pacienteEditar.id;
     }
@@ -186,7 +173,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
 
   if (!isOpen) return null;
 
-  // Arrays para los selectores
   const dias = Array.from({ length: 31 }, (_, i) => i + 1);
   const meses = [
     { valor: '1', nombre: 'Enero' },
@@ -208,7 +194,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   return (
     <div className="modal-overlay-paciente" onClick={handleClose}>
       <div className="modal-contenedor-paciente" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="modal-header-paciente">
           <h2 className="modal-titulo-paciente">
             {isEditMode ? 'Editar Cliente' : 'Agregar Cliente'}
@@ -218,9 +203,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </button>
         </div>
 
-        {/* Contenido */}
         <form onSubmit={handleSubmit} className="modal-contenido-paciente">
-          {/* Apellidos y Nombre */}
           <div className="modal-campo-paciente">
             <label>👤</label>
             <input
@@ -255,7 +238,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             />
           </div>
 
-          {/* Fecha de Nacimiento */}
           <div className="modal-fila-fecha">
             <div className="modal-campo-fecha">
               <select
@@ -297,7 +279,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             </div>
           </div>
 
-          {/* Unidad de Edad y Edad Calculada */}
           <div className="modal-fila-edad">
             <div className="modal-campo-paciente">
               <label>📅</label>
@@ -324,7 +305,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             </div>
           </div>
 
-          {/* Sexo */}
           <div className="modal-campo-paciente">
             <label>⚧</label>
             <select
@@ -338,7 +318,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             </select>
           </div>
 
-          {/* Dirección */}
           <div className="modal-campo-paciente">
             <label>🚗</label>
             <input
@@ -350,7 +329,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             />
           </div>
 
-          {/* Cédula */}
           <div className="modal-campo-paciente">
             <label>🎫</label>
             <input
@@ -362,7 +340,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             />
           </div>
 
-          {/* Condición Especial */}
           <div className="modal-campo-paciente">
             <label>📋</label>
             <select
@@ -379,7 +356,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             </select>
           </div>
 
-          {/* Email */}
           <div className="modal-campo-paciente">
             <label>✉️</label>
             <input
@@ -391,7 +367,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             />
           </div>
 
-          {/* País */}
           <div className="modal-campo-paciente">
             <label>☎️</label>
             <select
@@ -406,7 +381,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             </select>
           </div>
 
-          {/* Teléfono */}
           <div className="modal-campo-paciente">
             <label>☎️</label>
             <input
@@ -418,7 +392,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             />
           </div>
 
-          {/* Botones */}
           <div className="modal-botones-paciente">
             <button
               type="button"

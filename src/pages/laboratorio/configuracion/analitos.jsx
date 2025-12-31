@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import ModalAnalito from '../componentes/modal-analito';
 import './Analitos.css';
@@ -151,7 +151,6 @@ const Analitos = () => {
         </div>
 
         <div className="agregar-analitos-content">
-          {/* Panel Izquierdo */}
           <div className="panel-buscar-estudio">
             <div className="buscar-estudio-grupo">
               <span className="icon-buscar">🔍</span>
@@ -178,7 +177,6 @@ const Analitos = () => {
             </div>
           </div>
 
-          {/* Panel Derecho - Tabla */}
           <div className="panel-tabla-analitos">
             <div className="buscar-analitos-grupo">
               <input
@@ -248,7 +246,6 @@ const Analitos = () => {
           </div>
         </div>
 
-        {/* Modal para crear/editar analitos */}
         <ModalAnalito
           isOpen={modalOpen}
           onClose={() => {

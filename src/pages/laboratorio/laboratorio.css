@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper principal */
 .laboratorio-wrapper {
   min-height: 100vh;
   display: flex;
@@ -9,7 +8,6 @@
   color: white;
 }
 
-/* Header */
 .laboratorio-header {
   display: flex;
   justify-content: space-between;
@@ -85,7 +83,6 @@
   transform: scale(1.05);
 }
 
-/* Dropdown Menu */
 .user-dropdown-menu {
   position: absolute;
   top: 55px;
@@ -155,7 +152,6 @@
   background: rgba(255, 107, 107, 0.2);
 }
 
-/* Main Content */
 .laboratorio-main {
   flex: 1;
   padding: 2rem;
@@ -165,7 +161,6 @@
   overflow-y: auto;
 }
 
-/* Estadísticas */
 .stats-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -203,7 +198,6 @@
   letter-spacing: 0.5px;
 }
 
-/* Controles */
 .controls-section {
   display: flex;
   justify-content: space-between;
@@ -283,7 +277,6 @@
   box-shadow: 0 6px 16px rgba(111, 179, 210, 0.4);
 }
 
-/* Tabla */
 .table-container {
   background: rgba(10, 25, 41, 0.6);
   backdrop-filter: blur(10px);
@@ -376,7 +369,6 @@
   border-color: #66BB6A;
 }
 
-/* Estados de carga y sin datos */
 .loading,
 .no-data {
   text-align: center;
@@ -385,7 +377,6 @@
   font-size: 1rem;
 }
 
-/* Footer */
 .laboratorio-footer {
   background: rgba(10, 25, 41, 0.85);
   backdrop-filter: blur(10px);
@@ -400,7 +391,6 @@
   margin: 0;
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -553,7 +543,6 @@
   background: rgba(111, 179, 210, 0.3);
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -574,7 +563,6 @@
   }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .laboratorio-header {
     flex-direction: column;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import './plantas-trabajo.css';
 
@@ -20,7 +20,6 @@ const PlantasTrabajo = () => {
 
   const handleBuscar = async () => {
     try {
-      // Lógica para buscar plantas de trabajo
       alert('Buscando plantas de trabajo...');
     } catch (error) {
       console.error('Error al buscar:', error);
@@ -52,7 +51,6 @@ const PlantasTrabajo = () => {
 
         <div className="plantas-trabajo-content">
           <div className="controles-plantas">
-            {/* Primera Fila */}
             <div className="controles-row-1">
               <div className="fecha-grupo-plantas">
                 <label>📅 Fecha Inicial:</label>
@@ -102,7 +100,6 @@ const PlantasTrabajo = () => {
               </div>
             </div>
 
-            {/* Segunda Fila */}
             <div className="controles-row-2">
               <button className="btn-buscar-plantas" onClick={handleBuscar}>
                 Buscar
@@ -140,7 +137,6 @@ const PlantasTrabajo = () => {
             </div>
           </div>
 
-          {/* Área de Resultados */}
           <div className="resultados-plantas-area">
             {resultados.length === 0 ? (
               <div className="sin-resultados-plantas">

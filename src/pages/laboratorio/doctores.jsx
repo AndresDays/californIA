@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-laboratorio.jsx';
 import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
 import './doctores.css';
@@ -15,7 +15,6 @@ const Doctores = () => {
   const [doctores, setDoctores] = useState([]);
   const [totalDoctores, setTotalDoctores] = useState(0);
   
-  // Estados para el modal
   const [modalAbierto, setModalAbierto] = useState(false);
   const [doctorEditar, setDoctorEditar] = useState(null);
 
@@ -29,7 +28,6 @@ const Doctores = () => {
         .from('doctores')
         .select('*', { count: 'exact' })
 
-      // Filtro de búsqueda
       if (buscarDoctor.trim()) {
         query = query.or(
           `nombre.ilike.%${buscarDoctor}%,` +
@@ -97,7 +95,6 @@ const Doctores = () => {
   const handleGuardarDoctor = async (doctorData, isEditMode) => {
     try {
       if (isEditMode) {
-        // Actualizar doctor existente
         const { error } = await supabase
           .from('doctores')
           .update({
@@ -119,7 +116,6 @@ const Doctores = () => {
         if (error) throw error;
         alert('Doctor actualizado correctamente');
       } else {
-        // Crear nuevo doctor
         const { error } = await supabase
           .from('doctores')
           .insert([doctorData]);
@@ -177,7 +173,6 @@ const Doctores = () => {
         </div>
 
         <div className="admin-doctores-content">
-          {/* Controles Superiores */}
           <div className="controles-admin-doctores">
             <div className="botones-accion-doctores">
               <button className="btn-agregar-doctor" onClick={handleAgregarDoctor}>
@@ -189,7 +184,6 @@ const Doctores = () => {
             </div>
           </div>
 
-          {/* Exportación y Búsqueda */}
           <div className="exportacion-busqueda">
             <div className="botones-exportacion">
               <button className="btn-exportar" onClick={handleExportarExcel}>
@@ -211,7 +205,6 @@ const Doctores = () => {
             </div>
           </div>
 
-          {/* Tabla de Doctores */}
           <div className="tabla-admin-doctores-container">
             <table className="tabla-admin-doctores">
               <thead>
@@ -276,13 +269,11 @@ const Doctores = () => {
             </table>
           </div>
 
-          {/* Contador de Registros */}
           <div className="contador-registros">
             Mostrando registros del 1 al {doctores.length} de un total de {totalDoctores}
           </div>
         </div>
 
-        {/* Modal para Agregar/Editar Doctor */}
         <ModalAgregarDoctor
           isOpen={modalAbierto}
           onClose={() => setModalAbierto(false)}

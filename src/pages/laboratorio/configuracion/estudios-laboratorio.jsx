@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import './estudios-lab.css';
 
@@ -14,7 +14,6 @@ const EstudiosLab = () => {
   const [estudios, setEstudios] = useState([]);
   const [totalEstudios, setTotalEstudios] = useState(0);
 
-  // Catálogos dinámicos desde BD
   const [areas, setAreas] = useState([]);
   const [tiposMuestra, setTiposMuestra] = useState([]);
   const [recipientes, setRecipientes] = useState([]);
@@ -22,7 +21,6 @@ const EstudiosLab = () => {
   const [tecnicas, setTecnicas] = useState([]);
   const [equipos, setEquipos] = useState([]);
 
-  // Campos del formulario
   const [key, setKey] = useState('');
   const [clave, setClave] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -36,7 +34,6 @@ const EstudiosLab = () => {
   const [etiquetasExtra, setEtiquetasExtra] = useState('');
   const [diasProceso, setDiasProceso] = useState('');
 
-  // Checkboxes
   const [imprimirMetodo, setImprimirMetodo] = useState(false);
   const [imprimirTecnica, setImprimirTecnica] = useState(false);
   const [imprimirEquipo, setImprimirEquipo] = useState(false);
@@ -45,18 +42,15 @@ const EstudiosLab = () => {
   const [modoEdicion, setModoEdicion] = useState(false);
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
 
-  // Cargar catálogos y estudios al montar
   useEffect(() => {
     cargarCatalogos();
     cargarEstudios();
   }, []);
 
-  // Recargar estudios cuando cambia la búsqueda
   useEffect(() => {
     cargarEstudios();
   }, [buscarEstudio]);
 
-  // Cargar todos los catálogos
   const cargarCatalogos = async () => {
     await Promise.all([
       cargarAreas(),
@@ -78,7 +72,6 @@ const EstudiosLab = () => {
       if (error) throw error;
       setAreas(data || []);
       
-      // Establecer valor por defecto
       if (data && data.length > 0 && !area) {
         setArea(data[0].nombre);
       }
@@ -97,7 +90,6 @@ const EstudiosLab = () => {
       if (error) throw error;
       setTiposMuestra(data || []);
       
-      // Establecer valor por defecto
       if (data && data.length > 0 && !tipoMuestra) {
         setTipoMuestra(data[0].categoria);
       }
@@ -116,7 +108,6 @@ const EstudiosLab = () => {
       if (error) throw error;
       setRecipientes(data || []);
       
-      // Establecer valor por defecto
       if (data && data.length > 0 && !recipiente) {
         setRecipiente(data[0].nombre);
       }
@@ -135,7 +126,6 @@ const EstudiosLab = () => {
       if (error) throw error;
       setMetodos(data || []);
       
-      // Establecer valor por defecto
       if (data && data.length > 0 && !metodo) {
         setMetodo(data[0].nombre);
       }
@@ -154,7 +144,6 @@ const EstudiosLab = () => {
       if (error) throw error;
       setTecnicas(data || []);
       
-      // Establecer valor por defecto
       if (data && data.length > 0 && !tecnica) {
         setTecnica(data[0].nombre);
       }
@@ -173,7 +162,6 @@ const EstudiosLab = () => {
       if (error) throw error;
       setEquipos(data || []);
       
-      // Establecer valor por defecto
       if (data && data.length > 0 && !equipo) {
         setEquipo(data[0].nombre);
       }
@@ -365,7 +353,6 @@ const EstudiosLab = () => {
         </div>
 
         <div className="admin-estudios-content">
-          {/* Panel Izquierdo - Formulario */}
           <div className="panel-formulario-estudios">
             <div className="campo-estudio">
               <label>Key</label>
@@ -598,7 +585,6 @@ const EstudiosLab = () => {
             </div>
           </div>
 
-          {/* Panel Derecho - Tabla */}
           <div className="panel-tabla-estudios">
             <div className="controles-tabla-estudios">
               <input

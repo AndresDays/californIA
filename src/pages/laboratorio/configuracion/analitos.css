@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .agregar-analitos-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .agregar-analitos-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .agregar-analitos-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: auto;
 }
 
-/* Panel Izquierdo */
 .panel-buscar-estudio {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -51,7 +47,6 @@
   height: fit-content;
 }
 
-/* Buscar Estudio */
 .buscar-estudio-grupo {
   display: flex;
   align-items: center;
@@ -85,7 +80,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Botón Vista Previa */
 .btn-vista-previa {
   padding: 0.75rem 1.5rem;
   background: linear-gradient(135deg, #28a745 0%, #218838 100%);
@@ -105,7 +99,6 @@
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
 }
 
-/* Botones de Acción */
 .botones-accion-analitos {
   display: flex;
   gap: 1rem;
@@ -147,7 +140,6 @@
   box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
 }
 
-/* Panel Derecho - Tabla */
 .panel-tabla-analitos {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -160,7 +152,6 @@
   overflow: hidden;
 }
 
-/* Buscar Analitos */
 .buscar-analitos-grupo {
   width: 100%;
 }
@@ -185,7 +176,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Tabla de Analitos */
 .tabla-analitos-container {
   flex: 1;
   overflow: auto;
@@ -245,7 +235,6 @@
   font-style: italic;
 }
 
-/* Acciones */
 .acciones-analitos {
   display: flex;
   gap: 0.5rem;
@@ -282,7 +271,6 @@
   transform: scale(1.1);
 }
 
-/* Contador de Analitos */
 .contador-analitos {
   padding: 0.75rem 0;
   font-size: 0.9rem;
@@ -290,7 +278,6 @@
   text-align: left;
 }
 
-/* Botón Crear Analitos */
 .btn-crear-analitos {
   padding: 0.85rem 1.5rem;
   background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
@@ -311,7 +298,6 @@
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
 }
 
-/* Scrollbar */
 .tabla-analitos-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -330,7 +316,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .agregar-analitos-content {
     grid-template-columns: 1fr;

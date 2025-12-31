@@ -41,7 +41,6 @@ const HeaderLab = ({ tipo = 'default' }) => {
     fetchEmpleado();
   }, [user]);
 
-  // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -63,7 +62,6 @@ const HeaderLab = ({ tipo = 'default' }) => {
     navigate('/login');
   };
 
-  // Determinar clase según el tipo
   const headerClass = tipo === 'azul' ? 'app-header azul' : 'app-header';
 
   return (

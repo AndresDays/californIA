@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import './captura.css';
 import californIA from '../../assets/CalifornIA.png';
 import usericon from '../../assets/usericon.png';
@@ -12,37 +12,30 @@ const Captura = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Fechas
   const [fechaInicial, setFechaInicial] = useState(new Date().toISOString().split('T')[0]);
   const [fechaFinal, setFechaFinal] = useState(new Date().toISOString().split('T')[0]);
 
-  // Búsquedas
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [buscarPaciente, setBuscarPaciente] = useState('');
 
-  // Filtros - Catálogos
   const [sucursales, setSucursales] = useState([]);
   const [empresas, setEmpresas] = useState([]);
   const [areas, setAreas] = useState([]);
 
-  // Filtros - Seleccionados
   const [sucursalFiltro, setSucursalFiltro] = useState('');
   const [empresaFiltro, setEmpresaFiltro] = useState('');
   const [areaFiltro, setAreaFiltro] = useState('');
   const [soloPendientes, setSoloPendientes] = useState(false);
 
-  // Pacientes
   const [pacientes, setPacientes] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 
-  // Área de captura
   const [idioma, setIdioma] = useState('español');
   const [mediaPagina, setMediaPagina] = useState(false);
   const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
   const [observaciones, setObservaciones] = useState('');
   const [resultados, setResultados] = useState([]);
 
-  // Usuario
   const [usuarioActual, setUsuarioActual] = useState('');
 
   useEffect(() => {
@@ -136,7 +129,6 @@ const Captura = () => {
 
       if (error) throw error;
 
-      // Filtrar por pendientes si está activado
       let pacientesFiltrados = data || [];
       if (soloPendientes) {
         pacientesFiltrados = pacientesFiltrados.filter(e => e.estado === 'pendiente');
@@ -154,13 +146,10 @@ const Captura = () => {
 
   const seleccionarPaciente = (estudio) => {
     setPacienteSeleccionado(estudio);
-    // Cargar resultados del estudio
     cargarResultados(estudio.id_estudio);
   };
 
   const cargarResultados = async (idEstudio) => {
-    // Aquí cargarías los resultados específicos del estudio
-    // Por ahora usaré datos de ejemplo
     const resultadosEjemplo = [
       { clave: 'HB', descripcion: 'Hemoglobina', resultado: '', unidades: 'g/dL', referencia: '12-16' },
       { clave: 'HCT', descripcion: 'Hematocrito', resultado: '', unidades: '%', referencia: '37-47' },
@@ -184,8 +173,6 @@ const Captura = () => {
     }
 
     try {
-      // Guardar resultados en la base de datos
-      // Aquí implementarías la lógica de guardado
 
       alert('Resultados guardados exitosamente');
     } catch (error) {
@@ -199,7 +186,6 @@ const Captura = () => {
       alert('Por favor seleccione un paciente');
       return;
     }
-    // Lógica para vista previa
     console.log('Vista previa');
   };
 
@@ -208,7 +194,6 @@ const Captura = () => {
       alert('Por favor seleccione un paciente');
       return;
     }
-    // Lógica para imprimir
     window.print();
   };
 
@@ -241,9 +226,6 @@ const Captura = () => {
     const matchEstudio = buscarEstudio === '' || 
       pac.tipo_estudio.toLowerCase().includes(buscarEstudio.toLowerCase());
     
-    // Aquí podrías agregar filtros adicionales por sucursal, empresa y área
-    // si tienes esos campos en los datos
-    
     return matchPaciente && matchEstudio;
   });
 
@@ -252,7 +234,6 @@ const Captura = () => {
       <div className="captura-wrapper">
         <HeaderLab/>
 
-        {/* Filtros */}
         <div className="filtros-section">
           <div className="filtros-row">
             <div className="filtro-fecha">
@@ -344,9 +325,7 @@ const Captura = () => {
           </div>
         </div>
 
-        {/* Contenido Principal */}
         <div className="captura-content">
-          {/* Panel Izquierdo - Lista de Pacientes */}
           <div className="panel-pacientes">
             <div className="panel-header-pacientes">
               <h2>Lista de Pacientes</h2>
@@ -407,7 +386,6 @@ const Captura = () => {
             </div>
           </div>
 
-          {/* Panel Derecho - Área de Captura */}
           <div className="panel-captura">
             <div className="panel-header-captura">
               <h2>Área de Captura</h2>

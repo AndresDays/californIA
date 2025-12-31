@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .admin-estudios-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .admin-estudios-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .admin-estudios-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: auto;
 }
 
-/* Panel Izquierdo - Formulario */
 .panel-formulario-estudios {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -52,7 +48,6 @@
   max-height: calc(100vh - 150px);
 }
 
-/* Campos del Formulario */
 .campo-estudio {
   display: flex;
   flex-direction: column;
@@ -98,14 +93,12 @@
   min-height: 60px;
 }
 
-/* Campos Dobles */
 .campo-estudio-doble {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-/* Checkboxes */
 .checkboxes-impresion {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -133,7 +126,6 @@
   user-select: none;
 }
 
-/* Botones del Formulario */
 .botones-formulario {
   display: flex;
   gap: 1rem;
@@ -187,7 +179,6 @@
   box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
 }
 
-/* Panel Derecho - Tabla */
 .panel-tabla-estudios {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -200,7 +191,6 @@
   overflow: hidden;
 }
 
-/* Controles de Tabla */
 .controles-tabla-estudios {
   display: flex;
   gap: 1rem;
@@ -252,7 +242,6 @@
   border-color: #6FB3D2;
 }
 
-/* Tabla de Estudios */
 .tabla-estudios-adm-container {
   flex: 1;
   overflow: auto;
@@ -311,7 +300,6 @@
   font-style: italic;
 }
 
-/* Acciones */
 .acciones-estudios-adm {
   display: flex;
   gap: 0.5rem;
@@ -348,7 +336,6 @@
   transform: scale(1.1);
 }
 
-/* Contador de Estudios */
 .contador-estudios {
   padding: 0.75rem 0;
   font-size: 0.9rem;
@@ -356,7 +343,6 @@
   text-align: left;
 }
 
-/* Scrollbar */
 .panel-formulario-estudios::-webkit-scrollbar,
 .tabla-estudios-adm-container::-webkit-scrollbar {
   width: 8px;
@@ -379,7 +365,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Responsive */
 @media (max-width: 1400px) {
   .admin-estudios-content {
     grid-template-columns: 1fr;
@@ -429,7 +414,6 @@
   }
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;

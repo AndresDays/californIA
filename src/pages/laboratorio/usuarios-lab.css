@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .admin-usuarios-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .admin-usuarios-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .admin-usuarios-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: hidden;
 }
 
-/* Controles Superiores */
 .controles-usuarios-top {
   display: flex;
   justify-content: flex-start;
@@ -63,7 +59,6 @@
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
-/* Mostrar y Buscar */
 .controles-mostrar-buscar {
   display: flex;
   justify-content: space-between;
@@ -125,7 +120,6 @@
   border-color: #6FB3D2;
 }
 
-/* Tabla de Usuarios */
 .tabla-usuarios-container {
   flex: 1;
   overflow: auto;
@@ -187,7 +181,6 @@
   font-style: italic;
 }
 
-/* Foto de Usuario */
 .foto-usuario {
   display: flex;
   align-items: center;
@@ -214,7 +207,6 @@
   color: #333;
 }
 
-/* Estado Badge */
 .estado-badge {
   display: inline-block;
   padding: 0.35rem 0.75rem;
@@ -234,7 +226,6 @@
   color: white;
 }
 
-/* Acciones */
 .acciones-usuarios {
   display: flex;
   gap: 0.5rem;
@@ -271,7 +262,6 @@
   transform: scale(1.1);
 }
 
-/* Paginación Inferior */
 .paginacion-inferior {
   display: flex;
   justify-content: space-between;
@@ -322,7 +312,6 @@
   font-weight: 600;
 }
 
-/* Scrollbar */
 .tabla-usuarios-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -345,7 +334,6 @@
   background: rgba(10, 25, 41, 0.3);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .tabla-usuarios {
     min-width: 1200px;
@@ -386,7 +374,6 @@
   }
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;
