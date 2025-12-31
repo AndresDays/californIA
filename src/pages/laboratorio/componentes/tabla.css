@@ -8,10 +8,9 @@
   border: 1px solid rgba(111, 179, 210, 0.3);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   
-  /* SCROLL VERTICAL */
-  max-height: 600px; /* Altura máxima de la tabla */
-  overflow-y: auto;  /* Scroll vertical */
-  overflow-x: auto;  /* Scroll horizontal si es necesario */
+  max-height: 600px;
+  overflow-y: auto;  
+  overflow-x: auto; 
 }
 
 .tabla-generica {
@@ -103,7 +102,6 @@
   transform: scale(1.1);
 }
 
-/* SCROLLBAR PERSONALIZADO */
 .tabla-generica-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -122,7 +120,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Para Firefox */
 .tabla-generica-container {
   scrollbar-width: thin;
   scrollbar-color: rgba(111, 179, 210, 0.5) rgba(10, 25, 41, 0.3);

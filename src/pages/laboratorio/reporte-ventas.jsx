@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-laboratorio.jsx';
 import './reporte-ventas.css';
 
@@ -59,7 +59,6 @@ const ReporteVentas = () => {
         </div>
 
         <div className="reporte-ventas-content">
-          {/* Controles Superiores - Fila 1 */}
           <div className="controles-reporte-fila1">
             <div className="fecha-grupo-reporte">
               <label>📅 Fecha Inicial:</label>
@@ -123,7 +122,6 @@ const ReporteVentas = () => {
             </select>
           </div>
 
-          {/* Controles Superiores - Fila 2 */}
           <div className="controles-reporte-fila2">
             <input
               type="text"
@@ -158,7 +156,6 @@ const ReporteVentas = () => {
             </button>
           </div>
 
-          {/* Botones de Reportes */}
           <div className="botones-reportes">
             <button className="btn-reporte verde" onClick={handleReporteGeneral}>
               Reporte General
@@ -171,20 +168,16 @@ const ReporteVentas = () => {
             </button>
           </div>
 
-          {/* Área de Gráficas */}
           <div className="area-graficas">
             <div className="grafico-ventas-header">
               <span className="icon-grafico">📊</span>
               <span>Grafico de Ventas</span>
             </div>
             <div className="grafico-ventas-contenido">
-              {/* Aquí se renderizarían las gráficas */}
             </div>
           </div>
 
-          {/* Secciones Inferiores */}
           <div className="secciones-inferiores">
-            {/* Productos más Vendidos */}
             <div className="productos-vendidos-section">
               <h3 className="titulo-seccion">Productos mas Vendidos</h3>
               <div className="lista-productos">
@@ -202,11 +195,9 @@ const ReporteVentas = () => {
               </div>
             </div>
 
-            {/* Ventas Vendedores */}
             <div className="ventas-vendedores-section">
               <h3 className="titulo-seccion">Ventas Vendedores</h3>
               <div className="lista-vendedores">
-                {/* Aquí se mostrarían las ventas por vendedor */}
               </div>
             </div>
           </div>

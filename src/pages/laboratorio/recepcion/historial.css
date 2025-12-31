@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .historial-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .historial-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .historial-content {
   flex: 1;
   display: grid;
@@ -38,14 +35,12 @@
   overflow: auto;
 }
 
-/* Panel Izquierdo */
 .panel-historial-paciente {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* Buscar Cliente */
 .buscar-cliente-grupo {
   display: flex;
   align-items: center;
@@ -79,7 +74,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Historial del Paciente */
 .historial-paciente-section {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -92,7 +86,6 @@
   flex: 1;
 }
 
-/* Títulos de Secciones */
 .section-title-hist {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
@@ -111,7 +104,6 @@
   color: white;
 }
 
-/* Tabla Historial */
 .tabla-historial-container {
   flex: 1;
   overflow-y: auto;
@@ -170,14 +162,12 @@
   font-style: italic;
 }
 
-/* Panel Derecho */
 .panel-datos-estudios {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* Datos del Paciente */
 .datos-paciente-grid {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -208,7 +198,6 @@
   border-bottom: 1px solid rgba(111, 179, 210, 0.2);
 }
 
-/* Estudios del Paciente */
 .estudios-paciente-section {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -221,7 +210,6 @@
   flex: 1;
 }
 
-/* Observaciones */
 .observaciones-hist-grupo {
   display: flex;
   flex-direction: column;
@@ -253,7 +241,6 @@
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 
-/* Tabla Estudios */
 .tabla-estudios-hist-container {
   flex: 1;
   overflow-y: auto;
@@ -306,7 +293,6 @@
   font-style: italic;
 }
 
-/* Scrollbars */
 .tabla-historial-container::-webkit-scrollbar,
 .tabla-estudios-hist-container::-webkit-scrollbar {
   width: 8px;
@@ -328,7 +314,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .historial-content {
     grid-template-columns: 1fr;

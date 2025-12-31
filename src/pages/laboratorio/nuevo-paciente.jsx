@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import './nuevo-paciente.css';
 import HeaderLab from '../../components/header-laboratorio.jsx';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente';
@@ -12,43 +12,35 @@ const NuevoPaciente = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Estado del modal
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
 
-  // Estados para el paciente
   const [buscarPaciente, setBuscarPaciente] = useState('');
   const [pacientesEncontrados, setPacientesEncontrados] = useState([]);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [showBusquedaPacientes, setShowBusquedaPacientes] = useState(false);
 
-  // Datos del paciente
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [edad, setEdad] = useState('');
   const [sexo, setSexo] = useState('');
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
 
-  // Doctor
   const [doctorBusqueda, setDoctorBusqueda] = useState('');
   const [doctoresEncontrados, setDoctoresEncontrados] = useState([]);
   const [doctorSeleccionado, setDoctorSeleccionado] = useState(null);
   const [showBusquedaDoctores, setShowBusquedaDoctores] = useState(false);
 
-  // Observaciones
   const [observaciones, setObservaciones] = useState('');
 
-  // Empresa
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
   const [empresas, setEmpresas] = useState([]);
 
-  // Estudios
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
   const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
   const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 
-  // Totales
   const [subtotal, setSubtotal] = useState(0);
   const [ivaPercent, setIvaPercent] = useState(16);
   const [iva, setIva] = useState(0);
@@ -59,20 +51,16 @@ const NuevoPaciente = () => {
   const [pagoRecibido, setPagoRecibido] = useState(0);
   const [cambio, setCambio] = useState(0);
 
-  // Forma de pago
   const [formaPago, setFormaPago] = useState('efectivo');
 
-  // Vendedor (usuario actual)
   const [vendedor, setVendedor] = useState('');
 
-  // Cargar datos iniciales
   useEffect(() => {
     cargarEmpresas();
     cargarVendedor();
     cargarEstudiosDisponibles();
   }, []);
 
-  // Calcular totales cuando cambian los estudios
   useEffect(() => {
     calcularTotales();
   }, [estudiosSeleccionados, ivaPercent, descuentoPercent, pagoRecibido]);
@@ -126,13 +114,11 @@ const NuevoPaciente = () => {
 
   const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
     try {
-      // Si no hay empresa seleccionada, usar precio por defecto
       if (!nombreEmpresa) {
         console.log('No hay empresa seleccionada, usando precio por defecto');
-        return 150; // Precio por defecto
+        return 150;
       }
 
-      // Buscar precio en precios_estudios
       const { data, error } = await supabase
         .from('precios_estudios')
         .select('precio')
@@ -142,14 +128,14 @@ const NuevoPaciente = () => {
 
       if (error) {
         console.log(`No se encontró precio para ${claveEstudio} - ${nombreEmpresa}, usando precio por defecto`);
-        return 150; // Precio por defecto si no existe
+        return 150; 
       }
 
       console.log(`Precio encontrado para ${claveEstudio} - ${nombreEmpresa}: $${data.precio}`);
       return parseFloat(data.precio);
     } catch (error) {
       console.error('Error al obtener precio:', error);
-      return 150; // Precio por defecto en caso de error
+      return 150; 
     }
   };
 
@@ -225,7 +211,6 @@ const NuevoPaciente = () => {
         if (error) throw error;
         alert('Paciente guardado correctamente');
         
-        // Cargar el paciente recién creado
         seleccionarPaciente(data);
       }
     } catch (error) {
@@ -269,7 +254,6 @@ const NuevoPaciente = () => {
         if (error) throw error;
         alert('Doctor guardado correctamente');
         
-        // Cargar el doctor recién creado
         seleccionarDoctor(data);
       }
     } catch (error) {
@@ -319,20 +303,16 @@ const NuevoPaciente = () => {
   };
 
   const agregarEstudio = async (estudio) => {
-    // Verificar que no esté ya agregado
     if (estudiosSeleccionados.find(e => e.id === estudio.id)) {
       alert('Este estudio ya fue agregado');
       return;
     }
 
-    // Obtener el nombre de la empresa seleccionada
     const empresaObj = empresas.find(emp => emp.id_empresa.toString() === empresaSeleccionada.toString());
     const nombreEmpresa = empresaObj ? empresaObj.nombre : '';
 
-    // Obtener precio según empresa
     const precioEstudio = await obtenerPrecioEstudio(estudio.clave, nombreEmpresa);
 
-    // Agregar estudio con el precio correcto
     const estudioConPrecio = {
       ...estudio,
       precio: precioEstudio,
@@ -389,7 +369,6 @@ const NuevoPaciente = () => {
   };
 
   const guardarYPagar = async () => {
-    // Validaciones
     if (!nombreCompleto.trim()) {
       alert('Por favor ingrese el nombre del paciente');
       return;
@@ -406,7 +385,6 @@ const NuevoPaciente = () => {
     }
 
     try {
-      // 1. Crear o actualizar paciente
       let idPaciente = pacienteSeleccionado?.id_paciente;
 
       if (!idPaciente) {
@@ -429,7 +407,6 @@ const NuevoPaciente = () => {
         idPaciente = nuevoPaciente.id_paciente;
       }
 
-      // 2. Crear estudios
       const estudiosParaInsertar = estudiosSeleccionados.map(est => ({
         id_paciente: idPaciente,
         tipo_estudio: est.area || 'laboratorio',
@@ -443,9 +420,6 @@ const NuevoPaciente = () => {
         .select();
 
       if (errorEstudios) throw errorEstudios;
-
-      // 3. Crear venta/recibo
-      // Aquí crearías el registro de la venta/pago
 
       alert('¡Venta registrada exitosamente!');
       limpiarFormulario();
@@ -466,12 +440,9 @@ const NuevoPaciente = () => {
       <div className="nuevo-paciente-wrapper">
         <HeaderLab/>
 
-        {/* Main Content */}
         <main className="page-main">
           <div className="content-grid">
-            {/* Columna Izquierda - Datos del Paciente */}
             <div className="left-column">
-              {/* Agregar Cliente */}
               <section className="form-section form-section-cliente">
                 <h2 className="section-title">Agregar Cliente</h2>
                 
@@ -494,7 +465,6 @@ const NuevoPaciente = () => {
                     👤
                   </button>
 
-                  {/* Dropdown DENTRO del search-container */}
                   {showBusquedaPacientes && pacientesEncontrados.length > 0 && (
                     <div className="search-results">
                       {pacientesEncontrados.map(pac => (
@@ -583,7 +553,6 @@ const NuevoPaciente = () => {
                 </div>
               </section>
 
-              {/* Agregar Doctor */}
               <section className="form-section">
                 <h2 className="section-title">Agregar Doctor</h2>
                 
@@ -606,7 +575,6 @@ const NuevoPaciente = () => {
                     👨‍⚕️
                   </button>
 
-                  {/* Dropdown DENTRO del search-container */}
                   {showBusquedaDoctores && doctoresEncontrados.length > 0 && (
                     <div className="search-results">
                       {doctoresEncontrados.map(doc => (
@@ -626,7 +594,6 @@ const NuevoPaciente = () => {
                 </div>
               </section>
 
-              {/* Observaciones */}
               <section className="form-section">
                 <h2 className="section-title">Observaciones</h2>
                 <textarea
@@ -643,9 +610,7 @@ const NuevoPaciente = () => {
               </div>
             </div>
 
-            {/* Columna Derecha - Estudios y Pago */}
             <div className="right-column">
-              {/* Empresa */}
               <div className="top-controls">
                 <div className="form-group-inline">
                   <label>Empresas</label>
@@ -669,7 +634,6 @@ const NuevoPaciente = () => {
                 </div>
               </div>
 
-              {/* Lista de Estudios */}
               <section className="estudios-section">
                 <h2 className="section-title">Lista de precios</h2>
                 
@@ -751,7 +715,6 @@ const NuevoPaciente = () => {
                 </div>
               </section>
 
-              {/* Totales y Pago */}
               <section className="totales-section">
                 <div className="totales-grid">
                   <div className="total-item">
@@ -850,7 +813,6 @@ const NuevoPaciente = () => {
                 )}
               </section>
 
-              {/* Botones de Acción */}
               <div className="action-buttons-final">
                 <button className="btn-pagar" onClick={guardarYPagar}>
                   Pagar
@@ -863,14 +825,12 @@ const NuevoPaciente = () => {
           </div>
         </main>
 
-        {/* Modal Agregar Paciente */}
         <ModalAgregarPaciente
           isOpen={modalAgregarPacienteOpen}
           onClose={() => setModalAgregarPacienteOpen(false)}
           onGuardar={handleGuardarPacienteModal}
         />
 
-        {/* Modal Agregar Doctor */}
         <ModalAgregarDoctor
           isOpen={modalAgregarDoctorOpen}
           onClose={() => setModalAgregarDoctorOpen(false)}

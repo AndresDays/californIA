@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import './editar-solicitud.css';
 
@@ -15,7 +15,6 @@ const EditarSolicitud = () => {
   const [ordenes, setOrdenes] = useState([]);
   const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
   
-  // Campos de la orden
   const [motivoModificacion, setMotivoModificacion] = useState('');
   const [folio, setFolio] = useState('');
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
@@ -24,7 +23,6 @@ const EditarSolicitud = () => {
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
   
-  // Totales
   const [total, setTotal] = useState(0);
   const [tipoPago, setTipoPago] = useState('Efectivo');
   const [ivaImpuesto, setIvaImpuesto] = useState(0);
@@ -106,7 +104,6 @@ const EditarSolicitud = () => {
   const seleccionarOrden = (orden) => {
     setOrdenSeleccionada(orden);
     setFolio(orden.folio);
-    // Cargar datos de la orden
   };
 
   const agregarEstudio = (estudio) => {

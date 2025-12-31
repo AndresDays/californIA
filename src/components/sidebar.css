@@ -1,8 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* ============================================
-   BOTÓN HAMBURGER
-   ============================================ */
 .hamburger-btn {
   position: fixed;
   top: 0.65rem;
@@ -51,9 +48,6 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* ============================================
-   OVERLAY (para móvil)
-   ============================================ */
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -70,9 +64,6 @@
   to { opacity: 1; }
 }
 
-/* ============================================
-   SIDEBAR PRINCIPAL
-   ============================================ */
 .sidebar {
   position: fixed;
   top: 0;
@@ -99,9 +90,6 @@
   transform: translateX(0);
 }
 
-/* ============================================
-   HEADER DEL SIDEBAR
-   ============================================ */
 .sidebar-header {
   display: flex;
   flex-direction: column;
@@ -127,9 +115,6 @@
   text-transform: uppercase;
 }
 
-/* ============================================
-   NAVEGACIÓN
-   ============================================ */
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
@@ -137,7 +122,6 @@
   padding: 0 0.75rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(111, 179, 210, 0.3) transparent;
-  /* Asegurar que pueda contener submenus largos */
   min-height: 0;
 }
 
@@ -158,9 +142,6 @@
   background: rgba(111, 179, 210, 0.5);
 }
 
-/* ============================================
-   ITEMS DEL MENÚ
-   ============================================ */
 .sidebar-item {
   width: 100%;
   display: flex;
@@ -218,9 +199,6 @@
   text-overflow: ellipsis;
 }
 
-/* ============================================
-   SUBMENÚ
-   ============================================ */
 .sidebar-item-wrapper {
   width: 100%;
 }
@@ -244,7 +222,6 @@
   animation: slideDown 0.3s ease;
 }
 
-/* Submenú con grid de 2 columnas para Configuración */
 .sidebar-submenu.grid-2-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -259,7 +236,6 @@
   overflow: visible;
 }
 
-/* 🔧 Animación para submenus normales */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -271,7 +247,6 @@
   }
 }
 
-/* Animación especial para grid-2-cols (sin max-height) */
 @keyframes fadeInSubmenu {
   from {
     opacity: 0;
@@ -283,7 +258,6 @@
   }
 }
 
-/* Aplicar animación diferente al grid de 2 columnas */
 .sidebar-submenu.grid-2-cols {
   animation: fadeInSubmenu 0.3s ease !important;
 }
@@ -307,7 +281,6 @@
   text-align: left;
 }
 
-/* Subitems en grid de 2 columnas */
 .sidebar-submenu.grid-2-cols .sidebar-subitem {
   padding: 0.5rem 0.6rem;
   font-size: 0.78rem;
@@ -350,9 +323,6 @@
   text-overflow: ellipsis;
 }
 
-/* ============================================
-   FOOTER DEL SIDEBAR
-   ============================================ */
 .sidebar-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid rgba(111, 179, 210, 0.2);
@@ -372,40 +342,30 @@
   margin: 0;
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-/* Desktop: Sidebar colapsable (sin overlay) */
 @media (min-width: 1024px) {
   .hamburger-btn {
-    display: flex; /* Siempre visible */
+    display: flex; 
   }
   
-  /* No mostrar overlay en desktop */
   .sidebar-overlay {
     display: none !important;
   }
   
-  /* Sidebar cerrado por defecto en desktop también */
   .sidebar {
     transform: translateX(-100%);
   }
   
-  /* Sidebar abierto */
   .sidebar.open {
     transform: translateX(0);
   }
 }
 
-/* Tablet */
 @media (min-width: 768px) and (max-width: 1023px) {
   .sidebar {
     width: 260px;
   }
 }
 
-/* Mobile */
 @media (max-width: 767px) {
   .sidebar {
     width: 280px;
@@ -424,15 +384,11 @@
     font-size: 0.9rem;
   }
   
-  /* En móvil, el grid de configuración solo 1 columna */
   .sidebar-submenu.grid-2-cols {
     grid-template-columns: 1fr;
   }
 }
 
-/* ============================================
-   ANIMACIONES
-   ============================================ */
 @keyframes slideInFromLeft {
   from {
     transform: translateX(-100%);
@@ -451,9 +407,6 @@
   }
 }
 
-/* ============================================
-   ESTADOS DE CARGA
-   ============================================ */
 .sidebar-item:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -464,9 +417,6 @@
   background: transparent;
 }
 
-/* ============================================
-   MODO COMPACTO (Opcional)
-   ============================================ */
 .sidebar.compact {
   width: 70px;
 }
@@ -490,9 +440,6 @@
   height: 40px;
 }
 
-/* ============================================
-   BADGES Y NOTIFICACIONES (Opcional)
-   ============================================ */
 .sidebar-badge {
   background: #ff4757;
   color: white;
@@ -503,9 +450,6 @@
   font-weight: 600;
 }
 
-/* ============================================
-   DIVIDERS (Opcional)
-   ============================================ */
 .sidebar-divider {
   height: 1px;
   background: rgba(111, 179, 210, 0.2);

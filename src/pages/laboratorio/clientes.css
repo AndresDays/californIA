@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .admin-clientes-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .admin-clientes-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .admin-clientes-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: hidden;
 }
 
-/* Controles Superiores */
 .controles-admin-clientes {
   display: flex;
   justify-content: space-between;
@@ -71,7 +67,6 @@
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
-/* Búsqueda */
 .busqueda-admin {
   max-width: 450px;
 }
@@ -97,7 +92,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Paginación Superior */
 .paginacion-superior {
   display: flex;
   justify-content: flex-end;
@@ -133,7 +127,6 @@
   cursor: not-allowed;
 }
 
-/* Tabla de Clientes */
 .tabla-admin-clientes-container {
   flex: 1;
   overflow: auto;
@@ -189,7 +182,6 @@
   font-style: italic;
 }
 
-/* Botón Editar */
 .btn-editar-cliente {
   background: transparent;
   border: none;
@@ -205,7 +197,6 @@
   transform: scale(1.2);
 }
 
-/* Scrollbar */
 .tabla-admin-clientes-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -228,7 +219,6 @@
   background: rgba(10, 25, 41, 0.3);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .tabla-admin-clientes {
     min-width: 1400px;
@@ -271,7 +261,6 @@
   }
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -287,7 +276,6 @@
   animation: fadeIn 0.5s ease;
 }
 
-/* Estilos para Impresión */
 @media print {
   .admin-clientes-header,
   .controles-admin-clientes,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import './Historial.css';
 
@@ -14,7 +14,6 @@ const Historial = () => {
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [historialPaciente, setHistorialPaciente] = useState([]);
   
-  // Datos del paciente
   const [nombre, setNombre] = useState('');
   const [sexo, setSexo] = useState('');
   const [edad, setEdad] = useState('');
@@ -23,7 +22,6 @@ const Historial = () => {
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [folio, setFolio] = useState('');
 
-  // Estudios
   const [observaciones, setObservaciones] = useState('');
   const [estudios, setEstudios] = useState([]);
 
@@ -48,13 +46,11 @@ const Historial = () => {
         setEmail(data.email || '');
         setFechaNacimiento(data.fecha_nacimiento || '');
         
-        // Calcular edad
         if (data.fecha_nacimiento) {
           const edad = calcularEdad(data.fecha_nacimiento);
           setEdad(edad.toString());
         }
 
-        // Cargar historial
         await cargarHistorial(data.id_paciente);
       }
     } catch (error) {
@@ -91,7 +87,6 @@ const Historial = () => {
     try {
       setFolio(folio.toString());
       
-      // Cargar estudios del folio seleccionado
       const { data, error } = await supabase
         .from('resultados')
         .select('*')
@@ -140,7 +135,6 @@ const Historial = () => {
         </div>
 
         <div className="historial-content">
-          {/* Panel Izquierdo */}
           <div className="panel-historial-paciente">
             <div className="buscar-cliente-grupo">
               <span className="icon-user">👤</span>
@@ -192,7 +186,6 @@ const Historial = () => {
             </div>
           </div>
 
-          {/* Panel Derecho */}
           <div className="panel-datos-estudios">
             <div className="datos-paciente-grid">
               <div className="campo-dato">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import Tabla from '../componentes/tabla';
 import ModalAgregar from '../componentes/modal-agregar';
@@ -79,7 +79,6 @@ const AdministrarRecipientes = () => {
   const handleGuardarRecipiente = async (nombre) => {
     try {
       if (modoEdicion && recipienteEditando) {
-        // Actualizar recipiente existente
         const { error } = await supabase
           .from('recipientes')
           .update({ nombre: nombre })
@@ -89,7 +88,6 @@ const AdministrarRecipientes = () => {
 
         alert('Recipiente actualizado correctamente');
       } else {
-        // Crear nuevo recipiente
         const { error } = await supabase
           .from('recipientes')
           .insert([{ nombre: nombre }]);

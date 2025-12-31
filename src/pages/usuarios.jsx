@@ -19,7 +19,6 @@ const Usuarios = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Obtener datos del usuario actual
   useEffect(() => {
     const fetchEmpleadoData = async () => {
       if (!user) return;
@@ -54,7 +53,6 @@ const Usuarios = () => {
     fetchEmpleadoData();
   }, [user]);
 
-  // Cargar todos los usuarios/empleados
   useEffect(() => {
     const fetchUsuarios = async () => {
       try {
@@ -80,11 +78,9 @@ const Usuarios = () => {
     fetchUsuarios();
   }, []);
 
-  // Filtrar usuarios por búsqueda y puesto
   useEffect(() => {
     let filtered = [...usuarios];
 
-    // Filtro por búsqueda
     if (searchTerm) {
       filtered = filtered.filter(usuario =>
         usuario.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,7 +88,6 @@ const Usuarios = () => {
       );
     }
 
-    // Filtro por puesto
     if (selectedFilter !== 'todos') {
       filtered = filtered.filter(usuario => usuario.puesto === selectedFilter);
     }
@@ -148,7 +143,6 @@ const Usuarios = () => {
 
   const handleEdit = (usuario) => {
     console.log('Editar usuario:', usuario);
-    // TODO: Implementar modal o navegación a página de edición
   };
 
   const handleDelete = async (usuario) => {
@@ -168,7 +162,6 @@ const Usuarios = () => {
         return;
       }
 
-      // Actualizar lista
       setUsuarios(usuarios.filter(u => u.id_empleado !== usuario.id_empleado));
       alert('Usuario eliminado correctamente');
     } catch (error) {
@@ -179,7 +172,6 @@ const Usuarios = () => {
 
   const handleAddUser = () => {
     console.log('Agregar nuevo usuario');
-    // TODO: Implementar modal o navegación a página de creación
   };
 
   return (
@@ -228,7 +220,6 @@ const Usuarios = () => {
 
       <main className="usuarios-main">
         <div className="usuarios-content">
-          {/* Barra de búsqueda y filtros */}
           <div className="search-filter-section">
             <div className="search-and-actions">
               <div className="search-container">
@@ -284,7 +275,6 @@ const Usuarios = () => {
             </div>
           </div>
 
-          {/* Tabla de usuarios */}
           <div className="usuarios-table-container">
             {loading ? (
               <div className="loading-message">Cargando usuarios...</div>

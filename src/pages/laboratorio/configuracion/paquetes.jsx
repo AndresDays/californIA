@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import './paquetes.css';
 
@@ -14,14 +14,12 @@ const Paquetes = () => {
   const [paquetes, setPaquetes] = useState([]);
   const [totalPaquetes, setTotalPaquetes] = useState(0);
 
-  // Campos del formulario
   const [clavePerfil, setClavePerfil] = useState('');
   const [descripcionPerfil, setDescripcionPerfil] = useState('');
   const [condicionesPaciente, setCondicionesPaciente] = useState('');
   const [diasProceso, setDiasProceso] = useState('');
   const [busquedaEstudio, setBusquedaEstudio] = useState('');
 
-  // Estados para estudios
   const [estudiosDelPaquete, setEstudiosDelPaquete] = useState([]);
   const [estudioEncontrado, setEstudioEncontrado] = useState(null);
 
@@ -75,7 +73,6 @@ const Paquetes = () => {
 
       if (error) throw error;
 
-      // Formatear datos
       const estudiosFormateados = data?.map(pe => ({
         id_relacion: pe.id,
         id_estudio: pe.estudios_lab_catalogo.id,
@@ -118,7 +115,6 @@ const Paquetes = () => {
         return;
       }
 
-      // Verificar si el estudio ya está en el paquete
       const yaExiste = estudiosDelPaquete.some(e => e.id_estudio === data.id);
       if (yaExiste) {
         alert('Este estudio ya está agregado al paquete');
@@ -154,7 +150,6 @@ const Paquetes = () => {
 
       if (error) throw error;
 
-      // Agregar a la lista local
       setEstudiosDelPaquete([...estudiosDelPaquete, {
         id_relacion: data.id,
         id_estudio: estudio.id,
@@ -184,7 +179,6 @@ const Paquetes = () => {
 
       if (error) throw error;
 
-      // Eliminar de la lista local
       setEstudiosDelPaquete(estudiosDelPaquete.filter(e => e.id_estudio !== idEstudio));
     } catch (error) {
       console.error('Error al eliminar estudio del paquete:', error);
@@ -228,7 +222,6 @@ const Paquetes = () => {
 
       alert('Paquete guardado correctamente');
       
-      // Establecer el paquete recién creado como seleccionado
       setPaqueteSeleccionado(data.id);
       setModoEdicion(true);
       
@@ -280,7 +273,6 @@ const Paquetes = () => {
     setModoEdicion(true);
     setPaqueteSeleccionado(paquete.id);
     
-    // Cargar estudios asociados
     await cargarEstudiosDelPaquete(paquete.id);
   };
 
@@ -294,7 +286,6 @@ const Paquetes = () => {
         </div>
 
         <div className="agregar-paquetes-content">
-          {/* Panel Izquierdo - Formulario */}
           <div className="panel-formulario-paquetes">
             <div className="campo-paquete-icon">
               <span className="icon-campo">🔍</span>
@@ -340,7 +331,6 @@ const Paquetes = () => {
               />
             </div>
 
-            {/* Campo de búsqueda de estudios */}
             <form onSubmit={buscarEstudio} className="campo-busqueda-paquete">
               <input
                 type="text"
@@ -359,7 +349,6 @@ const Paquetes = () => {
               </button>
             </form>
 
-            {/* Tabla de estudios del paquete */}
             {paqueteSeleccionado && (
               <div className="tabla-estudios-paquete-container">
                 <table className="tabla-estudios-paquete">
@@ -412,7 +401,6 @@ const Paquetes = () => {
             </div>
           </div>
 
-          {/* Panel Derecho - Tabla */}
           <div className="panel-tabla-paquetes">
             <div className="buscar-paquetes-header">
               <span className="label-buscar-paquete">Buscar:</span>

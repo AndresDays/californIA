@@ -12,16 +12,13 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
   const [empresas, setEmpresas] = useState([]);
   const [precio, setPrecio] = useState('');
 
-  // Determinar si es modo edición
   const isEditMode = !!precioEditar;
 
-  // Cargar datos cuando el modal se abre
   useEffect(() => {
     if (isOpen) {
       cargarEmpresas();
       
       if (precioEditar) {
-        // Modo edición: cargar datos
         setBuscarEstudio(precioEditar.descripcion || '');
         setEstudioSeleccionado({
           clave: precioEditar.clave,
@@ -30,7 +27,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
         setEmpresaSeleccionada(precioEditar.empresa || '');
         setPrecio(precioEditar.precio?.toString() || '');
       } else {
-        // Modo agregar: limpiar campos
         limpiarCampos();
       }
     }
@@ -93,7 +89,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
   };
 
   const handleGuardar = async () => {
-    // Validaciones
     if (!estudioSeleccionado) {
       alert('Por favor selecciona un estudio');
       return;
@@ -118,7 +113,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
       fecha: new Date().toISOString()
     };
 
-    // Si es modo edición, agregar el ID
     if (isEditMode && precioEditar.id) {
       precioData.id = precioEditar.id;
     }
@@ -141,7 +135,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
   return (
     <div className="modal-overlay-precio" onClick={handleCerrar}>
       <div className="modal-container-precio" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="modal-header-precio">
           <h2 className="modal-titulo-precio">
             {isEditMode ? 'Editar Precio' : 'Agregar Precio'}
@@ -151,9 +144,7 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
           </button>
         </div>
 
-        {/* Body */}
         <div className="modal-body-precio">
-          {/* Buscar Estudio */}
           <div className="form-group-precio">
             <label>Buscar Estudio</label>
             <div className="search-container-precio">
@@ -172,7 +163,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
               />
               <button className="btn-search-precio">🔍</button>
 
-              {/* Dropdown de resultados */}
               {showBusqueda && estudiosEncontrados.length > 0 && (
                 <div className="search-results-precio">
                   {estudiosEncontrados.map(estudio => (
@@ -189,7 +179,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
             </div>
           </div>
 
-          {/* Empresa y Precio */}
           <div className="form-row-precio">
             <div className="form-group-precio">
               <label>🏢 Selecciona una Empresa</label>
@@ -222,7 +211,6 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="modal-footer-precio">
           <button className="btn-salir-precio" onClick={handleCerrar}>
             Salir

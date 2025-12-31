@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .agregar-paquetes-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .agregar-paquetes-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .agregar-paquetes-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: auto;
 }
 
-/* Panel Izquierdo - Formulario */
 .panel-formulario-paquetes {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -51,7 +47,6 @@
   height: fit-content;
 }
 
-/* Campos con Iconos */
 .campo-paquete-icon {
   display: flex;
   align-items: center;
@@ -87,7 +82,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Campo de Búsqueda */
 .campo-busqueda-paquete {
   display: flex;
   align-items: center;
@@ -132,7 +126,6 @@
   transform: scale(1.1);
 }
 
-/* Tabla de Estudios del Paquete */
 .tabla-estudios-paquete-container {
   max-height: 250px;
   overflow-y: auto;
@@ -202,7 +195,6 @@
   transform: scale(1.1);
 }
 
-/* Scrollbar para tabla de estudios */
 .tabla-estudios-paquete-container::-webkit-scrollbar {
   width: 6px;
 }
@@ -221,7 +213,6 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
-/* Botones del Formulario */
 .botones-formulario-paquetes {
   display: flex;
   gap: 0.75rem;
@@ -275,7 +266,6 @@
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
 }
 
-/* Panel Derecho - Tabla */
 .panel-tabla-paquetes {
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
@@ -288,7 +278,6 @@
   overflow: hidden;
 }
 
-/* Búsqueda de Tabla */
 .buscar-paquetes-header {
   display: flex;
   align-items: center;
@@ -318,15 +307,14 @@
   border-color: #6FB3D2;
 }
 
-/* Tabla de Paquetes */
 .tabla-paquetes-container {
   flex: 1;
-  overflow-y: auto; /* Scroll vertical siempre visible cuando necesario */
-  overflow-x: auto; /* Scroll horizontal si la tabla es muy ancha */
+  overflow-y: auto; 
+  overflow-x: auto; 
   border: 1px solid rgba(111, 179, 210, 0.2);
   border-radius: 8px;
-  max-height: 500px; /* Altura máxima - ajusta según necesites */
-  min-height: 200px; /* Altura mínima para mantener diseño */
+  max-height: 500px; 
+  min-height: 200px; 
 }
 
 .tabla-paquetes {
@@ -380,7 +368,6 @@
   font-style: italic;
 }
 
-/* Botón Editar */
 .btn-editar-paquete {
   background: #6c757d;
   border: none;
@@ -397,7 +384,6 @@
   transform: scale(1.1);
 }
 
-/* Contador de Paquetes */
 .contador-paquetes {
   padding: 0.75rem 0;
   font-size: 0.9rem;
@@ -405,7 +391,6 @@
   text-align: left;
 }
 
-/* Scrollbar Personalizado */
 .tabla-paquetes-container::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -430,14 +415,13 @@
   background: rgba(10, 25, 41, 0.5);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .agregar-paquetes-content {
     grid-template-columns: 1fr;
   }
   
   .tabla-paquetes-container {
-    max-height: 400px; /* Altura menor en pantallas medianas */
+    max-height: 400px; 
   }
 }
 
@@ -470,11 +454,10 @@
   }
   
   .tabla-paquetes-container {
-    max-height: 350px; /* Altura menor en móviles */
+    max-height: 350px; 
   }
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;

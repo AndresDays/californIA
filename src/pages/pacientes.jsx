@@ -19,7 +19,6 @@ const Pacientes = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Obtener datos del usuario actual
   useEffect(() => {
     const fetchEmpleadoData = async () => {
       if (!user) return;
@@ -54,7 +53,6 @@ const Pacientes = () => {
     fetchEmpleadoData();
   }, [user]);
 
-  // Cargar todos los pacientes
   useEffect(() => {
     const fetchPacientes = async () => {
       try {
@@ -80,11 +78,9 @@ const Pacientes = () => {
     fetchPacientes();
   }, []);
 
-  // Filtrar pacientes por búsqueda y tipo
   useEffect(() => {
     let filtered = [...pacientes];
 
-    // Filtro por búsqueda
     if (searchTerm) {
       filtered = filtered.filter(paciente =>
         paciente.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -93,10 +89,8 @@ const Pacientes = () => {
       );
     }
 
-    // Filtro por tipo
     if (selectedFilter !== 'todos') {
       if (selectedFilter === 'recientes') {
-        // Pacientes visitados en los últimos 30 días
         const treintaDiasAtras = new Date();
         treintaDiasAtras.setDate(treintaDiasAtras.getDate() - 30);
         
@@ -183,13 +177,10 @@ const Pacientes = () => {
 
   const handleView = (paciente) => {
     console.log('Ver paciente:', paciente);
-    // TODO: Navegar a vista detallada del paciente
-    // navigate(`/pacientes/${paciente.id_paciente}`);
   };
 
   const handleEdit = (paciente) => {
     console.log('Editar paciente:', paciente);
-    // TODO: Implementar modal o navegación a página de edición
   };
 
   const handleDelete = async (paciente) => {
@@ -209,7 +200,6 @@ const Pacientes = () => {
         return;
       }
 
-      // Actualizar lista
       setPacientes(pacientes.filter(p => p.id_paciente !== paciente.id_paciente));
       alert('Paciente eliminado correctamente');
     } catch (error) {
@@ -220,11 +210,9 @@ const Pacientes = () => {
 
   const handleAddPaciente = () => {
     console.log('Agregar nuevo paciente');
-    // TODO: Implementar modal o navegación a página de creación
   };
 
   const handleExport = () => {
-    // Exportar a CSV
     const headers = 'Nombre,Cédula,Edad,Tipo,Email,Teléfono,Última Visita\n';
     const csv = filteredPacientes.map(p => 
       `"${p.nombre}","${p.cedula || ''}",${calcularEdad(p.fecha_nacimiento)},"${p.tipo || ''}","${p.correo || ''}","${p.telefono || ''}","${formatFecha(p.fecha_ultima_visita)}"`
@@ -285,7 +273,6 @@ const Pacientes = () => {
 
       <main className="pacientes-main">
         <div className="pacientes-content">
-          {/* Header con contador */}
           <div className="content-header">
             <h2 className="section-title">Gestión de Pacientes</h2>
             <div className="pacientes-counter">
@@ -296,7 +283,6 @@ const Pacientes = () => {
             </div>
           </div>
 
-          {/* Barra de búsqueda y filtros */}
           <div className="search-filter-section">
             <div className="search-and-actions">
               <div className="search-container">
@@ -342,7 +328,6 @@ const Pacientes = () => {
             </div>
           </div>
 
-          {/* Tabla de pacientes */}
           <div className="pacientes-table-container">
             {loading ? (
               <div className="loading-message">Cargando pacientes...</div>
@@ -424,7 +409,6 @@ const Pacientes = () => {
             )}
           </div>
 
-          {/* Botón de exportar abajo de la tabla */}
           <div className="export-section">
             <button className="secondary-btn export-btn" onClick={handleExport}>
               📊 EXPORTAR CSV

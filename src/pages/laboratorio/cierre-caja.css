@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper Principal */
 .cierre-caja-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Header de Página */
 .cierre-caja-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
@@ -28,7 +26,6 @@
   letter-spacing: 1px;
 }
 
-/* Contenido Principal */
 .cierre-caja-content {
   flex: 1;
   padding: 1.5rem;
@@ -38,7 +35,6 @@
   overflow: auto;
 }
 
-/* Controles Superiores */
 .controles-cierre {
   display: flex;
   gap: 1.5rem;
@@ -118,7 +114,6 @@
   color: white;
 }
 
-/* Botones de Acción */
 .botones-accion-cierre {
   display: flex;
   gap: 1rem;
@@ -173,7 +168,6 @@
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
 }
 
-/* Monto Apertura */
 .monto-apertura-section {
   display: flex;
   flex-direction: column;
@@ -205,7 +199,6 @@
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 
-/* Grid de Campos */
 .campos-cierre-grid {
   background: rgba(10, 25, 41, 0.5);
   border: 1px solid rgba(111, 179, 210, 0.3);
@@ -245,7 +238,6 @@
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
 }
 
-/* Colores de Bordes */
 .campo-cierre.verde .input-campo-cierre {
   border-color: #28a745;
 }
@@ -275,7 +267,6 @@
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 
-/* Totales Finales */
 .totales-finales-cierre {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -287,7 +278,6 @@
   grid-column: span 1;
 }
 
-/* Responsive */
 @media (max-width: 1400px) {
   .campos-cierre-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -345,13 +335,11 @@
   }
 }
 
-/* Estados de Inputs Readonly */
 .input-campo-cierre:read-only {
   cursor: not-allowed;
   opacity: 0.9;
 }
 
-/* Animaciones */
 @keyframes fadeIn {
   from {
     opacity: 0;

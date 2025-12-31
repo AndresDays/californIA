@@ -1,6 +1,5 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-/* Wrapper principal */
 .captura-wrapper {
   min-height: 100vh;
   display: flex;
@@ -13,7 +12,6 @@
   background-attachment: fixed;
 }
 
-/* Filtros */
 .filtros-section {
   background: rgba(10, 25, 41, 0.85);
   padding: 1.5rem 2rem;
@@ -85,7 +83,6 @@
   color: white;
 }
 
-/* Contenido Principal */
 .captura-content {
   flex: 1;
   display: grid;
@@ -95,7 +92,6 @@
   overflow: auto;
 }
 
-/* Panel de Pacientes */
 .panel-pacientes {
   display: flex;
   flex-direction: column;
@@ -162,7 +158,6 @@
   height: 16px;
 }
 
-/* Tabla de Pacientes */
 .tabla-pacientes-container {
   flex: 1;
   overflow-y: auto;
@@ -220,7 +215,6 @@
   font-style: italic;
 }
 
-/* Panel de Captura */
 .panel-captura {
   display: flex;
   flex-direction: column;
@@ -323,7 +317,6 @@
   box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
 }
 
-/* Observaciones */
 .observaciones-section {
   padding: 1.1rem 1.5rem;
   background: rgba(10, 25, 41, 0.3);
@@ -359,7 +352,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Tabla de Resultados */
 .tabla-resultados-container {
   flex: 1;
   overflow-y: auto;
@@ -425,7 +417,6 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Acciones de Captura */
 .captura-actions {
   padding: 1.5rem 1.5rem;
   background: rgba(10, 25, 41, 0.5);
@@ -453,7 +444,6 @@
   box-shadow: 0 6px 16px rgba(102, 187, 106, 0.4);
 }
 
-/* Responsive */
 @media (max-width: 1200px) {
   .captura-content {
     grid-template-columns: 1fr;
@@ -505,7 +495,6 @@
   }
 }
 
-/* Scrollbar personalizado */
 .tabla-pacientes-container::-webkit-scrollbar,
 .tabla-resultados-container::-webkit-scrollbar {
   width: 8px;

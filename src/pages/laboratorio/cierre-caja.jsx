@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-laboratorio.jsx';
 import './cierre-caja.css';
 
@@ -15,39 +15,32 @@ const CierreCaja = () => {
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState('JUAN ANDRES DIAZ RODRIGUEZ');
 
-  // Monto Apertura
   const [montoApertura, setMontoApertura] = useState(0);
 
-  // Efectivo
   const [ventasEfectivo, setVentasEfectivo] = useState(0);
   const [ingresosEfectivo, setIngresosEfectivo] = useState(0);
   const [egresosEfectivo, setEgresosEfectivo] = useState(0);
   const [totalEfectivo, setTotalEfectivo] = useState(0);
 
-  // Tarjeta
   const [ventasTarjeta, setVentasTarjeta] = useState(0);
   const [ingresosTarjeta, setIngresosTarjeta] = useState(0);
   const [egresosTarjeta, setEgresosTarjeta] = useState(0);
   const [totalTarjeta, setTotalTarjeta] = useState(0);
 
-  // Transferencias
   const [transferencias, setTransferencias] = useState(0);
   const [ingresosTransferencias, setIngresosTransferencias] = useState(0);
   const [egresosTransferencias, setEgresosTransferencias] = useState(0);
   const [totalTransferencias, setTotalTransferencias] = useState(0);
 
-  // Crédito
   const [credito, setCredito] = useState(0);
   const [ingresosCredito, setIngresosCredito] = useState(0);
   const [egresosCredito, setEgresosCredito] = useState(0);
   const [totalCredito, setTotalCredito] = useState(0);
 
-  // Totales finales
   const [montoCancelados, setMontoCancelados] = useState(0);
   const [totalEnCaja, setTotalEnCaja] = useState(0);
   const [totalAdeudos, setTotalAdeudos] = useState(0);
 
-  // Cargar sucursales al montar el componente
   useEffect(() => {
     cargarSucursales();
   }, []);
@@ -74,7 +67,6 @@ const CierreCaja = () => {
 
       setSucursales(data || []);
       
-      // Seleccionar la primera sucursal por defecto
       if (data && data.length > 0) {
         setSucursalSeleccionada(data[0].id_sucursal);
       }
@@ -84,7 +76,6 @@ const CierreCaja = () => {
   };
 
   const calcularTotales = () => {
-    // Totales por método de pago
     const totEfectivo = ventasEfectivo + ingresosEfectivo - egresosEfectivo;
     const totTarjeta = ventasTarjeta + ingresosTarjeta - egresosTarjeta;
     const totTransferencias = transferencias + ingresosTransferencias - egresosTransferencias;
@@ -95,7 +86,6 @@ const CierreCaja = () => {
     setTotalTransferencias(totTransferencias);
     setTotalCredito(totCredito);
 
-    // Total en caja
     const totCaja = montoApertura + totEfectivo + totTarjeta + totTransferencias + totCredito - montoCancelados;
     setTotalEnCaja(totCaja);
   };
@@ -126,7 +116,6 @@ const CierreCaja = () => {
         </div>
 
         <div className="cierre-caja-content">
-          {/* Controles Superiores */}
           <div className="controles-cierre">
             <div className="fecha-actual-grupo">
               <label>📅 Fecha Actual:</label>
@@ -167,7 +156,6 @@ const CierreCaja = () => {
             </div>
           </div>
 
-          {/* Botones de Acción */}
           <div className="botones-accion-cierre">
             <button className="btn-apertura-caja" onClick={handleAperturaCaja}>
               Apertura Caja
@@ -194,9 +182,7 @@ const CierreCaja = () => {
             />
           </div>
 
-          {/* Grid de Campos */}
           <div className="campos-cierre-grid">
-            {/* Fila 1 - Efectivo */}
             <div className="campo-cierre verde">
               <label>Ventas Efectivo</label>
               <input
@@ -234,7 +220,6 @@ const CierreCaja = () => {
               />
             </div>
 
-            {/* Fila 2 - Tarjeta */}
             <div className="campo-cierre verde">
               <label>Ventas Tarjeta</label>
               <input
@@ -272,7 +257,6 @@ const CierreCaja = () => {
               />
             </div>
 
-            {/* Fila 3 - Transferencias */}
             <div className="campo-cierre verde">
               <label>Transferencias</label>
               <input
@@ -310,7 +294,6 @@ const CierreCaja = () => {
               />
             </div>
 
-            {/* Fila 4 - Crédito */}
             <div className="campo-cierre verde">
               <label>Credito</label>
               <input
@@ -349,7 +332,6 @@ const CierreCaja = () => {
             </div>
           </div>
 
-          {/* Totales Finales */}
           <div className="totales-finales-cierre">
             <div className="campo-cierre rojo">
               <label>Monto Cancelados</label>

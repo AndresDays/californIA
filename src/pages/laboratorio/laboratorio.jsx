@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import './laboratorio.css';
 import HeaderLab from '../../components/header-laboratorio.jsx';
 
@@ -254,7 +254,6 @@ const Laboratorio = () => {
             </button>
           </div>
 
-          {/* Tabla de Estudios */}
           <div className="table-container">
             {loading ? (
               <div className="loading">Cargando estudios...</div>
@@ -326,14 +325,12 @@ const Laboratorio = () => {
           </div>
         </main>
 
-        {/* Footer */}
         <footer className="laboratorio-footer">
           <p className="footer-text">
             Bienvenido: {empleadoData?.nombre || 'Usuario'} | Puesto: {empleadoData?.rol || 'N/A'}
           </p>
         </footer>
 
-        {/* Modal de Detalles */}
         {showModal && selectedEstudio && (
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>

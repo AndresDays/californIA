@@ -18,7 +18,6 @@ const ModalAnalito = ({
   const [vrBajo, setVrBajo] = useState('');
   const [vrAlto, setVrAlto] = useState('');
 
-  // Actualizar campos cuando cambia analitoInicial
   useEffect(() => {
     if (isOpen) {
       if (analitoInicial) {
@@ -84,7 +83,6 @@ const ModalAnalito = ({
   return (
     <div className="modal-overlay-analito" onClick={handleClose}>
       <div className="modal-contenedor-analito" onClick={(e) => e.stopPropagation()}>
-        {/* Header del Modal */}
         <div className="modal-header-analito">
           <h2 className="modal-titulo-analito">
             {modoEdicion ? 'Editar Analito' : 'Crear Analito'}
@@ -94,9 +92,7 @@ const ModalAnalito = ({
           </button>
         </div>
 
-        {/* Contenido del Modal */}
         <form onSubmit={handleSubmit} className="modal-contenido-analito">
-          {/* Fila 1: Clave y Bitacora */}
           <div className="modal-fila-analito">
             <div className="modal-campo-analito">
               <label>Clave</label>
@@ -122,7 +118,6 @@ const ModalAnalito = ({
             </div>
           </div>
 
-          {/* Fila 2: Descripción */}
           <div className="modal-campo-analito">
             <label>Descripción</label>
             <input
@@ -134,7 +129,6 @@ const ModalAnalito = ({
             />
           </div>
 
-          {/* Fila 3: Resultado por Defecto */}
           <div className="modal-campo-analito">
             <label>Resultado por Defecto</label>
             <input
@@ -146,7 +140,6 @@ const ModalAnalito = ({
             />
           </div>
 
-          {/* Fila 4: Unidad, Dígitos, Tipo de Resultado */}
           <div className="modal-fila-analito modal-fila-tres">
             <div className="modal-campo-analito">
               <label>Unidad</label>
@@ -188,7 +181,6 @@ const ModalAnalito = ({
             </div>
           </div>
 
-          {/* Fila 5: VR-Bajo y VR-Alto */}
           <div className="modal-fila-analito">
             <div className="modal-campo-analito">
               <label className="modal-label-vr">VR-Bajo</label>
@@ -213,7 +205,6 @@ const ModalAnalito = ({
             </div>
           </div>
 
-          {/* Botones */}
           <div className="modal-botones-analito">
             <button
               type="button"

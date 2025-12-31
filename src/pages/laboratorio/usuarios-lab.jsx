@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-laboratorio.jsx';
 import './usuarios-lab.css';
 
@@ -26,7 +26,6 @@ const UsuariosLab = () => {
         .from('empleados')
         .select('*', { count: 'exact' });
 
-      // Filtro de búsqueda
       if (buscarUsuario.trim()) {
         query = query.or(
           `nombre.ilike.%${buscarUsuario}%,` +
@@ -35,7 +34,6 @@ const UsuariosLab = () => {
         );
       }
 
-      // Paginación
       const desde = (paginaActual - 1) * registrosPorPagina;
       const hasta = desde + registrosPorPagina - 1;
 
@@ -129,14 +127,12 @@ const UsuariosLab = () => {
         </div>
 
         <div className="admin-usuarios-content">
-          {/* Controles Superiores */}
           <div className="controles-usuarios-top">
             <button className="btn-agregar-usuario" onClick={handleAgregarUsuario}>
               Agregar usuario
             </button>
           </div>
 
-          {/* Mostrar y Buscar */}
           <div className="controles-mostrar-buscar">
             <div className="mostrar-registros">
               <span>Mostrar</span>
@@ -170,7 +166,6 @@ const UsuariosLab = () => {
             </div>
           </div>
 
-          {/* Tabla de Usuarios */}
           <div className="tabla-usuarios-container">
             <table className="tabla-usuarios">
               <thead>
@@ -239,7 +234,6 @@ const UsuariosLab = () => {
             </table>
           </div>
 
-          {/* Paginación Inferior */}
           <div className="paginacion-inferior">
             <div className="contador-usuarios">
               Mostrando registros del {usuarioInicio} al {usuarioFin} de un total de {totalUsuarios}

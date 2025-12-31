@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout';
+import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-laboratorio.jsx';
 import './Cotizacion.css';
 
@@ -10,12 +10,10 @@ const Cotizacion = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Datos para cotización
   const [nombrePaciente, setNombrePaciente] = useState('');
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
   const [condicionesPaciente, setCondicionesPaciente] = useState('');
 
-  // Historial
   const [buscarCotizacion, setBuscarCotizacion] = useState('');
   const [cotizaciones, setCotizaciones] = useState([
     { num: 1, nombre: 'Gutierrez Julian' },
@@ -24,11 +22,9 @@ const Cotizacion = () => {
     { num: 4, nombre: 'tania' }
   ]);
 
-  // Estudios
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 
-  // Totales
   const [total, setTotal] = useState(0);
   const [descuento, setDescuento] = useState(0);
   const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
@@ -41,7 +37,6 @@ const Cotizacion = () => {
     const subtotal = estudiosSeleccionados.reduce((sum, est) => sum + (parseFloat(est.precio) || 0), 0);
     setTotal(subtotal);
 
-    // Si hay descuento porcentaje, calcularlo
     if (descuentoPorcentaje > 0) {
       const descuentoCalc = subtotal * (descuentoPorcentaje / 100);
       setDescuento(descuentoCalc);
@@ -106,9 +101,7 @@ const Cotizacion = () => {
         </div>
 
         <div className="cotizacion-content">
-          {/* Panel Izquierdo */}
           <div className="panel-datos-cotizacion">
-            {/* Datos para Cotización */}
             <div className="datos-cotizacion-section">
               <h2 className="section-title turquesa">Datos para Cotización</h2>
 
@@ -148,7 +141,6 @@ const Cotizacion = () => {
               </div>
             </div>
 
-            {/* Historial Cotizaciones */}
             <div className="historial-cotizaciones-section">
               <h2 className="section-title amarillo">Historial Cotizaciones</h2>
 
@@ -214,7 +206,6 @@ const Cotizacion = () => {
             </div>
           </div>
 
-          {/* Panel Derecho */}
           <div className="panel-estudios-cotizacion">
             <div className="agrega-estudios-section">
               <h2 className="section-title amarillo">Agrega Estudios</h2>

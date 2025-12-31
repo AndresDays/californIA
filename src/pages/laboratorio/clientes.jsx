@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout';
+import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-laboratorio.jsx';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente.jsx';
 import './Clientes.css';
@@ -29,7 +29,6 @@ const Clientes = () => {
         .from('pacientes')
         .select('*', { count: 'exact' });
 
-      // Filtro de búsqueda
       if (buscarCliente.trim()) {
         query = query.or(
           `nombre.ilike.%${buscarCliente}%,` +
@@ -39,7 +38,6 @@ const Clientes = () => {
         );
       }
 
-      // Paginación
       const desde = (paginaActual - 1) * clientesPorPagina;
       const hasta = desde + clientesPorPagina - 1;
 
@@ -106,7 +104,6 @@ const Clientes = () => {
   const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
     try {
       if (isEditMode) {
-        // Actualizar paciente existente
         const { error } = await supabase
           .from('pacientes')
           .update({
@@ -130,7 +127,6 @@ const Clientes = () => {
         if (error) throw error;
         alert('Cliente actualizado correctamente');
       } else {
-        // Crear nuevo paciente
         const { error } = await supabase
           .from('pacientes')
           .insert([pacienteData]);
@@ -176,7 +172,6 @@ const Clientes = () => {
         </div>
 
         <div className="admin-clientes-content">
-          {/* Controles Superiores */}
           <div className="controles-admin-clientes">
             <div className="botones-accion-admin">
               <button className="btn-agregar-cliente" onClick={handleAgregarCliente}>
@@ -188,7 +183,6 @@ const Clientes = () => {
             </div>
           </div>
 
-          {/* Búsqueda */}
           <div className="busqueda-admin">
             <input
               type="text"
@@ -202,7 +196,6 @@ const Clientes = () => {
             />
           </div>
 
-          {/* Paginación Superior */}
           <div className="paginacion-superior">
             <button 
               className="btn-paginacion"
@@ -223,7 +216,6 @@ const Clientes = () => {
             </button>
           </div>
 
-          {/* Tabla de Clientes */}
           <div className="tabla-admin-clientes-container">
             <table className="tabla-admin-clientes">
               <thead>
