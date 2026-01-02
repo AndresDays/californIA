@@ -43,7 +43,7 @@ const Header = ({
           PACIENTES
         </button>
         <button 
-          onClick={() => navigate('/usuarios')} 
+          onClick={() => navigate('/laboratorio/usuarios')} 
           className={`menu-link ${currentPage === 'usuarios' ? 'active' : ''}`}
         >
           USUARIOS
