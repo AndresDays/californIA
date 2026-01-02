@@ -569,3 +569,9 @@
   flex-wrap: wrap;
   gap: 1rem;
 }
+
+.modal-title-icon {
+  width: 28px;
+  height: 28px;
+  filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+}

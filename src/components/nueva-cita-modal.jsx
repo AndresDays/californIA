@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase-client';
+import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 
 const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
@@ -284,7 +285,10 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content-cita" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-cita">
-          <h2 className="modal-title-cita">📅 Nueva Cita</h2>
+          <h2 className="modal-title-cita">
+            <img src={calendarioIcono} alt="Calendario" className="modal-title-icon" />
+            Nueva Cita
+          </h2>
           <button className="modal-close-btn" onClick={onClose}>
             ✕
           </button>
