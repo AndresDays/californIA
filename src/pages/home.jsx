@@ -9,10 +9,11 @@ import pacientesIcono from '../assets/pacientesIcono.png';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import estudiosIcono from '../assets/estudiosIcono.png';
 import dineroIcono from '../assets/dineroIcono.png';
-import usericon from '../assets/usericon.png';
 import LabBtn from '../assets/btnlab.png';
 import RadBtn from '../assets/btnrad.png';
-import notiIcon from '../assets/notificaciones.png';
+import nuevaCitaBtn from '../assets/nuevaCitaBtn.png';
+import editarIcono from '../assets/editarIcono.png';
+import Header from '../components/header-principal';
 import NuevaCitaModal from '../components/nueva-cita-modal';
 import EditarCitaModal from '../components/editar-cita-modal';
 
@@ -139,7 +140,8 @@ const Dashboard = () => {
           monto,
           pacientes (
             nombre,
-            telefono
+            telefono,
+            id_paciente
           ),
           sucursales (
             nombre
@@ -234,10 +236,6 @@ const Dashboard = () => {
       data?.forEach(estudio => {
         if (estudio.estado === 'cancelada') return;
 
-        if (sucursalFiltro) {
-        query = query.eq('id_sucursal', sucursalFiltro);
-      }
-
         const fecha = new Date(estudio.fecha_estudio);
         let indice;
 
@@ -289,10 +287,6 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
     }
-  };
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
   };
 
   const handleCitaCreada = (nuevaCita) => {
@@ -363,49 +357,16 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-left">
-          <img src={notiIcon} alt="Notificaciones" className="notification-icon" />
-          <h1 className="header-title">
-            {empleadoData ? formatRol(empleadoData.rol) : 'Cargando...'}
-          </h1>
-        </div>
-
-        <nav className="header-menu">
-          <button onClick={() => navigate('/dashboard')} className="menu-link active">
-            INICIO
-          </button>
-          <button onClick={() => navigate('/usuarios')} className="menu-link">
-            USUARIOS
-          </button>
-          <button onClick={() => navigate('/pacientes')} className="menu-link">
-            PACIENTES
-          </button>
-        </nav>
-
-        <div className="header-right" ref={menuRef}>
-          <span className="user-name">
-            {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Cargando..'}
-          </span>
-          <img
-            src={usericon}
-            alt="Usuario"
-            className="user-avatar"
-            onClick={toggleMenu}
-          />
-          {menuOpen && (
-            <div className="user-dropdown-menu">
-              <button className="close-menu-btn" onClick={toggleMenu}>✕</button>
-              <button className="menu-item">Perfil</button>
-              <button className="menu-item">Accesos</button>
-              <button className="menu-item">Plantillas</button>
-              <button className="menu-item menu-item-logout" onClick={handleLogout}>
-                Cerrar sesión
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        menuRef={menuRef}
+        empleadoData={empleadoData}
+        formatRol={formatRol}
+        getPrimerNombre={getPrimerNombre}
+        user={user}
+        handleLogout={handleLogout}
+      />
 
       <main className="dashboard-main">
         <div className="dashboard-content-wrapper">
@@ -421,8 +382,26 @@ const Dashboard = () => {
             <button 
               className="btn-new-appointment"
               onClick={() => setModalNuevaCitaOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                boxShadow: 'none',
+                outline: 'none'
+              }}
             >
-              + Nueva Cita
+              <img 
+                src={nuevaCitaBtn} 
+                alt="Nueva Cita" 
+                className="btn-new-appointment-img"
+                style={{ 
+                  height: '80px', 
+                  width: 'auto', 
+                  display: 'block',
+                  transform: 'scale(2)',
+                  transformOrigin: 'right center'
+                }}
+              />
             </button>
           </div>
 
@@ -486,7 +465,7 @@ const Dashboard = () => {
                 </h2>
                 <p className="stat-change positive">
                   {tipoGrafica === 'pacientes' 
-                    ? 'Click para ver gráfica de ingresos'
+                    ? 'Solo citas completadas'
                     : 'Click para ver gráfica de pacientes'
                   }
                 </p>
@@ -832,7 +811,7 @@ const Dashboard = () => {
                             }}
                             title="Editar cita"
                           >
-                            ✏️
+                            <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
                           </button>
                         </td>
                       </tr>

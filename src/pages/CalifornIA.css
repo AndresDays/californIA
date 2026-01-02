@@ -1015,3 +1015,106 @@ body, html {
 .stat-card:nth-child(2) { animation-delay: 0.2s; }
 .stat-card:nth-child(3) { animation-delay: 0.3s; }
 .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* ========================================
+   CONTENT HEADER - AJUSTE DE SPACING
+   ======================================== */
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 2rem;
+}
+
+/* ========================================
+   BOTÓN NUEVA CITA - IMAGEN
+   ======================================== */
+
+.btn-new-appointment {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.btn-new-appointment:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+  background: transparent !important;
+}
+
+.btn-new-appointment:active {
+  transform: scale(0.95);
+}
+
+.btn-new-appointment:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.btn-new-appointment-img {
+  display: block;
+  height: 80px;
+  width: auto;
+  transform: scale(2);
+  transform-origin: right center;
+}
+
+/* Responsive ajuste */
+@media (max-width: 768px) {
+  .btn-new-appointment-img {
+    height: 60px;
+    transform: scale(2);
+  }
+  
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.btn-edit-cita {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+}
+
+.btn-edit-cita:hover {
+  transform: scale(1.1);
+  opacity: 0.8;
+}
+
+.btn-edit-cita:active {
+  transform: scale(0.95);
+}
+
+.btn-edit-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+}
+
+.btn-edit-cita:hover .btn-edit-icon {
+  filter: brightness(0) saturate(100%) invert(85%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(100%) contrast(95%);
+}
+
+.btn-edit-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-edit-icon {
+  filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+}

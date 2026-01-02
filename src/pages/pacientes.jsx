@@ -1,52 +1,46 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase-client';
-import { useAuth } from '../context/auth-context';
-import './Pacientes.css';
-import usericon from '../assets/usericon.png';
-import notiIcon from '../assets/notificaciones.png';
+import { supabase } from '../lib/supabase-client.js';
+import { useAuth } from '../context/auth-context.jsx';
+import Header from '../components/header-principal.jsx';
+import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
+import editarIcono from '../assets/editarIcono.png';
+import './pacientes.css';
 
 const Pacientes = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [empleadoData, setEmpleadoData] = useState(null);
-  const [pacientes, setPacientes] = useState([]);
-  const [filteredPacientes, setFilteredPacientes] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('todos');
-  const [loading, setLoading] = useState(true);
-  const menuRef = useRef(null);
-
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [empleadoData, setEmpleadoData] = useState(null);
+  const [buscarPaciente, setBuscarPaciente] = useState('');
+  const [pacientes, setPacientes] = useState([]);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPacientes, setTotalPacientes] = useState(0);
+  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
+  const [pacienteEditar, setPacienteEditar] = useState(null);
+  const pacientesPorPagina = 500;
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
-      if (!user) return;
+      if (!user?.id) return;
 
       try {
-        const { data: perfil, error: perfilError } = await supabase
-          .from('perfiles_usuario')
-          .select('id_empleado, nombre')
-          .eq('id', user.id)
-          .single();
+        const { data: empleado, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', user.id)
+          .maybeSingle();
 
-        if (perfilError || !perfil) return;
+        if (error) {
+          console.error('Error al obtener empleado:', error);
+          return;
+        }
 
-        if (perfil.id_empleado) {
-          const { data: empleado } = await supabase
-            .from('empleados')
-            .select('nombre, puesto, cedula_profesional')
-            .eq('id_empleado', perfil.id_empleado)
-            .single();
-
-          if (empleado) {
-            setEmpleadoData(empleado);
-          } else if (perfil.nombre) {
-            setEmpleadoData({ nombre: perfil.nombre, puesto: null });
-          }
+        if (empleado) {
+          setEmpleadoData(empleado);
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al obtener datos del empleado:', error);
       }
     };
 
@@ -54,117 +48,67 @@ const Pacientes = () => {
   }, [user]);
 
   useEffect(() => {
-    const fetchPacientes = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('paciente')
-          .select('id_paciente, cedula, nombre, fecha_nacimiento, edad, tipo, correo, telefono, empresa, fecha_ultima_visita')
-          .order('fecha_ultima_visita', { ascending: false, nullsFirst: false });
+    cargarPacientes();
+  }, [paginaActual, buscarPaciente]);
 
-        if (error) {
-          console.error('Error al cargar pacientes:', error);
-          return;
-        }
+  const cargarPacientes = async () => {
+    try {
+      let query = supabase
+        .from('pacientes')
+        .select('*', { count: 'exact' });
 
-        setPacientes(data || []);
-        setFilteredPacientes(data || []);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
+      if (buscarPaciente.trim()) {
+        query = query.or(
+          `nombre.ilike.%${buscarPaciente}%,` +
+          `apellido_paterno.ilike.%${buscarPaciente}%,` +
+          `apellido_materno.ilike.%${buscarPaciente}%,` +
+          `email.ilike.%${buscarPaciente}%`
+        );
       }
-    };
 
-    fetchPacientes();
-  }, []);
+      const desde = (paginaActual - 1) * pacientesPorPagina;
+      const hasta = desde + pacientesPorPagina - 1;
 
-  useEffect(() => {
-    let filtered = [...pacientes];
+      const { data, error, count } = await query
+        .range(desde, hasta)
+        .order('id_paciente', { ascending: true });
 
-    if (searchTerm) {
-      filtered = filtered.filter(paciente =>
-        paciente.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        paciente.cedula?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        paciente.correo?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      if (error) throw error;
+
+      setTotalPacientes(count || 0);
+      
+      const pacientesFormateados = data?.map(paciente => ({
+        id: paciente.id_paciente,
+        apellidoPaterno: paciente.apellido_paterno || '',
+        apellidoMaterno: paciente.apellido_materno || '',
+        nombre: paciente.primer_nombre || paciente.nombre || '',
+        edad: calcularEdad(paciente.fecha_nacimiento),
+        sexo: paciente.sexo || '',
+        telefono: paciente.telefono || '',
+        email: paciente.email || '',
+        fechaNacimiento: paciente.fecha_nacimiento || '',
+        direccion: paciente.direccion || '',
+        cedula: paciente.cedula || '',
+        condicionEspecial: paciente.condicion_especial || '',
+        pais: paciente.pais || 'México',
+        fechaRegistro: new Date(paciente.created_at || Date.now()).toLocaleString('es-MX', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      })) || [];
+
+      setPacientes(pacientesFormateados);
+    } catch (error) {
+      console.error('Error al cargar pacientes:', error);
     }
-
-    if (selectedFilter !== 'todos') {
-      if (selectedFilter === 'recientes') {
-        const treintaDiasAtras = new Date();
-        treintaDiasAtras.setDate(treintaDiasAtras.getDate() - 30);
-        
-        filtered = filtered.filter(paciente => {
-          if (!paciente.fecha_ultima_visita) return false;
-          const fechaVisita = new Date(paciente.fecha_ultima_visita);
-          return fechaVisita >= treintaDiasAtras;
-        });
-      } else {
-        filtered = filtered.filter(paciente => paciente.tipo === selectedFilter);
-      }
-    }
-
-    setFilteredPacientes(filtered);
-  }, [searchTerm, selectedFilter, pacientes]);
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
-
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [menuOpen]);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
-
-  const getPrimerNombre = (nombreCompleto) => {
-    if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-    return nombreCompleto;
-  };
-
-  const formatPuesto = (puesto) => {
-    if (!puesto) return 'Usuario';
-
-    const puestos = {
-      'administrador': 'Administrador',
-      'radiologo': 'Radiólogo - Director',
-      'medico': 'Médico',
-      'tecnico_radiologia': 'Técnico en Radiología',
-      'quimico': 'Químico',
-      'recepcionista': 'Recepcionista',
-      'desarrollador': 'Desarrollador'
-    };
-
-    return puestos[puesto] || puesto;
-  };
-
-  const formatFecha = (fecha) => {
-    if (!fecha) return 'N/A';
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-MX', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
   };
 
   const calcularEdad = (fechaNacimiento) => {
-    if (!fechaNacimiento) return 'N/A';
+    if (!fechaNacimiento) return 0;
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -175,248 +119,226 @@ const Pacientes = () => {
     return edad;
   };
 
-  const handleView = (paciente) => {
-    console.log('Ver paciente:', paciente);
+  const handleAgregarPaciente = () => {
+    setPacienteEditar(null);
+    setModalAgregarPacienteOpen(true);
   };
 
-  const handleEdit = (paciente) => {
-    console.log('Editar paciente:', paciente);
+  const handleEditarPaciente = (paciente) => {
+    setPacienteEditar(paciente);
+    setModalAgregarPacienteOpen(true);
   };
 
-  const handleDelete = async (paciente) => {
-    if (!window.confirm(`¿Estás seguro de eliminar al paciente ${paciente.nombre}?`)) {
-      return;
-    }
-
+  const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
     try {
-      const { error } = await supabase
-        .from('paciente')
-        .delete()
-        .eq('id_paciente', paciente.id_paciente);
+      if (isEditMode) {
+        const { error } = await supabase
+          .from('pacientes')
+          .update({
+            nombre: pacienteData.nombre,
+            apellido_paterno: pacienteData.apellido_paterno,
+            apellido_materno: pacienteData.apellido_materno,
+            primer_nombre: pacienteData.primer_nombre,
+            fecha_nacimiento: pacienteData.fecha_nacimiento,
+            edad: pacienteData.edad,
+            sexo: pacienteData.sexo,
+            direccion: pacienteData.direccion,
+            cedula: pacienteData.cedula,
+            condicion_especial: pacienteData.condicion_especial,
+            email: pacienteData.email,
+            pais: pacienteData.pais,
+            telefono: pacienteData.telefono,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id_paciente', pacienteData.id);
 
-      if (error) {
-        console.error('Error al eliminar:', error);
-        alert('Error al eliminar el paciente');
-        return;
+        if (error) throw error;
+        alert('Paciente actualizado correctamente');
+      } else {
+        const { error } = await supabase
+          .from('pacientes')
+          .insert([pacienteData]);
+
+        if (error) throw error;
+        alert('Paciente guardado correctamente');
       }
 
-      setPacientes(pacientes.filter(p => p.id_paciente !== paciente.id_paciente));
-      alert('Paciente eliminado correctamente');
+      cargarPacientes();
+      setModalAgregarPacienteOpen(false);
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al eliminar el paciente');
+      console.error('Error al guardar paciente:', error);
+      alert('Error al guardar paciente: ' + error.message);
     }
   };
 
-  const handleAddPaciente = () => {
-    console.log('Agregar nuevo paciente');
+  const handleImprimirTabla = () => {
+    window.print();
   };
 
-  const handleExport = () => {
-    const headers = 'Nombre,Cédula,Edad,Tipo,Email,Teléfono,Última Visita\n';
-    const csv = filteredPacientes.map(p => 
-      `"${p.nombre}","${p.cedula || ''}",${calcularEdad(p.fecha_nacimiento)},"${p.tipo || ''}","${p.correo || ''}","${p.telefono || ''}","${formatFecha(p.fecha_ultima_visita)}"`
-    ).join('\n');
-    
-    const blob = new Blob([headers + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pacientes_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const paginaSiguiente = () => {
+    if (paginaActual * pacientesPorPagina < totalPacientes) {
+      setPaginaActual(paginaActual + 1);
+    }
   };
+
+  const paginaAnterior = () => {
+    if (paginaActual > 1) {
+      setPaginaActual(paginaActual - 1);
+    }
+  };
+
+  const getPrimerNombre = (nombreCompleto) => {
+    if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
+    return nombreCompleto;
+  };
+
+  const formatRol = (rol) => {
+    if (!rol) return 'Usuario';
+
+    const roles = {
+      'admin': 'Administrador',
+      'administrador': 'Administrador',
+      'radiologo': 'Radiólogo - Director',
+      'doctor': 'Médico',
+      'medico': 'Médico',
+      'tecnico_radiologia': 'Técnico en Radiología',
+      'tecnico': 'Técnico',
+      'quimico': 'Químico',
+      'recepcionista': 'Recepcionista',
+      'desarrollador': 'Desarrollador'
+    };
+
+    return roles[rol] || rol;
+  };
+
+  const handleLogout = async () => {
+    const { signOut } = useAuth();
+    await signOut();
+    navigate('/login');
+  };
+
+  const pacienteInicio = (paginaActual - 1) * pacientesPorPagina + 1;
+  const pacienteFin = Math.min(paginaActual * pacientesPorPagina, totalPacientes);
 
   return (
-    <div className="pacientes-container">
-      <header className="pacientes-header">
-        <div className="header-left">
-          <img
-            src={notiIcon}
-            alt="Notificaciones"
-            className="notification-icon"
-          />
-          <h1 className="header-title">
-            {empleadoData ? formatPuesto(empleadoData.puesto) : 'Cargando...'}
-          </h1>
+      <div className="admin-pacientes-wrapper">
+        <Header 
+          empleadoData={empleadoData}
+          formatRol={formatRol}
+          getPrimerNombre={getPrimerNombre}
+          user={user}
+          handleLogout={handleLogout}
+          currentPage="pacientes"
+        />
+
+        <div className="admin-pacientes-header">
+          <h1 className="admin-pacientes-title">Administrar Pacientes</h1>
         </div>
 
-        <nav className="header-menu">
-          <button onClick={() => navigate('/dashboard')} className="menu-link">INICIO</button>
-          <button onClick={() => navigate('/usuarios')} className="menu-link">USUARIOS</button>
-          <button onClick={() => navigate('/pacientes')} className="menu-link active">PACIENTES</button>
-        </nav>
-
-        <div className="header-right" ref={menuRef}>
-          <span className="user-name">
-            {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Cargando...'}
-          </span>
-          <img
-            src={usericon}
-            alt="Usuario"
-            className="user-avatar"
-            onClick={toggleMenu}
-          />
-          {menuOpen && (
-            <div className="user-dropdown-menu">
-              <button className="close-menu-btn" onClick={toggleMenu}>✕</button>
-              <button className="menu-item">Perfil</button>
-              <button className="menu-item">Accesos</button>
-              <button className="menu-item">Plantillas</button>
-              <button className="menu-item menu-item-logout" onClick={handleLogout}>
-                Cerrar sesión
+        <div className="admin-pacientes-content">
+          <div className="controles-admin-pacientes">
+            <div className="botones-accion-admin">
+              <button className="btn-agregar-paciente" onClick={handleAgregarPaciente}>
+                Agregar Paciente
               </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="pacientes-main">
-        <div className="pacientes-content">
-          <div className="content-header">
-            <h2 className="section-title">Gestión de Pacientes</h2>
-            <div className="pacientes-counter">
-              <span className="counter-number">{filteredPacientes.length}</span>
-              <span className="counter-label">
-                {filteredPacientes.length === 1 ? 'Paciente' : 'Pacientes'}
-              </span>
-            </div>
-          </div>
-
-          <div className="search-filter-section">
-            <div className="search-and-actions">
-              <div className="search-container">
-                <label className="search-label">Buscar Paciente</label>
-                <div className="search-input-wrapper">
-                  <span className="search-icon">🔍</span>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Buscar por nombre, cédula o email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="filter-buttons">
-              <button
-                className={`filter-btn ${selectedFilter === 'todos' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('todos')}
-              >
-                Todos
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'recientes' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('recientes')}
-              >
-                Recientes (30 días)
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'particular' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('particular')}
-              >
-                Particulares
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'empresa' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('empresa')}
-              >
-                Empresas
+              <button className="btn-imprimir-tabla" onClick={handleImprimirTabla}>
+                Imprimir tabla
               </button>
             </div>
           </div>
 
-          <div className="pacientes-table-container">
-            {loading ? (
-              <div className="loading-message">Cargando pacientes...</div>
-            ) : filteredPacientes.length === 0 ? (
-              <div className="empty-message">
-                <div className="empty-icon">👥</div>
-                <p>No se encontraron pacientes</p>
-                {searchTerm && (
-                  <button 
-                    className="clear-search-btn"
-                    onClick={() => setSearchTerm('')}
-                  >
-                    Limpiar búsqueda
-                  </button>
-                )}
-              </div>
-            ) : (
-              <table className="pacientes-table">
-                <thead>
+          <div className="busqueda-admin">
+            <input
+              type="text"
+              placeholder="Busca Pacientes Aqui..."
+              value={buscarPaciente}
+              onChange={(e) => {
+                setBuscarPaciente(e.target.value);
+                setPaginaActual(1);
+              }}
+              className="input-buscar-admin"
+            />
+          </div>
+
+          <div className="paginacion-superior">
+            <button 
+              className="btn-paginacion"
+              onClick={paginaAnterior}
+              disabled={paginaActual === 1}
+            >
+              &#8249;
+            </button>
+            <span className="info-paginacion">
+              Mostrando: {pacienteInicio}-{pacienteFin} de {totalPacientes}
+            </span>
+            <button 
+              className="btn-paginacion"
+              onClick={paginaSiguiente}
+              disabled={paginaActual * pacientesPorPagina >= totalPacientes}
+            >
+              &#8250;
+            </button>
+          </div>
+
+          <div className="tabla-admin-pacientes-container">
+            <table className="tabla-admin-pacientes">
+              <thead>
+                <tr>
+                  <th>id</th>
+                  <th>Apellido paterno</th>
+                  <th>Apellido Materno</th>
+                  <th>Nombre</th>
+                  <th>Edad</th>
+                  <th>Sexo</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Fecha Registro</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pacientes.length === 0 ? (
                   <tr>
-                    <th>Nombre</th>
-                    <th>Cédula</th>
-                    <th>Edad</th>
-                    <th>Tipo</th>
-                    <th>Última Visita</th>
-                    <th>Acciones</th>
+                    <td colSpan="10" className="sin-pacientes">
+                      No hay pacientes para mostrar
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredPacientes.map((paciente) => (
-                    <tr key={paciente.id_paciente}>
-                      <td className="paciente-nombre">
-                        <div className="nombre-wrapper">
-                          <span className="nombre-principal">{paciente.nombre}</span>
-                          {paciente.correo && (
-                            <span className="email-secundario">{paciente.correo}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="paciente-cedula">{paciente.cedula || 'N/A'}</td>
-                      <td className="paciente-edad">
-                        {paciente.edad || calcularEdad(paciente.fecha_nacimiento)} años
-                      </td>
-                      <td className="paciente-tipo">
-                        <span className={`tipo-badge ${paciente.tipo || 'particular'}`}>
-                          {paciente.tipo === 'empresa' ? paciente.empresa || 'Empresa' : 'Particular'}
-                        </span>
-                      </td>
-                      <td className="paciente-fecha">
-                        {formatFecha(paciente.fecha_ultima_visita)}
-                      </td>
-                      <td className="paciente-acciones">
+                ) : (
+                  pacientes.map((paciente) => (
+                    <tr key={paciente.id}>
+                      <td>{paciente.id}</td>
+                      <td>{paciente.apellidoPaterno}</td>
+                      <td>{paciente.apellidoMaterno}</td>
+                      <td>{paciente.nombre}</td>
+                      <td>{paciente.edad} años</td>
+                      <td>{paciente.sexo}</td>
+                      <td>{paciente.telefono}</td>
+                      <td>{paciente.email}</td>
+                      <td>{paciente.fechaRegistro}</td>
+                      <td>
                         <button
-                          className="action-btn view-btn"
-                          onClick={() => handleView(paciente)}
-                          title="Ver detalles"
+                          className="btn-editar-paciente"
+                          onClick={() => handleEditarPaciente(paciente)}
+                          title="Editar paciente"
                         >
-                          👁️
-                        </button>
-                        <button
-                          className="action-btn edit-btn"
-                          onClick={() => handleEdit(paciente)}
-                          title="Editar"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={() => handleDelete(paciente)}
-                          title="Eliminar"
-                        >
-                          Eliminar
+                          <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          <div className="export-section">
-            <button className="secondary-btn export-btn" onClick={handleExport}>
-              📊 EXPORTAR CSV
-            </button>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-      </main>
-    </div>
+        <ModalAgregarPaciente
+          isOpen={modalAgregarPacienteOpen}
+          onClose={() => setModalAgregarPacienteOpen(false)}
+          onGuardar={handleGuardarPacienteModal}
+          pacienteEditar={pacienteEditar}
+        />
+
+      </div>
   );
 };
 
