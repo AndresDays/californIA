@@ -1,0 +1,174 @@
+.modal-overlay-simple {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10000;
+	padding: 1rem;
+}
+
+.modal-content-simple {
+	background: white;
+	border-radius: 8px;
+	width: 100%;
+	max-width: 500px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
+}
+
+.modal-header-simple {
+	background: #6FB3D2;
+	color: white;
+	padding: 1rem 1.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.modal-header-simple h2 {
+	margin: 0;
+	font-size: 1.2rem;
+	font-weight: 500;
+	font-family: 'Codec Pro', sans-serif;
+}
+
+.modal-close-simple {
+	background: transparent;
+	border: none;
+	color: white;
+	font-size: 1.5rem;
+	cursor: pointer;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	transition: all 0.2s;
+}
+
+.modal-close-simple:hover {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body-simple {
+	padding: 2rem 1.5rem;
+	background: #f5f5f5;
+}
+
+.input-group-simple {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.input-group-simple label {
+	color: #333;
+	font-size: 0.9rem;
+	font-weight: 500;
+	font-family: 'Codec Pro', sans-serif;
+}
+
+.input-cotizacion-simple {
+	padding: 0.75rem;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	font-size: 1rem;
+	font-family: 'Codec Pro', sans-serif;
+	color: #333;
+	background: white;
+	transition: all 0.3s;
+}
+
+.input-cotizacion-simple:focus {
+	outline: none;
+	border-color: #6FB3D2;
+	box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.1);
+}
+
+.input-cotizacion-simple::placeholder {
+	color: #999;
+}
+
+.input-hint {
+	color: #666;
+	font-size: 0.8rem;
+	font-style: italic;
+}
+
+.modal-footer-simple {
+	padding: 1rem 1.5rem;
+	background: white;
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.75rem;
+	border-top: 1px solid #e0e0e0;
+}
+
+.btn-modal-simple {
+	padding: 0.65rem 1.5rem;
+	border: none;
+	border-radius: 6px;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.95rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.3s;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+.btn-salir {
+	background: #e0e0e0;
+	color: #333;
+}
+
+.btn-salir:hover {
+	background: #d0d0d0;
+}
+
+.btn-cargar {
+	background: #6FB3D2;
+	color: white;
+}
+
+.btn-cargar:hover {
+	background: #5A9DBE;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(111, 179, 210, 0.3);
+}
+
+.btn-cargar:disabled {
+	background: #ccc;
+	cursor: not-allowed;
+	transform: none;
+}
+
+@media (max-width: 600px) {
+	.modal-content-simple {
+		max-width: 95%;
+	}
+
+	.modal-header-simple {
+		padding: 0.75rem 1rem;
+	}
+
+	.modal-body-simple {
+		padding: 1.5rem 1rem;
+	}
+
+	.modal-footer-simple {
+		padding: 0.75rem 1rem;
+		flex-direction: column;
+	}
+
+	.btn-modal-simple {
+		width: 100%;
+	}
+}
