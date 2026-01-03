@@ -335,26 +335,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="empresa" className="form-label-cita">
-              Empresa <span className="required">*</span>
-            </label>
-            <select
-              id="empresa"
-              value={empresaSeleccionada}
-              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-              className="form-select-cita"
-              disabled={loading}
-            >
-              <option value="">Seleccione una empresa</option>
-              {empresas.map(empresa => (
-                <option key={empresa.id_empresa} value={empresa.id_empresa}>
-                  {empresa.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group-cita">
             <label htmlFor="sucursal" className="form-label-cita">
               Sucursal <span className="required">*</span>
             </label>
@@ -369,6 +349,26 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
               {sucursales.map(sucursal => (
                 <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
                   {sucursal.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group-cita">
+            <label htmlFor="empresa" className="form-label-cita">
+              Empresa <span className="required">*</span>
+            </label>
+            <select
+              id="empresa"
+              value={empresaSeleccionada}
+              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+              className="form-select-cita"
+              disabled={loading}
+            >
+              <option value="">Seleccione una empresa</option>
+              {empresas.map(empresa => (
+                <option key={empresa.id_empresa} value={empresa.id_empresa}>
+                  {empresa.nombre}
                 </option>
               ))}
             </select>
@@ -500,7 +500,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
                 </>
               ) : (
                 <>
-                  <span>✓</span>
                   Crear Cita
                 </>
               )}

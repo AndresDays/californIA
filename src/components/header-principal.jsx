@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import notiIcon from '../assets/notificaciones.png';
 import usericon from '../assets/usericon.png';
+import './header.css';
 
 const Header = ({ 
   menuOpen, 
@@ -36,14 +37,14 @@ const Header = ({
         >
           INICIO
         </button>
-                <button 
+        <button 
           onClick={() => navigate('/pacientes')} 
           className={`menu-link ${currentPage === 'pacientes' ? 'active' : ''}`}
         >
           PACIENTES
         </button>
         <button 
-          onClick={() => navigate('/laboratorio/usuarios')} 
+          onClick={() => navigate('/usuarios')} 
           className={`menu-link ${currentPage === 'usuarios' ? 'active' : ''}`}
         >
           USUARIOS

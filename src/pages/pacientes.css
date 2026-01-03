@@ -6,10 +6,7 @@
   flex-direction: column;
   font-family: 'Codec Pro', sans-serif;
   color: white;
-  background-image: url('../assets/FONDO.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: linear-gradient(135deg, #0a1929 0%, #0d2942 100%);
 }
 
 .admin-pacientes-header {
@@ -44,27 +41,52 @@
 .botones-accion-admin {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
 
 .btn-agregar-paciente,
 .btn-imprimir-tabla {
-  padding: 0.7rem 1.5rem;
+  background: transparent !important;
   border: none;
-  border-radius: 6px;
-  color: white;
-  font-family: 'Codec Pro', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  transition: all 0.3s;
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
+  width: fit-content;
+  height: fit-content;
+  line-height: 0;
 }
 
 .btn-agregar-paciente:hover,
 .btn-imprimir-tabla:hover {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+  transform: scale(1.05);
+  opacity: 0.9;
+  background: transparent !important;
+}
+
+.btn-agregar-paciente:active,
+.btn-imprimir-tabla:active {
+  transform: scale(0.98);
+}
+
+.btn-action-img {
+  height: 40px;
+  width: auto;
+  display: block;
+  transition: all 0.3s ease;
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .btn-action-img {
+    height: 35px;
+  }
 }
 
 .busqueda-admin {
@@ -256,11 +278,11 @@
 
   .botones-accion-admin {
     flex-direction: column;
+    align-items: center;
   }
 
-  .btn-agregar-paciente,
-  .btn-imprimir-tabla {
-    width: 100%;
+  .btn-action-img {
+    height: 30px;
   }
 
   .busqueda-admin {

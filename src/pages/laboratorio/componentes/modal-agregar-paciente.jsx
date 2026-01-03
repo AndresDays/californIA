@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './modal-agregar-paciente.css';
+import pacientesIcono from '../../../assets/pacientesIcono.png';
+import calendarioIcono from '../../../assets/calendarioIcono.png';
+import sexoIcono from '../../../assets/sexoIcono.png';
+import direccionIcono from '../../../assets/direccionIcono.png';
+import cedulaIcono from '../../../assets/cedulaIcono.png';
+import nivelIcono from '../../../assets/nivelIcono.png';
+import correoIcono from '../../../assets/correoIcono.png';
+import telefonoIcono from '../../../assets/telefonoIcono.png';
 
 const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = null }) => {
   const [apellidoPaterno, setApellidoPaterno] = useState('');
@@ -205,7 +213,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
 
         <form onSubmit={handleSubmit} className="modal-contenido-paciente">
           <div className="modal-campo-paciente">
-            <label>👤</label>
+            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
             <input
               type="text"
               value={apellidoPaterno}
@@ -217,7 +225,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>👤</label>
+            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
             <input
               type="text"
               value={apellidoMaterno}
@@ -228,7 +236,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>👤</label>
+            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
             <input
               type="text"
               value={nombre}
@@ -281,7 +289,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
 
           <div className="modal-fila-edad">
             <div className="modal-campo-paciente">
-              <label>📅</label>
+              <img src={calendarioIcono} alt="Edad" className="modal-icono-campo" />
               <select
                 value={unidadEdad}
                 onChange={(e) => setUnidadEdad(e.target.value)}
@@ -306,7 +314,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>⚧</label>
+            <img src={sexoIcono} alt="Sexo" className="modal-icono-campo" />
             <select
               value={sexo}
               onChange={(e) => setSexo(e.target.value)}
@@ -319,7 +327,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>🚗</label>
+            <img src={direccionIcono} alt="Dirección" className="modal-icono-campo" />
             <input
               type="text"
               value={direccion}
@@ -330,7 +338,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>🎫</label>
+            <img src={cedulaIcono} alt="Cédula" className="modal-icono-campo" />
             <input
               type="text"
               value={cedula}
@@ -341,7 +349,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>📋</label>
+            <img src={nivelIcono} alt="Nivel" className="modal-icono-campo" />
             <select
               value={condicionEspecial}
               onChange={(e) => setCondicionEspecial(e.target.value)}
@@ -357,7 +365,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>✉️</label>
+            <img src={correoIcono} alt="Email" className="modal-icono-campo" />
             <input
               type="email"
               value={email}
@@ -368,7 +376,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>☎️</label>
+            <img src={telefonoIcono} alt="País" className="modal-icono-campo" />
             <select
               value={pais}
               onChange={(e) => setPais(e.target.value)}
@@ -382,7 +390,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <label>☎️</label>
+            <img src={telefonoIcono} alt="Teléfono" className="modal-icono-campo" />
             <input
               type="tel"
               value={telefono}

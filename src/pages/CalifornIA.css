@@ -328,6 +328,7 @@ body, html {
 
 .stat-content {
   flex: 1;
+  text-align: center;
 }
 
 .stat-label {
@@ -430,20 +431,14 @@ body, html {
 
 .logo-container {
   text-align: center;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   border-top: 1px solid rgba(73, 178, 212, 0.2);
   margin-top: 1rem;
 }
 
 .california-logo {
-  width: 180px;
+  width: 350px;
   height: auto;
-}
-
-.logo-subtitle {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0;
 }
 
 .appointments-section {
@@ -1100,8 +1095,8 @@ body, html {
 }
 
 .btn-edit-icon {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
   display: block;
   filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
 }
@@ -1117,4 +1112,35 @@ body, html {
 
 .btn-edit-icon {
   filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+}
+
+.module-card {
+  background: linear-gradient(135deg, rgba(16, 109, 160, 0.3) 0%, rgba(73, 178, 212, 0.2) 100%);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.module-card:hover {
+  transform: translateY(-4px);
+  background: linear-gradient(135deg, rgba(16, 109, 160, 0.4) 0%, rgba(73, 178, 212, 0.3) 100%);
+  box-shadow: 0 8px 25px rgba(73, 178, 212, 0.3);
+}
+
+.module-btn-img {
+  width: 100%;
+  height: auto;
+  max-width: 200px;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.module-card:hover .module-btn-img {
+  transform: scale(1.05);
 }

@@ -72,7 +72,7 @@ const HeaderLab = ({ tipo = 'default' }) => {
 
       <div className="header-right" ref={menuRef}>
         <span className="user-name">
-          Cuenta: {empleado?.nombre || 'Cargando...'}
+          {empleado?.nombre || 'Cargando...'}
         </span>
         <img
           src={usericon}

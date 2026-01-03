@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase-client';
 import './nueva-cita-modal.css';
+import editarIcono from '../assets/editarIcono.png';
 
 const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
   const [formData, setFormData] = useState({
@@ -22,9 +23,9 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
   useEffect(() => {
     if (isOpen && cita) {
-      const fechaObj = new Date(cita.fecha_estudio);
-      const fecha = fechaObj.toISOString().split('T')[0];
-      const hora = fechaObj.toTimeString().slice(0, 5);
+      const fechaHoraStr = cita.fecha_estudio;
+      const [fecha, horaCompleta] = fechaHoraStr.split('T');
+      const hora = horaCompleta ? horaCompleta.substring(0, 5) : '00:00';
       
       setFormData({
         nombreCompleto: cita.pacientes?.nombre || '',
@@ -231,19 +232,13 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
         })
         .eq('id_paciente', cita.pacientes.id_paciente);
 
-      const fecha = new Date(`${formData.fecha}T${formData.hora}:00`);
-      const offsetMinutes = fecha.getTimezoneOffset();
-      const offsetHours = Math.abs(Math.floor(offsetMinutes / 60));
-      const offsetMins = Math.abs(offsetMinutes % 60);
-      const offsetSign = offsetMinutes <= 0 ? '+' : '-';
-      const timezoneOffset = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
-      const fechaHoraConZona = `${formData.fecha}T${formData.hora}:00${timezoneOffset}`;
+      const fechaLocal = `${formData.fecha}T${formData.hora}:00`;
       
       const estudiosTexto = estudiosSeleccionados.map(est => est.descripcion).join(', ');
       const precioTotal = calcularPrecioTotal();
       
       const updateData = {
-        fecha_estudio: fechaHoraConZona,
+        fecha_estudio: fechaLocal,
         estado: formData.estado,
         tipo_estudio: estudiosTexto,
         monto: precioTotal
@@ -305,7 +300,10 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content-cita" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-cita">
-          <h2 className="modal-title-cita">✏️ Editar Cita</h2>
+          <h2 className="modal-title-cita">
+            <img src={editarIcono} alt="Editar" className="modal-title-icon" />
+            Editar Cita
+          </h2>
           <button className="modal-close-btn" onClick={onClose}>
             ✕
           </button>
@@ -501,17 +499,9 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
               onClick={handleCancelar}
               disabled={loading || formData.estado === 'cancelada'}
             >
-              🗑️ Cancelar Cita
+              Cancelar Cita
             </button>
             <div className="buttons-right">
-              <button
-                type="button"
-                className="btn-cancel-cita"
-                onClick={onClose}
-                disabled={loading}
-              >
-                Cerrar
-              </button>
               <button
                 type="submit"
                 className="btn-submit-cita"
@@ -524,7 +514,6 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
                   </>
                 ) : (
                   <>
-                    <span>✓</span>
                     Guardar Cambios
                   </>
                 )}

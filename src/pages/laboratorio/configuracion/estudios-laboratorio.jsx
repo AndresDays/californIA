@@ -66,7 +66,7 @@ const EstudiosLab = () => {
     try {
       const { data, error } = await supabase
         .from('areas')
-        .select('id, nombre')
+        .select('id_area, nombre')
         .order('nombre', { ascending: true });
 
       if (error) throw error;

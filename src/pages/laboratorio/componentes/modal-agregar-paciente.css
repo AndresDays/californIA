@@ -95,11 +95,13 @@
   padding: 0 0.75rem;
 }
 
-.modal-campo-paciente label {
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.6);
+.modal-campo-paciente label,
+.modal-icono-campo {
+  width: 24px;
+  height: 24px;
   min-width: 24px;
-  text-align: center;
+  object-fit: contain;
+  filter: opacity(0.6);
 }
 
 .modal-input-paciente,
