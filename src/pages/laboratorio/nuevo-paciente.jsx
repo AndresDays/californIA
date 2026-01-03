@@ -8,6 +8,14 @@ import HeaderLab from '../../components/header-laboratorio.jsx';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente';
 import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
 
+import pacientesIcono from '../../assets/pacientesIcono.png';
+import doctorIcono from '../../assets/doctorIcono.png';
+import warningV1 from '../../assets/warningV1.png';
+import muestrasBtn from '../../assets/muestrasBtn.png';
+import cotizacionesBtn from '../../assets/cotizacionesBtn.png';
+import pagarBtn from '../../assets/pagarBtn.png';
+import guardarImpBtn from '../../assets/guardarImpBtn.png';
+
 const NuevoPaciente = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -458,11 +466,11 @@ const NuevoPaciente = () => {
                     className="search-input"
                   />
                   <button 
-                    className="btn-search"
+                    className="btn-search btn-search-paciente"
                     onClick={() => setModalAgregarPacienteOpen(true)}
                     title="Agregar nuevo paciente"
                   >
-                    👤
+                    <img src={pacientesIcono} alt="Paciente" className="btn-icon" />
                   </button>
 
                   {showBusquedaPacientes && pacientesEncontrados.length > 0 && (
@@ -568,11 +576,11 @@ const NuevoPaciente = () => {
                     className="search-input"
                   />
                   <button 
-                    className="btn-search"
+                    className="btn-search btn-search-doctor"
                     onClick={() => setModalAgregarDoctorOpen(true)}
                     title="Agregar nuevo doctor"
                   >
-                    👨‍⚕️
+                    <img src={doctorIcono} alt="Doctor" className="btn-icon" />
                   </button>
 
                   {showBusquedaDoctores && doctoresEncontrados.length > 0 && (
@@ -629,8 +637,12 @@ const NuevoPaciente = () => {
                 </div>
 
                 <div className="action-buttons">
-                  <button className="btn-secondary">Muestras Pendientes</button>
-                  <button className="btn-primary">📋 Cotizaciones</button>
+                  <button className="btn-img-action">
+                    <img src={muestrasBtn} alt="Muestras Pendientes" className="btn-action-img" />
+                  </button>
+                  <button className="btn-img-action">
+                    <img src={cotizacionesBtn} alt="Cotizaciones" className="btn-action-img" />
+                  </button>
                 </div>
               </div>
 
@@ -639,7 +651,8 @@ const NuevoPaciente = () => {
                 
                 {!empresaSeleccionada && (
                   <div className="alert-empresa-requerida">
-                    ⚠️ Primero selecciona una empresa para buscar estudios
+                    <img src={warningV1} alt="Advertencia" className="warning-icon" />
+                    <span>Primero selecciona una empresa para buscar estudios</span>
                   </div>
                 )}
                 
@@ -814,11 +827,11 @@ const NuevoPaciente = () => {
               </section>
 
               <div className="action-buttons-final">
-                <button className="btn-pagar" onClick={guardarYPagar}>
-                  Pagar
+                <button className="btn-pagar-img" onClick={guardarYPagar}>
+                  <img src={pagarBtn} alt="Pagar" className="btn-pagar-icon" />
                 </button>
-                <button className="btn-guardar" onClick={guardarYPagar}>
-                  Guardar e Imprimir
+                <button className="btn-guardar-img" onClick={guardarYPagar}>
+                  <img src={guardarImpBtn} alt="Guardar e Imprimir" className="btn-guardar-icon" />
                 </button>
               </div>
             </div>
