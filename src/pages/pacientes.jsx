@@ -5,6 +5,8 @@ import { useAuth } from '../context/auth-context.jsx';
 import Header from '../components/header-principal.jsx';
 import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
 import editarIcono from '../assets/editarIcono.png';
+import agregarPacienteBtn from '../assets/agregarPacienteBtn.png';
+import imprimirTablaBtn from '../assets/imprimirTablaBtn.png';
 import './pacientes.css';
 
 const Pacientes = () => {
@@ -238,11 +240,25 @@ const Pacientes = () => {
         <div className="admin-pacientes-content">
           <div className="controles-admin-pacientes">
             <div className="botones-accion-admin">
-              <button className="btn-agregar-paciente" onClick={handleAgregarPaciente}>
-                Agregar Paciente
+              <button 
+                className="btn-agregar-paciente"
+                onClick={handleAgregarPaciente}
+              >
+                <img 
+                  src={agregarPacienteBtn} 
+                  alt="Agregar Paciente" 
+                  className="btn-action-img"
+                />
               </button>
-              <button className="btn-imprimir-tabla" onClick={handleImprimirTabla}>
-                Imprimir tabla
+              <button 
+                className="btn-imprimir-tabla"
+                onClick={handleImprimirTabla}
+              >
+                <img 
+                  src={imprimirTablaBtn} 
+                  alt="Imprimir Tabla" 
+                  className="btn-action-img"
+                />
               </button>
             </div>
           </div>

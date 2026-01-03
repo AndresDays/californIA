@@ -1,52 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase-client';
 import { useAuth } from '../context/auth-context';
-import './Usuarios.css';
-import usericon from '../assets/usericon.png';
-import notiIcon from '../assets/notificaciones.png';
+import Header from '../components/header-principal';
+import editarIcono from '../assets/editarIcono.png';
+import './usuarios.css';
 
 const Usuarios = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [empleadoData, setEmpleadoData] = useState(null);
-  const [usuarios, setUsuarios] = useState([]);
-  const [filteredUsuarios, setFilteredUsuarios] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('todos');
-  const [loading, setLoading] = useState(true);
-  const menuRef = useRef(null);
-
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [empleadoData, setEmpleadoData] = useState(null);
+  const [buscarUsuario, setBuscarUsuario] = useState('');
+  const [usuarios, setUsuarios] = useState([]);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalUsuarios, setTotalUsuarios] = useState(0);
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
-      if (!user) return;
+      if (!user?.id) return;
 
       try {
-        const { data: perfil, error: perfilError } = await supabase
-          .from('perfiles_usuario')
-          .select('id_empleado, nombre')
-          .eq('id', user.id)
-          .single();
+        const { data: empleado, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', user.id)
+          .maybeSingle();
 
-        if (perfilError || !perfil) return;
+        if (error) {
+          console.error('Error al obtener empleado:', error);
+          return;
+        }
 
-        if (perfil.id_empleado) {
-          const { data: empleado } = await supabase
-            .from('empleados')
-            .select('nombre, puesto, cedula_profesional')
-            .eq('id_empleado', perfil.id_empleado)
-            .single();
-
-          if (empleado) {
-            setEmpleadoData(empleado);
-          } else if (perfil.nombre) {
-            setEmpleadoData({ nombre: perfil.nombre, puesto: null });
-          }
+        if (empleado) {
+          setEmpleadoData(empleado);
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al obtener datos del empleado:', error);
       }
     };
 
@@ -54,70 +45,100 @@ const Usuarios = () => {
   }, [user]);
 
   useEffect(() => {
-    const fetchUsuarios = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('empleados')
-          .select('id_empleado, nombre, puesto, cedula_profesional, email, telefono')
-          .order('nombre', { ascending: true });
+    cargarUsuarios();
+  }, [paginaActual, registrosPorPagina, buscarUsuario]);
 
-        if (error) {
-          console.error('Error al cargar usuarios:', error);
-          return;
-        }
+  const cargarUsuarios = async () => {
+    try {
+      let query = supabase
+        .from('empleados')
+        .select('*', { count: 'exact' });
 
-        setUsuarios(data || []);
-        setFilteredUsuarios(data || []);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
+      if (buscarUsuario.trim()) {
+        query = query.or(
+          `nombre.ilike.%${buscarUsuario}%,` +
+          `usuario.ilike.%${buscarUsuario}%,` +
+          `perfil.ilike.%${buscarUsuario}%`
+        );
       }
-    };
 
-    fetchUsuarios();
-  }, []);
+      const desde = (paginaActual - 1) * registrosPorPagina;
+      const hasta = desde + registrosPorPagina - 1;
 
-  useEffect(() => {
-    let filtered = [...usuarios];
+      const { data, error, count } = await query
+        .range(desde, hasta)
+        .order('id_empleado', { ascending: true });
 
-    if (searchTerm) {
-      filtered = filtered.filter(usuario =>
-        usuario.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        usuario.email?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      if (error) throw error;
+
+      setTotalUsuarios(count || 0);
+      
+      const usuariosFormateados = data?.map(usuario => ({
+        id: usuario.id_empleado,
+        numero: usuario.id_empleado,
+        nombre: usuario.nombre || '',
+        usuario: usuario.usuario || '',
+        foto: usuario.foto_url || '',
+        perfil: usuario.perfil || '',
+        estado: usuario.activo ? 'Activado' : 'Desactivado',
+        ultimoLogin: usuario.ultimo_login 
+          ? new Date(usuario.ultimo_login).toLocaleString('es-MX', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          : '-'
+      })) || [];
+
+      setUsuarios(usuariosFormateados);
+    } catch (error) {
+      console.error('Error al cargar usuarios:', error);
     }
-
-    if (selectedFilter !== 'todos') {
-      filtered = filtered.filter(usuario => usuario.puesto === selectedFilter);
-    }
-
-    setFilteredUsuarios(filtered);
-  }, [searchTerm, selectedFilter, usuarios]);
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
+  const handleAgregarUsuario = () => {
+    alert('Agregar nuevo usuario');
+  };
+
+  const handleEditarUsuario = (id) => {
+    alert(`Editar usuario ${id}`);
+  };
+
+  const handleEliminarUsuario = async (id) => {
+    if (window.confirm('¿Está seguro de eliminar este usuario?')) {
+      try {
+        const { error } = await supabase
+          .from('empleados')
+          .delete()
+          .eq('id_empleado', id);
+
+        if (error) throw error;
+
+        cargarUsuarios();
+        alert('Usuario eliminado correctamente');
+      } catch (error) {
+        console.error('Error al eliminar usuario:', error);
+        alert('Error al eliminar usuario');
       }
-    };
-
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
     }
+  };
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [menuOpen]);
+  const paginaSiguiente = () => {
+    if (paginaActual * registrosPorPagina < totalUsuarios) {
+      setPaginaActual(paginaActual + 1);
+    }
+  };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
+  const paginaAnterior = () => {
+    if (paginaActual > 1) {
+      setPaginaActual(paginaActual - 1);
+    }
+  };
+
+  const irAPagina = (pagina) => {
+    setPaginaActual(pagina);
   };
 
   const getPrimerNombre = (nombreCompleto) => {
@@ -125,197 +146,192 @@ const Usuarios = () => {
     return nombreCompleto;
   };
 
-  const formatPuesto = (puesto) => {
-    if (!puesto) return 'Sin puesto';
+  const formatRol = (rol) => {
+    if (!rol) return 'Usuario';
 
-    const puestos = {
+    const roles = {
+      'admin': 'Administrador',
       'administrador': 'Administrador',
-      'radiologo': 'Radiólogo',
+      'radiologo': 'Radiólogo - Director',
+      'doctor': 'Médico',
       'medico': 'Médico',
-      'tecnico_radiologia': 'Técnico',
-      'quimico': 'Químico Analista',
+      'tecnico_radiologia': 'Técnico en Radiología',
+      'tecnico': 'Técnico',
+      'quimico': 'Químico',
       'recepcionista': 'Recepcionista',
       'desarrollador': 'Desarrollador'
     };
 
-    return puestos[puesto] || puesto;
+    return roles[rol] || rol;
   };
 
-  const handleEdit = (usuario) => {
-    console.log('Editar usuario:', usuario);
+  const handleLogout = async () => {
+    const { signOut } = useAuth();
+    await signOut();
+    navigate('/login');
   };
 
-  const handleDelete = async (usuario) => {
-    if (!window.confirm(`¿Estás seguro de eliminar a ${usuario.nombre}?`)) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('empleados')
-        .delete()
-        .eq('id_empleado', usuario.id_empleado);
-
-      if (error) {
-        console.error('Error al eliminar:', error);
-        alert('Error al eliminar el usuario');
-        return;
-      }
-
-      setUsuarios(usuarios.filter(u => u.id_empleado !== usuario.id_empleado));
-      alert('Usuario eliminado correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al eliminar el usuario');
-    }
-  };
-
-  const handleAddUser = () => {
-    console.log('Agregar nuevo usuario');
-  };
+  const usuarioInicio = (paginaActual - 1) * registrosPorPagina + 1;
+  const usuarioFin = Math.min(paginaActual * registrosPorPagina, totalUsuarios);
+  const totalPaginas = Math.ceil(totalUsuarios / registrosPorPagina);
 
   return (
-    <div className="usuarios-container">
-      <header className="usuarios-header">
-        <div className="header-left">
-          <img
-            src={notiIcon}
-            alt="Notificaciones"
-            className="notification-icon"
-          />
-          <h1 className="header-title">
-            {empleadoData ? formatPuesto(empleadoData.puesto) : 'Cargando...'}
-          </h1>
+    <div className="admin-usuarios-wrapper">
+      <Header 
+        empleadoData={empleadoData}
+        formatRol={formatRol}
+        getPrimerNombre={getPrimerNombre}
+        user={user}
+        handleLogout={handleLogout}
+        currentPage="usuarios"
+      />
+
+      <div className="admin-usuarios-header">
+        <h1 className="admin-usuarios-title">Administrar usuarios</h1>
+      </div>
+
+      <div className="admin-usuarios-content">
+        <div className="controles-usuarios-top">
+          <button className="btn-agregar-usuario" onClick={handleAgregarUsuario}>
+            Agregar usuario
+          </button>
         </div>
 
-        <nav className="header-menu">
-          <a href="/dashboard" className="menu-link">INICIO</a>
-          <a href="/usuarios" className="menu-link active">USUARIOS</a>
-          <a href="/pacientes" className="menu-link">PACIENTES</a>
-        </nav>
-
-        <div className="header-right" ref={menuRef}>
-          <span className="user-name">
-            {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Cargando...'}
-          </span>
-          <img
-            src={usericon}
-            alt="Usuario"
-            className="user-avatar"
-            onClick={toggleMenu}
-          />
-          {menuOpen && (
-            <div className="user-dropdown-menu">
-              <button className="close-menu-btn" onClick={toggleMenu}>✕</button>
-              <button className="menu-item">Perfil</button>
-              <button className="menu-item">Accesos</button>
-              <button className="menu-item">Plantillas</button>
-              <button className="menu-item menu-item-logout" onClick={handleLogout}>
-                Cerrar sesión
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="usuarios-main">
-        <div className="usuarios-content">
-          <div className="search-filter-section">
-            <div className="search-and-actions">
-              <div className="search-container">
-                <label className="search-label">Usuario</label>
-                <div className="search-input-wrapper">
-                  <span className="search-icon">🔍</span>
-                  <input
-                    type="text"
-                    className="search-input"
-                    placeholder="Buscar por nombre o email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <button className="primary-btn add-btn-top" onClick={handleAddUser}>
-                ➕ AGREGAR USUARIO
-              </button>
-            </div>
-
-            <div className="filter-buttons">
-              <button
-                className={`filter-btn ${selectedFilter === 'todos' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('todos')}
-              >
-                Todos
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'radiologo' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('radiologo')}
-              >
-                Radiólogo
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'tecnico_radiologia' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('tecnico_radiologia')}
-              >
-                Técnico
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'quimico' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('quimico')}
-              >
-                Químico Analista
-              </button>
-              <button
-                className={`filter-btn ${selectedFilter === 'recepcionista' ? 'active' : ''}`}
-                onClick={() => setSelectedFilter('recepcionista')}
-              >
-                Recepcionista
-              </button>
-            </div>
+        <div className="controles-mostrar-buscar">
+          <div className="mostrar-registros">
+            <span>Mostrar</span>
+            <select
+              value={registrosPorPagina}
+              onChange={(e) => {
+                setRegistrosPorPagina(parseInt(e.target.value));
+                setPaginaActual(1);
+              }}
+              className="select-registros"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span>registros</span>
           </div>
 
-          <div className="usuarios-table-container">
-            {loading ? (
-              <div className="loading-message">Cargando usuarios...</div>
-            ) : filteredUsuarios.length === 0 ? (
-              <div className="empty-message">No se encontraron usuarios</div>
-            ) : (
-              <table className="usuarios-table">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Puesto</th>
-                    <th>Acciones</th>
+          <div className="buscar-usuarios-grupo">
+            <span>Buscar:</span>
+            <input
+              type="text"
+              value={buscarUsuario}
+              onChange={(e) => {
+                setBuscarUsuario(e.target.value);
+                setPaginaActual(1);
+              }}
+              className="input-buscar-usuarios"
+            />
+          </div>
+        </div>
+
+        <div className="tabla-usuarios-container">
+          <table className="tabla-usuarios">
+            <thead>
+              <tr>
+                <th># ⬍</th>
+                <th>Nombre ⬍</th>
+                <th>Usuario ⬍</th>
+                <th>Foto ⬍</th>
+                <th>Perfil ⬍</th>
+                <th>Estado ⬍</th>
+                <th>Ultimo login ⬍</th>
+                <th>Acciones ⬍</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="sin-usuarios">
+                    No hay usuarios para mostrar
+                  </td>
+                </tr>
+              ) : (
+                usuarios.map((usuario, index) => (
+                  <tr key={usuario.id}>
+                    <td>{usuarioInicio + index}</td>
+                    <td>{usuario.nombre}</td>
+                    <td>{usuario.usuario}</td>
+                    <td>
+                      <div className="foto-usuario">
+                        {usuario.foto ? (
+                          <img src={usuario.foto} alt={usuario.nombre} />
+                        ) : (
+                          <div className="foto-placeholder">👤</div>
+                        )}
+                      </div>
+                    </td>
+                    <td>{usuario.perfil}</td>
+                    <td>
+                      <span className={`estado-badge ${usuario.estado === 'Activado' ? 'activado' : 'desactivado'}`}>
+                        {usuario.estado}
+                      </span>
+                    </td>
+                    <td>{usuario.ultimoLogin}</td>
+                    <td>
+                      <div className="acciones-usuarios">
+                        <button
+                          className="btn-editar-usuario"
+                          onClick={() => handleEditarUsuario(usuario.id)}
+                          title="Editar usuario"
+                        >
+                          <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
+                        </button>
+                        <button
+                          className="btn-eliminar-usuario"
+                          onClick={() => handleEliminarUsuario(usuario.id)}
+                          title="Eliminar usuario"
+                        >
+                          ✖
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredUsuarios.map((usuario) => (
-                    <tr key={usuario.id_empleado}>
-                      <td className="usuario-nombre">{usuario.nombre}</td>
-                      <td className="usuario-puesto">{formatPuesto(usuario.puesto)}</td>
-                      <td className="usuario-acciones">
-                        <button
-                          className="action-btn edit-btn"
-                          onClick={() => handleEdit(usuario)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={() => handleDelete(usuario)}
-                        >
-                          Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="paginacion-inferior">
+          <div className="contador-usuarios">
+            Mostrando registros del {usuarioInicio} al {usuarioFin} de un total de {totalUsuarios}
+          </div>
+
+          <div className="botones-paginacion">
+            <button 
+              className="btn-pag"
+              onClick={paginaAnterior}
+              disabled={paginaActual === 1}
+            >
+              Anterior
+            </button>
+            
+            {[...Array(totalPaginas)].map((_, i) => (
+              <button
+                key={i + 1}
+                className={`btn-pag-numero ${paginaActual === i + 1 ? 'activo' : ''}`}
+                onClick={() => irAPagina(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            
+            <button 
+              className="btn-pag"
+              onClick={paginaSiguiente}
+              disabled={paginaActual >= totalPaginas}
+            >
+              Siguiente
+            </button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };

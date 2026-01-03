@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 import californIA from '../assets/CalifornIA.png';
+import inicioIcono from '../assets/inicioIcono.png';
+import pacienteIcono from '../assets/pacienteIcono.png';
+import imprimirIcono from '../assets/imprimirIcono.png';
+import entregaIcono from '../assets/entregaIcono.png';
+import recepcionIcono from '../assets/recepcionIcono.png';
+import dineroIcono from '../assets/dineroIcono.png';
+import doctorIcono from '../assets/doctorIcono.png';
+import ventasIcono from '../assets/ventasIcono.png';
+import configuracionIcono from '../assets/configuracionIcono.png';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
@@ -12,31 +21,31 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       id: 'dashboard',
       label: 'Inicio',
-      icon: '🏠',
+      icon: inicioIcono,
       path: '/laboratorio'
     },
     {
       id: 'nuevo-paciente',
       label: 'Nuevo Paciente',
-      icon: '👤',
+      icon: pacienteIcono,
       path: '/nuevo-paciente'
     },
     {
       id: 'captura',
       label: 'Captura',
-      icon: '📋',
+      icon: imprimirIcono,
       path: '/captura'
     },
     {
       id: 'entrega',
       label: 'Entrega Resultados',
-      icon: '📄',
+      icon: entregaIcono,
       path: '/entrega-resultados'
     },
     {
       id: 'recepcion',
       label: 'Recepción',
-      icon: '🎯',
+      icon: recepcionIcono,
       path: '/',
       hasSubmenu: true,
       submenu: [
@@ -53,12 +62,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           path: '/cotizacion'
         },
         {
-          id: 'plantas-trabajo',
-          label: 'Plantas de Trabajo',
-          icon: '○',
-          path: '/plantas-trabajo'
-        },
-        {
           id: 'historial',
           label: 'Historial',
           icon: '○',
@@ -69,43 +72,25 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     {
       id: 'cierre-caja',
       label: 'Cierre Caja',
-      icon: '💰',
+      icon: dineroIcono,
       path: '/cierre-caja'
-    },
-    {
-      id: 'clientes',
-      label: 'Clientes',
-      icon: '👥',
-      path: '/clientes'
     },
     {
       id: 'doctores',
       label: 'Doctores',
-      icon: '👨‍⚕️',
+      icon: doctorIcono,
       path: '/doctores'
-    },
-    {
-      id: 'radiologia',
-      label: 'Radiología',
-      icon: '🩻',
-      path: '/radiologia'
     },
     {
       id: 'reportes',
       label: 'Reporte de Ventas',
-      icon: '📊',
+      icon: ventasIcono,
       path: '/reporte-ventas'
-    },
-    {
-      id: 'usuarios',
-      label: 'Usuarios',
-      icon: '👨‍💼',
-      path: '/laboratorio/usuarios'
     },
     {
       id: 'configuracion',
       label: 'Configuración',
-      icon: '⚙️',
+      icon: configuracionIcono,
       path: '/configuracion',
       hasSubmenu: true,
       submenu: [
@@ -268,7 +253,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                   }
                 }}
               >
-                <span className="sidebar-icon">{item.icon}</span>
+                <span className="sidebar-icon">
+                  {typeof item.icon === 'string' && item.icon.includes('.png') ? (
+                    <img src={item.icon} alt={item.label} className="sidebar-icon-img" />
+                  ) : (
+                    item.icon
+                  )}
+                </span>
                 <span className="sidebar-label">{item.label}</span>
                 {item.hasSubmenu && (
                   <span className={`submenu-arrow ${expandedMenus[item.id] ? 'expanded' : ''}`}>

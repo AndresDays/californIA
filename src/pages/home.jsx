@@ -4,13 +4,13 @@ import { supabase } from '../lib/supabase-client';
 import { useAuth } from '../context/auth-context';
 import './CalifornIA.css';
 import '../components/nueva-cita-modal.css';
-import californIA from '../assets/CalifornIA.png';
+import californIA from '../assets/logoCalifornIA.png';
 import pacientesIcono from '../assets/pacientesIcono.png';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import estudiosIcono from '../assets/estudiosIcono.png';
 import dineroIcono from '../assets/dineroIcono.png';
-import LabBtn from '../assets/btnlab.png';
-import RadBtn from '../assets/btnrad.png';
+import LabBtn from '../assets/labBtn.png';
+import RadBtn from '../assets/radBtn.png';
 import nuevaCitaBtn from '../assets/nuevaCitaBtn.png';
 import editarIcono from '../assets/editarIcono.png';
 import Header from '../components/header-principal';
@@ -83,12 +83,9 @@ const Dashboard = () => {
         .from('pacientes')
         .select('*', { count: 'exact', head: true });
 
-      const { count: totalCitas } = await supabase
-        .from('citas')
-        .select('*', { count: 'exact', head: true })
-        .not('estado', 'eq', 'cancelada');
-
-      const hoy = new Date().toISOString().split('T')[0];
+      const ahora = new Date();
+      const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+      
       const { count: citasHoy } = await supabase
         .from('citas')
         .select('*', { count: 'exact', head: true })
@@ -96,7 +93,26 @@ const Dashboard = () => {
         .lt('fecha_estudio', `${hoy}T23:59:59`)
         .not('estado', 'eq', 'cancelada');
 
-        const inicioMes = new Date();
+      const { data: citasCompletadas } = await supabase
+        .from('citas')
+        .select('tipo_estudio, fecha_estudio')
+        .eq('estado', 'completada');
+
+      const ahoraCompleto = new Date();
+      const horaActualStr = `${ahoraCompleto.getFullYear()}-${String(ahoraCompleto.getMonth() + 1).padStart(2, '0')}-${String(ahoraCompleto.getDate()).padStart(2, '0')}T${String(ahoraCompleto.getHours()).padStart(2, '0')}:${String(ahoraCompleto.getMinutes()).padStart(2, '0')}:00`;
+
+      const totalEstudiosRealizados = citasCompletadas?.reduce((total, cita) => {
+        if (cita.fecha_estudio > horaActualStr) return total;
+        
+        if (cita.tipo_estudio) {
+          const estudios = cita.tipo_estudio.split(',').map(e => e.trim()).filter(e => e);
+          return total + (estudios.length > 0 ? estudios.length : 1);
+        }
+        
+        return total + 1;
+      }, 0) || 0;
+
+      const inicioMes = new Date();
       inicioMes.setDate(1);
       inicioMes.setHours(0, 0, 0, 0);
       
@@ -105,21 +121,25 @@ const Dashboard = () => {
       finMes.setDate(1);
       finMes.setHours(0, 0, 0, 0);
 
-      const { data: citasCompletadas } = await supabase
-        .from('citas')
-        .select('monto')
-        .eq('estado', 'completada')
-        .gte('fecha_estudio', inicioMes.toISOString())
-        .lt('fecha_estudio', finMes.toISOString());
+      const inicioMesStr = `${inicioMes.getFullYear()}-${String(inicioMes.getMonth() + 1).padStart(2, '0')}-${String(inicioMes.getDate()).padStart(2, '0')}T00:00:00`;
+      const finMesStr = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, '0')}-${String(finMes.getDate()).padStart(2, '0')}T00:00:00`;
 
-      const ingresosMes = citasCompletadas?.reduce((total, cita) => {
+      const { data: citasCompletadasMes } = await supabase
+        .from('citas')
+        .select('monto, fecha_estudio')
+        .eq('estado', 'completada')
+        .gte('fecha_estudio', inicioMesStr)
+        .lt('fecha_estudio', finMesStr);
+
+      const ingresosMes = citasCompletadasMes?.reduce((total, cita) => {
+        if (cita.fecha_estudio > horaActualStr) return total;
         return total + (parseFloat(cita.monto) || 0);
       }, 0) || 0;
 
       setStats({
         totalPacientes: totalPac || 0,
         citasHoy: citasHoy || 0,
-        estudiosRealizados: totalCitas || 0,
+        estudiosRealizados: totalEstudiosRealizados,
         ingresos: ingresosMes
       });
     } catch (error) {
@@ -129,7 +149,9 @@ const Dashboard = () => {
 
   const cargarPacientesProximos = async () => {
     try {
-      const hoy = new Date().toISOString();
+      const ahora = new Date();
+      const horaLocal = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}T${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:00`;
+      
       const { data, error } = await supabase
         .from('citas')
         .select(`
@@ -151,7 +173,7 @@ const Dashboard = () => {
             nombre
           )
         `)
-        .gte('fecha_estudio', hoy)
+        .gte('fecha_estudio', horaLocal)
         .not('estado', 'in', '(completada,cancelada)')
         .order('fecha_estudio', { ascending: true })
         .limit(5);
@@ -221,12 +243,18 @@ const Dashboard = () => {
         numPeriodos = 12;
       }
 
+      const inicioStr = `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, '0')}-${String(inicio.getDate()).padStart(2, '0')}T00:00:00`;
+      const finStr = `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}T00:00:00`;
+
       query = query
-        .gte('fecha_estudio', inicio.toISOString())
-        .lt('fecha_estudio', fin.toISOString());
+        .gte('fecha_estudio', inicioStr)
+        .lt('fecha_estudio', finStr);
 
       const { data, error } = await query;
       if (error) throw error;
+
+      const ahoraCompleto = new Date();
+      const horaActualStr = `${ahoraCompleto.getFullYear()}-${String(ahoraCompleto.getMonth() + 1).padStart(2, '0')}-${String(ahoraCompleto.getDate()).padStart(2, '0')}T${String(ahoraCompleto.getHours()).padStart(2, '0')}:${String(ahoraCompleto.getMinutes()).padStart(2, '0')}:00`;
 
       const contadoresRadiologia = new Array(numPeriodos).fill(0);
       const contadoresLaboratorio = new Array(numPeriodos).fill(0);
@@ -253,10 +281,14 @@ const Dashboard = () => {
         
         if (tipo.includes('radio') || tipo.includes('rayos') || tipo.includes('rx')) {
           contadoresRadiologia[indice]++;
-          ingresosRadiologia[indice] += monto;
+          if (estudio.estado === 'completada' && estudio.fecha_estudio <= horaActualStr) {
+            ingresosRadiologia[indice] += monto;
+          }
         } else {
           contadoresLaboratorio[indice]++;
-          ingresosLaboratorio[indice] += monto;
+          if (estudio.estado === 'completada' && estudio.fecha_estudio <= horaActualStr) {
+            ingresosLaboratorio[indice] += monto;
+          }
         }
       });
 
@@ -481,30 +513,19 @@ const Dashboard = () => {
                   className="module-card radiology"
                   onClick={() => navigate('/radiologia')}
                 >
-                  <div className="module-icon">🔬</div>
-                  <h4>Radiología</h4>
-                  <p>Gestión de estudios de rayos X e imagen</p>
-                  <div className="module-stats">
-                    <span>15 pendientes</span>
-                  </div>
+                  <img src={RadBtn} alt="Radiología" className="module-btn-img" />
                 </div>
 
                 <div 
                   className="module-card laboratory"
                   onClick={() => navigate('/laboratorio')}
                 >
-                  <div className="module-icon">🧪</div>
-                  <h4>Laboratorio</h4>
-                  <p>Análisis clínicos y resultados</p>
-                  <div className="module-stats">
-                    <span>23 pendientes</span>
-                  </div>
+                  <img src={LabBtn} alt="Laboratorio" className="module-btn-img" />
                 </div>
               </div>
 
               <div className="logo-container">
                 <img src={californIA} alt="CalifornIA" className="california-logo" />
-                <p className="logo-subtitle">Confianza médica potenciada con Inteligencia Artificial</p>
               </div>
             </div>
 

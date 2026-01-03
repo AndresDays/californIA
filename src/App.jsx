@@ -21,7 +21,6 @@ import CierreCaja from './pages/laboratorio/cierre-caja'
 import Clientes from './pages/laboratorio/clientes'
 import Doctores from './pages/laboratorio/doctores'
 import ReporteVentas from './pages/laboratorio/reporte-ventas'
-import UsuariosLab from './pages/laboratorio/usuarios-lab'
 import EstudiosLab from './pages/laboratorio/configuracion/estudios-laboratorio'
 import Analitos from './pages/laboratorio/configuracion/analitos'
 import Paquetes from './pages/laboratorio/configuracion/paquetes'
@@ -195,15 +194,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <ReporteVentas />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/laboratorio/usuarios" 
-            element={
-              <ProtectedRoute>
-                <UsuariosLab />
               </ProtectedRoute>
             } 
           />

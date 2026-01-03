@@ -192,6 +192,23 @@
   transition: transform 0.3s ease;
 }
 
+/* Estilos para imágenes PNG en iconos */
+.sidebar-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(79%) sepia(12%) saturate(1034%) hue-rotate(154deg) brightness(95%) contrast(88%);
+  transition: all 0.3s ease;
+}
+
+.sidebar-item:hover .sidebar-icon-img {
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(330deg) brightness(104%) contrast(104%);
+}
+
+.sidebar-item.active .sidebar-icon-img {
+  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(7500%) hue-rotate(330deg) brightness(104%) contrast(104%);
+}
+
 .sidebar-label {
   flex: 1;
   white-space: nowrap;
@@ -378,6 +395,11 @@
   
   .sidebar-icon {
     font-size: 1.2rem;
+  }
+  
+  .sidebar-icon-img {
+    width: 22px;
+    height: 22px;
   }
   
   .sidebar-label {

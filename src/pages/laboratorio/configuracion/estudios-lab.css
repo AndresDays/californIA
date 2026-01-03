@@ -6,10 +6,7 @@
   flex-direction: column;
   font-family: 'Codec Pro', sans-serif;
   color: white;
-  background-image: url('../assets/FONDO.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: linear-gradient(135deg, #0a1929 0%, #0d2942 100%);
 }
 
 .admin-estudios-header {
@@ -247,6 +244,7 @@
   overflow: auto;
   border: 1px solid rgba(111, 179, 210, 0.2);
   border-radius: 8px;
+  max-height: 550px;
 }
 
 .tabla-estudios-adm {
@@ -411,6 +409,10 @@
 
   .btn-exportar-est {
     flex: 1;
+  }
+
+  .tabla-estudios-adm-container {
+    max-height: 400px;
   }
 }
 

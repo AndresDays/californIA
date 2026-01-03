@@ -148,7 +148,7 @@
   padding: 0.875rem 1rem;
   background: rgba(16, 109, 160, 0.3);
   border: 1px solid rgba(73, 178, 212, 0.3);
-  border-radius: 12px;
+  border-radius: 30px;
   color: #FFFFFF;
   font-size: 1rem;
   font-family: 'Codec Pro', sans-serif;
@@ -574,4 +574,5 @@
   width: 28px;
   height: 28px;
   filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+  margin-bottom: 7px;
 }
