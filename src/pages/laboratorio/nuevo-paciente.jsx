@@ -35,6 +35,7 @@ const NuevoPaciente = () => {
 	const [sexo, setSexo] = useState("");
 	const [telefono, setTelefono] = useState("");
 	const [correo, setCorreo] = useState("");
+	const [rfc, setRfc] = useState("");
 
 	const [doctorBusqueda, setDoctorBusqueda] = useState("");
 	const [doctoresEncontrados, setDoctoresEncontrados] = useState([]);
@@ -43,8 +44,14 @@ const NuevoPaciente = () => {
 
 	const [observaciones, setObservaciones] = useState("");
 
+	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
+	const [clientes, setClientes] = useState([]);
+
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [empresas, setEmpresas] = useState([]);
+
+	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
+	const [tiposEstudio, setTiposEstudio] = useState([]);
 
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
@@ -66,6 +73,7 @@ const NuevoPaciente = () => {
 	const [vendedor, setVendedor] = useState("");
 
 	useEffect(() => {
+		cargarClientes();
 		cargarEmpresas();
 		cargarVendedor();
 		cargarEstudiosDisponibles();
@@ -74,6 +82,17 @@ const NuevoPaciente = () => {
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, pagoRecibido]);
+
+	useEffect(() => {
+		// Recargar tipos de estudio cuando cambie la empresa
+		if (empresaSeleccionada) {
+			cargarTiposEstudio(parseInt(empresaSeleccionada));
+		} else {
+			setTiposEstudio([]);
+		}
+		// Limpiar tipo de estudio seleccionado al cambiar empresa
+		setTipoEstudioSeleccionado("");
+	}, [empresaSeleccionada]);
 
 	const cargarVendedor = async () => {
 		if (!user) return;
@@ -93,6 +112,20 @@ const NuevoPaciente = () => {
 		}
 	};
 
+	const cargarClientes = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("clientes")
+				.select("id_cliente, nombre")
+				.order("nombre");
+
+			if (error) throw error;
+			setClientes(data || []);
+		} catch (error) {
+			console.error("Error al cargar clientes:", error);
+		}
+	};
+
 	const cargarEmpresas = async () => {
 		try {
 			const { data, error } = await supabase
@@ -104,6 +137,43 @@ const NuevoPaciente = () => {
 			setEmpresas(data || []);
 		} catch (error) {
 			console.error("Error al cargar empresas:", error);
+		}
+	};
+
+	const cargarTiposEstudio = async (idEmpresa = null) => {
+		try {
+			if (!idEmpresa) {
+				// Si no hay empresa seleccionada, no mostrar tipos
+				setTiposEstudio([]);
+				return;
+			}
+
+			const { data, error } = await supabase
+				.from("empresa_tipos_estudio")
+				.select(
+					`
+					id_tipo_estudio,
+					tipos_estudio (
+						id_tipo_estudio,
+						nombre
+					)
+				`
+				)
+				.eq("id_empresa", idEmpresa)
+				.order("tipos_estudio(nombre)");
+
+			if (error) throw error;
+
+			// Extraer solo los datos de tipos_estudio
+			const tiposFiltrados = data.map((item) => ({
+				id_tipo_estudio: item.tipos_estudio.id_tipo_estudio,
+				nombre: item.tipos_estudio.nombre,
+			}));
+
+			setTiposEstudio(tiposFiltrados || []);
+		} catch (error) {
+			console.error("Error al cargar tipos de estudio:", error);
+			setTiposEstudio([]);
 		}
 	};
 
@@ -122,10 +192,10 @@ const NuevoPaciente = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
+	const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
 		try {
-			if (!nombreEmpresa) {
-				console.log("No hay empresa seleccionada, usando precio por defecto");
+			if (!nombreCliente) {
+				console.log("No hay cliente seleccionado, usando precio por defecto");
 				return 150;
 			}
 
@@ -133,18 +203,18 @@ const NuevoPaciente = () => {
 				.from("precios_estudios")
 				.select("precio")
 				.eq("clave", claveEstudio)
-				.eq("empresa", nombreEmpresa)
+				.eq("cliente", nombreCliente)
 				.single();
 
 			if (error) {
 				console.log(
-					`No se encontró precio para ${claveEstudio} - ${nombreEmpresa}, usando precio por defecto`
+					`No se encontró precio para ${claveEstudio} - ${nombreCliente}, usando precio por defecto`
 				);
 				return 150;
 			}
 
 			console.log(
-				`Precio encontrado para ${claveEstudio} - ${nombreEmpresa}: $${data.precio}`
+				`Precio encontrado para ${claveEstudio} - ${nombreCliente}: $${data.precio}`
 			);
 			return parseFloat(data.precio);
 		} catch (error) {
@@ -188,6 +258,7 @@ const NuevoPaciente = () => {
 		setCorreo(paciente.email || "");
 		setEdad(paciente.edad?.toString() || "");
 		setSexo(paciente.sexo || "");
+		setRfc(paciente.rfc || "");
 		setBuscarPaciente(paciente.nombre);
 		setShowBusquedaPacientes(false);
 	};
@@ -211,6 +282,7 @@ const NuevoPaciente = () => {
 						email: pacienteData.email,
 						pais: pacienteData.pais,
 						telefono: pacienteData.telefono,
+						rfc: pacienteData.rfc,
 						updated_at: new Date().toISOString(),
 					})
 					.eq("id_paciente", pacienteData.id);
@@ -324,19 +396,19 @@ const NuevoPaciente = () => {
 			return;
 		}
 
-		const empresaObj = empresas.find(
-			(emp) => emp.id_empresa.toString() === empresaSeleccionada.toString()
+		const clienteObj = clientes.find(
+			(cli) => cli.id_cliente.toString() === clienteSeleccionado.toString()
 		);
-		const nombreEmpresa = empresaObj ? empresaObj.nombre : "";
+		const nombreCliente = clienteObj ? clienteObj.nombre : "";
 
-		const precioEstudio = await obtenerPrecioEstudio(estudio.clave, nombreEmpresa);
+		const precioEstudio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
 
 		const estudioConPrecio = {
 			...estudio,
 			precio: precioEstudio,
 			cantidad: 1,
 			diasProceso: 1,
-			empresa: nombreEmpresa || "Sin empresa",
+			cliente: nombreCliente || "Sin cliente",
 		};
 
 		setEstudiosSeleccionados([...estudiosSeleccionados, estudioConPrecio]);
@@ -375,14 +447,14 @@ const NuevoPaciente = () => {
 		try {
 			setNombreCompleto(cotizacion.nombre_paciente);
 
-			if (cotizacion.id_empresa) {
-				setEmpresaSeleccionada(cotizacion.id_empresa.toString());
+			if (cotizacion.id_cliente) {
+				setClienteSeleccionado(cotizacion.id_cliente.toString());
 			}
 
-			const empresaObj = empresas.find(
-				(emp) => emp.id_empresa === cotizacion.id_empresa
+			const clienteObj = clientes.find(
+				(cli) => cli.id_cliente === cotizacion.id_cliente
 			);
-			const nombreEmpresa = empresaObj ? empresaObj.nombre : "";
+			const nombreCliente = clienteObj ? clienteObj.nombre : "";
 
 			const estudios =
 				typeof cotizacion.estudios === "string"
@@ -401,7 +473,7 @@ const NuevoPaciente = () => {
 							precio: est.precio,
 							cantidad: 1,
 							diasProceso: 1,
-							empresa: nombreEmpresa || "Sin empresa",
+							cliente: nombreCliente || "Sin cliente",
 						};
 					}
 					return null;
@@ -428,10 +500,13 @@ const NuevoPaciente = () => {
 		setSexo("");
 		setTelefono("");
 		setCorreo("");
+		setRfc("");
 		setDoctorSeleccionado(null);
 		setDoctorBusqueda("");
 		setObservaciones("");
+		setClienteSeleccionado("");
 		setEmpresaSeleccionada("");
+		setTipoEstudioSeleccionado("");
 		setEstudiosSeleccionados([]);
 		setBuscarPaciente("");
 		setBuscarEstudio("");
@@ -468,7 +543,8 @@ const NuevoPaciente = () => {
 							email: correo,
 							sexo: sexo,
 							edad: parseInt(edad) || null,
-							tipo: empresaSeleccionada ? "empresa" : "particular",
+							rfc: rfc || null,
+							tipo: clienteSeleccionado ? "cliente" : "particular",
 						},
 					])
 					.select()
@@ -621,6 +697,18 @@ const NuevoPaciente = () => {
 										placeholder="correo@ejemplo.com"
 									/>
 								</div>
+
+								<div className="form-group">
+									<label>RFC</label>
+									<input
+										type="text"
+										value={rfc}
+										onChange={(e) => setRfc(e.target.value.toUpperCase())}
+										className="form-input"
+										placeholder="RFC (opcional)"
+										maxLength="13"
+									/>
+								</div>
 							</section>
 
 							<section className="form-section">
@@ -677,15 +765,15 @@ const NuevoPaciente = () => {
 						<div className="right-column">
 							<div className="top-controls">
 								<div className="form-group-inline">
-									<label>Empresas</label>
+									<label>Clientes</label>
 									<select
-										value={empresaSeleccionada}
-										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+										value={clienteSeleccionado}
+										onChange={(e) => setClienteSeleccionado(e.target.value)}
 										className="form-select">
-										<option value="">Selecciona una Empresa</option>
-										{empresas.map((emp) => (
-											<option key={emp.id_empresa} value={emp.id_empresa}>
-												{emp.nombre}
+										<option value="">Selecciona un Cliente</option>
+										{clientes.map((cli) => (
+											<option key={cli.id_cliente} value={cli.id_cliente}>
+												{cli.nombre}
 											</option>
 										))}
 									</select>
@@ -711,17 +799,56 @@ const NuevoPaciente = () => {
 								</div>
 							</div>
 
+							<div className="selects-adicionales">
+								<div className="form-group-inline">
+									<label>Empresa</label>
+									<select
+										value={empresaSeleccionada}
+										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+										className="form-select">
+										<option value="">Selecciona una Empresa</option>
+										{empresas.map((emp) => (
+											<option key={emp.id_empresa} value={emp.id_empresa}>
+												{emp.nombre}
+											</option>
+										))}
+									</select>
+								</div>
+
+								<div className="form-group-inline">
+									<label>Tipo Estudio</label>
+									<select
+										value={tipoEstudioSeleccionado}
+										onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
+										className="form-select"
+										disabled={!empresaSeleccionada}>
+										<option value="">
+											{empresaSeleccionada
+												? "Selecciona Tipo de Estudio"
+												: "Primero selecciona una Empresa"}
+										</option>
+										{tiposEstudio.map((tipo) => (
+											<option
+												key={tipo.id_tipo_estudio}
+												value={tipo.id_tipo_estudio}>
+												{tipo.nombre}
+											</option>
+										))}
+									</select>
+								</div>
+							</div>
+
 							<section className="estudios-section">
 								<h2 className="section-title">Lista de precios</h2>
 
-								{!empresaSeleccionada && (
+								{!clienteSeleccionado && (
 									<div className="alert-empresa-requerida">
 										<img
 											src={warningV1}
 											alt="Advertencia"
 											className="warning-icon"
 										/>
-										<span>Primero selecciona una empresa para buscar estudios</span>
+										<span>Primero selecciona un cliente para buscar estudios</span>
 									</div>
 								)}
 
@@ -729,24 +856,24 @@ const NuevoPaciente = () => {
 									<input
 										type="text"
 										placeholder={
-											empresaSeleccionada
+											clienteSeleccionado
 												? "Buscar Estudios..."
-												: "Selecciona una empresa primero"
+												: "Selecciona un cliente primero"
 										}
 										value={buscarEstudio}
 										onChange={(e) => {
-											if (empresaSeleccionada) {
+											if (clienteSeleccionado) {
 												setBuscarEstudio(e.target.value);
 												filtrarEstudios(e.target.value);
 											}
 										}}
 										className="search-input-full"
-										disabled={!empresaSeleccionada}
+										disabled={!clienteSeleccionado}
 									/>
 
 									{showBusquedaEstudios &&
 										buscarEstudio.length >= 2 &&
-										empresaSeleccionada && (
+										clienteSeleccionado && (
 											<div className="search-results-estudios">
 												{estudiosFiltrados.map((est) => (
 													<div
@@ -766,7 +893,7 @@ const NuevoPaciente = () => {
 											<tr>
 												<th>Clave</th>
 												<th>Descripción</th>
-												<th>Empresa</th>
+												<th>Cliente</th>
 												<th>Precio</th>
 												<th>Días Proceso</th>
 												<th>Borrar</th>
@@ -777,7 +904,7 @@ const NuevoPaciente = () => {
 												<tr key={est.id}>
 													<td>{est.clave}</td>
 													<td>{est.descripcion}</td>
-													<td>{est.empresa}</td>
+													<td>{est.cliente}</td>
 													<td>${est.precio.toFixed(2)}</td>
 													<td>{est.diasProceso} días</td>
 													<td>

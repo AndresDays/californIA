@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "../../../lib/supabase-client.js";
+import { supabase } from "../../../lib/supabase-client";
 import "./modal-buscar-cotizacion.css";
 
 const ModalBuscarCotizacion = ({ isOpen, onClose, onSeleccionar }) => {
@@ -26,9 +26,9 @@ const ModalBuscarCotizacion = ({ isOpen, onClose, onSeleccionar }) => {
           descuento,
           descuento_porcentaje,
           fecha_cotizacion,
-          id_empresa,
+          id_cliente,
           condiciones_paciente,
-          empresas (
+          clientes (
             nombre
           )
         `
