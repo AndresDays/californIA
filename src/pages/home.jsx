@@ -16,6 +16,7 @@ import editarIcono from '../assets/editarIcono.png';
 import Header from '../components/header-principal';
 import NuevaCitaModal from '../components/nueva-cita-modal';
 import EditarCitaModal from '../components/editar-cita-modal';
+import SidebarHome from '../components/sidebar-home';
 
 const Dashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,16 +29,16 @@ const Dashboard = () => {
   });
   const [pacientesProximos, setPacientesProximos] = useState([]);
   const [estadisticasSemanales, setEstadisticasSemanales] = useState([]);
-  
+
   const [modalNuevaCitaOpen, setModalNuevaCitaOpen] = useState(false);
   const [modalEditarCitaOpen, setModalEditarCitaOpen] = useState(false);
   const [citaEditando, setCitaEditando] = useState(null);
-  
-  const [tipoGrafica, setTipoGrafica] = useState('pacientes'); 
-  const [vistaGrafica, setVistaGrafica] = useState('semana'); 
+
+  const [tipoGrafica, setTipoGrafica] = useState('pacientes');
+  const [vistaGrafica, setVistaGrafica] = useState('semana');
   const [sucursalFiltro, setSucursalFiltro] = useState('');
   const [sucursales, setSucursales] = useState([]);
-  
+
   const menuRef = useRef(null);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ const Dashboard = () => {
 
       const ahora = new Date();
       const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-      
+
       const { count: citasHoy } = await supabase
         .from('citas')
         .select('*', { count: 'exact', head: true })
@@ -103,19 +104,19 @@ const Dashboard = () => {
 
       const totalEstudiosRealizados = citasCompletadas?.reduce((total, cita) => {
         if (cita.fecha_estudio > horaActualStr) return total;
-        
+
         if (cita.tipo_estudio) {
           const estudios = cita.tipo_estudio.split(',').map(e => e.trim()).filter(e => e);
           return total + (estudios.length > 0 ? estudios.length : 1);
         }
-        
+
         return total + 1;
       }, 0) || 0;
 
       const inicioMes = new Date();
       inicioMes.setDate(1);
       inicioMes.setHours(0, 0, 0, 0);
-      
+
       const finMes = new Date();
       finMes.setMonth(finMes.getMonth() + 1);
       finMes.setDate(1);
@@ -151,7 +152,7 @@ const Dashboard = () => {
     try {
       const ahora = new Date();
       const horaLocal = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}T${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}:00`;
-      
+
       const { data, error } = await supabase
         .from('citas')
         .select(`
@@ -160,16 +161,32 @@ const Dashboard = () => {
           estado,
           tipo_estudio,
           monto,
+          id_sucursal,
+          id_cliente,
+          id_empresa,
+          id_tipo_estudio,
+          nombre_paciente,
+          telefono_paciente,
+
           pacientes (
             nombre,
             telefono,
             id_paciente
           ),
           sucursales (
+            id_sucursal,
+            nombre
+          ),
+          clientes (
+            id_cliente,
             nombre
           ),
           empresas (
             id_empresa,
+            nombre
+          ),
+          tipos_estudio (
+            id_tipo_estudio,
             nombre
           )
         `)
@@ -177,6 +194,7 @@ const Dashboard = () => {
         .not('estado', 'in', '(completada,cancelada)')
         .order('fecha_estudio', { ascending: true })
         .limit(5);
+
 
       if (error) throw error;
       setPacientesProximos(data || []);
@@ -217,28 +235,28 @@ const Dashboard = () => {
         inicio = new Date(hoy);
         inicio.setDate(hoy.getDate() - diaSemana);
         inicio.setHours(0, 0, 0, 0);
-        
+
         fin = new Date(inicio);
         fin.setDate(inicio.getDate() + 7);
-        
+
         labels = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         numPeriodos = 7;
-        
+
       } else if (vistaGrafica === 'mes') {
         inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
         fin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-        
+
         const diasEnMes = fin.getDate();
         numPeriodos = Math.ceil(diasEnMes / 7);
         labels = [];
         for (let i = 0; i < numPeriodos; i++) {
           labels.push(`Sem ${i + 1}`);
         }
-        
+
       } else {
         inicio = new Date(hoy.getFullYear(), 0, 1);
         fin = new Date(hoy.getFullYear() + 1, 0, 1);
-        
+
         labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         numPeriodos = 12;
       }
@@ -250,7 +268,7 @@ const Dashboard = () => {
         .gte('fecha_estudio', inicioStr)
         .lt('fecha_estudio', finStr);
 
-      const { data, error } = await query;
+      const { data, error} = await query;
       if (error) throw error;
 
       const ahoraCompleto = new Date();
@@ -278,7 +296,7 @@ const Dashboard = () => {
 
         const tipo = estudio.tipo_estudio?.toLowerCase() || '';
         const monto = parseFloat(estudio.monto) || 0;
-        
+
         if (tipo.includes('radio') || tipo.includes('rayos') || tipo.includes('rx')) {
           contadoresRadiologia[indice]++;
           if (estudio.estado === 'completada' && estudio.fecha_estudio <= horaActualStr) {
@@ -387,6 +405,13 @@ const Dashboard = () => {
     });
   };
 
+    const getNombrePaciente = (cita) => {
+        if (cita.pacientes?.nombre) {
+          return cita.pacientes.nombre;
+        }
+        return cita.nombre_paciente || 'Sin nombre';
+      };
+
   return (
     <div className="dashboard-container">
       <Header
@@ -399,6 +424,8 @@ const Dashboard = () => {
         user={user}
         handleLogout={handleLogout}
       />
+
+      <SidebarHome />
 
       <main className="dashboard-main">
         <div className="dashboard-content-wrapper">
@@ -797,9 +824,9 @@ const Dashboard = () => {
                         <td>
                           <div className="patient-cell">
                             <div className="patient-avatar">
-                              {cita.pacientes?.nombre?.charAt(0) || 'P'}
+                              {getNombrePaciente(cita).charAt(0)}
                             </div>
-                            <span>{cita.pacientes?.nombre || 'Sin nombre'}</span>
+                            <span>{getNombrePaciente(cita)}</span>
                           </div>
                         </td>
                         <td>
@@ -820,7 +847,7 @@ const Dashboard = () => {
                         </td>
                         <td>
                           <span className="price-value">
-                            ${cita.monto?.toFixed(2) || '0.00'}
+                            ${Number(cita.monto || 0).toFixed(2)}
                           </span>
                         </td>
                         <td>

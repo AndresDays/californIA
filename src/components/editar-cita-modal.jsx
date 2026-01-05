@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase-client';
 import './nueva-cita-modal.css';
 import editarIcono from '../assets/editarIcono.png';
+
+const DEFAULT_PRECIO = 150;
 
 const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
   const [formData, setFormData] = useState({
@@ -9,292 +11,347 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     telefono: '',
     fecha: '',
     hora: '',
-    estado: 'pendiente'
+    estado: 'pendiente',
   });
-  
+
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState('');
+
   const [empresas, setEmpresas] = useState([]);
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
+
+  const [tiposEstudio, setTiposEstudio] = useState([]);
+  const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState('');
+
   const [buscarEstudio, setBuscarEstudio] = useState('');
-  const [estudios, setEstudios] = useState([]);
+  const [estudiosCatalogo, setEstudiosCatalogo] = useState([]);
   const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
   const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const isInitializingRef = useRef(false);
+
+  const clienteNombre = useMemo(() => {
+    const obj = clientes.find((c) => String(c.id_cliente) === String(clienteSeleccionado));
+    return (obj?.nombre || '').trim();
+  }, [clientes, clienteSeleccionado]);
+
   useEffect(() => {
-    if (isOpen && cita) {
-      const fechaHoraStr = cita.fecha_estudio;
-      const [fecha, horaCompleta] = fechaHoraStr.split('T');
-      const hora = horaCompleta ? horaCompleta.substring(0, 5) : '00:00';
-      
-      setFormData({
-        nombreCompleto: cita.pacientes?.nombre || '',
-        telefono: cita.pacientes?.telefono || '',
-        fecha: fecha,
-        hora: hora,
-        estado: cita.estado || 'pendiente'
-      });
-      
-      cargarEmpresas();
-      cargarEstudios();
-      cargarEstudiosConPrecios();
-    }
+    if (!isOpen || !cita) return;
+
+    const init = async () => {
+      isInitializingRef.current = true;
+      setLoading(true);
+      setError('');
+
+      try {
+        const [clientesData, empresasData, catalogoData] = await Promise.all([
+          cargarClientes(),
+          cargarEmpresas(),
+          cargarEstudiosCatalogo(),
+        ]);
+
+        const idCliente = cita.id_cliente != null ? String(cita.id_cliente) : '';
+        const idEmpresa = cita.id_empresa != null ? String(cita.id_empresa) : '';
+        const idTipo = cita.id_tipo_estudio != null ? String(cita.id_tipo_estudio) : '';
+
+        setClienteSeleccionado(idCliente);
+        setEmpresaSeleccionada(idEmpresa);
+
+        const fechaHoraStr = cita.fecha_estudio || '';
+        const [fechaPart, horaPart] = fechaHoraStr.split('T');
+        const hora = horaPart ? horaPart.substring(0, 5) : '00:00';
+
+        setFormData({
+          nombreCompleto: cita.nombre_paciente || cita.pacientes?.nombre || '',
+          telefono: cita.telefono_paciente || cita.pacientes?.telefono || '',
+          fecha: fechaPart || '',
+          hora,
+          estado: cita.estado || 'pendiente',
+        });
+
+        if (idEmpresa) {
+          await cargarTiposEstudioPorEmpresa(Number(idEmpresa));
+        } else {
+          setTiposEstudio([]);
+        }
+        setTipoEstudioSeleccionado(idTipo);
+
+        const nombreClienteInit =
+          (cita.clientes?.nombre || '').trim() ||
+          (clientesData || []).find((c) => String(c.id_cliente) === idCliente)?.nombre?.trim() ||
+          '';
+
+        await cargarEstudiosDeLaCitaConPrecios(nombreClienteInit);
+
+      } catch (e) {
+        console.error(e);
+        setError('Error al cargar datos de la cita');
+      } finally {
+        setLoading(false);
+        isInitializingRef.current = false;
+      }
+    };
+
+    init();
   }, [isOpen, cita]);
 
-  const cargarEstudiosConPrecios = async () => {
-    if (!cita) return;
+  useEffect(() => {
+    const run = async () => {
+      if (!empresaSeleccionada) {
+        setTiposEstudio([]);
+        if (!isInitializingRef.current) setTipoEstudioSeleccionado('');
+        return;
+      }
 
-    try {
-      const estudiosTexto = cita.tipo_estudio || '';
-      const estudiosArray = estudiosTexto.split(',').map(e => e.trim()).filter(e => e);
-      
-      const nombreEmpresa = cita.empresas?.nombre || '';
-      
-      const estudiosConPrecios = await Promise.all(
-        estudiosArray.map(async (descripcion) => {
-          try {
-            const { data: estudioData, error: errorEstudio } = await supabase
-              .from('estudios_lab_catalogo')
-              .select('id, clave, descripcion')
-              .ilike('descripcion', descripcion)
-              .limit(1)
-              .single();
+      await cargarTiposEstudioPorEmpresa(Number(empresaSeleccionada));
 
-            if (errorEstudio || !estudioData) {
-              return {
-                clave: 'N/A',
-                descripcion: descripcion,
-                precio: 150
-              };
-            }
+      if (!isInitializingRef.current) setTipoEstudioSeleccionado('');
+    };
 
-            const precio = await obtenerPrecioEstudio(estudioData.clave, nombreEmpresa);
+    run();
+  }, [empresaSeleccionada]);
 
-            return {
-              clave: estudioData.clave,
-              descripcion: estudioData.descripcion,
-              precio: precio
-            };
-          } catch (error) {
-            console.error('Error al cargar estudio:', error);
-            return {
-              clave: 'N/A',
-              descripcion: descripcion,
-              precio: 150
-            };
-          }
-        })
-      );
-      
-      setEstudiosSeleccionados(estudiosConPrecios);
-    } catch (error) {
-      console.error('Error al cargar estudios con precios:', error);
+  useEffect(() => {
+    if (!isOpen || !cita) return;
+    if (!clienteSeleccionado) return;
+    if (isInitializingRef.current) return;
+
+    recalcularPreciosSeleccionados(clienteNombre);
+  }, [clienteSeleccionado]);
+
+  const cargarClientes = async () => {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('id_cliente, nombre')
+      .order('nombre');
+
+    if (error) {
+      console.error('Error cargar clientes:', error);
+      setClientes([]);
+      return [];
     }
+    setClientes(data || []);
+    return data || [];
   };
 
   const cargarEmpresas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('empresas')
-        .select('id_empresa, nombre')
-        .order('nombre');
+    const { data, error } = await supabase
+      .from('empresas')
+      .select('id_empresa, nombre')
+      .order('nombre');
 
-      if (error) throw error;
-      setEmpresas(data || []);
-      
-      if (cita?.empresas?.id_empresa) {
-        setEmpresaSeleccionada(cita.empresas.id_empresa.toString());
-      }
-    } catch (error) {
-      console.error('Error al cargar empresas:', error);
+    if (error) {
+      console.error('Error cargar empresas:', error);
+      setEmpresas([]);
+      return [];
     }
+    setEmpresas(data || []);
+    return data || [];
   };
 
-  const cargarEstudios = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('estudios_lab_catalogo')
-        .select('id, clave, descripcion, area')
-        .order('clave');
+  const cargarEstudiosCatalogo = async () => {
+    const { data, error } = await supabase
+      .from('estudios_lab_catalogo')
+      .select('id, clave, descripcion, area')
+      .order('clave');
 
-      if (error) throw error;
-      setEstudios(data || []);
-    } catch (error) {
-      console.error('Error al cargar estudios:', error);
+    if (error) {
+      console.error('Error cargar catálogo estudios:', error);
+      setEstudiosCatalogo([]);
+      return [];
     }
+    setEstudiosCatalogo(data || []);
+    return data || [];
   };
 
-  const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
+  const cargarTiposEstudioPorEmpresa = async (idEmpresa) => {
+    const { data, error } = await supabase
+      .from('empresa_tipos_estudio')
+      .select(`id_tipo_estudio, tipos_estudio ( id_tipo_estudio, nombre )`)
+      .eq('id_empresa', idEmpresa);
+
+    if (error) {
+      console.error('Error cargar tipos por empresa:', error);
+      setTiposEstudio([]);
+      return;
+    }
+
+    const tipos = (data || [])
+      .map((x) => ({
+        id_tipo_estudio: x.tipos_estudio?.id_tipo_estudio ?? x.id_tipo_estudio,
+        nombre: x.tipos_estudio?.nombre ?? '',
+      }))
+      .filter((t) => t.id_tipo_estudio && t.nombre)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    setTiposEstudio(tipos);
+  };
+
+  const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
     try {
-      if (!nombreEmpresa) return 150;
+      const clave = (claveEstudio || '').trim();
+      const cliente = (nombreCliente || '').trim();
+      if (!clave || !cliente) return DEFAULT_PRECIO;
 
       const { data, error } = await supabase
         .from('precios_estudios')
         .select('precio')
-        .eq('clave', claveEstudio)
-        .eq('empresa', nombreEmpresa)
-        .single();
+        .eq('clave', clave)
+        .eq('cliente', cliente)
+        .maybeSingle();
 
-      if (error) return 150;
-      return parseFloat(data.precio);
-    } catch (error) {
-      console.error('Error al obtener precio:', error);
-      return 150;
+      if (error || !data?.precio) return DEFAULT_PRECIO;
+      return Number(data.precio);
+    } catch (e) {
+      console.error(e);
+      return DEFAULT_PRECIO;
     }
   };
 
-  const filtrarEstudios = (termino) => {
-    if (termino.length < 2) {
-      setShowBusquedaEstudios(false);
+  const cargarEstudiosDeLaCitaConPrecios = async (nombreClienteSeguro) => {
+    const texto = (cita?.tipo_estudio || '').trim();
+    if (!texto) {
+      setEstudiosSeleccionados([]);
       return;
     }
-    setShowBusquedaEstudios(true);
+
+    const piezas = texto
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+    const conPrecios = await Promise.all(
+      piezas.map(async (descripcion) => {
+        const { data: estudioData } = await supabase
+          .from('estudios_lab_catalogo')
+          .select('id, clave, descripcion')
+          .ilike('descripcion', `%${descripcion}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (!estudioData?.clave) {
+          return {
+            id: `tmp-${descripcion}`,
+            clave: 'N/A',
+            descripcion,
+            precio: DEFAULT_PRECIO,
+          };
+        }
+
+        const precio = await obtenerPrecioEstudio(estudioData.clave, nombreClienteSeguro);
+
+        return {
+          id: estudioData.id,
+          clave: estudioData.clave,
+          descripcion: estudioData.descripcion,
+          precio,
+        };
+      })
+    );
+
+    setEstudiosSeleccionados(conPrecios);
   };
 
-  const agregarEstudio = async (estudio) => {
-    const yaAgregado = estudiosSeleccionados.some(est => est.clave === estudio.clave);
-    if (yaAgregado) {
-      setError('Este estudio ya fue agregado');
-      setTimeout(() => setError(''), 3000);
-      return;
-    }
+  const recalcularPreciosSeleccionados = async (nombreClienteSeguro) => {
+    const actualizados = await Promise.all(
+      estudiosSeleccionados.map(async (est) => {
+        if (!est?.clave || est.clave === 'N/A') return est;
+        const precio = await obtenerPrecioEstudio(est.clave, nombreClienteSeguro);
+        return { ...est, precio };
+      })
+    );
+    setEstudiosSeleccionados(actualizados);
+  };
 
-    const empresaObj = empresas.find(emp => emp.id_empresa.toString() === empresaSeleccionada.toString());
-    const nombreEmpresa = empresaObj ? empresaObj.nombre : '';
-    const precio = await obtenerPrecioEstudio(estudio.clave, nombreEmpresa);
+  const filtrarEstudios = (t) => setShowBusquedaEstudios(t.length >= 2);
 
-    const estudioConPrecio = {
-      ...estudio,
-      precio: precio,
-      empresa: nombreEmpresa || 'Sin empresa'
-    };
+  const agregarEstudio = async (est) => {
+    if (estudiosSeleccionados.some((x) => x.clave === est.clave)) return;
 
-    setEstudiosSeleccionados(prev => [...prev, estudioConPrecio]);
+    const precio = await obtenerPrecioEstudio(est.clave, clienteNombre);
+    setEstudiosSeleccionados((prev) => [...prev, { ...est, precio }]);
     setBuscarEstudio('');
     setShowBusquedaEstudios(false);
   };
 
   const eliminarEstudio = (clave) => {
-    setEstudiosSeleccionados(prev => prev.filter(est => est.clave !== clave));
+    setEstudiosSeleccionados((prev) => prev.filter((e) => e.clave !== clave));
   };
 
-  const calcularPrecioTotal = () => {
-    return estudiosSeleccionados.reduce((total, est) => total + est.precio, 0);
-  };
+  const total = useMemo(
+    () => estudiosSeleccionados.reduce((t, e) => t + (Number(e.precio) || 0), 0),
+    [estudiosSeleccionados]
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
-  const validarFormulario = () => {
-    if (!formData.nombreCompleto.trim()) {
-      setError('El nombre completo es requerido');
-      return false;
-    }
-    if (!formData.telefono.trim()) {
-      setError('El teléfono es requerido');
-      return false;
-    }
-    if (estudiosSeleccionados.length === 0) {
-      setError('Debe tener al menos un estudio');
-      return false;
-    }
-    if (!formData.fecha) {
-      setError('La fecha es requerida');
-      return false;
-    }
-    if (!formData.hora) {
-      setError('La hora es requerida');
-      return false;
-    }
+  const validar = () => {
+    if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
+    if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
+    if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
+    if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
+    if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
+    if (!formData.fecha) return setError('La fecha es requerida'), false;
+    if (!formData.hora) return setError('La hora es requerida'), false;
+    if (estudiosSeleccionados.length === 0) return setError('Debe agregar al menos un estudio'), false;
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validarFormulario()) return;
-    
+    if (!validar()) return;
+
     setLoading(true);
     setError('');
 
     try {
-      await supabase
-        .from('pacientes')
-        .update({ 
-          nombre: formData.nombreCompleto,
-          telefono: formData.telefono
-        })
-        .eq('id_paciente', cita.pacientes.id_paciente);
+      const fechaHora = `${formData.fecha}T${formData.hora}:00-06:00`;
 
-      const fechaLocal = `${formData.fecha}T${formData.hora}:00`;
-      
-      const estudiosTexto = estudiosSeleccionados.map(est => est.descripcion).join(', ');
-      const precioTotal = calcularPrecioTotal();
-      
-      const updateData = {
-        fecha_estudio: fechaLocal,
+      const payload = {
+        id_cliente: Number(clienteSeleccionado),
+        id_empresa: Number(empresaSeleccionada),
+        id_tipo_estudio: Number(tipoEstudioSeleccionado),
+
+        nombre_paciente: formData.nombreCompleto,
+        telefono_paciente: formData.telefono,
+
+        fecha_estudio: fechaHora,
         estado: formData.estado,
-        tipo_estudio: estudiosTexto,
-        monto: precioTotal
+        tipo_estudio: estudiosSeleccionados.map((x) => x.descripcion).join(', '),
+        monto: total,
       };
 
-      if (empresaSeleccionada) {
-        updateData.id_empresa = parseInt(empresaSeleccionada);
-      }
-      
-      const { error: errorCita } = await supabase
-        .from('citas')
-        .update(updateData)
-        .eq('id_cita', cita.id_cita);
-
-      if (errorCita) throw errorCita;
-
-      if (onCitaActualizada) {
-        onCitaActualizada();
-      }
-      
-      onClose();
-      
-    } catch (error) {
-      console.error('Error al actualizar cita:', error);
-      setError('Error al actualizar la cita. Por favor intente nuevamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancelar = async () => {
-    if (!window.confirm('¿Está seguro de cancelar esta cita?')) return;
-    
-    setLoading(true);
-    try {
       const { error } = await supabase
         .from('citas')
-        .update({ estado: 'cancelada' })
+        .update(payload)
         .eq('id_cita', cita.id_cita);
 
       if (error) throw error;
 
-      if (onCitaActualizada) {
-        onCitaActualizada();
-      }
-      
+      onCitaActualizada?.();
       onClose();
-    } catch (error) {
-      console.error('Error al cancelar cita:', error);
-      setError('Error al cancelar la cita');
+    } catch (err) {
+      console.error(err);
+      setError('Error al actualizar la cita');
     } finally {
       setLoading(false);
     }
   };
 
   if (!isOpen || !cita) return null;
+
+  const estudiosFiltrados = estudiosCatalogo.filter(
+    (e) =>
+      e.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
+      e.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
+  );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -304,9 +361,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
             <img src={editarIcono} alt="Editar" className="modal-title-icon" />
             Editar Cita
           </h2>
-          <button className="modal-close-btn" onClick={onClose}>
-            ✕
-          </button>
+          <button className="modal-close-btn" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="cita-form">
@@ -318,123 +373,132 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           )}
 
           <div className="form-group-cita">
-            <label htmlFor="nombreCompleto" className="form-label-cita">
-              Nombre Completo <span className="required">*</span>
-            </label>
+            <label className="form-label-cita">Nombre Completo *</label>
             <input
-              type="text"
-              id="nombreCompleto"
+              className="form-input-cita"
               name="nombreCompleto"
               value={formData.nombreCompleto}
               onChange={handleChange}
-              className="form-input-cita"
               disabled={loading}
             />
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="telefono" className="form-label-cita">
-              Teléfono <span className="required">*</span>
-            </label>
+            <label className="form-label-cita">Teléfono *</label>
             <input
-              type="tel"
-              id="telefono"
+              className="form-input-cita"
               name="telefono"
               value={formData.telefono}
               onChange={handleChange}
-              className="form-input-cita"
               disabled={loading}
             />
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="empresa" className="form-label-cita">
-              Empresa (para precios de nuevos estudios)
-            </label>
+            <label className="form-label-cita">Cliente *</label>
             <select
-              id="empresa"
-              value={empresaSeleccionada}
-              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
               className="form-select-cita"
+              value={clienteSeleccionado}
+              onChange={(e) => setClienteSeleccionado(e.target.value)}
               disabled={loading}
             >
-              <option value="">Seleccione una empresa</option>
-              {empresas.map(empresa => (
-                <option key={empresa.id_empresa} value={empresa.id_empresa}>
-                  {empresa.nombre}
-                </option>
+              <option value="">Selecciona un Cliente</option>
+              {clientes.map((c) => (
+                <option key={c.id_cliente} value={c.id_cliente}>{c.nombre}</option>
               ))}
             </select>
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">
-              Estudios <span className="required">*</span>
-            </label>
-            
+            <label className="form-label-cita">Empresa *</label>
+            <select
+              className="form-select-cita"
+              value={empresaSeleccionada}
+              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+              disabled={loading}
+            >
+              <option value="">Seleccione una empresa</option>
+              {empresas.map((e) => (
+                <option key={e.id_empresa} value={e.id_empresa}>{e.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group-cita">
+            <label className="form-label-cita">Tipo de Estudio *</label>
+            <select
+              className="form-select-cita"
+              value={tipoEstudioSeleccionado}
+              onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
+              disabled={loading || !empresaSeleccionada}
+            >
+              <option value="">
+                {empresaSeleccionada ? 'Selecciona Tipo de Estudio' : 'Primero selecciona una Empresa'}
+              </option>
+              {tiposEstudio.map((t) => (
+                <option key={t.id_tipo_estudio} value={t.id_tipo_estudio}>{t.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group-cita">
+            <label className="form-label-cita">Estudios *</label>
+
             <div className="search-group-cita">
               <input
-                type="text"
+                className="form-input-cita"
                 value={buscarEstudio}
                 onChange={(e) => {
-                  if (empresaSeleccionada) {
-                    setBuscarEstudio(e.target.value);
-                    filtrarEstudios(e.target.value);
-                  }
+                  setBuscarEstudio(e.target.value);
+                  filtrarEstudios(e.target.value);
                 }}
-                className="form-input-cita"
-                placeholder={empresaSeleccionada ? "Buscar estudio para agregar..." : "Seleccione empresa primero"}
-                disabled={loading || !empresaSeleccionada}
+                placeholder="Buscar estudio para agregar..."
+                disabled={loading}
               />
 
-              {showBusquedaEstudios && buscarEstudio.length >= 2 && empresaSeleccionada && (
+              {showBusquedaEstudios && buscarEstudio.length >= 2 && (
                 <div className="search-results-estudios-modal">
-                  {estudios
-                    .filter(est =>
-                      est.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-                      est.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
-                    )
-                    .slice(0, 10)
-                    .map(est => (
-                      <div
-                        key={est.id}
-                        className="search-result-item-modal"
-                        onClick={() => agregarEstudio(est)}
-                      >
-                        <strong>{est.clave}</strong> - {est.descripcion}
-                      </div>
-                    ))}
+                  {estudiosFiltrados.slice(0, 10).map((est) => (
+                    <div
+                      key={est.id}
+                      className="search-result-item-modal"
+                      onClick={() => agregarEstudio(est)}
+                    >
+                      <strong>{est.clave}</strong> - {est.descripcion}
+                    </div>
+                  ))}
+                  {estudiosFiltrados.length === 0 && (
+                    <div className="search-no-results-modal">No se encontraron estudios</div>
+                  )}
                 </div>
               )}
             </div>
-            
+
             {estudiosSeleccionados.length > 0 && (
               <div className="estudios-seleccionados-lista">
-                <div className="lista-header">
-                  <span className="lista-titulo">Estudios de esta cita:</span>
-                </div>
-                {estudiosSeleccionados.map((estudio, index) => (
-                  <div key={index} className="estudio-item">
+                {estudiosSeleccionados.map((est) => (
+                  <div key={`${est.clave}-${est.descripcion}`} className="estudio-item">
                     <div className="estudio-info">
-                      <span className="estudio-clave">{estudio.clave}</span>
-                      <span className="estudio-descripcion">{estudio.descripcion}</span>
+                      <span className="estudio-clave">{est.clave}</span>
+                      <span className="estudio-descripcion">{est.descripcion}</span>
                     </div>
                     <div className="estudio-actions">
-                      <span className="estudio-precio">${estudio.precio.toFixed(2)}</span>
+                      <span className="estudio-precio">${Number(est.precio || 0).toFixed(2)}</span>
                       <button
                         type="button"
                         className="btn-eliminar-estudio"
-                        onClick={() => eliminarEstudio(estudio.clave)}
-                        title="Eliminar estudio"
+                        onClick={() => eliminarEstudio(est.clave)}
+                        disabled={loading}
                       >
                         ✕
                       </button>
                     </div>
                   </div>
                 ))}
+
                 <div className="estudios-total">
                   <span className="total-label">Total:</span>
-                  <span className="total-precio">${calcularPrecioTotal().toFixed(2)}</span>
+                  <span className="total-precio">${Number(total).toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -442,46 +506,37 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
           <div className="form-row">
             <div className="form-group-cita">
-              <label htmlFor="fecha" className="form-label-cita">
-                Fecha <span className="required">*</span>
-              </label>
+              <label className="form-label-cita">Fecha *</label>
               <input
                 type="date"
-                id="fecha"
+                className="form-input-cita"
                 name="fecha"
                 value={formData.fecha}
                 onChange={handleChange}
-                className="form-input-cita"
                 disabled={loading}
               />
             </div>
 
             <div className="form-group-cita">
-              <label htmlFor="hora" className="form-label-cita">
-                Hora <span className="required">*</span>
-              </label>
+              <label className="form-label-cita">Hora *</label>
               <input
                 type="time"
-                id="hora"
+                className="form-input-cita"
                 name="hora"
                 value={formData.hora}
                 onChange={handleChange}
-                className="form-input-cita"
                 disabled={loading}
               />
             </div>
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="estado" className="form-label-cita">
-              Estado <span className="required">*</span>
-            </label>
+            <label className="form-label-cita">Estado *</label>
             <select
-              id="estado"
+              className="form-select-cita"
               name="estado"
               value={formData.estado}
               onChange={handleChange}
-              className="form-select-cita"
               disabled={loading}
             >
               <option value="pendiente">Pendiente</option>
@@ -493,32 +548,12 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           </div>
 
           <div className="modal-footer-cita">
-            <button
-              type="button"
-              className="btn-cancelar-cita-accion"
-              onClick={handleCancelar}
-              disabled={loading || formData.estado === 'cancelada'}
-            >
+            <button type="button" className="btn-cancel-cita" onClick={onClose} disabled={loading}>
               Cancelar Cita
             </button>
-            <div className="buttons-right">
-              <button
-                type="submit"
-                className="btn-submit-cita"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    Guardar Cambios
-                  </>
-                )}
-              </button>
-            </div>
+            <button type="submit" className="btn-submit-cita" disabled={loading}>
+              {loading ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
           </div>
         </form>
       </div>

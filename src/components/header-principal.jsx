@@ -30,27 +30,6 @@ const Header = ({
         </h1>
       </div>
 
-      <nav className="header-menu">
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className={`menu-link ${currentPage === 'inicio' ? 'active' : ''}`}
-        >
-          INICIO
-        </button>
-        <button 
-          onClick={() => navigate('/pacientes')} 
-          className={`menu-link ${currentPage === 'pacientes' ? 'active' : ''}`}
-        >
-          PACIENTES
-        </button>
-        <button 
-          onClick={() => navigate('/usuarios')} 
-          className={`menu-link ${currentPage === 'usuarios' ? 'active' : ''}`}
-        >
-          USUARIOS
-        </button>
-      </nav>
-
       <div className="header-right" ref={menuRef}>
         <span className="user-name">
           {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Cargando..'}

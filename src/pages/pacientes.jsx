@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase-client.js';
 import { useAuth } from '../context/auth-context.jsx';
 import Header from '../components/header-principal.jsx';
+import SidebarHome from '../components/sidebar-home.jsx';
 import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
 import editarIcono from '../assets/editarIcono.png';
 import agregarPacienteBtn from '../assets/agregarPacienteBtn.png';
@@ -78,7 +79,7 @@ const Pacientes = () => {
       if (error) throw error;
 
       setTotalPacientes(count || 0);
-      
+
       const pacientesFormateados = data?.map(paciente => ({
         id: paciente.id_paciente,
         apellidoPaterno: paciente.apellido_paterno || '',
@@ -224,7 +225,7 @@ const Pacientes = () => {
 
   return (
       <div className="admin-pacientes-wrapper">
-        <Header 
+        <Header
           empleadoData={empleadoData}
           formatRol={formatRol}
           getPrimerNombre={getPrimerNombre}
@@ -232,6 +233,8 @@ const Pacientes = () => {
           handleLogout={handleLogout}
           currentPage="pacientes"
         />
+
+        <SidebarHome />
 
         <div className="admin-pacientes-header">
           <h1 className="admin-pacientes-title">Administrar Pacientes</h1>
@@ -300,7 +303,7 @@ const Pacientes = () => {
             <table className="tabla-admin-pacientes">
               <thead>
                 <tr>
-                  <th>id</th>
+                  <th>ID</th>
                   <th>Apellido paterno</th>
                   <th>Apellido Materno</th>
                   <th>Nombre</th>

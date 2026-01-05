@@ -12,6 +12,8 @@
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
   border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .admin-usuarios-wrapper .admin-usuarios-title {
@@ -27,6 +29,8 @@
   padding: 1.5rem;
   font-family: 'Codec Pro', sans-serif;
   color: white;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .admin-usuarios-wrapper .controles-usuarios-top {
@@ -178,32 +182,6 @@
   font-style: italic;
 }
 
-.admin-usuarios-wrapper .foto-usuario {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.admin-usuarios-wrapper .foto-usuario img {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  object-fit: cover;
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.admin-usuarios-wrapper .foto-placeholder {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  color: #333;
-}
-
 .admin-usuarios-wrapper .estado-badge {
   display: inline-block;
   padding: 0.35rem 0.75rem;
@@ -351,6 +329,16 @@
 @media (max-width: 1200px) {
   .admin-usuarios-wrapper .tabla-usuarios {
     min-width: 1200px;
+  }
+}
+
+@media (max-width: 968px) {
+  .admin-usuarios-wrapper {
+    padding-left: 0;
+  }
+
+  .admin-usuarios-wrapper .admin-usuarios-content {
+    padding-left: 1.5rem;
   }
 }
 

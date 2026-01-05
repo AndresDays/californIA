@@ -212,7 +212,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
   return (
     <>
-      <button 
+      <button
         className={`hamburger-btn ${isOpen ? 'active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle menu"
@@ -223,7 +223,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       </button>
 
       {isOpen && (
-        <div 
+        <div
           className="sidebar-overlay"
           onClick={() => setIsOpen(false)}
         />
@@ -231,9 +231,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <img 
-            src={californIA} 
-            alt="CalifornIA" 
+          <img
+            src={californIA}
+            alt="CalifornIA"
             className="sidebar-logo"
           />
         </div>
@@ -275,7 +275,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                       key={subItem.id}
                       className={`sidebar-subitem ${isActive(subItem.path) ? 'active' : ''}`}
                       onClick={(e) => {
-                        e.stopPropagation(); 
+                        e.stopPropagation();
                         handleNavigate(subItem.path);
                       }}
                     >

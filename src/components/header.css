@@ -41,43 +41,6 @@
   font-family: 'Codec Pro', sans-serif;
 }
 
-.header-menu {
-  display: flex;
-  gap: 1rem;
-  justify-self: center;
-}
-
-.menu-link {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-  transition: all 0.3s ease;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: 'Codec Pro', sans-serif;
-}
-
-.menu-link:hover {
-  color: #53B9DB;
-  background: rgba(83, 185, 219, 0.1);
-}
-
-.menu-link.active {
-  color: #53B9DB;
-  background: rgba(83, 185, 219, 0.1);
-  font-weight: 600;
-}
-
-.menu-link.active:hover {
-  color: #53B9DB;
-  background: rgba(83, 185, 219, 0.1);
-}
-
 .header-right {
   display: flex;
   align-items: center;
