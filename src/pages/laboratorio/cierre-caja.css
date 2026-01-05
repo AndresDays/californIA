@@ -24,6 +24,8 @@
   font-weight: 400;
   color: white;
   letter-spacing: 1px;
+  padding-left: 90px;
+  transition: padding-left 0.3s ease;
 }
 
 .cierre-caja-content {
@@ -33,6 +35,8 @@
   flex-direction: column;
   gap: 1.5rem;
   overflow: auto;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .controles-cierre {

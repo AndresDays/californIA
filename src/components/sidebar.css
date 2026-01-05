@@ -13,12 +13,18 @@
   height: 45px;
   padding: 0;
   cursor: pointer;
-  display: flex;
+  display: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 5px;
   transition: all 0.3s ease;
+}
+
+@media (max-width: 968px) {
+  .hamburger-btn {
+    display: flex;
+  }
 }
 
 .hamburger-btn:hover {
@@ -48,6 +54,10 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
+/* ========================================
+   SIDEBAR OVERLAY
+   ======================================== */
+
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -64,14 +74,18 @@
   to { opacity: 1; }
 }
 
+/* ========================================
+   SIDEBAR PRINCIPAL
+   ======================================== */
+
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
   height: 100vh;
   width: 280px;
-  background: linear-gradient(180deg, 
-    rgba(10, 25, 41, 0.95) 0%, 
+  background: linear-gradient(180deg,
+    rgba(10, 25, 41, 0.95) 0%,
     rgba(15, 30, 50, 0.95) 100%
   );
   backdrop-filter: blur(20px);
@@ -89,6 +103,10 @@
 .sidebar.open {
   transform: translateX(0);
 }
+
+/* ========================================
+   SIDEBAR HEADER
+   ======================================== */
 
 .sidebar-header {
   display: flex;
@@ -114,6 +132,10 @@
   letter-spacing: 1px;
   text-transform: uppercase;
 }
+
+/* ========================================
+   SIDEBAR NAVIGATION
+   ======================================== */
 
 .sidebar-nav {
   flex: 1;
@@ -142,6 +164,10 @@
   background: rgba(111, 179, 210, 0.5);
 }
 
+/* ========================================
+   SIDEBAR ITEMS
+   ======================================== */
+
 .sidebar-item {
   width: 100%;
   display: flex;
@@ -169,8 +195,8 @@
 }
 
 .sidebar-item.active {
-  background: linear-gradient(135deg, 
-    rgba(111, 179, 210, 0.25) 0%, 
+  background: linear-gradient(135deg,
+    rgba(111, 179, 210, 0.25) 0%,
     rgba(90, 157, 190, 0.25) 100%
   );
   border-color: #6FB3D2;
@@ -192,7 +218,10 @@
   transition: transform 0.3s ease;
 }
 
-/* Estilos para imágenes PNG en iconos */
+/* ========================================
+   ICONOS PNG
+   ======================================== */
+
 .sidebar-icon-img {
   width: 24px;
   height: 24px;
@@ -219,6 +248,10 @@
 .sidebar-item-wrapper {
   width: 100%;
 }
+
+/* ========================================
+   SUBMENUS
+   ======================================== */
 
 .submenu-arrow {
   font-size: 0.7rem;
@@ -278,6 +311,10 @@
 .sidebar-submenu.grid-2-cols {
   animation: fadeInSubmenu 0.3s ease !important;
 }
+
+/* ========================================
+   SUBMENU ITEMS
+   ======================================== */
 
 .sidebar-subitem {
   width: 100%;
@@ -340,6 +377,10 @@
   text-overflow: ellipsis;
 }
 
+/* ========================================
+   SIDEBAR FOOTER
+   ======================================== */
+
 .sidebar-footer {
   padding: 1rem 1.5rem;
   border-top: 1px solid rgba(111, 179, 210, 0.2);
@@ -359,57 +400,72 @@
   margin: 0;
 }
 
-@media (min-width: 1024px) {
+/* ========================================
+   RESPONSIVE - COORDINADO CON SIDEBARHOME
+   ======================================== */
+
+/* Desktop grande - Sidebar oculto, solo SidebarHome visible */
+@media (min-width: 969px) {
   .hamburger-btn {
-    display: flex; 
+    display: none !important;
   }
-  
+
   .sidebar-overlay {
     display: none !important;
   }
-  
+
   .sidebar {
-    transform: translateX(-100%);
-  }
-  
-  .sidebar.open {
-    transform: translateX(0);
+    display: none !important;
   }
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
+/* Tablet y móvil - Sidebar hamburguesa disponible */
+@media (min-width: 768px) and (max-width: 968px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
   .sidebar {
     width: 260px;
   }
 }
 
+/* Móvil pequeño */
 @media (max-width: 767px) {
+  .hamburger-btn {
+    display: flex;
+  }
+
   .sidebar {
     width: 280px;
     max-width: 85vw;
   }
-  
+
   .sidebar-item {
     padding: 0.8rem 0.9rem;
   }
-  
+
   .sidebar-icon {
     font-size: 1.2rem;
   }
-  
+
   .sidebar-icon-img {
     width: 22px;
     height: 22px;
   }
-  
+
   .sidebar-label {
     font-size: 0.9rem;
   }
-  
+
   .sidebar-submenu.grid-2-cols {
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================================
+   ANIMACIONES
+   ======================================== */
 
 @keyframes slideInFromLeft {
   from {
@@ -428,6 +484,10 @@
     transform: translateX(-100%);
   }
 }
+
+/* ========================================
+   ESTADOS ESPECIALES
+   ======================================== */
 
 .sidebar-item:disabled {
   opacity: 0.5;

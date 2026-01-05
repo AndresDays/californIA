@@ -9,10 +9,29 @@
   background: linear-gradient(135deg, #0a1929 0%, #0d2942 100%);
 }
 
+@media (max-width: 968px) {
+  .admin-pacientes-wrapper {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-pacientes-wrapper {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-pacientes-wrapper {
+    padding-left: 0;
+  }
+}
 .admin-pacientes-header {
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
   border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .admin-pacientes-title {
@@ -30,6 +49,8 @@
   flex-direction: column;
   gap: 1rem;
   overflow: hidden;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .controles-admin-pacientes {
@@ -82,7 +103,6 @@
   padding: 0;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .btn-action-img {
     height: 35px;

@@ -1066,7 +1066,7 @@ body, html {
     height: 60px;
     transform: scale(2);
   }
-  
+
   .content-header {
     flex-direction: column;
     align-items: flex-start;

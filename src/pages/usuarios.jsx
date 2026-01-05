@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase-client';
 import { useAuth } from '../context/auth-context';
 import Header from '../components/header-principal';
 import editarIcono from '../assets/editarIcono.png';
+import SidebarHome from '../components/sidebar-home';
 import './usuarios.css';
 
 const Usuarios = () => {
@@ -58,7 +59,8 @@ const Usuarios = () => {
         query = query.or(
           `nombre.ilike.%${buscarUsuario}%,` +
           `usuario.ilike.%${buscarUsuario}%,` +
-          `perfil.ilike.%${buscarUsuario}%`
+          `rol.ilike.%${buscarUsuario}%,` +
+          `sucursal.ilike.%${buscarUsuario}%`
         );
       }
 
@@ -72,16 +74,16 @@ const Usuarios = () => {
       if (error) throw error;
 
       setTotalUsuarios(count || 0);
-      
+
       const usuariosFormateados = data?.map(usuario => ({
         id: usuario.id_empleado,
         numero: usuario.id_empleado,
         nombre: usuario.nombre || '',
-        usuario: usuario.usuario || '',
-        foto: usuario.foto_url || '',
-        perfil: usuario.perfil || '',
+        usuario: usuario.usuario || '-',
+        rol: formatRol(usuario.rol) || '-',
+        sucursal: usuario.sucursal || '-',
         estado: usuario.activo ? 'Activado' : 'Desactivado',
-        ultimoLogin: usuario.ultimo_login 
+        ultimoLogin: usuario.ultimo_login
           ? new Date(usuario.ultimo_login).toLocaleString('es-MX', {
               day: '2-digit',
               month: '2-digit',
@@ -177,7 +179,7 @@ const Usuarios = () => {
 
   return (
     <div className="admin-usuarios-wrapper">
-      <Header 
+      <Header
         empleadoData={empleadoData}
         formatRol={formatRol}
         getPrimerNombre={getPrimerNombre}
@@ -185,6 +187,8 @@ const Usuarios = () => {
         handleLogout={handleLogout}
         currentPage="usuarios"
       />
+
+      <SidebarHome />
 
       <div className="admin-usuarios-header">
         <h1 className="admin-usuarios-title">Administrar usuarios</h1>
@@ -234,14 +238,14 @@ const Usuarios = () => {
           <table className="tabla-usuarios">
             <thead>
               <tr>
-                <th># ⬍</th>
-                <th>Nombre ⬍</th>
-                <th>Usuario ⬍</th>
-                <th>Foto ⬍</th>
-                <th>Perfil ⬍</th>
-                <th>Estado ⬍</th>
-                <th>Ultimo login ⬍</th>
-                <th>Acciones ⬍</th>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Sucursal</th>
+                <th>Estado</th>
+                <th>Ultimo login</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -257,16 +261,8 @@ const Usuarios = () => {
                     <td>{usuarioInicio + index}</td>
                     <td>{usuario.nombre}</td>
                     <td>{usuario.usuario}</td>
-                    <td>
-                      <div className="foto-usuario">
-                        {usuario.foto ? (
-                          <img src={usuario.foto} alt={usuario.nombre} />
-                        ) : (
-                          <div className="foto-placeholder">👤</div>
-                        )}
-                      </div>
-                    </td>
-                    <td>{usuario.perfil}</td>
+                    <td>{usuario.rol}</td>
+                    <td>{usuario.sucursal}</td>
                     <td>
                       <span className={`estado-badge ${usuario.estado === 'Activado' ? 'activado' : 'desactivado'}`}>
                         {usuario.estado}
@@ -304,14 +300,14 @@ const Usuarios = () => {
           </div>
 
           <div className="botones-paginacion">
-            <button 
+            <button
               className="btn-pag"
               onClick={paginaAnterior}
               disabled={paginaActual === 1}
             >
               Anterior
             </button>
-            
+
             {[...Array(totalPaginas)].map((_, i) => (
               <button
                 key={i + 1}
@@ -321,8 +317,8 @@ const Usuarios = () => {
                 {i + 1}
               </button>
             ))}
-            
-            <button 
+
+            <button
               className="btn-pag"
               onClick={paginaSiguiente}
               disabled={paginaActual >= totalPaginas}

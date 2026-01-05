@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase-client';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 
+const DEFAULT_PRECIO = 150;
+
 const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
   const [formData, setFormData] = useState({
     nombreCompleto: '',
@@ -10,264 +12,232 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
     fecha: '',
     hora: ''
   });
-  
+
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState('');
+
   const [empresas, setEmpresas] = useState([]);
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
+
   const [sucursales, setSucursales] = useState([]);
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
+
+  const [tiposEstudio, setTiposEstudio] = useState([]);
+  const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState('');
+
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [estudios, setEstudios] = useState([]);
   const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
   const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isOpen) {
-      cargarEmpresas();
-      cargarSucursales();
-      cargarEstudios();
-      const ahora = new Date();
-      const fechaHoy = ahora.toISOString().split('T')[0];
-      const horaActual = ahora.toTimeString().slice(0, 5);
-      setFormData(prev => ({
-        ...prev,
-        fecha: fechaHoy,
-        hora: horaActual
-      }));
-    }
+    if (!isOpen) return;
+
+    cargarClientes();
+    cargarEmpresas();
+    cargarSucursales();
+    cargarEstudios();
+
+    const ahora = new Date();
+    setFormData(prev => ({
+      ...prev,
+      fecha: ahora.toISOString().split('T')[0],
+      hora: ahora.toTimeString().slice(0, 5)
+    }));
   }, [isOpen]);
 
-  const cargarEmpresas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('empresas')
-        .select('id_empresa, nombre')
-        .order('nombre');
+  useEffect(() => {
+    if (empresaSeleccionada) cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
+    else setTiposEstudio([]);
+    setTipoEstudioSeleccionado('');
+  }, [empresaSeleccionada]);
 
-      if (error) throw error;
-      setEmpresas(data || []);
-    } catch (error) {
-      console.error('Error al cargar empresas:', error);
-    }
+  const cargarClientes = async () => {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('id_cliente, nombre')
+      .order('nombre');
+    if (!error) setClientes(data || []);
+  };
+
+  const cargarEmpresas = async () => {
+    const { data, error } = await supabase
+      .from('empresas')
+      .select('id_empresa, nombre')
+      .order('nombre');
+    if (!error) setEmpresas(data || []);
   };
 
   const cargarSucursales = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sucursales')
-        .select('id_sucursal, nombre')
-        .order('nombre');
+    const { data, error } = await supabase
+      .from('sucursales')
+      .select('id_sucursal, nombre')
+      .order('nombre');
+    if (!error) setSucursales(data || []);
+  };
 
-      if (error) throw error;
-      setSucursales(data || []);
-    } catch (error) {
-      console.error('Error al cargar sucursales:', error);
+  const cargarTiposEstudio = async (idEmpresa) => {
+    const { data, error } = await supabase
+      .from('empresa_tipos_estudio')
+      .select(`
+        id_tipo_estudio,
+        tipos_estudio ( id_tipo_estudio, nombre )
+      `)
+      .eq('id_empresa', idEmpresa)
+      .order('tipos_estudio(nombre)');
+
+    if (error) {
+      setTiposEstudio([]);
+      return;
     }
+
+    const tipos = (data || []).map(x => ({
+      id_tipo_estudio: x.tipos_estudio.id_tipo_estudio,
+      nombre: x.tipos_estudio.nombre
+    }));
+
+    setTiposEstudio(tipos);
   };
 
   const cargarEstudios = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('estudios_lab_catalogo')
-        .select('id, clave, descripcion, area')
-        .order('clave');
+    const { data, error } = await supabase
+      .from('estudios_lab_catalogo')
+      .select('id, clave, descripcion, area')
+      .order('clave');
 
-      if (error) throw error;
-      setEstudios(data || []);
-    } catch (error) {
-      console.error('Error al cargar estudios:', error);
+    if (error) {
       setError('Error al cargar estudios disponibles');
+      return;
     }
+    setEstudios(data || []);
   };
 
-  const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
+  const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
     try {
-      if (!nombreEmpresa) {
-        return 150;
-      }
+      const clave = (claveEstudio || '').trim();
+      const cliente = (nombreCliente || '').trim();
+      if (!clave || !cliente) return DEFAULT_PRECIO;
 
       const { data, error } = await supabase
         .from('precios_estudios')
         .select('precio')
-        .eq('clave', claveEstudio)
-        .eq('empresa', nombreEmpresa)
-        .single();
+        .eq('clave', clave)
+        .eq('cliente', cliente)
+        .maybeSingle();
 
-      if (error) {
-        return 150;
-      }
-
-      return parseFloat(data.precio);
-    } catch (error) {
-      console.error('Error al obtener precio:', error);
-      return 150;
+      if (error || !data?.precio) return DEFAULT_PRECIO;
+      return Number(data.precio);
+    } catch {
+      return DEFAULT_PRECIO;
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
   };
 
   const filtrarEstudios = (termino) => {
-    if (termino.length < 2) {
-      setShowBusquedaEstudios(false);
-      return;
-    }
-    setShowBusquedaEstudios(true);
+    setShowBusquedaEstudios(termino.length >= 2);
   };
 
   const agregarEstudio = async (estudio) => {
-    const yaAgregado = estudiosSeleccionados.some(est => est.clave === estudio.clave);
-    if (yaAgregado) {
+    if (estudiosSeleccionados.some(e => e.clave === estudio.clave)) {
       setError('Este estudio ya fue agregado');
-      setTimeout(() => setError(''), 3000);
+      setTimeout(() => setError(''), 2500);
       return;
     }
 
-    const empresaObj = empresas.find(emp => emp.id_empresa.toString() === empresaSeleccionada.toString());
-    const nombreEmpresa = empresaObj ? empresaObj.nombre : '';
+    const clienteObj = clientes.find(c => String(c.id_cliente) === String(clienteSeleccionado));
+    const nombreCliente = clienteObj?.nombre || '';
 
-    const precio = await obtenerPrecioEstudio(estudio.clave, nombreEmpresa);
+    const precio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
 
-    const estudioConPrecio = {
-      ...estudio,
-      precio: precio,
-      empresa: nombreEmpresa || 'Sin empresa'
-    };
-
-    setEstudiosSeleccionados(prev => [...prev, estudioConPrecio]);
+    setEstudiosSeleccionados(prev => [...prev, { ...estudio, precio }]);
     setBuscarEstudio('');
     setShowBusquedaEstudios(false);
   };
 
   const eliminarEstudio = (clave) => {
-    setEstudiosSeleccionados(prev => prev.filter(est => est.clave !== clave));
+    setEstudiosSeleccionados(prev => prev.filter(e => e.clave !== clave));
   };
 
-  const calcularPrecioTotal = () => {
-    return estudiosSeleccionados.reduce((total, est) => total + est.precio, 0);
-  };
+  const calcularTotal = () => estudiosSeleccionados.reduce((t, e) => t + (Number(e.precio) || 0), 0);
 
   const validarFormulario = () => {
-    if (!formData.nombreCompleto.trim()) {
-      setError('El nombre completo es requerido');
-      return false;
-    }
-    if (!formData.telefono.trim()) {
-      setError('El teléfono es requerido');
-      return false;
-    }
-    if (!empresaSeleccionada) {
-      setError('Debe seleccionar una empresa');
-      return false;
-    }
-    if (!sucursalSeleccionada) {
-      setError('Debe seleccionar una sucursal');
-      return false;
-    }
-    if (estudiosSeleccionados.length === 0) {
-      setError('Debe agregar al menos un estudio');
-      return false;
-    }
-    if (!formData.fecha) {
-      setError('La fecha es requerida');
-      return false;
-    }
-    if (!formData.hora) {
-      setError('La hora es requerida');
-      return false;
-    }
+    if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
+    if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
+    if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
+    if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
+    if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
+    if (!sucursalSeleccionada) return setError('Debe seleccionar una sucursal'), false;
+    if (estudiosSeleccionados.length === 0) return setError('Debe agregar al menos un estudio'), false;
+    if (!formData.fecha) return setError('La fecha es requerida'), false;
+    if (!formData.hora) return setError('La hora es requerida'), false;
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validarFormulario()) return;
-    
+
     setLoading(true);
     setError('');
 
     try {
-      let paciente;
-      const { data: pacienteExistente, error: errorBuscar } = await supabase
+      const { data: pacienteExistente } = await supabase
         .from('pacientes')
         .select('id_paciente')
         .eq('telefono', formData.telefono)
-        .single();
+        .maybeSingle();
 
-      if (pacienteExistente) {
-        paciente = pacienteExistente;
-        
-        await supabase
-          .from('pacientes')
-          .update({ nombre: formData.nombreCompleto })
-          .eq('id_paciente', paciente.id_paciente);
-      } else {
-        const { data: nuevoPaciente, error: errorCrear } = await supabase
-          .from('pacientes')
-          .insert([{
-            nombre: formData.nombreCompleto,
-            telefono: formData.telefono
-          }])
-          .select()
-          .single();
+      const idPaciente = pacienteExistente?.id_paciente ?? null;
 
-        if (errorCrear) throw errorCrear;
-        paciente = nuevoPaciente;
-      }
+      const fechaHora = `${formData.fecha}T${formData.hora}:00-06:00`; // si quieres tu lógica de offset, úsala aquí
 
-      const fecha = new Date(`${formData.fecha}T${formData.hora}:00`);
-      const offsetMinutes = fecha.getTimezoneOffset();
-      const offsetHours = Math.abs(Math.floor(offsetMinutes / 60));
-      const offsetMins = Math.abs(offsetMinutes % 60);
-      const offsetSign = offsetMinutes <= 0 ? '+' : '-';
-      const timezoneOffset = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMins).padStart(2, '0')}`;
-      const fechaHoraConZona = `${formData.fecha}T${formData.hora}:00${timezoneOffset}`;
-      
-      const estudiosTexto = estudiosSeleccionados.map(est => est.descripcion).join(', ');
-      const precioTotal = calcularPrecioTotal();
-      
+      const estudiosTexto = estudiosSeleccionados.map(e => e.descripcion).join(', ');
+      const monto = calcularTotal();
+
+      const payload = {
+        id_paciente: idPaciente,
+        id_sucursal: Number(sucursalSeleccionada),
+        id_cliente: Number(clienteSeleccionado),
+        id_empresa: Number(empresaSeleccionada),
+        id_tipo_estudio: Number(tipoEstudioSeleccionado),
+
+        nombre_paciente: formData.nombreCompleto,
+        telefono_paciente: formData.telefono,
+
+        tipo_estudio: estudiosTexto,
+        fecha_estudio: fechaHora,
+        estado: 'pendiente',
+        monto
+      };
+
       const { data: nuevaCita, error: errorCita } = await supabase
         .from('citas')
-        .insert([{
-          id_paciente: paciente.id_paciente,
-          id_sucursal: parseInt(sucursalSeleccionada),
-          id_empresa: parseInt(empresaSeleccionada),
-          tipo_estudio: estudiosTexto,
-          fecha_estudio: fechaHoraConZona,
-          estado: 'pendiente',
-          monto: precioTotal
-        }])
+        .insert([payload])
         .select()
         .single();
 
       if (errorCita) throw errorCita;
 
-      if (onCitaCreada) {
-        onCitaCreada(nuevaCita);
-      }
-      
-      setFormData({
-        nombreCompleto: '',
-        telefono: '',
-        fecha: '',
-        hora: ''
-      });
+      onCitaCreada?.(nuevaCita);
+
+      setFormData({ nombreCompleto: '', telefono: '', fecha: '', hora: '' });
+      setClienteSeleccionado('');
       setEmpresaSeleccionada('');
+      setTipoEstudioSeleccionado('');
       setSucursalSeleccionada('');
       setBuscarEstudio('');
       setEstudiosSeleccionados([]);
       onClose();
-      
-    } catch (error) {
-      console.error('Error al crear cita:', error);
+    } catch (err) {
+      console.error(err);
       setError('Error al crear la cita. Por favor intente nuevamente.');
     } finally {
       setLoading(false);
@@ -289,9 +259,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
             <img src={calendarioIcono} alt="Calendario" className="modal-title-icon" />
             Nueva Cita
           </h2>
-          <button className="modal-close-btn" onClick={onClose}>
-            ✕
-          </button>
+          <button className="modal-close-btn" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="cita-form">
@@ -303,113 +271,86 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
           )}
 
           <div className="form-group-cita">
-            <label htmlFor="nombreCompleto" className="form-label-cita">
-              Nombre Completo <span className="required">*</span>
-            </label>
-            <input
-              type="text"
-              id="nombreCompleto"
-              name="nombreCompleto"
-              value={formData.nombreCompleto}
-              onChange={handleChange}
-              className="form-input-cita"
-              placeholder="Ej: Juan Pérez García"
-              disabled={loading}
-            />
+            <label className="form-label-cita">Nombre Completo <span className="required">*</span></label>
+            <input type="text" name="nombreCompleto" value={formData.nombreCompleto} onChange={handleChange}
+              className="form-input-cita" disabled={loading} />
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="telefono" className="form-label-cita">
-              Teléfono <span className="required">*</span>
-            </label>
-            <input
-              type="tel"
-              id="telefono"
-              name="telefono"
-              value={formData.telefono}
-              onChange={handleChange}
-              className="form-input-cita"
-              placeholder="Ej: 3221234567"
-              disabled={loading}
-            />
+            <label className="form-label-cita">Teléfono <span className="required">*</span></label>
+            <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
+              className="form-input-cita" disabled={loading} />
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="sucursal" className="form-label-cita">
-              Sucursal <span className="required">*</span>
-            </label>
-            <select
-              id="sucursal"
-              value={sucursalSeleccionada}
-              onChange={(e) => setSucursalSeleccionada(e.target.value)}
-              className="form-select-cita"
-              disabled={loading}
-            >
+            <label className="form-label-cita">Cliente <span className="required">*</span></label>
+            <select value={clienteSeleccionado} onChange={(e) => {
+              setClienteSeleccionado(e.target.value);
+              setBuscarEstudio('');
+              setEstudiosSeleccionados([]);
+              setShowBusquedaEstudios(false);
+            }} className="form-select-cita" disabled={loading}>
+              <option value="">Selecciona un Cliente</option>
+              {clientes.map(cli => <option key={cli.id_cliente} value={cli.id_cliente}>{cli.nombre}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group-cita">
+            <label className="form-label-cita">Sucursal <span className="required">*</span></label>
+            <select value={sucursalSeleccionada} onChange={(e) => setSucursalSeleccionada(e.target.value)}
+              className="form-select-cita" disabled={loading}>
               <option value="">Seleccione una sucursal</option>
-              {sucursales.map(sucursal => (
-                <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
-                  {sucursal.nombre}
-                </option>
-              ))}
+              {sucursales.map(s => <option key={s.id_sucursal} value={s.id_sucursal}>{s.nombre}</option>)}
             </select>
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="empresa" className="form-label-cita">
-              Empresa <span className="required">*</span>
-            </label>
-            <select
-              id="empresa"
-              value={empresaSeleccionada}
-              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-              className="form-select-cita"
-              disabled={loading}
-            >
+            <label className="form-label-cita">Empresa <span className="required">*</span></label>
+            <select value={empresaSeleccionada} onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+              className="form-select-cita" disabled={loading}>
               <option value="">Seleccione una empresa</option>
-              {empresas.map(empresa => (
-                <option key={empresa.id_empresa} value={empresa.id_empresa}>
-                  {empresa.nombre}
-                </option>
-              ))}
+              {empresas.map(emp => <option key={emp.id_empresa} value={emp.id_empresa}>{emp.nombre}</option>)}
             </select>
           </div>
 
           <div className="form-group-cita">
-            <label htmlFor="estudio" className="form-label-cita">
-              Estudios <span className="required">*</span>
-            </label>
-            
+            <label className="form-label-cita">Tipo Estudio <span className="required">*</span></label>
+            <select value={tipoEstudioSeleccionado} onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
+              className="form-select-cita" disabled={loading || !empresaSeleccionada}>
+              <option value="">
+                {empresaSeleccionada ? 'Selecciona Tipo de Estudio' : 'Primero selecciona una Empresa'}
+              </option>
+              {tiposEstudio.map(t => <option key={t.id_tipo_estudio} value={t.id_tipo_estudio}>{t.nombre}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group-cita">
+            <label className="form-label-cita">Estudios <span className="required">*</span></label>
+
             <div className="search-group-cita">
               <input
                 type="text"
-                id="estudio"
                 value={buscarEstudio}
                 onChange={(e) => {
-                  if (empresaSeleccionada) {
+                  if (clienteSeleccionado) {
                     setBuscarEstudio(e.target.value);
                     filtrarEstudios(e.target.value);
                   }
                 }}
                 className="form-input-cita"
-                placeholder={empresaSeleccionada ? "Buscar estudio para agregar..." : "Seleccione una empresa primero"}
-                disabled={loading || !empresaSeleccionada}
+                placeholder={clienteSeleccionado ? 'Buscar estudio para agregar...' : 'Selecciona un cliente primero'}
+                disabled={loading || !clienteSeleccionado}
               />
 
-              {showBusquedaEstudios && buscarEstudio.length >= 2 && empresaSeleccionada && (
+              {showBusquedaEstudios && buscarEstudio.length >= 2 && clienteSeleccionado && (
                 <div className="search-results-estudios-modal">
                   {estudiosFiltrados.slice(0, 10).map(est => (
-                    <div
-                      key={est.id}
-                      className="search-result-item-modal"
-                      onClick={() => agregarEstudio(est)}
-                    >
+                    <div key={est.id} className="search-result-item-modal" onClick={() => agregarEstudio(est)}>
                       <strong>{est.clave}</strong> - {est.descripcion}
                     </div>
                   ))}
                   {estudiosFiltrados.length === 0 && (
-                    <div className="search-no-results-modal">
-                      No se encontraron estudios
-                    </div>
+                    <div className="search-no-results-modal">No se encontraron estudios</div>
                   )}
                 </div>
               )}
@@ -417,23 +358,15 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
 
             {estudiosSeleccionados.length > 0 && (
               <div className="estudios-seleccionados-lista">
-                <div className="lista-header">
-                  <span className="lista-titulo">Estudios agregados:</span>
-                </div>
-                {estudiosSeleccionados.map((estudio, index) => (
-                  <div key={estudio.clave} className="estudio-item">
+                {estudiosSeleccionados.map(est => (
+                  <div key={est.clave} className="estudio-item">
                     <div className="estudio-info">
-                      <span className="estudio-clave">{estudio.clave}</span>
-                      <span className="estudio-descripcion">{estudio.descripcion}</span>
+                      <span className="estudio-clave">{est.clave}</span>
+                      <span className="estudio-descripcion">{est.descripcion}</span>
                     </div>
                     <div className="estudio-actions">
-                      <span className="estudio-precio">${estudio.precio.toFixed(2)}</span>
-                      <button
-                        type="button"
-                        className="btn-eliminar-estudio"
-                        onClick={() => eliminarEstudio(estudio.clave)}
-                        title="Eliminar estudio"
-                      >
+                      <span className="estudio-precio">${Number(est.precio || 0).toFixed(2)}</span>
+                      <button type="button" className="btn-eliminar-estudio" onClick={() => eliminarEstudio(est.clave)}>
                         ✕
                       </button>
                     </div>
@@ -441,7 +374,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
                 ))}
                 <div className="estudios-total">
                   <span className="total-label">Total:</span>
-                  <span className="total-precio">${calcularPrecioTotal().toFixed(2)}</span>
+                  <span className="total-precio">${calcularTotal().toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -449,60 +382,24 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
 
           <div className="form-row">
             <div className="form-group-cita">
-              <label htmlFor="fecha" className="form-label-cita">
-                Fecha <span className="required">*</span>
-              </label>
-              <input
-                type="date"
-                id="fecha"
-                name="fecha"
-                value={formData.fecha}
-                onChange={handleChange}
-                className="form-input-cita"
-                disabled={loading}
-              />
+              <label className="form-label-cita">Fecha <span className="required">*</span></label>
+              <input type="date" name="fecha" value={formData.fecha} onChange={handleChange}
+                className="form-input-cita" disabled={loading} />
             </div>
 
             <div className="form-group-cita">
-              <label htmlFor="hora" className="form-label-cita">
-                Hora <span className="required">*</span>
-              </label>
-              <input
-                type="time"
-                id="hora"
-                name="hora"
-                value={formData.hora}
-                onChange={handleChange}
-                className="form-input-cita"
-                disabled={loading}
-              />
+              <label className="form-label-cita">Hora <span className="required">*</span></label>
+              <input type="time" name="hora" value={formData.hora} onChange={handleChange}
+                className="form-input-cita" disabled={loading} />
             </div>
           </div>
 
           <div className="modal-footer-cita">
-            <button
-              type="button"
-              className="btn-cancel-cita"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <button type="button" className="btn-cancel-cita" onClick={onClose} disabled={loading}>
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="btn-submit-cita"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Creando...
-                </>
-              ) : (
-                <>
-                  Crear Cita
-                </>
-              )}
+            <button type="submit" className="btn-submit-cita" disabled={loading}>
+              {loading ? <> <span className="spinner"></span> Creando...</> : <>Crear Cita</>}
             </button>
           </div>
         </form>

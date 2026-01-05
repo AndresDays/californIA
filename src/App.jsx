@@ -15,7 +15,6 @@ import './App.css';
 import EntregaResultados from './pages/laboratorio/entrega-resultados'
 import EditarSolicitud from './pages/laboratorio/recepcion/editar-solicitud'
 import Cotizacion from './pages/laboratorio/recepcion/cotizacion'
-import PlantasTrabajo from './pages/laboratorio/recepcion/plantas-trabajo'
 import Historial from './pages/laboratorio/recepcion/historial'
 import CierreCaja from './pages/laboratorio/cierre-caja'
 import Clientes from './pages/laboratorio/clientes'
@@ -140,15 +139,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <Cotizacion />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/plantas-trabajo" 
-            element={
-              <ProtectedRoute>
-                <PlantasTrabajo />
               </ProtectedRoute>
             } 
           />
