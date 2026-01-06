@@ -1,6 +1,3 @@
-/* index.css - Estilos globales para CalifornIA */
-
-/* Reset básico */
 * {
   margin: 0;
   padding: 0;
@@ -26,12 +23,10 @@ body {
   height: 100%;
 }
 
-/* Prevenir scroll horizontal en toda la app */
 * {
   max-width: 100%;
 }
 
-/* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -50,7 +45,6 @@ body {
   background: rgba(94, 179, 214, 0.7);
 }
 
-/* Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(94, 179, 214, 0.5) rgba(26, 35, 50, 0.3);

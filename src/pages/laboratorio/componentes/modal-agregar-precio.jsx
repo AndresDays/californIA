@@ -35,15 +35,15 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
   const cargarEmpresas = async () => {
     try {
       const { data, error } = await supabase
-        .from('empresas')
-        .select('id_empresa, nombre')
+        .from('clientes')
+        .select('id_cliente, nombre')
         .order('nombre');
 
       if (error) throw error;
       
       setEmpresas(data || []);
     } catch (error) {
-      console.error('Error al cargar empresas:', error);
+      console.error('Error al cargar clientes:', error);
     }
   };
 
@@ -108,7 +108,7 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
       tipo: 'Estudio',
       clave: estudioSeleccionado.clave,
       descripcion: estudioSeleccionado.descripcion,
-      empresa: empresaSeleccionada,
+      cliente: empresaSeleccionada,
       precio: parseFloat(precio),
       fecha: new Date().toISOString()
     };

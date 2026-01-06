@@ -345,7 +345,7 @@ const Precios = () => {
                   <th>Tipo</th>
                   <th>Clave</th>
                   <th>Descripcion</th>
-                  <th>Empresa ⬍</th>
+                  <th>Empresa</th>
                   <th>Precio</th>
                   <th>Fecha</th>
                   <th>Acciones</th>
@@ -371,7 +371,7 @@ const Precios = () => {
                       <td>{precio.tipo || 'Estudio'}</td>
                       <td>{precio.clave}</td>
                       <td>{precio.descripcion}</td>
-                      <td>{precio.empresa}</td>
+                      <td>{precio.cliente}</td>
                       <td>$ {precio.precio}</td>
                       <td>{new Date(precio.fecha || Date.now()).toLocaleString('es-MX', {
                         year: 'numeric',
