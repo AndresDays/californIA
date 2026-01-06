@@ -1,7 +1,7 @@
 {
   "name": "california",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Sistema de diagnóstico asistido por IA para radiología - Centro Diagnóstico California",
   "scripts": {
@@ -13,8 +13,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "jspdf": "^3.0.4",
+    "quill": "^2.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-quill": "^2.0.0",
     "react-router-dom": "^6.20.1"
   },
   "devDependencies": {

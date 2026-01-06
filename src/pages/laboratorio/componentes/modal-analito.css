@@ -27,6 +27,8 @@
   max-width: 700px;
   animation: slideDown 0.3s ease;
   font-family: 'Codec Pro', sans-serif;
+  position: relative;
+  overflow: visible;
 }
 
 .modal-header-analito {
@@ -77,6 +79,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
+  overflow: visible;
 }
 
 .modal-fila-analito {
@@ -93,6 +96,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .modal-campo-analito label {
@@ -117,6 +121,8 @@
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.95rem;
   transition: all 0.3s;
+  width: 100%;
+  min-width: 0;
 }
 
 .modal-input-analito:focus,
@@ -125,6 +131,7 @@
   border-color: #6FB3D2;
   background: rgba(10, 25, 41, 0.8);
   box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.1);
+  box-sizing: border-box;
 }
 
 .modal-input-analito::placeholder {
@@ -254,4 +261,159 @@
     animation: none;
     transition: none;
   }
+}
+
+.modal-btn-accion-inline {
+    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    border: 1px solid rgba(40, 167, 69, 0.6);
+    color: white; font-family: 'Codec Pro', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.65rem 1.3rem;
+    border-radius: 6px;
+    cursor: pointer;
+    width: fit-content;
+    transition: all 0.25s ease;
+    box-shadow: 0 3px 10px rgba(40, 167, 69, 0.35);
+}
+
+.modal-btn-accion-inline:hover {
+    background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(40, 167, 69, 0.45);
+}
+
+.modal-btn-accion-inline:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 8px rgba(40, 167, 69, 0.35);
+}
+
+.modal-radio-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.modal-radio-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 22px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.modal-radio-item input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(111, 179, 210, 0.6);
+  background: rgba(10, 25, 41, 0.7);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.modal-radio-item input[type="radio"]::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #17a2b8;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.2s ease;
+}
+
+.modal-radio-item input[type="radio"]:checked {
+  border-color: #17a2b8;
+}
+
+.modal-radio-item input[type="radio"]:checked::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.modal-radio-item:hover input[type="radio"] {
+  border-color: #6FB3D2;
+}
+
+.modal-radio-item input[type="radio"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.25);
+}
+
+.modal-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.modal-checkbox-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid rgba(111, 179, 210, 0.6);
+  background: rgba(10, 25, 41, 0.7);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.modal-checkbox-item input[type="checkbox"]:checked {
+  background: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.modal-checkbox-item input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: white;
+}
+
+.modal-checkbox-item input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.25);
+}
+
+.modal-input-analito[type="file"] {
+  padding: 0.55rem 0.8rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.modal-input-analito[type="file"]::file-selector-button {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  border: 1px solid rgba(23, 162, 184, 0.55);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  font-family: 'Codec Pro', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  margin-right: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.modal-input-analito[type="file"]::file-selector-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(23, 162, 184, 0.25);
 }
