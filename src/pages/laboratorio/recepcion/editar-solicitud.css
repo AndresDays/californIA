@@ -16,11 +16,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 2rem;
+  padding: .78rem 2rem;
   background: rgba(10, 25, 41, 0.8);
   border-bottom: 1px solid rgba(111, 179, 210, 0.2);
   padding-left: 120px;
-  transition: padding-left 0.3s ease;
   transition: padding-left 0.3s ease;
 }
 

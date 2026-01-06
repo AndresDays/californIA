@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout.jsx';
-import Header from '../../../components/header-laboratorio.jsx';
+import Header from '../../../components/header-principal.jsx';
+import SidebarHome from '../../../components/sidebar-home.jsx';
 import Tabla from '../componentes/tabla';
 import ModalAgregar from '../componentes/modal-agregar.jsx';
 import './tipo_muestra.css';
@@ -20,6 +21,35 @@ const TipoMuestra = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [muestraEditando, setMuestraEditando] = useState(null);
+
+  const [empleadoData, setEmpleadoData] = useState(null);
+
+      useEffect(() => {
+          const fetchEmpleadoData = async () => {
+            if (!user?.id) return;
+
+            try {
+              const { data: empleado, error } = await supabase
+                .from('empleados')
+                .select('nombre, rol')
+                .eq('auth_uuid', user.id)
+                .maybeSingle();
+
+              if (error) {
+                console.error('Error al obtener empleado:', error);
+                return;
+              }
+
+              if (empleado) {
+                setEmpleadoData(empleado);
+              }
+            } catch (error) {
+              console.error('Error al obtener datos del empleado:', error);
+            }
+          };
+
+          fetchEmpleadoData();
+        }, [user]);
 
   useEffect(() => {
     cargarMuestras();
@@ -127,10 +157,49 @@ const TipoMuestra = () => {
   const muestraFin = Math.min(paginaActual * registrosPorPagina, totalMuestras);
   const totalPaginas = Math.ceil(totalMuestras / registrosPorPagina);
 
+  const getPrimerNombre = (nombreCompleto) => {
+       if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
+       return nombreCompleto;
+     };
+
+   const formatRol = (rol) => {
+       if (!rol) return 'Usuario';
+
+       const roles = {
+         'admin': 'Administrador',
+         'administrador': 'Administrador',
+         'radiologo': 'Radiólogo - Director',
+         'doctor': 'Médico',
+         'medico': 'Médico',
+         'tecnico_radiologia': 'Técnico en Radiología',
+         'tecnico': 'Técnico',
+         'quimico': 'Químico',
+         'recepcionista': 'Recepcionista',
+         'desarrollador': 'Desarrollador'
+       };
+
+       return roles[rol] || rol;
+     };
+
+     const handleLogout = async () => {
+       const { signOut } = useAuth();
+       await signOut();
+       navigate('/login');
+     };
+
   return (
     <Layout>
       <div className="tipo-muestra-wrapper">
-        <Header />
+        <Header
+          empleadoData={empleadoData}
+          formatRol={formatRol}
+          getPrimerNombre={getPrimerNombre}
+          user={user}
+          handleLogout={handleLogout}
+          currentPage="tipo-muestra"
+        />
+
+        <SidebarHome/>
 
         <div className="tipo-muestra-header">
           <h1 className="tipo-muestra-title">Tipo de Muestra</h1>

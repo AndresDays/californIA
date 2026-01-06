@@ -16,6 +16,8 @@
   padding: 1.5rem 2rem;
   background: rgba(10, 25, 41, 0.8);
   border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .agregar-analitos-title {
@@ -35,6 +37,8 @@
   height: calc(100vh - 92px);
   overflow: hidden;
   min-height: 0;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .panel-buscar-estudio {
