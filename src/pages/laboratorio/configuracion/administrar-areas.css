@@ -19,6 +19,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .admin-areas-title {
@@ -52,6 +54,8 @@
   flex-direction: column;
   gap: 1rem;
   overflow: hidden;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .controles-superiores-areas {
