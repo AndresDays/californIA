@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
@@ -15,7 +15,9 @@ const Analitos = () => {
   const [buscarAnalito, setBuscarAnalito] = useState('');
   const [analitos, setAnalitos] = useState([]);
   const [totalAnalitos, setTotalAnalitos] = useState(0);
+
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [analitoEditando, setAnalitoEditando] = useState(null);
@@ -26,18 +28,15 @@ const Analitos = () => {
 
   const cargarAnalitos = async () => {
     try {
-      let query = supabase
-        .from('analitos')
-        .select('*', { count: 'exact' });
+      let query = supabase.from('analitos').select('*', { count: 'exact' });
 
       if (buscarAnalito.trim()) {
         query = query.or(
-          `clave.ilike.%${buscarAnalito}%,` +
-          `descripcion.ilike.%${buscarAnalito}%`
+          `clave.ilike.%${buscarAnalito}%,descripcion.ilike.%${buscarAnalito}%`
         );
       }
 
-      const { data, error, count } = await query.order('id', { ascending: true });
+      const { data, error, count } = await query.order('id_analito', { ascending: true });
 
       if (error) throw error;
 
@@ -45,6 +44,7 @@ const Analitos = () => {
       setAnalitos(data || []);
     } catch (error) {
       console.error('Error al cargar analitos:', error);
+      alert('Error al cargar analitos');
     }
   };
 
@@ -57,7 +57,6 @@ const Analitos = () => {
       alert('Por favor, busca y selecciona un estudio primero');
       return;
     }
-
     alert('Analitos guardados para el estudio');
   };
 
@@ -72,12 +71,12 @@ const Analitos = () => {
     setModalOpen(true);
   };
 
-  const handleEditarAnalito = async (id) => {
+  const handleEditarAnalito = async (idAnalito) => {
     try {
       const { data, error } = await supabase
         .from('analitos')
         .select('*')
-        .eq('id', id)
+        .eq('id_analito', idAnalito)
         .single();
 
       if (error) throw error;
@@ -91,54 +90,26 @@ const Analitos = () => {
     }
   };
 
-  const handleGuardarAnalito = async (analitoData) => {
+  const handleEliminarAnalito = async (idAnalito) => {
+    if (!window.confirm('¿Está seguro de eliminar este analito?')) return;
+
     try {
-      if (modoEdicion && analitoEditando) {
-        const { error } = await supabase
-          .from('analitos')
-          .update(analitoData)
-          .eq('id', analitoEditando.id);
+      const { error } = await supabase.from('analitos').delete().eq('id_analito', idAnalito);
+      if (error) throw error;
 
-        if (error) throw error;
-
-        alert('Analito actualizado correctamente');
-      } else {
-        const { error } = await supabase
-          .from('analitos')
-          .insert([analitoData]);
-
-        if (error) throw error;
-
-        alert('Analito creado correctamente');
-      }
-
-      cargarAnalitos();
-      setModalOpen(false);
-      setModoEdicion(false);
-      setAnalitoEditando(null);
+      alert('Analito eliminado correctamente');
+      await cargarAnalitos();
     } catch (error) {
-      console.error('Error al guardar analito:', error);
-      alert('Error al guardar el analito');
+      console.error('Error al eliminar analito:', error);
+      alert('Error al eliminar analito');
     }
   };
 
-  const handleEliminarAnalito = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este analito?')) {
-      try {
-        const { error } = await supabase
-          .from('analitos')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-
-        alert('Analito eliminado correctamente');
-        cargarAnalitos();
-      } catch (error) {
-        console.error('Error al eliminar analito:', error);
-        alert('Error al eliminar analito');
-      }
-    }
+  const handleCloseModal = async () => {
+    setModalOpen(false);
+    setModoEdicion(false);
+    setAnalitoEditando(null);
+    await cargarAnalitos();
   };
 
   return (
@@ -207,7 +178,7 @@ const Analitos = () => {
                     </tr>
                   ) : (
                     analitos.map((analito, index) => (
-                      <tr key={analito.id}>
+                      <tr key={analito.id_analito}>
                         <td>{index + 1}</td>
                         <td>{analito.clave}</td>
                         <td>{analito.descripcion}</td>
@@ -215,14 +186,14 @@ const Analitos = () => {
                           <div className="acciones-analitos">
                             <button
                               className="btn-editar-analito"
-                              onClick={() => handleEditarAnalito(analito.id)}
+                              onClick={() => handleEditarAnalito(analito.id_analito)}
                               title="Editar analito"
                             >
                               ✏️
                             </button>
                             <button
                               className="btn-eliminar-analito"
-                              onClick={() => handleEliminarAnalito(analito.id)}
+                              onClick={() => handleEliminarAnalito(analito.id_analito)}
                               title="Eliminar analito"
                             >
                               ✖
@@ -248,12 +219,7 @@ const Analitos = () => {
 
         <ModalAnalito
           isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setAnalitoEditando(null);
-          }}
-          onGuardar={handleGuardarAnalito}
+          onClose={handleCloseModal}
           analitoInicial={modoEdicion ? analitoEditando : null}
           modoEdicion={modoEdicion}
         />
