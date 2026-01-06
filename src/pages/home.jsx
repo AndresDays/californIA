@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase-client';
-import { useAuth } from '../context/auth-context';
-import './CalifornIA.css';
-import '../components/nueva-cita-modal.css';
-import californIA from '../assets/logoCalifornIA.png';
-import pacientesIcono from '../assets/pacientesIcono.png';
 import calendarioIcono from '../assets/calendarioIcono.png';
-import estudiosIcono from '../assets/estudiosIcono.png';
 import dineroIcono from '../assets/dineroIcono.png';
-import LabBtn from '../assets/labBtn.png';
-import RadBtn from '../assets/radBtn.png';
-import nuevaCitaBtn from '../assets/nuevaCitaBtn.png';
 import editarIcono from '../assets/editarIcono.png';
+import estudiosIcono from '../assets/estudiosIcono.png';
+import LabBtn from '../assets/labBtn.png';
+import californIA from '../assets/logoCalifornIA.png';
+import nuevaCitaBtn from '../assets/nuevaCitaBtn.png';
+import pacientesIcono from '../assets/pacientesIcono.png';
+import RadBtn from '../assets/radBtn.png';
+import EditarCitaModal from '../components/editar-cita-modal';
 import Header from '../components/header-principal';
 import NuevaCitaModal from '../components/nueva-cita-modal';
-import EditarCitaModal from '../components/editar-cita-modal';
+import '../components/nueva-cita-modal.css';
 import SidebarHome from '../components/sidebar-home';
+import { useAuth } from '../context/auth-context';
+import { supabase } from '../lib/supabase-client';
+import './CalifornIA.css';
 
 const Dashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -432,13 +432,13 @@ const Dashboard = () => {
           <div className="content-header">
             <div>
               <h1 className="welcome-title">
-                Bienvenido, {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Usuario'} 
+                Bienvenido, {empleadoData ? getPrimerNombre(empleadoData.nombre) : 'Usuario'}
               </h1>
               <p className="welcome-subtitle">
                 Aquí está lo que está pasando en las clínicas hoy
               </p>
             </div>
-            <button 
+            <button
               className="btn-new-appointment"
               onClick={() => setModalNuevaCitaOpen(true)}
               style={{
@@ -449,13 +449,13 @@ const Dashboard = () => {
                 outline: 'none'
               }}
             >
-              <img 
-                src={nuevaCitaBtn} 
-                alt="Nueva Cita" 
+              <img
+                src={nuevaCitaBtn}
+                alt="Nueva Cita"
                 className="btn-new-appointment-img"
-                style={{ 
-                  height: '80px', 
-                  width: 'auto', 
+                style={{
+                  height: '80px',
+                  width: 'auto',
                   display: 'block',
                   transform: 'scale(2)',
                   transformOrigin: 'right center'
@@ -498,16 +498,16 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div 
+            <div
               className="stat-card clickable"
               onClick={() => setTipoGrafica(tipoGrafica === 'pacientes' ? 'ingresos' : 'pacientes')}
               style={{ cursor: 'pointer' }}
             >
               <div className="stat-icon revenue">
-                <img 
-                  src={tipoGrafica === 'pacientes' ? dineroIcono : pacientesIcono} 
-                  alt={tipoGrafica === 'pacientes' ? 'Ingresos' : 'Pacientes'} 
-                  className="stat-icon-img" 
+                <img
+                  src={tipoGrafica === 'pacientes' ? dineroIcono : pacientesIcono}
+                  alt={tipoGrafica === 'pacientes' ? 'Ingresos' : 'Pacientes'}
+                  className="stat-icon-img"
                 />
               </div>
               <div className="stat-content">
@@ -515,15 +515,15 @@ const Dashboard = () => {
                   {tipoGrafica === 'pacientes' ? 'Ingresos del Mes' : 'Pacientes de Hoy'}
                 </p>
                 <h2 className="stat-value">
-                  {tipoGrafica === 'pacientes' 
-                    ? stats.ingresos >= 1000 
+                  {tipoGrafica === 'pacientes'
+                    ? stats.ingresos >= 1000
                       ? `$${(stats.ingresos / 1000).toFixed(1)}k`
                       : `$${stats.ingresos.toFixed(0)}`
                     : stats.citasHoy
                   }
                 </h2>
                 <p className="stat-change positive">
-                  {tipoGrafica === 'pacientes' 
+                  {tipoGrafica === 'pacientes'
                     ? 'Solo citas completadas'
                     : 'Click para ver gráfica de pacientes'
                   }
@@ -536,14 +536,14 @@ const Dashboard = () => {
             <div className="quick-access-section">
               <h3 className="section-title">Módulos Principales</h3>
               <div className="modules-grid">
-                <div 
+                <div
                   className="module-card radiology"
                   onClick={() => navigate('/radiologia')}
                 >
                   <img src={RadBtn} alt="Radiología" className="module-btn-img" />
                 </div>
 
-                <div 
+                <div
                   className="module-card laboratory"
                   onClick={() => navigate('/laboratorio')}
                 >
@@ -563,26 +563,26 @@ const Dashboard = () => {
                 </h3>
                 <div className="chart-controls">
                   <div className="view-toggle">
-                    <button 
+                    <button
                       className={`toggle-btn ${vistaGrafica === 'semana' ? 'active' : ''}`}
                       onClick={() => setVistaGrafica('semana')}
                     >
                       Semana
                     </button>
-                    <button 
+                    <button
                       className={`toggle-btn ${vistaGrafica === 'mes' ? 'active' : ''}`}
                       onClick={() => setVistaGrafica('mes')}
                     >
                       Mes
                     </button>
-                    <button 
+                    <button
                       className={`toggle-btn ${vistaGrafica === 'ano' ? 'active' : ''}`}
                       onClick={() => setVistaGrafica('ano')}
                     >
                       Año
                     </button>
                   </div>
-                  <select 
+                  <select
                     value={sucursalFiltro}
                     onChange={(e) => setSucursalFiltro(e.target.value)}
                     className="sucursal-filter"
@@ -596,7 +596,7 @@ const Dashboard = () => {
                   </select>
                 </div>
               </div>
-              
+
               <div className="chart-container">
                 {tipoGrafica === 'pacientes' ? (
                   <div className="chart-bars">
@@ -604,13 +604,13 @@ const Dashboard = () => {
                       const maxTotal = Math.max(...estadisticasSemanales.map(s => s.total), 1);
                       const alturaRadiologia = (stat.radiologia / maxTotal) * 100;
                       const alturaLaboratorio = (stat.laboratorio / maxTotal) * 100;
-                      
+
                       return (
                         <div key={index} className="chart-bar-wrapper">
                           <div className="chart-bar-container">
                             <div className="chart-bar-stack">
                               {stat.laboratorio > 0 && (
-                                <div 
+                                <div
                                   className={`chart-bar laboratorio ${stat.esActual ? 'current' : ''}`}
                                   style={{ height: `${alturaLaboratorio}%` }}
                                   title={`Laboratorio: ${stat.laboratorio}`}
@@ -621,7 +621,7 @@ const Dashboard = () => {
                                 </div>
                               )}
                               {stat.radiologia > 0 && (
-                                <div 
+                                <div
                                   className={`chart-bar radiologia ${stat.esActual ? 'current' : ''}`}
                                   style={{ height: `${alturaRadiologia}%` }}
                                   title={`Radiología: ${stat.radiologia}`}
@@ -655,7 +655,7 @@ const Dashboard = () => {
                           strokeWidth="1"
                         />
                       ))}
-                      
+
                       {(() => {
                         const maxIngreso = Math.max(
                           ...estadisticasSemanales.map(s => Math.max(s.ingresosRadiologia, s.ingresosLaboratorio, s.ingresosTotal)),
@@ -665,21 +665,21 @@ const Dashboard = () => {
                         const height = 220;
                         const padding = 40;
                         const step = width / Math.max(estadisticasSemanales.length - 1, 1);
-                        
+
                         const getY = (value) => padding + height - (value / maxIngreso) * height;
-                        
+
                         const pathRadiologia = estadisticasSemanales
                           .map((stat, i) => `${i === 0 ? 'M' : 'L'} ${padding + i * step} ${getY(stat.ingresosRadiologia)}`)
                           .join(' ');
-                        
+
                         const pathLaboratorio = estadisticasSemanales
                           .map((stat, i) => `${i === 0 ? 'M' : 'L'} ${padding + i * step} ${getY(stat.ingresosLaboratorio)}`)
                           .join(' ');
-                        
+
                         const pathTotal = estadisticasSemanales
                           .map((stat, i) => `${i === 0 ? 'M' : 'L'} ${padding + i * step} ${getY(stat.ingresosTotal)}`)
                           .join(' ');
-                        
+
                         return (
                           <>
                             <path
@@ -690,7 +690,7 @@ const Dashboard = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
-                            
+
                             <path
                               d={pathRadiologia}
                               fill="none"
@@ -699,7 +699,7 @@ const Dashboard = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
-                            
+
                             <path
                               d={pathLaboratorio}
                               fill="none"
@@ -708,7 +708,7 @@ const Dashboard = () => {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             />
-                            
+
                             {estadisticasSemanales.map((stat, i) => (
                               <g key={i}>
                                 <circle
@@ -719,7 +719,7 @@ const Dashboard = () => {
                                   stroke="white"
                                   strokeWidth="2"
                                 />
-                                
+
                                 <circle
                                   cx={padding + i * step}
                                   cy={getY(stat.ingresosRadiologia)}
@@ -728,7 +728,7 @@ const Dashboard = () => {
                                   stroke="white"
                                   strokeWidth="2"
                                 />
-                                
+
                                 <circle
                                   cx={padding + i * step}
                                   cy={getY(stat.ingresosLaboratorio)}
@@ -739,7 +739,7 @@ const Dashboard = () => {
                                 />
                               </g>
                             ))}
-                            
+
                             {estadisticasSemanales.map((stat, i) => (
                               <text
                                 key={`label-${i}`}
@@ -759,7 +759,7 @@ const Dashboard = () => {
                     </svg>
                   </div>
                 )}
-                
+
                 <div className="chart-legend">
                   {tipoGrafica === 'pacientes' ? (
                     <>
@@ -804,7 +804,7 @@ const Dashboard = () => {
               <h3 className="section-title">Próximas Citas</h3>
               <button className="btn-see-more">Ver todas</button>
             </div>
-            
+
             <div className="patients-table-container">
               <table className="patients-table">
                 <thead>
@@ -851,7 +851,7 @@ const Dashboard = () => {
                           </span>
                         </td>
                         <td>
-                          <button 
+                          <button
                             className="btn-edit-cita"
                             onClick={() => {
                               setCitaEditando(cita);
@@ -880,7 +880,7 @@ const Dashboard = () => {
 
       <footer className="dashboard-footer">
         <p className="footer-disclaimer">
-          La información generada por CalifornIA tiene únicamente fines de apoyo clínico. 
+          La información generada por CalifornIA tiene únicamente fines de apoyo clínico.
           Cualquier resultado debe interpretarse como orientación y validarse por un especialista.
         </p>
       </footer>
