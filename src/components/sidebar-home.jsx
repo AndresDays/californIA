@@ -148,7 +148,7 @@ const SidebarHome = () => {
 
           {item.hasSubmenu && activeSubmenu === item.id && (
             <div
-              className={`sidebar-home-submenu ${item.id === 'configuracion' ? 'grid-layout' : ''}`}
+              className={`sidebar-home-submenu ${item.id === 'configuracion' ? 'grid-layout open-up' : ''}`}
               onMouseEnter={() => handleSubmenuEnter(item.id)}
               onMouseLeave={() => handleSubmenuLeave()}
             >

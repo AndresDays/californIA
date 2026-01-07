@@ -147,6 +147,11 @@
   gap: 0.5rem;
 }
 
+.sidebar-home-submenu.open-up {
+  top: auto;
+  bottom: 0;
+}
+
 .submenu-header {
   font-size: 0.95rem;
   font-weight: 700;
