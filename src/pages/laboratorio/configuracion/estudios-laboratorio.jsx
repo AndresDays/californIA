@@ -5,6 +5,10 @@ import { useAuth } from '../../../context/auth-context';
 import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
+import excelBtn from '../../../assets/excelBtn.png';
+import pdfBtn from '../../../assets/pdfBtn.png';
+import editarIconoV2 from '../../../assets/editarIconoV2.png';
+import eliminarIconoV2 from '../../../assets/eliminarIconoV2.png';
 import './estudios-lab.css';
 
 const EstudiosLab = () => {
@@ -665,11 +669,19 @@ const EstudiosLab = () => {
               />
 
               <div className="botones-exportar-estudios">
-                <button className="btn-exportar-est" onClick={handleExportarExcel}>
-                  Excel
+                <button 
+                  className="btn-exportar-est" 
+                  onClick={handleExportarExcel}
+                  title="Exportar a Excel"
+                >
+                  <img src={excelBtn} alt="Excel" className="icono-exportar" />
                 </button>
-                <button className="btn-exportar-est" onClick={handleExportarPDF}>
-                  PDF
+                <button 
+                  className="btn-exportar-est" 
+                  onClick={handleExportarPDF}
+                  title="Exportar a PDF"
+                >
+                  <img src={pdfBtn} alt="PDF" className="icono-exportar" />
                 </button>
               </div>
             </div>
@@ -678,11 +690,11 @@ const EstudiosLab = () => {
               <table className="tabla-estudios-adm">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Clave ⬍</th>
-                    <th>Descripcion ⬍</th>
-                    <th>Area ⬍</th>
-                    <th>Acciones ⬍</th>
+                    <th>ID</th>
+                    <th>Clave</th>
+                    <th>Descripcion</th>
+                    <th>Area</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -706,14 +718,14 @@ const EstudiosLab = () => {
                               onClick={() => cargarEstudioParaEditar(estudio)}
                               title="Editar estudio"
                             >
-                              ✏️
+                              <img src={editarIconoV2} alt="Editar" className="icono-accion" />
                             </button>
                             <button
                               className="btn-eliminar-estudio-tabla"
                               onClick={() => handleEliminar(estudio.id)}
                               title="Eliminar estudio"
                             >
-                              ✖
+                              <img src={eliminarIconoV2} alt="Eliminar" className="icono-accion" />
                             </button>
                           </div>
                         </td>

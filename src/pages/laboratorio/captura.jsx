@@ -4,10 +4,12 @@ import { supabase } from '../../lib/supabase-client';
 import { useAuth } from '../../context/auth-context';
 import Layout from '../../components/layout.jsx';
 import './captura.css';
-import californIA from '../../assets/CalifornIA.png';
-import usericon from '../../assets/usericon.png';
 import Header from '../../components/header-principal.jsx';
 import SidebarHome from '../../components/sidebar-home.jsx';
+import calendarioIcono from '../../assets/calendarioIcono.png';
+import imprimirBtn from '../../assets/imprimirBtn.png';
+import lupaIcono from '../../assets/lupaIcono.png';
+
 
 const Captura = () => {
   const { user } = useAuth();
@@ -20,11 +22,11 @@ const Captura = () => {
   const [buscarPaciente, setBuscarPaciente] = useState('');
 
   const [sucursales, setSucursales] = useState([]);
-  const [empresas, setEmpresas] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [areas, setAreas] = useState([]);
 
   const [sucursalFiltro, setSucursalFiltro] = useState('');
-  const [empresaFiltro, setEmpresaFiltro] = useState('');
+  const [clienteFiltro, setClienteFiltro] = useState('');
   const [areaFiltro, setAreaFiltro] = useState('');
   const [soloPendientes, setSoloPendientes] = useState(false);
 
@@ -71,7 +73,7 @@ const Captura = () => {
   useEffect(() => {
     cargarUsuario();
     cargarSucursales();
-    cargarEmpresas();
+    cargarClientes();
     cargarAreas();
     cargarPacientes();
   }, []);
@@ -108,17 +110,17 @@ const Captura = () => {
     }
   };
 
-  const cargarEmpresas = async () => {
+  const cargarClientes = async () => {
     try {
       const { data, error } = await supabase
-        .from('empresas')
-        .select('id_empresa, nombre')
+        .from('clientes')
+        .select('id_cliente, nombre')
         .order('nombre');
 
       if (error) throw error;
-      setEmpresas(data || []);
+      setClientes(data || []);
     } catch (error) {
-      console.error('Error al cargar empresas:', error);
+      console.error('Error al cargar clientes:', error);
     }
   };
 
@@ -306,7 +308,8 @@ const Captura = () => {
         <div className="filtros-section">
           <div className="filtros-row">
             <div className="filtro-fecha">
-              <label>📅 Fecha Inicial:</label>
+              <img src={calendarioIcono} alt="Calendario" className="icono-calendario" />
+              <label>Fecha Inicial:</label>
               <input
                 type="date"
                 value={fechaInicial}
@@ -316,7 +319,8 @@ const Captura = () => {
             </div>
 
             <div className="filtro-fecha">
-              <label>📅 Fecha Final:</label>
+              <img src={calendarioIcono} alt="Calendario" className="icono-calendario" />
+              <label>Fecha Final:</label>
               <input
                 type="date"
                 value={fechaFinal}
@@ -326,7 +330,7 @@ const Captura = () => {
             </div>
 
             <div className="filtro-busqueda">
-              <label>🔍</label>
+              <img src={lupaIcono} alt="Lupa" className="icono-lupa" />
               <input
                 type="text"
                 placeholder="Buscar por Estudio..."
@@ -337,7 +341,7 @@ const Captura = () => {
             </div>
 
             <div className="filtro-busqueda">
-              <label>🔍</label>
+              <img src={lupaIcono} alt="Lupa" className="icono-lupa" />
               <input
                 type="text"
                 placeholder="Buscar por Paciente..."
@@ -364,14 +368,14 @@ const Captura = () => {
 
             <div className="filtro-select">
               <select 
-                value={empresaFiltro}
-                onChange={(e) => setEmpresaFiltro(e.target.value)}
+                value={clienteFiltro}
+                onChange={(e) => setClienteFiltro(e.target.value)}
                 className="select-filtro"
               >
-                <option value="">Todas las Empresas ({empresas.length})</option>
-                {empresas.map(empresa => (
-                  <option key={empresa.id_empresa} value={empresa.id_empresa}>
-                    {empresa.nombre}
+                <option value="">Todos los Clientes ({clientes.length})</option>
+                {clientes.map(cliente => (
+                  <option key={cliente.id_cliente} value={cliente.id_cliente}>
+                    {cliente.nombre}
                   </option>
                 ))}
               </select>
@@ -423,7 +427,7 @@ const Captura = () => {
                     <th>Edad</th>
                     <th>Sexo</th>
                     <th>Sucursal</th>
-                    <th>Empresa</th>
+                    <th>Cliente</th>
                     <th>Hora</th>
                   </tr>
                 </thead>
@@ -439,7 +443,7 @@ const Captura = () => {
                       <td>{calcularEdad(estudio.pacientes?.fecha_nacimiento)}</td>
                       <td>{estudio.pacientes?.sexo || 'N/A'}</td>
                       <td>Principal</td>
-                      <td>{estudio.pacientes?.tipo === 'empresa' ? 'Empresa' : 'Particular'}</td>
+                      <td>{estudio.pacientes?.tipo === 'cliente' ? 'cliente' : 'Particular'}</td>
                       <td>{formatHora(estudio.fecha_estudio)}</td>
                     </tr>
                   ))}
@@ -493,7 +497,7 @@ const Captura = () => {
               </label>
 
               <button className="btn-imprimir" onClick={imprimir}>
-                Imprimir
+                <img src={imprimirBtn} alt="Imprimir" className="icono-btn" />
               </button>
             </div>
 
