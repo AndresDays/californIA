@@ -192,6 +192,8 @@ body, html {
   flex: 1;
   padding: 2rem 2.5rem;
   overflow-y: auto;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
 }
 
 .dashboard-content-wrapper {
