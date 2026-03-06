@@ -1,0 +1,193 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.modal-eliminar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9998;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-eliminar-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin-left: -250px;
+  margin-top: -200px;
+  background: linear-gradient(135deg, rgba(2, 15, 35, 0.98) 0%, rgba(13, 67, 105, 0.98) 100%);
+  border: 1px solid rgba(83, 185, 219, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  width: 90%;
+  max-width: 500px;
+  font-family: 'Codec Pro', sans-serif;
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-eliminar-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(83, 185, 219, 0.2);
+}
+
+.modal-eliminar-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(255, 193, 7, 0.3));
+}
+
+.modal-eliminar-titulo {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.modal-eliminar-body {
+  padding: 1.5rem;
+}
+
+.modal-eliminar-mensaje {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.modal-eliminar-nombre {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #53B9DB;
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(83, 185, 219, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(83, 185, 219, 0.3);
+}
+
+.modal-eliminar-advertencia {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ff6b6b;
+  font-weight: 500;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.modal-eliminar-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem 1.5rem;
+  justify-content: flex-end;
+}
+
+.btn-modal-cancelar,
+.btn-modal-eliminar {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.btn-modal-cancelar {
+  background: rgba(73, 178, 212, 0.2);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  color: white;
+}
+
+.btn-modal-cancelar:hover {
+  background: rgba(73, 178, 212, 0.3);
+  border-color: #53B9DB;
+  transform: translateY(-2px);
+}
+
+.btn-modal-eliminar {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-modal-eliminar:hover {
+  background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
+}
+
+.btn-modal-eliminar:active,
+.btn-modal-cancelar:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .modal-eliminar-container {
+    width: 95%;
+    max-width: none;
+    margin-left: -47.5%;
+    margin-top: -200px;
+  }
+
+  .modal-eliminar-header {
+    padding: 1.25rem 1rem 0.75rem;
+  }
+
+  .modal-eliminar-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .modal-eliminar-titulo {
+    font-size: 1.1rem;
+  }
+
+  .modal-eliminar-body {
+    padding: 1.25rem 1rem;
+  }
+
+  .modal-eliminar-footer {
+    flex-direction: column-reverse;
+    padding: 1rem;
+  }
+
+  .btn-modal-cancelar,
+  .btn-modal-eliminar {
+    width: 100%;
+  }
+}

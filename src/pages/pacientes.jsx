@@ -8,6 +8,9 @@ import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-pacien
 import editarIcono from '../assets/editarIcono.png';
 import agregarPacienteBtn from '../assets/agregarPacienteBtn.png';
 import imprimirTablaBtn from '../assets/imprimirTablaBtn.png';
+import eliminarIconoV2 from '../assets/eliminarIconoV2.png';
+import ModalConfirmarEliminacion from '../components/ModalConfirmarEliminacion';
+import ModalNotificacion from '../components/ModalNotificacion';
 import './pacientes.css';
 
 const Pacientes = () => {
@@ -22,6 +25,8 @@ const Pacientes = () => {
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);
   const pacientesPorPagina = 500;
+  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
+  const [pacienteAEliminar, setPacienteAEliminar] = useState(null);
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
@@ -53,6 +58,83 @@ const Pacientes = () => {
   useEffect(() => {
     cargarPacientes();
   }, [paginaActual, buscarPaciente]);
+
+  const [notificacion, setNotificacion] = useState({
+  isOpen: false,
+  mensaje: '',
+  tipo: 'exito'
+});
+
+const mostrarNotificacion = (mensaje, tipo = 'exito') => {
+  setNotificacion({
+    isOpen: true,
+    mensaje,
+    tipo
+  });
+};
+
+const confirmarEliminarPaciente = async () => {
+  if (!pacienteAEliminar) return;
+
+  try {
+    const { error } = await supabase
+      .from('pacientes')
+      .delete()
+      .eq('id_paciente', pacienteAEliminar.id);
+
+    if (error) throw error;
+
+    mostrarNotificacion('Paciente eliminado correctamente', 'exito');
+    cargarPacientes();
+  } catch (error) {
+    console.error('Error al eliminar paciente:', error);
+    mostrarNotificacion('Error al eliminar paciente: ' + error.message, 'error');
+  } finally {
+    setPacienteAEliminar(null);
+  }
+};
+
+const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
+  try {
+    if (isEditMode) {
+      const { error } = await supabase
+        .from('pacientes')
+        .update({
+          nombre: pacienteData.nombre,
+          apellido_paterno: pacienteData.apellido_paterno,
+          apellido_materno: pacienteData.apellido_materno,
+          primer_nombre: pacienteData.primer_nombre,
+          fecha_nacimiento: pacienteData.fecha_nacimiento,
+          edad: pacienteData.edad,
+          sexo: pacienteData.sexo,
+          direccion: pacienteData.direccion,
+          cedula: pacienteData.cedula,
+          condicion_especial: pacienteData.condicion_especial,
+          email: pacienteData.email,
+          pais: pacienteData.pais,
+          telefono: pacienteData.telefono,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id_paciente', pacienteData.id);
+
+      if (error) throw error;
+      mostrarNotificacion('Paciente actualizado correctamente', 'exito');
+    } else {
+      const { error } = await supabase
+        .from('pacientes')
+        .insert([pacienteData]);
+
+      if (error) throw error;
+      mostrarNotificacion('Paciente guardado correctamente', 'exito');
+    }
+
+    cargarPacientes();
+    setModalAgregarPacienteOpen(false);
+  } catch (error) {
+    console.error('Error al guardar paciente:', error);
+    mostrarNotificacion('Error al guardar paciente: ' + error.message, 'error');
+  }
+};
 
   const cargarPacientes = async () => {
     try {
@@ -132,47 +214,10 @@ const Pacientes = () => {
     setModalAgregarPacienteOpen(true);
   };
 
-  const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
-    try {
-      if (isEditMode) {
-        const { error } = await supabase
-          .from('pacientes')
-          .update({
-            nombre: pacienteData.nombre,
-            apellido_paterno: pacienteData.apellido_paterno,
-            apellido_materno: pacienteData.apellido_materno,
-            primer_nombre: pacienteData.primer_nombre,
-            fecha_nacimiento: pacienteData.fecha_nacimiento,
-            edad: pacienteData.edad,
-            sexo: pacienteData.sexo,
-            direccion: pacienteData.direccion,
-            cedula: pacienteData.cedula,
-            condicion_especial: pacienteData.condicion_especial,
-            email: pacienteData.email,
-            pais: pacienteData.pais,
-            telefono: pacienteData.telefono,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id_paciente', pacienteData.id);
-
-        if (error) throw error;
-        alert('Paciente actualizado correctamente');
-      } else {
-        const { error } = await supabase
-          .from('pacientes')
-          .insert([pacienteData]);
-
-        if (error) throw error;
-        alert('Paciente guardado correctamente');
-      }
-
-      cargarPacientes();
-      setModalAgregarPacienteOpen(false);
-    } catch (error) {
-      console.error('Error al guardar paciente:', error);
-      alert('Error al guardar paciente: ' + error.message);
+  const handleEliminarPaciente = async (paciente) => {
+    setPacienteAEliminar(paciente);
+    setModalEliminarOpen(true);
     }
-  };
 
   const handleImprimirTabla = () => {
     window.print();
@@ -335,13 +380,22 @@ const Pacientes = () => {
                       <td>{paciente.email}</td>
                       <td>{paciente.fechaRegistro}</td>
                       <td>
-                        <button
-                          className="btn-editar-paciente"
-                          onClick={() => handleEditarPaciente(paciente)}
-                          title="Editar paciente"
-                        >
-                          <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
-                        </button>
+                        <div className="acciones-paciente">
+                          <button
+                            className="btn-editar-paciente"
+                            onClick={() => handleEditarPaciente(paciente)}
+                            title="Editar paciente"
+                          >
+                            <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
+                          </button>
+                          <button
+                            className="btn-eliminar-paciente"
+                            onClick={() => handleEliminarPaciente(paciente)}
+                            title="Eliminar paciente"
+                          >
+                            <img src={eliminarIconoV2} alt="Eliminar" className="icono-eliminar" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -357,6 +411,25 @@ const Pacientes = () => {
           pacienteEditar={pacienteEditar}
         />
 
+        <ModalConfirmarEliminacion
+          isOpen={modalEliminarOpen}
+          onClose={() => {
+            setModalEliminarOpen(false);
+            setPacienteAEliminar(null);
+          }}
+          onConfirm={confirmarEliminarPaciente}
+          tipo="paciente"
+          nombreElemento={pacienteAEliminar ? 
+            `${pacienteAEliminar.nombre} ${pacienteAEliminar.apellidoPaterno} ${pacienteAEliminar.apellidoMaterno}` 
+            : ''
+          }
+        />
+        <ModalNotificacion
+          isOpen={notificacion.isOpen}
+          onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+          mensaje={notificacion.mensaje}
+          tipo={notificacion.tipo}
+        />
       </div>
   );
 };

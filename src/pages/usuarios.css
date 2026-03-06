@@ -244,14 +244,24 @@
 }
 
 .admin-usuarios-wrapper .btn-eliminar-usuario {
-  background: #dc3545;
-  color: white;
-  font-size: 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .admin-usuarios-wrapper .btn-eliminar-usuario:hover {
-  background: #c82333;
   transform: scale(1.1);
+}
+
+.admin-usuarios-wrapper .icono-eliminar-usuario {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .admin-usuarios-wrapper .paginacion-inferior {

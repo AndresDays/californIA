@@ -32,6 +32,13 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
 
   const isEditMode = !!pacienteEditar;
 
+  const codigosPais = {
+    'México': '+52',
+    'Estados Unidos': '+1',
+    'Canadá': '+1',
+    'Otro': ''
+  };
+
   useEffect(() => {
     if (isOpen && pacienteEditar) {
       setApellidoPaterno(pacienteEditar.apellidoPaterno || '');
@@ -43,7 +50,15 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       setCondicionEspecial(pacienteEditar.condicionEspecial || '');
       setEmail(pacienteEditar.email || '');
       setPais(pacienteEditar.pais || 'México');
-      setTelefono(pacienteEditar.telefono || '');
+      
+      // Manejar teléfono al editar
+      let telefonoSinCodigo = pacienteEditar.telefono || '';
+      if (telefonoSinCodigo.startsWith('+52 ')) {
+        telefonoSinCodigo = telefonoSinCodigo.substring(4);
+      } else if (telefonoSinCodigo.startsWith('+1 ')) {
+        telefonoSinCodigo = telefonoSinCodigo.substring(3);
+      }
+      setTelefono(telefonoSinCodigo);
       
       if (pacienteEditar.fechaNacimiento) {
         const fecha = new Date(pacienteEditar.fechaNacimiento);
@@ -136,6 +151,20 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     setTelefono('');
   };
 
+  const handleTelefonoChange = (e) => {
+    const valor = e.target.value;
+    const soloNumeros = valor.replace(/\D/g, '');
+    if (soloNumeros.length <= 10) {
+      setTelefono(soloNumeros);
+    }
+  };
+
+  const obtenerTelefonoCompleto = () => {
+    if (!telefono) return '';
+    const codigo = codigosPais[pais] || '';
+    return codigo ? `${codigo} ${telefono}` : telefono;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -163,7 +192,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       condicion_especial: condicionEspecial,
       email: email.trim(),
       pais: pais,
-      telefono: telefono.trim(),
+      telefono: obtenerTelefonoCompleto(),
       tipo: 'particular'
     };
 
@@ -389,14 +418,18 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             </select>
           </div>
 
-          <div className="modal-campo-paciente">
+          <div className="modal-campo-paciente modal-campo-telefono">
             <img src={telefonoIcono} alt="Teléfono" className="modal-icono-campo" />
+            {codigosPais[pais] && (
+              <span className="codigo-pais">{codigosPais[pais]}</span>
+            )}
             <input
               type="tel"
               value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              placeholder="Ingresar Teléfono"
+              onChange={handleTelefonoChange}
+              placeholder="Ingresar Teléfono (10 dígitos)"
               className="modal-input-paciente"
+              maxLength="10"
             />
           </div>
 

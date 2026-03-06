@@ -241,6 +241,26 @@
   background: rgba(111, 179, 210, 0.7);
 }
 
+.modal-campo-telefono {
+  position: relative;
+}
+
+.codigo-pais {
+  position: absolute;
+  left: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #53B9DB;
+  font-weight: 600;
+  font-size: 0.95rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.modal-campo-telefono .modal-input-paciente {
+  padding-left: 85px;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
