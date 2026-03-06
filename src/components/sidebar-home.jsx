@@ -34,13 +34,13 @@ const SidebarHome = () => {
     {
       id: 'captura',
       icon: imprimirIcono,
-      label: 'Captura',
+      label: 'Captura de Resultados',
       path: '/captura'
     },
     {
       id: 'entrega',
       icon: entregaIcono,
-      label: 'Entrega',
+      label: 'Entrega de Resultados',
       path: '/entrega-resultados'
     },
     {
