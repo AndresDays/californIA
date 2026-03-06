@@ -73,8 +73,8 @@ const Cotizacion = () => {
 	const cargarEmpresas = async () => {
 		try {
 			const { data, error } = await supabase
-				.from("empresas")
-				.select("id_empresa, nombre")
+				.from("clientes")
+				.select("id_cliente, nombre")
 				.order("nombre");
 
 			if (error) throw error;
@@ -112,7 +112,7 @@ const Cotizacion = () => {
           descuento,
           descuento_porcentaje,
           fecha_cotizacion,
-          empresas (
+          clientes (
             nombre
           )
         `
@@ -136,7 +136,7 @@ const Cotizacion = () => {
 				.from("precios_estudios")
 				.select("precio")
 				.eq("clave", claveEstudio)
-				.eq("empresa", nombreEmpresa)
+				.eq("cliente", nombreEmpresa)
 				.single();
 
 			if (error) {
@@ -157,7 +157,7 @@ const Cotizacion = () => {
 		}
 
 		const empresaObj = empresas.find(
-			(emp) => emp.id_empresa.toString() === empresaSeleccionada.toString()
+			(emp) => emp.id_cliente.toString() === empresaSeleccionada.toString()
 		);
 		const nombreEmpresa = empresaObj ? empresaObj.nombre : "";
 
@@ -280,7 +280,7 @@ const Cotizacion = () => {
 					{
 						numero_cotizacion: numeroCotizacion,
 						nombre_paciente: nombrePaciente,
-						id_empresa: empresaSeleccionada || null,
+						id_cliente: empresaSeleccionada || null,
 						condiciones_paciente: condicionesPaciente || null,
 						estudios: estudiosParaGuardar,
 						subtotal: total,
@@ -444,14 +444,14 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 							</div>
 
 							<div className="campo-icon-grupo">
-								<img src={empresaIcono} alt="Empresa" className="icon-img" />
+								<img src={empresaIcono} alt="Cliente" className="icon-img" />
 								<select
 									value={empresaSeleccionada}
 									onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 									className="select-empresa-cot">
 									<option value="">Selecciona una Empresa</option>
 									{empresas.map((emp) => (
-										<option key={emp.id_empresa} value={emp.id_empresa}>
+										<option key={emp.id_cliente} value={emp.id_cliente}>
 											{emp.nombre}
 										</option>
 									))}
