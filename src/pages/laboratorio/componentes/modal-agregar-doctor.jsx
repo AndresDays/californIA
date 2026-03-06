@@ -75,6 +75,15 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
     setEdad(edadCalculada.toString());
   };
 
+  const handleTelefonoChange = (e) => {
+    const valor = e.target.value;
+
+    const soloNumeros = valor.replace(/\D/g, '');
+    if (soloNumeros.length <= 10) {
+      setTelefono(soloNumeros);
+    }
+  };
+
   const limpiarCampos = () => {
     setApellidoPaterno('');
     setApellidoMaterno('');
@@ -276,9 +285,10 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
               <input
                 type="tel"
                 value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                placeholder="Ingresar Teléfono"
+                onChange={handleTelefonoChange}
+                placeholder="Ingresar Teléfono (10 dígitos)"
                 className="modal-input"
+                maxLength="10"
               />
             </div>
           </div>

@@ -6,6 +6,10 @@ import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-principal.jsx';
 import SidebarHome from '../../components/sidebar-home.jsx';
 import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
+import ModalConfirmarEliminacion from '../../components/ModalConfirmarEliminacion';
+import editarIcono from '../../assets/editarIcono.png';
+import eliminarIconoV2 from '../../assets/eliminarIconoV2.png';
+import ModalNotificacion from '../../components/ModalNotificacion';
 import './doctores.css';
 
 const Doctores = () => {
@@ -19,31 +23,39 @@ const Doctores = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [doctorEditar, setDoctorEditar] = useState(null);
 
+  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
+  const [doctorAEliminar, setDoctorAEliminar] = useState(null);
+
   const [empleadoData, setEmpleadoData] = useState(null);
+  const [notificacion, setNotificacion] = useState({
+  isOpen: false,
+  mensaje: '',
+  tipo: 'exito'
+});
 
-    useEffect(() => {
-        const fetchEmpleadoData = async () => {
-          if (!user?.id) return;
+  useEffect(() => {
+    const fetchEmpleadoData = async () => {
+      if (!user?.id) return;
 
-          try {
-            const { data: empleado, error } = await supabase
-              .from('empleados')
-              .select('nombre, rol')
-              .eq('auth_uuid', user.id)
-              .maybeSingle();
+      try {
+        const { data: empleado, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', user.id)
+          .maybeSingle();
 
-            if (error) {
-              console.error('Error al obtener empleado:', error);
-              return;
-            }
+        if (error) {
+          console.error('Error al obtener empleado:', error);
+          return;
+        }
 
-            if (empleado) {
-              setEmpleadoData(empleado);
-            }
-          } catch (error) {
-            console.error('Error al obtener datos del empleado:', error);
-          }
-        };
+        if (empleado) {
+          setEmpleadoData(empleado);
+        }
+      } catch (error) {
+        console.error('Error al obtener datos del empleado:', error);
+      }
+    };
 
     fetchEmpleadoData();
   }, [user]);
@@ -51,6 +63,14 @@ const Doctores = () => {
   useEffect(() => {
     cargarDoctores();
   }, [buscarDoctor]);
+
+  const mostrarNotificacion = (mensaje, tipo = 'exito') => {
+    setNotificacion({
+      isOpen: true,
+      mensaje,
+      tipo
+    });
+  };
 
   const cargarDoctores = async () => {
     try {
@@ -144,14 +164,14 @@ const Doctores = () => {
           .eq('id_doctor', doctorData.id);
 
         if (error) throw error;
-        alert('Doctor actualizado correctamente');
+        mostrarNotificacion('Doctor actualizado correctamente', 'exito');
       } else {
         const { error } = await supabase
           .from('doctores')
           .insert([doctorData]);
 
         if (error) throw error;
-        alert('Doctor agregado correctamente');
+        mostrarNotificacion('Doctor agregado correctamente', 'exito');
       }
 
       cargarDoctores();
@@ -162,22 +182,29 @@ const Doctores = () => {
     }
   };
 
-  const handleEliminarDoctor = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este doctor?')) {
-      try {
-        const { error } = await supabase
-          .from('doctores')
-          .delete()
-          .eq('id_doctor', id);
+  const handleEliminarDoctor = (doctor) => {
+    setDoctorAEliminar(doctor);
+    setModalEliminarOpen(true);
+  };
 
-        if (error) throw error;
+  const confirmarEliminarDoctor = async () => {
+    if (!doctorAEliminar) return;
 
-        cargarDoctores();
-        alert('Doctor eliminado correctamente');
-      } catch (error) {
-        console.error('Error al eliminar doctor:', error);
-        alert('Error al eliminar doctor');
-      }
+    try {
+      const { error } = await supabase
+        .from('doctores')
+        .delete()
+        .eq('id_doctor', doctorAEliminar.id);
+
+      if (error) throw error;
+
+      cargarDoctores();
+      mostrarNotificacion('Doctor eliminado correctamente', 'exito');
+    } catch (error) {
+      console.error('Error al eliminar doctor:', error);
+      mostrarNotificacion('Error al eliminar doctor', 'error');
+    } finally {
+      setDoctorAEliminar(null);
     }
   };
 
@@ -194,34 +221,34 @@ const Doctores = () => {
   };
 
   const getPrimerNombre = (nombreCompleto) => {
-         if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-         return nombreCompleto;
-       };
+    if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
+    return nombreCompleto;
+  };
 
-    const formatRol = (rol) => {
-     if (!rol) return 'Usuario';
+  const formatRol = (rol) => {
+    if (!rol) return 'Usuario';
 
     const roles = {
-       'admin': 'Administrador',
-       'administrador': 'Administrador',
-       'radiologo': 'Radiólogo - Director',
-       'doctor': 'Médico',
-       'medico': 'Médico',
-       'tecnico_radiologia': 'Técnico en Radiología',
-       'tecnico': 'Técnico',
-       'quimico': 'Químico',
-       'recepcionista': 'Recepcionista',
-       'desarrollador': 'Desarrollador'
+      'admin': 'Administrador',
+      'administrador': 'Administrador',
+      'radiologo': 'Radiólogo - Director',
+      'doctor': 'Médico',
+      'medico': 'Médico',
+      'tecnico_radiologia': 'Técnico en Radiología',
+      'tecnico': 'Técnico',
+      'quimico': 'Químico',
+      'recepcionista': 'Recepcionista',
+      'desarrollador': 'Desarrollador'
     };
 
-     return roles[rol] || rol;
-    };
+    return roles[rol] || rol;
+  };
 
-   const handleLogout = async () => {
-     const { signOut } = useAuth();
-     await signOut();
-     navigate('/login');
-   };
+  const handleLogout = async () => {
+    const { signOut } = useAuth();
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <Layout>
@@ -278,18 +305,18 @@ const Doctores = () => {
             <table className="tabla-admin-doctores">
               <thead>
                 <tr>
-                  <th>Apellido paterno ⬍</th>
-                  <th>Apellido Materno ⬍</th>
-                  <th>Nombre ⬍</th>
-                  <th>Edad ⬍</th>
-                  <th>Sexo ⬍</th>
-                  <th>Fecha nacimiento ⬍</th>
-                  <th>Telefono ⬍</th>
-                  <th>Email ⬍</th>
-                  <th>Usuario ⬍</th>
-                  <th>Contraseña ⬍</th>
-                  <th>Fecha registro ⬍</th>
-                  <th>Accion ⬍</th>
+                  <th>Apellido paterno</th>
+                  <th>Apellido Materno</th>
+                  <th>Nombre</th>
+                  <th>Edad</th>
+                  <th>Sexo</th>
+                  <th>Fecha nacimiento</th>
+                  <th>Telefono</th>
+                  <th>Email</th>
+                  <th>Usuario</th>
+                  <th>Contraseña</th>
+                  <th>Fecha registro</th>
+                  <th>Accion</th>
                 </tr>
               </thead>
               <tbody>
@@ -320,14 +347,14 @@ const Doctores = () => {
                             onClick={() => handleEditarDoctor(doctor)}
                             title="Editar doctor"
                           >
-                            ✏️
+                            <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
                           </button>
                           <button
                             className="btn-eliminar-doctor"
-                            onClick={() => handleEliminarDoctor(doctor.id)}
+                            onClick={() => handleEliminarDoctor(doctor)}
                             title="Eliminar doctor"
                           >
-                            ✖
+                            <img src={eliminarIconoV2} alt="Eliminar" className="icono-eliminar-doctor" />
                           </button>
                         </div>
                       </td>
@@ -348,6 +375,26 @@ const Doctores = () => {
           onClose={() => setModalAbierto(false)}
           onSave={handleGuardarDoctor}
           doctorEditar={doctorEditar}
+        />
+
+        <ModalConfirmarEliminacion
+          isOpen={modalEliminarOpen}
+          onClose={() => {
+            setModalEliminarOpen(false);
+            setDoctorAEliminar(null);
+          }}
+          onConfirm={confirmarEliminarDoctor}
+          tipo="doctor"
+          nombreElemento={doctorAEliminar ? 
+            `${doctorAEliminar.nombre} ${doctorAEliminar.apellidoPaterno} ${doctorAEliminar.apellidoMaterno}` 
+            : ''
+          }
+        />
+        <ModalNotificacion
+          isOpen={notificacion.isOpen}
+          onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+          mensaje={notificacion.mensaje}
+          tipo={notificacion.tipo}
         />
       </div>
     </Layout>

@@ -216,12 +216,24 @@
 }
 
 .btn-eliminar-doctor {
-  color: #dc3545;
+  background: transparent !important;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-eliminar-doctor:hover {
-  background: rgba(220, 53, 69, 0.2);
-  transform: scale(1.2);
+  transform: scale(1.1);
+}
+
+.icono-eliminar-doctor {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .contador-registros {

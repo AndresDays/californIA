@@ -4,7 +4,11 @@ import { supabase } from '../lib/supabase-client';
 import { useAuth } from '../context/auth-context';
 import Header from '../components/header-principal';
 import editarIcono from '../assets/editarIcono.png';
+import eliminarIconoV2 from '../assets/eliminarIconoV2.png';
 import SidebarHome from '../components/sidebar-home';
+import ModalConfirmarEliminacion from '../components/ModalConfirmarEliminacion';
+import ModalNotificacion from '../components/ModalNotificacion';
+import ModalAgregarUsuario from '../components/ModalAgregarUsuario'; 
 import './usuarios.css';
 
 const Usuarios = () => {
@@ -17,6 +21,16 @@ const Usuarios = () => {
   const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalUsuarios, setTotalUsuarios] = useState(0);
+  const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState(null);
+  const [notificacion, setNotificacion] = useState({
+    isOpen: false,
+    mensaje: '',
+    tipo: 'exito'
+  });
+  const [modalAgregarOpen, setModalAgregarOpen] = useState(false);
+  const [usuarioEditar, setUsuarioEditar] = useState(null);
+
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
@@ -100,30 +114,98 @@ const Usuarios = () => {
     }
   };
 
+  const mostrarNotificacion = (mensaje, tipo = 'exito') => {
+    setNotificacion({
+      isOpen: true,
+      mensaje,
+      tipo
+    });
+  };
+
   const handleAgregarUsuario = () => {
-    alert('Agregar nuevo usuario');
+    setUsuarioEditar(null);
+    setModalAgregarOpen(true);
   };
 
-  const handleEditarUsuario = (id) => {
-    alert(`Editar usuario ${id}`);
+  const handleEditarUsuario = (usuario) => {
+    setUsuarioEditar(usuario);
+    setModalAgregarOpen(true);
   };
 
-  const handleEliminarUsuario = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este usuario?')) {
-      try {
-        const { error } = await supabase
-          .from('empleados')
-          .delete()
-          .eq('id_empleado', id);
+  const handleGuardarUsuario = async (usuarioData, isEditMode) => {
+  try {
+    if (isEditMode) {
+      const updateData = {
+        nombre: usuarioData.nombre,
+        usuario: usuarioData.usuario,
+        rol: usuarioData.rol,
+        sucursal: usuarioData.sucursal,
+        email: usuarioData.email,
+        telefono: usuarioData.telefono,
+        activo: usuarioData.activo,
+        updated_at: new Date().toISOString()
+      };
 
-        if (error) throw error;
-
-        cargarUsuarios();
-        alert('Usuario eliminado correctamente');
-      } catch (error) {
-        console.error('Error al eliminar usuario:', error);
-        alert('Error al eliminar usuario');
+      if (usuarioData.contrasena && usuarioData.contrasena.trim()) {
+        updateData.contrasena = usuarioData.contrasena;
       }
+
+      const { error } = await supabase
+        .from('empleados')
+        .update(updateData)
+        .eq('id_empleado', usuarioData.id);
+
+      if (error) throw error;
+      mostrarNotificacion('Usuario actualizado correctamente', 'exito');
+    } else {
+      const { error } = await supabase
+        .from('empleados')
+        .insert([{
+          nombre: usuarioData.nombre,
+          usuario: usuarioData.usuario,
+          contrasena: usuarioData.contrasena,
+          rol: usuarioData.rol,
+          sucursal: usuarioData.sucursal,
+          email: usuarioData.email,
+          telefono: usuarioData.telefono,
+          activo: usuarioData.activo
+        }]);
+
+      if (error) throw error;
+      mostrarNotificacion('Usuario agregado correctamente', 'exito');
+    }
+
+    cargarUsuarios();
+    setModalAgregarOpen(false);
+  } catch (error) {
+    console.error('Error al guardar usuario:', error);
+    mostrarNotificacion('Error al guardar usuario: ' + error.message, 'error');
+  }
+};
+
+  const handleEliminarUsuario = (usuario) => {
+    setUsuarioAEliminar(usuario);
+    setModalEliminarOpen(true);
+  };
+
+  const confirmarEliminarUsuario = async () => {
+    if (!usuarioAEliminar) return;
+
+    try {
+      const { error } = await supabase
+        .from('empleados')
+        .delete()
+        .eq('id_empleado', usuarioAEliminar.id);
+
+      if (error) throw error;
+
+      cargarUsuarios();
+      mostrarNotificacion('Usuario eliminado correctamente', 'exito');
+    } catch (error) {
+      console.error('Error al eliminar usuario:', error);
+      mostrarNotificacion('Error al eliminar usuario', 'error');
+    } finally {
+      setUsuarioAEliminar(null);
     }
   };
 
@@ -273,17 +355,17 @@ const Usuarios = () => {
                       <div className="acciones-usuarios">
                         <button
                           className="btn-editar-usuario"
-                          onClick={() => handleEditarUsuario(usuario.id)}
+                          onClick={() => handleEditarUsuario(usuario)}
                           title="Editar usuario"
                         >
                           <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
                         </button>
                         <button
                           className="btn-eliminar-usuario"
-                          onClick={() => handleEliminarUsuario(usuario.id)}
+                          onClick={() => handleEliminarUsuario(usuario)}
                           title="Eliminar usuario"
                         >
-                          ✖
+                          <img src={eliminarIconoV2} alt="Eliminar" className="icono-eliminar-usuario" />
                         </button>
                       </div>
                     </td>
@@ -328,6 +410,30 @@ const Usuarios = () => {
           </div>
         </div>
       </div>
+      <ModalConfirmarEliminacion
+        isOpen={modalEliminarOpen}
+        onClose={() => {
+          setModalEliminarOpen(false);
+          setUsuarioAEliminar(null);
+        }}
+        onConfirm={confirmarEliminarUsuario}
+        tipo="usuario"
+        nombreElemento={usuarioAEliminar?.nombre || ''}
+      />
+
+      <ModalNotificacion
+        isOpen={notificacion.isOpen}
+        onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+        mensaje={notificacion.mensaje}
+        tipo={notificacion.tipo}
+      />
+
+      <ModalAgregarUsuario
+        isOpen={modalAgregarOpen}
+        onClose={() => setModalAgregarOpen(false)}
+        onGuardar={handleGuardarUsuario}
+        usuarioEditar={usuarioEditar}
+      />
     </div>
   );
 };

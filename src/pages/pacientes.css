@@ -358,3 +358,31 @@
     background: #f0f0f0;
   }
 }
+
+.acciones-paciente {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-eliminar-paciente {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-eliminar-paciente:hover {
+  transform: scale(1.1);
+}
+
+.btn-eliminar-paciente .icono-eliminar {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
