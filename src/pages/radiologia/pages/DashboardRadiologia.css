@@ -1,0 +1,201 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.dashboard-radiologia-wrapper {
+  min-height: 100vh;
+  background-image: url('../../../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  font-family: 'Codec Pro', sans-serif;
+}
+
+.dashboard-radiologia-content {
+  padding: 2rem;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
+  min-height: calc(100vh - 80px);
+}
+
+.radiologia-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.btn-crear-grupo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.75rem;
+  background: linear-gradient(135deg, #49B2D4 0%, #53B9DB 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(73, 178, 212, 0.3);
+}
+
+.btn-crear-grupo:hover {
+  background: linear-gradient(135deg, #53B9DB 0%, #49B2D4 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(73, 178, 212, 0.4);
+}
+
+.icon-grupo {
+  font-size: 1.2rem;
+}
+
+.radiologia-controles {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.filtro-tipo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filtro-tipo label {
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.select-tipo-estudio {
+  padding: 0.75rem 1rem;
+  background: rgba(13, 67, 105, 0.6);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  border-radius: 10px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.select-tipo-estudio:focus {
+  outline: none;
+  border-color: #53B9DB;
+  background: rgba(13, 67, 105, 0.8);
+}
+
+.select-tipo-estudio option {
+  background: #020F23;
+  color: white;
+}
+
+.buscador-radiologia {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.icono-lupa {
+  position: absolute;
+  left: 15px;
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  pointer-events: none;
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.input-buscar-radiologia {
+  padding: 0.75rem 1.5rem;
+  padding-left: 3rem;
+  background: rgba(13, 67, 105, 0.6);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  border-radius: 50px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  min-width: 300px;
+  transition: all 0.3s ease;
+}
+
+.input-buscar-radiologia:focus {
+  outline: none;
+  border-color: #53B9DB;
+  background: rgba(13, 67, 105, 0.8);
+  box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.2);
+}
+
+.input-buscar-radiologia::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.grid-estudios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+.sin-estudios {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 4rem 2rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 968px) {
+  .dashboard-radiologia-content {
+    padding-left: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-radiologia-content {
+    padding: 1rem;
+  }
+
+  .radiologia-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .radiologia-controles {
+    flex-direction: column;
+  }
+
+  .input-buscar-radiologia {
+    min-width: 100%;
+  }
+
+  .select-tipo-estudio {
+    width: 100%;
+  }
+
+  .grid-estudios {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1400px) {
+  .grid-estudios {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
