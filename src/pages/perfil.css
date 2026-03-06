@@ -1,0 +1,319 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.perfil-usuario-wrapper {
+  min-height: 100vh;
+  background-image: url('../assets/FONDO.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  font-family: 'Codec Pro', sans-serif;
+}
+
+.perfil-usuario-content {
+  padding: 2rem;
+  padding-left: 120px;
+  transition: padding-left 0.3s ease;
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.perfil-container {
+  background: linear-gradient(135deg, rgba(2, 15, 35, 0.95) 0%, rgba(13, 67, 105, 0.95) 100%);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  border-radius: 16px;
+  padding: 3rem;
+  max-width: 1400px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 300px 1fr 450px;
+  gap: 3rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Sección izquierda - Foto */
+.perfil-seccion-izquierda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.perfil-foto-container {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #49B2D4 0%, #53B9DB 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid rgba(83, 185, 219, 0.3);
+  box-shadow: 0 4px 20px rgba(73, 178, 212, 0.3);
+}
+
+.perfil-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil-foto-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.perfil-icono-usuario {
+  font-size: 8rem;
+  opacity: 0.6;
+}
+
+.btn-editar-foto {
+  padding: 0.75rem 2rem;
+  background: transparent;
+  border: 1px solid rgba(73, 178, 212, 0.5);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.btn-editar-foto:hover {
+  background: rgba(73, 178, 212, 0.2);
+  border-color: #53B9DB;
+}
+
+/* Sección central - Datos */
+.perfil-seccion-central {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.perfil-campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.perfil-campo-grupo label {
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.perfil-input-con-editar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.perfil-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  background: rgba(2, 15, 35, 0.6);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+
+.perfil-input:focus {
+  outline: none;
+  border-color: #53B9DB;
+  background: rgba(2, 15, 35, 0.8);
+}
+
+.perfil-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.perfil-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.icono-editar {
+  position: absolute;
+  right: 1rem;
+  font-size: 1rem;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.perfil-divisor {
+  height: 1px;
+  background: rgba(73, 178, 212, 0.2);
+  margin: 1rem 0;
+}
+
+.btn-guardar-perfil {
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, #49B2D4 0%, #53B9DB 100%);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(73, 178, 212, 0.3);
+  align-self: flex-start;
+  margin-top: 1rem;
+}
+
+.btn-guardar-perfil:hover {
+  background: linear-gradient(135deg, #53B9DB 0%, #49B2D4 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(73, 178, 212, 0.4);
+}
+
+/* Sección derecha - Firma */
+.perfil-seccion-derecha {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.firma-titulo {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: white;
+}
+
+.firma-descripcion {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.firma-preview {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(73, 178, 212, 0.2);
+}
+
+.firma-preview-label {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.firma-preview-img {
+  width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.firma-canvas-container {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(73, 178, 212, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.firma-canvas {
+  width: 100%;
+  height: 200px;
+  cursor: crosshair;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.btn-limpiar-firma {
+  padding: 0.75rem 2rem;
+  background: transparent;
+  border: 1px solid rgba(73, 178, 212, 0.5);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-limpiar-firma:hover {
+  background: rgba(73, 178, 212, 0.2);
+  border-color: #53B9DB;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .perfil-container {
+    grid-template-columns: 250px 1fr 400px;
+    gap: 2rem;
+    padding: 2rem;
+  }
+
+  .perfil-foto-container {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .perfil-container {
+    grid-template-columns: 1fr;
+    max-width: 800px;
+  }
+
+  .perfil-seccion-izquierda {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .perfil-foto-container {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+@media (max-width: 968px) {
+  .perfil-usuario-content {
+    padding-left: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .perfil-usuario-content {
+    padding: 1rem;
+  }
+
+  .perfil-container {
+    padding: 1.5rem;
+  }
+
+  .perfil-seccion-izquierda {
+    flex-direction: column;
+  }
+
+  .perfil-foto-container {
+    width: 150px;
+    height: 150px;
+  }
+
+  .firma-canvas {
+    height: 150px;
+  }
+}

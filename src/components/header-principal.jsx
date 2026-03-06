@@ -21,6 +21,11 @@ const Header = ({
     setMenuOpen(!menuOpen);
   };
 
+  const handleNavigatePerfil = () => {
+    navigate('/perfil');
+    setMenuOpen(false);
+  };
+
   return (
     <header className="dashboard-header">
       <div className="header-left">
@@ -43,7 +48,7 @@ const Header = ({
         {menuOpen && (
           <div className="user-dropdown-menu">
             <button className="close-menu-btn" onClick={toggleMenu}>✕</button>
-            <button className="menu-item">Perfil</button>
+            <button className="menu-item" onClick={handleNavigatePerfil}>Perfil</button>
             <button className="menu-item">Accesos</button>
             <button className="menu-item">Plantillas</button>
             <button className="menu-item menu-item-logout" onClick={handleLogout}>

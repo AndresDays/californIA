@@ -31,6 +31,8 @@ import AdministrarMetodos from './pages/laboratorio/configuracion/administrar-me
 import AdministrarTecnicas from './pages/laboratorio/configuracion/administrar-tecnicas'
 import AdministrarEquipos from './pages/laboratorio/configuracion/administrar-equipos'
 import AdministrarNiveles from './pages/laboratorio/configuracion/administrar-niveles'
+import DashboardRadiologia from './pages/radiologia/pages/dashboard-radiologia'
+import VisorDicom from './pages/radiologia/pages/visor-dicom'
 
 function App() {
   return (
@@ -57,7 +59,16 @@ function App() {
             path="/radiologia" 
             element={
               <ProtectedRoute>
-                <Radiologia />
+                <DashboardRadiologia />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/visor-dicom/:estudioId" 
+            element={
+              <ProtectedRoute>
+                <VisorDicom />
               </ProtectedRoute>
             } 
           />
