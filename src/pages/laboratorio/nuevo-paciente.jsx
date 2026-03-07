@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/header-principal.jsx";
 import Layout from "../../components/layout.jsx";
+import SidebarHome from '../../components/sidebar-home';
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
-import SidebarHome from '../../components/sidebar-home';
 import "./nuevo-paciente.css";
 
 import cotizacionesBtn from "../../assets/cotizacionesBtn.png";
@@ -15,7 +15,6 @@ import doctorIcono from "../../assets/doctorIcono.png";
 import guardarImpBtn from "../../assets/guardarImpBtn.png";
 import muestrasBtn from "../../assets/muestrasBtn.png";
 import pacientesIcono from "../../assets/pacientesIcono.png";
-import pagarBtn from "../../assets/pagarBtn.png";
 import warningV1 from "../../assets/warningV1.png";
 
 const NuevoPaciente = () => {
@@ -66,7 +65,7 @@ const NuevoPaciente = () => {
 	const [descuentoPercent, setDescuentoPercent] = useState(0);
 	const [descuento, setDescuento] = useState(0);
 	const [granTotal, setGranTotal] = useState(0);
-	const [pagoRecibido, setPagoRecibido] = useState(0);
+	const [pagoRecibido, setPagoRecibido] = useState("");
 	const [cambio, setCambio] = useState(0);
 
 	const [formaPago, setFormaPago] = useState("efectivo");
@@ -466,7 +465,7 @@ const NuevoPaciente = () => {
 		const gran = totalIva - desc;
 		setGranTotal(gran);
 
-		const camb = pagoRecibido - gran;
+		const camb = (parseFloat(pagoRecibido) || 0) - gran;
 		setCambio(camb > 0 ? camb : 0);
 	};
 
@@ -537,7 +536,7 @@ const NuevoPaciente = () => {
 		setEstudiosSeleccionados([]);
 		setBuscarPaciente("");
 		setBuscarEstudio("");
-		setPagoRecibido(0);
+		setPagoRecibido("");
 		setDescuentoPercent(0);
 	};
 
@@ -1080,7 +1079,7 @@ const NuevoPaciente = () => {
 											type="number"
 											value={pagoRecibido}
 											onChange={(e) =>
-												setPagoRecibido(parseFloat(e.target.value) || 0)
+												setPagoRecibido(e.target.value === "" ? "" : parseFloat(e.target.value) || 0)
 											}
 											className="form-input-pago"
 											placeholder="Paga con"
@@ -1096,9 +1095,6 @@ const NuevoPaciente = () => {
 							</section>
 
 							<div className="action-buttons-final">
-								<button className="btn-pagar-img" onClick={guardarYPagar}>
-									<img src={pagarBtn} alt="Pagar" className="btn-pagar-icon" />
-								</button>
 								<button className="btn-guardar-img" onClick={guardarYPagar}>
 									<img
 										src={guardarImpBtn}
