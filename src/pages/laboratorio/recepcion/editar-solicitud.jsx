@@ -1,517 +1,1006 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
-import Header from '../../../components/header-principal.jsx';
-import SidebarHome from '../../../components/sidebar-home.jsx';
-import './editar-solicitud.css';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import doctorIcono from "../../../assets/doctorIcono.png";
+import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
+import empresaIcono from "../../../assets/empresaIcono.png";
+import guardarImpBtn from "../../../assets/guardarImpBtn.png";
+import imprimirIcono from "../../../assets/imprimirIcono.png";
+import lupaIcono from "../../../assets/lupaIcono.png";
+import pacienteIcono from "../../../assets/pacienteIcono.png";
+import Header from "../../../components/header-principal.jsx";
+import Layout from "../../../components/layout.jsx";
+import ModalNotificacion from "../../../components/ModalNotificacion";
+import SidebarHome from "../../../components/sidebar-home.jsx";
+import { useAuth } from "../../../context/auth-context";
+import { supabase } from "../../../lib/supabase-client";
+import { generarTicketVenta } from "../../../utils/generarTicketVenta";
+import "./editar-solicitud.css";
 
 const EditarSolicitud = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+	const { user } = useAuth();
+	const navigate = useNavigate();
 
-  const [buscarPaciente, setBuscarPaciente] = useState('');
-  const [rangoFecha, setRangoFecha] = useState('hoy');
-  const [ordenes, setOrdenes] = useState([]);
-  const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
-  
-  const [motivoModificacion, setMotivoModificacion] = useState('');
-  const [folio, setFolio] = useState('');
-  const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
-  const [medicoSeleccionado, setMedicoSeleccionado] = useState('');
-  const [tipoUrgencia, setTipoUrgencia] = useState('URGENCIAS LAB');
-  const [buscarEstudio, setBuscarEstudio] = useState('');
-  const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
-  
-  const [total, setTotal] = useState(0);
-  const [tipoPago, setTipoPago] = useState('Efectivo');
-  const [ivaImpuesto, setIvaImpuesto] = useState(0);
-  const [totalConIVA, setTotalConIVA] = useState(0);
-  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
-  const [granTotal, setGranTotal] = useState(0);
-  const [abono, setAbono] = useState(0);
-  const [adeudo, setAdeudo] = useState(0);
-  const [pago, setPago] = useState(0);
+	const [empleadoData, setEmpleadoData] = useState(null);
 
-  const [empleadoData, setEmpleadoData] = useState(null);
+	const [rangoFecha, setRangoFecha] = useState("hoy");
+	const [buscarPaciente, setBuscarPaciente] = useState("");
+	const [ordenes, setOrdenes] = useState([]);
+	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
 
-    useEffect(() => {
-        const fetchEmpleadoData = async () => {
-          if (!user?.id) return;
+	const [motivoModificacion, setMotivoModificacion] = useState("");
+	const [folio, setFolio] = useState("");
 
-          try {
-            const { data: empleado, error } = await supabase
-              .from('empleados')
-              .select('nombre, rol')
-              .eq('auth_uuid', user.id)
-              .maybeSingle();
+	const [clientes, setClientes] = useState([]);
+	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
 
-            if (error) {
-              console.error('Error al obtener empleado:', error);
-              return;
-            }
+	const [medicoBusqueda, setMedicoBusqueda] = useState("");
+	const [medicosEncontrados, setMedicosEncontrados] = useState([]);
+	const [medicoSeleccionado, setMedicoSeleccionado] = useState(null);
+	const [showBusquedaMedicos, setShowBusquedaMedicos] = useState(false);
 
-            if (empleado) {
-              setEmpleadoData(empleado);
-            }
-          } catch (error) {
-            console.error('Error al obtener datos del empleado:', error);
-          }
-        };
+	// Recepcionistas
+	const [recepcionistas, setRecepcionistas] = useState([]);
+	const [recepcionistaSeleccionado, setRecepcionistaSeleccionado] = useState("");
 
-        fetchEmpleadoData();
-      }, [user]);
+	const [buscarEstudio, setBuscarEstudio] = useState("");
+	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
+	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
+	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 
-  useEffect(() => {
-    cargarOrdenes();
-  }, [rangoFecha]);
+	const [formaPago, setFormaPago] = useState("efectivo");
+	const [ivaPercent, setIvaPercent] = useState(0);
+	const [descuentoPercent, setDescuentoPercent] = useState(0);
+	const [subtotal, setSubtotal] = useState(0);
+	const [iva, setIva] = useState(0);
+	const [totalConIva, setTotalConIva] = useState(0);
+	const [descuento, setDescuento] = useState(0);
+	const [granTotal, setGranTotal] = useState(0);
+	const [abono, setAbono] = useState(0);
+	const [adeudo, setAdeudo] = useState(0);
+	const [pago, setPago] = useState("");
 
-  useEffect(() => {
-    calcularTotales();
-  }, [estudiosSeleccionados, descuentoPorcentaje, ivaImpuesto, abono, pago]);
+	const [vendedor, setVendedor] = useState("");
 
-  const cargarOrdenes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('estudios')
-        .select(`
-          id_estudio,
-          fecha_estudio,
+	const [notificacion, setNotificacion] = useState({
+		isOpen: false,
+		mensaje: "",
+		tipo: "exito",
+	});
+
+	useEffect(() => {
+		const fetchEmpleadoData = async () => {
+			if (!user?.id) return;
+			try {
+				const { data: empleado, error } = await supabase
+					.from("empleados")
+					.select("nombre, rol")
+					.eq("auth_uuid", user.id)
+					.maybeSingle();
+				if (!error && empleado) {
+					setEmpleadoData(empleado);
+					setVendedor(empleado.nombre || "");
+					// Si el usuario logueado es recepcionista, preseleccionarlo
+					if (empleado.rol === "recepcionista") {
+						setRecepcionistaSeleccionado(empleado.nombre);
+					}
+				}
+			} catch (err) {
+				console.error("Error al obtener empleado:", err);
+			}
+		};
+		fetchEmpleadoData();
+		cargarRecepcionistas();
+	}, [user]);
+
+	useEffect(() => {
+		cargarOrdenes();
+	}, [rangoFecha]);
+
+	useEffect(() => {
+		calcularTotales();
+	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, abono, pago]);
+
+	useEffect(() => {
+		cargarClientes();
+		cargarEstudiosDisponibles();
+	}, []);
+
+	const mostrarNotificacion = (mensaje, tipo = "exito") => {
+		setNotificacion({ isOpen: true, mensaje, tipo });
+	};
+
+	const cerrarNotificacion = () => {
+		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
+	};
+
+	const cargarRecepcionistas = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("empleados")
+				.select("id_empleado, nombre, rol")
+				.eq("rol", "recepcionista")
+				.order("nombre");
+			if (!error) setRecepcionistas(data || []);
+		} catch (err) {
+			console.error("Error al cargar recepcionistas:", err);
+		}
+	};
+
+	const obtenerRangoFechas = () => {
+		const hoy = new Date();
+		const inicio = new Date(hoy);
+		const fin = new Date(hoy);
+
+		if (rangoFecha === "hoy") {
+			inicio.setHours(0, 0, 0, 0);
+			fin.setHours(23, 59, 59, 999);
+		} else if (rangoFecha === "semana") {
+			const dia = hoy.getDay();
+			inicio.setDate(hoy.getDate() - dia);
+			inicio.setHours(0, 0, 0, 0);
+			fin.setHours(23, 59, 59, 999);
+		} else if (rangoFecha === "mes") {
+			inicio.setDate(1);
+			inicio.setHours(0, 0, 0, 0);
+			fin.setHours(23, 59, 59, 999);
+		} else if (rangoFecha === "ano") {
+			inicio.setMonth(0, 1);
+			inicio.setHours(0, 0, 0, 0);
+			fin.setHours(23, 59, 59, 999);
+		} else {
+			return null;
+		}
+
+		return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+	};
+
+	const cargarOrdenes = async () => {
+		try {
+			let query = supabase
+				.from("ventas")
+				.select(
+					`
+          id_venta,
+          folio,
+          fecha_venta,
+          total,
+          pago_recibido,
+          subtotal,
+          iva,
+          descuento,
+          forma_pago,
+          observaciones,
           estado,
+          id_cliente,
+          id_doctor,
           pacientes (
             id_paciente,
             nombre,
-            fecha_nacimiento
+            fecha_nacimiento,
+            sexo,
+            telefono,
+            email,
+            rfc
+          ),
+          estudios_venta (
+            id_estudio_venta,
+            clave_estudio,
+            descripcion_estudio,
+            precio,
+            area
           )
-        `)
-        .order('fecha_estudio', { ascending: false })
-        .limit(20);
+        `,
+				)
+				.eq("estado", "activo")
+				.order("fecha_venta", { ascending: false })
+				.limit(50);
 
-      if (error) throw error;
+			const rango = obtenerRangoFechas();
+			if (rango) {
+				query = query.gte("fecha_venta", rango.inicio).lte("fecha_venta", rango.fin);
+			}
 
-      const ordenesFormateadas = data?.map(est => ({
-        folio: est.id_estudio,
-        nombre: est.pacientes?.nombre,
-        edad: calcularEdad(est.pacientes?.fecha_nacimiento),
-        fechaAlta: new Date(est.fecha_estudio).toLocaleDateString('es-MX'),
-        idPaciente: est.pacientes?.id_paciente
-      })) || [];
+			const { data, error } = await query;
+			if (error) throw error;
+			setOrdenes(data || []);
+		} catch (err) {
+			console.error("Error al cargar órdenes:", err);
+		}
+	};
 
-      setOrdenes(ordenesFormateadas);
-    } catch (error) {
-      console.error('Error al cargar órdenes:', error);
-    }
-  };
+	const cargarClientes = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("clientes")
+				.select("id_cliente, nombre")
+				.order("nombre");
+			if (!error) setClientes(data || []);
+		} catch (err) {
+			console.error("Error al cargar clientes:", err);
+		}
+	};
 
-  const calcularEdad = (fechaNacimiento) => {
-    const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const mes = hoy.getMonth() - nacimiento.getMonth();
-    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-    return edad;
-  };
+	const cargarEstudiosDisponibles = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("estudios_lab_catalogo")
+				.select("id, clave, descripcion, area")
+				.order("clave");
+			if (!error) setEstudiosDisponibles(data || []);
+		} catch (err) {
+			console.error("Error al cargar estudios:", err);
+		}
+	};
 
-  const calcularTotales = () => {
-    const subtotal = estudiosSeleccionados.reduce((sum, est) => sum + (parseFloat(est.precio) || 0), 0);
-    setTotal(subtotal);
+	const buscarMedicos = async (termino) => {
+		if (termino.length < 2) {
+			setMedicosEncontrados([]);
+			setShowBusquedaMedicos(false);
+			return;
+		}
+		try {
+			const { data, error } = await supabase
+				.from("doctores")
+				.select("id_doctor, nombre")
+				.ilike("nombre", `%${termino}%`)
+				.limit(8);
+			if (!error) {
+				setMedicosEncontrados(data || []);
+				setShowBusquedaMedicos(data && data.length > 0);
+			}
+		} catch (err) {
+			console.error("Error al buscar médicos:", err);
+		}
+	};
 
-    const iva = subtotal * (ivaImpuesto / 100);
-    const totalConIva = subtotal + iva;
-    setTotalConIVA(totalConIva);
+	const seleccionarMedico = (medico) => {
+		setMedicoSeleccionado(medico);
+		setMedicoBusqueda(medico.nombre);
+		setShowBusquedaMedicos(false);
+	};
 
-    const descuento = totalConIva * (descuentoPorcentaje / 100);
-    const granTotalCalc = totalConIva - descuento;
-    setGranTotal(granTotalCalc);
+	const seleccionarOrden = async (orden) => {
+		setOrdenSeleccionada(orden);
+		setFolio(orden.folio);
+		setMotivoModificacion("");
+		setPago("");
 
-    const adeudoCalc = granTotalCalc - abono - pago;
-    setAdeudo(adeudoCalc);
-  };
+		setClienteSeleccionado(orden.id_cliente?.toString() || "");
+		setIvaPercent(orden.iva ? (orden.iva / orden.subtotal) * 100 : 0);
+		setDescuentoPercent(
+			orden.descuento
+				? (orden.descuento / (orden.subtotal + (orden.iva || 0))) * 100
+				: 0,
+		);
+		setFormaPago(orden.forma_pago || "efectivo");
+		setAbono(parseFloat(orden.pago_recibido) || 0);
 
-  const seleccionarOrden = (orden) => {
-    setOrdenSeleccionada(orden);
-    setFolio(orden.folio);
-  };
+		if (orden.id_doctor) {
+			try {
+				const { data } = await supabase
+					.from("doctores")
+					.select("id_doctor, nombre")
+					.eq("id_doctor", orden.id_doctor)
+					.single();
+				if (data) {
+					setMedicoSeleccionado(data);
+					setMedicoBusqueda(data.nombre);
+				}
+			} catch {}
+		} else {
+			setMedicoSeleccionado(null);
+			setMedicoBusqueda("");
+		}
 
-  const agregarEstudio = (estudio) => {
-    if (!estudiosSeleccionados.find(e => e.clave === estudio.clave)) {
-      setEstudiosSeleccionados([...estudiosSeleccionados, estudio]);
-    }
-  };
+		const estudiosFormateados = (orden.estudios_venta || []).map((ev) => ({
+			id: ev.id_estudio_venta,
+			id_estudio_venta: ev.id_estudio_venta,
+			clave: ev.clave_estudio,
+			descripcion: ev.descripcion_estudio,
+			precio: parseFloat(ev.precio) || 0,
+			area: ev.area || "",
+			cantidad: 1,
+		}));
 
-  const eliminarEstudio = (clave) => {
-    setEstudiosSeleccionados(estudiosSeleccionados.filter(e => e.clave !== clave));
-  };
+		setEstudiosSeleccionados(estudiosFormateados);
+	};
 
-  const handlePagar = () => {
-    alert('Procesando pago...');
-  };
+	const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
+		try {
+			if (!nombreCliente) return 150;
+			const { data, error } = await supabase
+				.from("precios_estudios")
+				.select("precio")
+				.eq("clave", claveEstudio)
+				.eq("cliente", nombreCliente)
+				.single();
+			if (error) return 150;
+			return parseFloat(data.precio);
+		} catch {
+			return 150;
+		}
+	};
 
-  const handleGuardarImprimir = () => {
-    alert('Guardando e imprimiendo...');
-  };
+	const agregarEstudio = async (estudio) => {
+		if (estudiosSeleccionados.find((e) => e.clave === estudio.clave)) {
+			mostrarNotificacion("Este estudio ya fue agregado", "advertencia");
+			return;
+		}
+		const clienteObj = clientes.find(
+			(c) => c.id_cliente.toString() === clienteSeleccionado,
+		);
+		const nombreCliente = clienteObj ? clienteObj.nombre : "";
+		const precio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
 
-  const handleCancelarOrden = () => {
-    if (window.confirm('¿Está seguro de cancelar esta orden?')) {
-      navigate('/recepcion');
-    }
-  };
+		setEstudiosSeleccionados([
+			...estudiosSeleccionados,
+			{
+				id: estudio.id,
+				clave: estudio.clave,
+				descripcion: estudio.descripcion,
+				area: estudio.area || "",
+				precio,
+				cantidad: 1,
+			},
+		]);
+		setBuscarEstudio("");
+		setShowBusquedaEstudios(false);
+	};
 
-  const ordenesFiltradas = ordenes.filter(orden =>
-    orden.nombre.toLowerCase().includes(buscarPaciente.toLowerCase()) ||
-    orden.folio.toString().includes(buscarPaciente)
-  );
+	const eliminarEstudio = (clave) => {
+		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.clave !== clave));
+	};
 
-  const getPrimerNombre = (nombreCompleto) => {
-             if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-             return nombreCompleto;
-           };
+	const calcularTotales = () => {
+		const sub = estudiosSeleccionados.reduce(
+			(sum, e) => sum + e.precio * e.cantidad,
+			0,
+		);
+		setSubtotal(sub);
+		const ivaCalc = sub * (ivaPercent / 100);
+		setIva(ivaCalc);
+		const totalIva = sub + ivaCalc;
+		setTotalConIva(totalIva);
+		const desc = totalIva * (descuentoPercent / 100);
+		setDescuento(desc);
+		const gran = totalIva - desc;
+		setGranTotal(gran);
+		const pagoNum = parseFloat(pago) || 0;
+		const adeudoCalc = gran - abono - pagoNum;
+		setAdeudo(adeudoCalc > 0 ? adeudoCalc : 0);
+	};
 
- const formatRol = (rol) => {
-     if (!rol) return 'Usuario';
+	const guardarYImprimir = async () => {
+		if (!ordenSeleccionada) {
+			mostrarNotificacion("Seleccione una orden primero", "advertencia");
+			return;
+		}
+		if (!motivoModificacion.trim()) {
+			mostrarNotificacion("Ingrese el motivo de modificación", "advertencia");
+			return;
+		}
 
-     const roles = {
-       'admin': 'Administrador',
-       'administrador': 'Administrador',
-       'radiologo': 'Radiólogo - Director',
-       'doctor': 'Médico',
-       'medico': 'Médico',
-       'tecnico_radiologia': 'Técnico en Radiología',
-       'tecnico': 'Técnico',
-       'quimico': 'Químico',
-       'recepcionista': 'Recepcionista',
-       'desarrollador': 'Desarrollador'
-     };
+		try {
+			const pagoNuevo = parseFloat(pago) || 0;
+			const totalPagado = abono + pagoNuevo;
 
-     return roles[rol] || rol;
-   };
+			const { error: errorVenta } = await supabase
+				.from("ventas")
+				.update({
+					id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
+					id_doctor: medicoSeleccionado?.id_doctor || null,
+					subtotal,
+					iva,
+					descuento,
+					total: granTotal,
+					forma_pago: formaPago,
+					pago_recibido: totalPagado,
+					observaciones: motivoModificacion,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id_venta", ordenSeleccionada.id_venta);
 
-   const handleLogout = async () => {
-     const { signOut } = useAuth();
-     await signOut();
-     navigate('/login');
-   };
+			if (errorVenta) throw errorVenta;
 
-  return (
-    <Layout>
-      <div className="editar-solicitud-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="editar-solicitud"
-        />
+			await supabase
+				.from("estudios_venta")
+				.delete()
+				.eq("id_venta", ordenSeleccionada.id_venta);
 
-        <SidebarHome/>
+			const nuevosEstudios = estudiosSeleccionados.map((est) => ({
+				id_venta: ordenSeleccionada.id_venta,
+				clave_estudio: est.clave,
+				descripcion_estudio: est.descripcion,
+				precio: est.precio,
+				area: est.area,
+				dias_proceso: 1,
+				estado_captura: "pendiente",
+			}));
 
-        <div className="editar-solicitud-header">
-          <h1 className="editar-solicitud-title">Editar Orden</h1>
-          <button className="btn-cancelar-orden" onClick={handleCancelarOrden}>
-            CANCELAR ORDEN ✖
-          </button>
-        </div>
+			const { error: errorEstudios } = await supabase
+				.from("estudios_venta")
+				.insert(nuevosEstudios);
 
-        <div className="editar-solicitud-content">
-          <div className="panel-ordenes">
-            <div className="ordenes-controles">
-              <div className="buscar-paciente-grupo">
-                <span className="search-icon">🔍</span>
-                <input
-                  type="text"
-                  placeholder="Buscar por Paciente..."
-                  value={buscarPaciente}
-                  onChange={(e) => setBuscarPaciente(e.target.value)}
-                  className="input-buscar-paciente-edit"
-                />
-              </div>
+			if (errorEstudios) throw errorEstudios;
 
-              <div className="rango-fecha-grupo">
-                <span className="calendar-icon">📅</span>
-                <select
-                  value={rangoFecha}
-                  onChange={(e) => setRangoFecha(e.target.value)}
-                  className="select-rango-fecha"
-                >
-                  <option value="hoy">Hoy</option>
-                  <option value="semana">Esta Semana</option>
-                  <option value="mes">Este Mes</option>
-                  <option value="todos">Todos</option>
-                </select>
-              </div>
-            </div>
+			mostrarNotificacion("Orden actualizada exitosamente", "exito");
+			await cargarOrdenes();
 
-            <div className="tabla-ordenes-container">
-              <table className="tabla-ordenes">
-                <thead>
-                  <tr>
-                    <th>Folio</th>
-                    <th>Nombre</th>
-                    <th>Edad</th>
-                    <th>Fecha Alta</th>
-                    <th>Etiquetas</th>
-                    <th>Ticket</th>
-                    <th>Plantas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ordenesFiltradas.map((orden) => (
-                    <tr
-                      key={orden.folio}
-                      className={ordenSeleccionada?.folio === orden.folio ? 'selected' : ''}
-                      onClick={() => seleccionarOrden(orden)}
-                    >
-                      <td>{orden.folio}</td>
-                      <td>{orden.nombre}</td>
-                      <td>{orden.edad} años</td>
-                      <td>{orden.fechaAlta}</td>
-                      <td>
-                        <button className="btn-accion-orden verde">📄</button>
-                      </td>
-                      <td>
-                        <button className="btn-accion-orden azul">🎫</button>
-                      </td>
-                      <td>
-                        <button className="btn-accion-orden naranja">🏢</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+			setTimeout(() => window.print(), 800);
+		} catch (err) {
+			console.error("Error al guardar:", err);
+			mostrarNotificacion("Error al guardar la orden", "error");
+		}
+	};
 
-            <div className="ordenes-footer">
-              <span>Vendedor: PAULINA DIAZ CORTES</span>
-            </div>
-          </div>
+	const cancelarOrden = async () => {
+		if (!ordenSeleccionada) {
+			mostrarNotificacion("Seleccione una orden primero", "advertencia");
+			return;
+		}
 
-          <div className="panel-detalles-orden">
-            <div className="seccion-superior">
-              <div className="motivo-modificacion">
-                <textarea
-                  placeholder="Motivo de Modificación de la Orden"
-                  value={motivoModificacion}
-                  onChange={(e) => setMotivoModificacion(e.target.value)}
-                  className="textarea-motivo"
-                  rows="2"
-                />
-              </div>
+		try {
+			const { error } = await supabase
+				.from("ventas")
+				.update({ estado: "cancelado", updated_at: new Date().toISOString() })
+				.eq("id_venta", ordenSeleccionada.id_venta);
 
-              <div className="folio-grupo">
-                <label>Folio:</label>
-                <input
-                  type="text"
-                  value={folio}
-                  onChange={(e) => setFolio(e.target.value)}
-                  className="input-folio-edit"
-                  readOnly
-                />
-              </div>
-            </div>
+			if (error) throw error;
 
-            <div className="campos-orden">
-              <div className="campo-icon-grupo">
-                <span className="icon">🏢</span>
-                <select
-                  value={empresaSeleccionada}
-                  onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-                  className="select-empresa"
-                >
-                  <option value="">Selecciona una Empresa</option>
-                  <option value="issste">ISSSTE</option>
-                  <option value="imss">IMSS</option>
-                  <option value="particular">Particular</option>
-                </select>
-              </div>
+			mostrarNotificacion("Orden cancelada correctamente", "exito");
+			setOrdenSeleccionada(null);
+			setEstudiosSeleccionados([]);
+			setFolio("");
+			await cargarOrdenes();
+		} catch (err) {
+			console.error("Error al cancelar:", err);
+			mostrarNotificacion("Error al cancelar la orden", "error");
+		}
+	};
 
-              <div className="campo-icon-grupo">
-                <span className="icon">👨‍⚕️</span>
-                <input
-                  type="text"
-                  placeholder="Buscar Medico..."
-                  value={medicoSeleccionado}
-                  onChange={(e) => setMedicoSeleccionado(e.target.value)}
-                  className="input-medico"
-                />
-              </div>
+	const calcularEdad = (fechaNacimiento) => {
+		if (!fechaNacimiento) return "N/A";
+		const hoy = new Date();
+		const nac = new Date(fechaNacimiento);
+		let edad = hoy.getFullYear() - nac.getFullYear();
+		const mes = hoy.getMonth() - nac.getMonth();
+		if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
+		return `${edad} años`;
+	};
 
-              <div className="campo-icon-grupo">
-                <span className="icon">⚡</span>
-                <select
-                  value={tipoUrgencia}
-                  onChange={(e) => setTipoUrgencia(e.target.value)}
-                  className="select-urgencia"
-                >
-                  <option value="URGENCIAS LAB">URGENCIAS LAB</option>
-                  <option value="NORMAL">NORMAL</option>
-                  <option value="URGENTE">URGENTE</option>
-                </select>
-              </div>
-            </div>
+	const formatFecha = (fecha) => {
+		if (!fecha) return "N/A";
+		return new Date(fecha).toLocaleDateString("es-MX", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
+	};
 
-            <div className="lista-precios-section">
-              <label className="lista-precios-label">Lista de precios</label>
-              
-              <div className="buscar-estudios-row">
-                <div className="buscar-estudios-grupo">
-                  <span className="search-icon">🔍</span>
-                  <input
-                    type="text"
-                    placeholder="Buscar Estudios..."
-                    value={buscarEstudio}
-                    onChange={(e) => setBuscarEstudio(e.target.value)}
-                    className="input-buscar-estudios"
-                  />
-                </div>
-                <button className="btn-muestras-pendientes">
-                  Muestras Pendientes
-                </button>
-              </div>
+	const ordenesFiltradas = ordenes.filter((o) => {
+		if (!buscarPaciente.trim()) return true;
+		const term = buscarPaciente.toLowerCase();
+		return (
+			o.pacientes?.nombre?.toLowerCase().includes(term) ||
+			o.folio?.toLowerCase().includes(term)
+		);
+	});
 
-              <div className="tabla-estudios-container">
-                <table className="tabla-estudios-edit">
-                  <thead>
-                    <tr>
-                      <th>Clave</th>
-                      <th>Descripcion</th>
-                      <th>Tipo</th>
-                      <th>precio</th>
-                      <th>Borrar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estudiosSeleccionados.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" className="sin-estudios-edit">
-                          No hay estudios agregados
-                        </td>
-                      </tr>
-                    ) : (
-                      estudiosSeleccionados.map((estudio, index) => (
-                        <tr key={index}>
-                          <td>{estudio.clave}</td>
-                          <td>{estudio.descripcion}</td>
-                          <td>{estudio.tipo}</td>
-                          <td>${estudio.precio}</td>
-                          <td>
-                            <button
-                              className="btn-borrar-estudio"
-                              onClick={() => eliminarEstudio(estudio.clave)}
-                            >
-                              ✖
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+	const estudiosFiltrados = estudiosDisponibles.filter(
+		(e) =>
+			e.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
+			e.clave.toLowerCase().includes(buscarEstudio.toLowerCase()),
+	);
 
-            <div className="totales-section">
-              <div className="totales-row-1">
-                <div className="campo-total">
-                  <label>Total $</label>
-                  <input type="text" value={total.toFixed(2)} readOnly className="input-total" />
-                </div>
+	const getPrimerNombre = (nombreCompleto) => {
+		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
+		return nombreCompleto;
+	};
 
-                <span className="igual-symbol">=</span>
+	const formatRol = (rol) => {
+		if (!rol) return "Usuario";
+		const roles = {
+			admin: "Administrador",
+			administrador: "Administrador",
+			radiologo: "Radiólogo - Director",
+			doctor: "Médico",
+			medico: "Médico",
+			tecnico_radiologia: "Técnico en Radiología",
+			tecnico: "Técnico",
+			quimico: "Químico",
+			recepcionista: "Recepcionista",
+			desarrollador: "Desarrollador",
+		};
+		return roles[rol] || rol;
+	};
 
-                <div className="campo-total">
-                  <select value={tipoPago} onChange={(e) => setTipoPago(e.target.value)} className="select-tipo-pago">
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Tarjeta">Tarjeta</option>
-                    <option value="Transferencia">Transferencia</option>
-                  </select>
-                </div>
+	const imprimirTicketOrden = async (orden, e) => {
+		e.stopPropagation();
+		if (!orden) return;
+		try {
+			// Cargar nombre del doctor si hay id_doctor
+			let nombreDoctor = "";
+			if (orden.id_doctor) {
+				const { data: doc } = await supabase
+					.from("doctores")
+					.select("nombre")
+					.eq("id_doctor", orden.id_doctor)
+					.single();
+				if (doc) nombreDoctor = doc.nombre;
+			}
 
-                <div className="campo-total">
-                  <label>IVA % Impuesto</label>
-                  <input
-                    type="number"
-                    value={ivaImpuesto}
-                    onChange={(e) => setIvaImpuesto(parseFloat(e.target.value) || 0)}
-                    className="input-iva"
-                  />
-                </div>
+			// Cargar nombre del cliente/empresa
+			let nombreEmpresa = "PARTICULAR";
+			if (orden.id_cliente) {
+				const clienteObj = clientes.find((c) => c.id_cliente === orden.id_cliente);
+				if (clienteObj) nombreEmpresa = clienteObj.nombre;
+			}
 
-                <div className="campo-total">
-                  <label>Total con IVA $</label>
-                  <input type="text" value={totalConIVA.toFixed(2)} readOnly className="input-total-iva" />
-                </div>
+			const paciente = orden.pacientes;
+			const hoy = new Date();
+			const nac = paciente?.fecha_nacimiento
+				? new Date(paciente.fecha_nacimiento)
+				: null;
+			let edadStr = "";
+			if (nac) {
+				let edad = hoy.getFullYear() - nac.getFullYear();
+				const mes = hoy.getMonth() - nac.getMonth();
+				if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
+				edadStr = `${edad} años`;
+			}
 
-                <div className="campo-total">
-                  <label>Total con IVA</label>
-                  <input type="text" value={totalConIVA.toFixed(2)} readOnly className="input-total-iva-2" />
-                </div>
-              </div>
+			const totalNum = parseFloat(orden.total) || 0;
+			const pagoNum = parseFloat(orden.pago_recibido) || 0;
+			const adeudoNum = Math.max(totalNum - pagoNum, 0);
 
-              <div className="totales-row-2">
-                <div className="campo-total">
-                  <label>Desc $</label>
-                  <input
-                    type="number"
-                    value={descuentoPorcentaje}
-                    onChange={(e) => setDescuentoPorcentaje(parseFloat(e.target.value) || 0)}
-                    className="input-desc"
-                  />
-                </div>
+			await generarTicketVenta({
+				folio: orden.folio,
+				fecha: new Date(orden.fecha_venta),
+				paciente: paciente?.nombre || "N/A",
+				edad: edadStr,
+				doctor: nombreDoctor,
+				empresa: nombreEmpresa,
+				telefono: paciente?.telefono || "",
+				email: paciente?.email || "",
+				estudios: (orden.estudios_venta || []).map((ev) => ({
+					descripcion: ev.descripcion_estudio,
+					precio: parseFloat(ev.precio) || 0,
+					diasProceso: ev.dias_proceso || 1,
+				})),
+				subtotal: parseFloat(orden.subtotal) || 0,
+				descuento: parseFloat(orden.descuento) || 0,
+				total: totalNum,
+				abono1: pagoNum,
+				abono2: 0,
+				adeudo: adeudoNum,
+				pagoRecibido: pagoNum,
+				cambio: 0,
+				formaPago: orden.forma_pago || "efectivo",
+				vendedor: vendedor,
+			});
+		} catch (err) {
+			console.error("Error al generar ticket:", err);
+			mostrarNotificacion("Error al generar el ticket", "error");
+		}
+	};
 
-                <div className="campo-total">
-                  <label>Desc</label>
-                  <input type="text" value={(totalConIVA * descuentoPorcentaje / 100).toFixed(2)} readOnly className="input-desc-monto" />
-                </div>
+	return (
+		<Layout>
+			<div className="editar-solicitud-wrapper">
+				<Header
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					currentPage="editar-solicitud"
+				/>
 
-                <div className="campo-total gran-total-field">
-                  <label>Gran Total $</label>
-                  <input type="text" value={granTotal.toFixed(2)} readOnly className="input-gran-total" />
-                </div>
+				<SidebarHome />
 
-                <div className="campo-total">
-                  <label>Abonó $</label>
-                  <input
-                    type="number"
-                    value={abono}
-                    onChange={(e) => setAbono(parseFloat(e.target.value) || 0)}
-                    className="input-abono"
-                  />
-                </div>
+				<div className="editar-solicitud-header">
+					<h1 className="editar-solicitud-title">Editar Orden</h1>
+					<button className="btn-cancelar-orden" onClick={cancelarOrden}>
+						CANCELAR ORDEN ✖
+					</button>
+				</div>
 
-                <div className="campo-total">
-                  <label>Adeudo $</label>
-                  <input type="text" value={adeudo.toFixed(2)} readOnly className="input-adeudo" />
-                </div>
+				<div className="editar-solicitud-content">
+					<div className="panel-ordenes">
+						<div className="ordenes-controles">
+							<div className="buscar-paciente-grupo">
+								<img src={lupaIcono} alt="Buscar" className="icono-campo" />
+								<input
+									type="text"
+									placeholder="Buscar por Paciente o Folio..."
+									value={buscarPaciente}
+									onChange={(e) => setBuscarPaciente(e.target.value)}
+									className="input-buscar-paciente-edit"
+								/>
+							</div>
 
-                <div className="campo-total">
-                  <label>Pago $</label>
-                  <input
-                    type="number"
-                    value={pago}
-                    onChange={(e) => setPago(parseFloat(e.target.value) || 0)}
-                    className="input-pago"
-                  />
-                </div>
-              </div>
-            </div>
+							<div className="rango-fecha-grupo">
+								<span className="calendar-icon">📅</span>
+								<select
+									value={rangoFecha}
+									onChange={(e) => setRangoFecha(e.target.value)}
+									className="select-rango-fecha">
+									<option value="hoy">Hoy</option>
+									<option value="semana">Esta Semana</option>
+									<option value="mes">Este Mes</option>
+									<option value="ano">Este Año</option>
+									<option value="todos">Todos</option>
+								</select>
+							</div>
+						</div>
 
-            <div className="botones-finales">
-              <button className="btn-pagar" onClick={handlePagar}>
-                Pagar
-              </button>
-              <button className="btn-guardar-imprimir" onClick={handleGuardarImprimir}>
-                Guardar e Imprimir
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
+						<div className="tabla-ordenes-container">
+							<table className="tabla-ordenes">
+								<thead>
+									<tr>
+										<th>Folio</th>
+										<th>Nombre</th>
+										<th>Edad</th>
+										<th>Fecha Alta</th>
+										<th>Etiquetas</th>
+										<th>Ticket</th>
+									</tr>
+								</thead>
+								<tbody>
+									{ordenesFiltradas.length === 0 ? (
+										<tr>
+											<td colSpan="6" className="sin-ordenes">
+												No hay órdenes para mostrar
+											</td>
+										</tr>
+									) : (
+										ordenesFiltradas.map((orden) => (
+											<tr
+												key={orden.id_venta}
+												className={
+													ordenSeleccionada?.id_venta === orden.id_venta
+														? "selected"
+														: ""
+												}
+												onClick={() => seleccionarOrden(orden)}>
+												<td className="folio-cell">{orden.folio}</td>
+												<td>{orden.pacientes?.nombre || "N/A"}</td>
+												<td>{calcularEdad(orden.pacientes?.fecha_nacimiento)}</td>
+												<td>{formatFecha(orden.fecha_venta)}</td>
+												<td>
+													<button
+														className="btn-accion-orden"
+														onClick={(e) => e.stopPropagation()}>
+														<img
+															src={imprimirIcono}
+															alt="Etiquetas"
+															className="icono-accion-tabla"
+														/>
+													</button>
+												</td>
+												<td>
+													<button
+														className="btn-accion-orden"
+														onClick={(e) => imprimirTicketOrden(orden, e)}>
+														<img
+															src={imprimirIcono}
+															alt="Ticket"
+															className="icono-accion-tabla"
+														/>
+													</button>
+												</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+						</div>
+
+						<div className="ordenes-footer">
+							<span>Vendedor: {vendedor || "—"}</span>
+						</div>
+					</div>
+
+					<div className="panel-detalles-orden">
+						<div className="seccion-superior">
+							<div className="motivo-modificacion">
+								<textarea
+									placeholder="Motivo de Modificación de la Orden"
+									value={motivoModificacion}
+									onChange={(e) => setMotivoModificacion(e.target.value)}
+									className="textarea-motivo"
+									rows="2"
+								/>
+							</div>
+							<div className="folio-grupo">
+								<label>Folio:</label>
+								<input
+									type="text"
+									value={folio}
+									readOnly
+									className="input-folio-edit folio-highlight"
+								/>
+							</div>
+						</div>
+
+						<div className="campos-orden">
+							{/* Empresa / Cliente */}
+							<div className="campo-icon-grupo">
+								<img src={empresaIcono} alt="Empresa" className="icono-campo" />
+								<select
+									value={clienteSeleccionado}
+									onChange={(e) => setClienteSeleccionado(e.target.value)}
+									className="select-empresa">
+									<option value="">Particular</option>
+									{clientes.map((c) => (
+										<option key={c.id_cliente} value={c.id_cliente}>
+											{c.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+
+							{/* Médico */}
+							<div className="campo-icon-grupo" style={{ position: "relative" }}>
+								<img src={doctorIcono} alt="Médico" className="icono-campo" />
+								<input
+									type="text"
+									placeholder="Buscar Médico..."
+									value={medicoBusqueda}
+									onChange={(e) => {
+										setMedicoBusqueda(e.target.value);
+										buscarMedicos(e.target.value);
+									}}
+									className="input-medico"
+								/>
+								{showBusquedaMedicos && (
+									<div className="dropdown-medicos">
+										{medicosEncontrados.map((m) => (
+											<div
+												key={m.id_doctor}
+												className="dropdown-medico-item"
+												onClick={() => seleccionarMedico(m)}>
+												{m.nombre}
+											</div>
+										))}
+									</div>
+								)}
+							</div>
+
+							{/* Recepcionista */}
+							<div className="campo-icon-grupo">
+								<img
+									src={pacienteIcono}
+									alt="Recepcionista"
+									className="icono-campo"
+								/>
+								<select
+									value={recepcionistaSeleccionado}
+									onChange={(e) => setRecepcionistaSeleccionado(e.target.value)}
+									className="select-urgencia">
+									<option value="">— Recepcionista —</option>
+									{recepcionistas.map((r) => (
+										<option key={r.id_empleado} value={r.nombre}>
+											{r.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+
+						<div className="lista-precios-section">
+							<label className="lista-precios-label">Lista de precios</label>
+
+							<div className="buscar-estudios-row">
+								<div
+									className="buscar-estudios-grupo"
+									style={{ position: "relative" }}>
+									<img src={lupaIcono} alt="Buscar" className="icono-campo" />
+									<input
+										type="text"
+										placeholder="Buscar Estudios..."
+										value={buscarEstudio}
+										onChange={(e) => {
+											setBuscarEstudio(e.target.value);
+											setShowBusquedaEstudios(e.target.value.length >= 2);
+										}}
+										className="input-buscar-estudios"
+									/>
+									{showBusquedaEstudios && buscarEstudio.length >= 2 && (
+										<div className="dropdown-estudios">
+											{estudiosFiltrados.slice(0, 10).map((est) => (
+												<div
+													key={est.id}
+													className="dropdown-estudio-item"
+													onClick={() => agregarEstudio(est)}>
+													<strong>{est.clave}</strong> — {est.descripcion}
+												</div>
+											))}
+											{estudiosFiltrados.length === 0 && (
+												<div className="dropdown-estudio-item sin-resultados">
+													Sin resultados
+												</div>
+											)}
+										</div>
+									)}
+								</div>
+								<button className="btn-muestras-pendientes">
+									Muestras Pendientes
+								</button>
+							</div>
+
+							<div className="tabla-estudios-container">
+								<table className="tabla-estudios-edit">
+									<thead>
+										<tr>
+											<th>Clave</th>
+											<th>Descripción</th>
+											<th>Tipo</th>
+											<th>Precio</th>
+											<th>Borrar</th>
+										</tr>
+									</thead>
+									<tbody>
+										{estudiosSeleccionados.length === 0 ? (
+											<tr>
+												<td colSpan="5" className="sin-estudios-edit">
+													{ordenSeleccionada
+														? "Sin estudios en esta orden"
+														: "Seleccione una orden"}
+												</td>
+											</tr>
+										) : (
+											estudiosSeleccionados.map((est) => (
+												<tr key={est.clave}>
+													<td>{est.clave}</td>
+													<td>{est.descripcion}</td>
+													<td>{est.area || "Estudio"}</td>
+													<td>$ {est.precio.toFixed(2)}</td>
+													<td>
+														<button
+															className="btn-borrar-estudio"
+															onClick={() => eliminarEstudio(est.clave)}>
+															<img
+																src={eliminarIconoV2}
+																alt="Eliminar"
+																className="icono-eliminar"
+															/>
+														</button>
+													</td>
+												</tr>
+											))
+										)}
+									</tbody>
+								</table>
+							</div>
+						</div>
+
+						<div className="totales-section">
+							<div className="totales-row-1">
+								<div className="campo-total">
+									<label>Total $</label>
+									<input
+										type="text"
+										value={subtotal.toFixed(2)}
+										readOnly
+										className="input-total"
+									/>
+								</div>
+								<div className="campo-total">
+									<label>Forma Pago</label>
+									<select
+										value={formaPago}
+										onChange={(e) => setFormaPago(e.target.value)}
+										className="select-tipo-pago">
+										<option value="efectivo">Efectivo</option>
+										<option value="tarjeta_credito">Tarjeta Crédito</option>
+										<option value="tarjeta_debito">Tarjeta Débito</option>
+										<option value="transferencia">Transferencia</option>
+									</select>
+								</div>
+								<div className="campo-total">
+									<label>IVA %</label>
+									<input
+										type="number"
+										value={ivaPercent}
+										onChange={(e) => setIvaPercent(parseFloat(e.target.value) || 0)}
+										className="input-iva"
+									/>
+								</div>
+								<div className="campo-total">
+									<label>Total con IVA $</label>
+									<input
+										type="text"
+										value={totalConIva.toFixed(2)}
+										readOnly
+										className="input-total-iva"
+									/>
+								</div>
+							</div>
+
+							<div className="totales-row-2">
+								<div className="campo-total">
+									<label>Desc %</label>
+									<input
+										type="number"
+										value={descuentoPercent}
+										onChange={(e) =>
+											setDescuentoPercent(parseFloat(e.target.value) || 0)
+										}
+										className="input-desc"
+									/>
+								</div>
+								<div className="campo-total">
+									<label>Desc $</label>
+									<input
+										type="text"
+										value={descuento.toFixed(2)}
+										readOnly
+										className="input-desc-monto"
+									/>
+								</div>
+								<div className="campo-total gran-total-field">
+									<label>Gran Total $</label>
+									<input
+										type="text"
+										value={granTotal.toFixed(2)}
+										readOnly
+										className="input-gran-total"
+									/>
+								</div>
+								<div className="campo-total">
+									<label>Abonó $</label>
+									<input
+										type="text"
+										value={abono.toFixed(2)}
+										readOnly
+										className="input-abono"
+									/>
+								</div>
+								<div className="campo-total">
+									<label>Adeudo $</label>
+									<input
+										type="text"
+										value={adeudo.toFixed(2)}
+										readOnly
+										className="input-adeudo"
+									/>
+								</div>
+								<div className="campo-total">
+									<label>Pago $</label>
+									<input
+										type="number"
+										value={pago}
+										onChange={(e) => setPago(e.target.value)}
+										className="input-pago"
+										placeholder="0.00"
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div className="botones-finales">
+							<button
+								className="btn-guardar-imprimir-img"
+								onClick={guardarYImprimir}>
+								<img
+									src={guardarImpBtn}
+									alt="Guardar e Imprimir"
+									className="icono-guardar-imp"
+								/>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<ModalNotificacion
+					isOpen={notificacion.isOpen}
+					onClose={cerrarNotificacion}
+					mensaje={notificacion.mensaje}
+					tipo={notificacion.tipo}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default EditarSolicitud;
