@@ -1,359 +1,562 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
+:root {
+	--color-bg-deep: #020F23;
+	--color-bg-mid: #0D4369;
+	--color-primary: #106DA0;
+	--color-accent: #49B2D4;
+	--color-light: #53B9DB;
+	--color-white: #FFFFFF;
+	--color-surface: rgba(13, 67, 105, 0.35);
+	--color-surface-hover: rgba(16, 109, 160, 0.3);
+	--color-border: rgba(83, 185, 219, 0.25);
+	--color-border-strong: rgba(83, 185, 219, 0.5);
+	--color-text-muted: rgba(255, 255, 255, 0.5);
+	--color-text-sub: rgba(255, 255, 255, 0.85);
+	--font: 'Codec Pro', sans-serif;
+}
+
 .historial-wrapper {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Codec Pro', sans-serif;
-  color: white;
-  background-image: url('../assets/FONDO.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	font-family: var(--font);
+	color: var(--color-white);
+	background-image: url('../assets/FONDO.jpg');
+	background-size: cover;
+	background-position: center;
+	background-attachment: fixed;
 }
 
 .historial-header {
-  padding: 1.5rem 2rem;
-  background: rgba(10, 25, 41, 0.8);
-  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
-  padding-left: 120px;
-  transition: padding-left 0.3s ease;
+	padding: 1.5rem 2rem 1.5rem 120px;
+	border-bottom: 1px solid var(--color-border);
+	background: rgba(2, 15, 35, 0.5);
+	transition: padding-left 0.3s ease;
 }
 
 .historial-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 400;
-  color: white;
-  letter-spacing: 1px;
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 400;
+	color: var(--color-white);
+	letter-spacing: 1px;
 }
 
 .historial-content {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  overflow: auto;
-  padding-left: 120px;
-  transition: padding-left 0.3s ease;
+	flex: 1;
+	display: grid;
+	grid-template-columns: 1fr 1.6fr;
+	gap: 1.5rem;
+	padding: 1.5rem 1.5rem 1.5rem 120px;
+	overflow: auto;
+	transition: padding-left 0.3s ease;
 }
 
-.panel-historial-paciente {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.panel-izquierdo {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-width: 0;
 }
 
 .buscar-cliente-grupo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: rgba(10, 25, 41, 0.85);
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  border-radius: 8px;
-  padding: 0 1rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	background: rgba(2, 15, 35, 0.8);
+	border: 1px solid var(--color-border-strong);
+	border-radius: 8px;
+	padding: 0 1rem;
+	transition: border-color 0.2s;
+}
+
+.buscar-cliente-grupo:focus-within {
+	border-color: var(--color-accent);
 }
 
 .icon-user {
-  font-size: 1.3rem;
-  color: rgba(255, 255, 255, 0.6);
+	font-size: 1.2rem;
+	opacity: 0.7;
 }
 
 .input-buscar-cliente {
-  flex: 1;
-  padding: 0.85rem 0;
-  background: transparent;
-  border: none;
-  color: white;
-  font-family: 'Codec Pro', sans-serif;
-  font-size: 0.95rem;
+	flex: 1;
+	padding: 0.85rem 0;
+	background: transparent;
+	border: none;
+	color: var(--color-white);
+	font-family: var(--font);
+	font-size: 0.95rem;
 }
 
 .input-buscar-cliente:focus {
-  outline: none;
+	outline: none;
 }
 
 .input-buscar-cliente::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+	color: var(--color-text-muted);
 }
 
-.historial-paciente-section {
-  background: rgba(10, 25, 41, 0.85);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex: 1;
+.btn-buscar {
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 1.1rem;
+	padding: 0.5rem 0;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.btn-buscar:hover {
+	opacity: 1;
+}
+
+.dropdown-resultados {
+	background: rgba(2, 15, 35, 0.97);
+	border: 1px solid var(--color-border-strong);
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.dropdown-item {
+	padding: 0.75rem 1rem;
+	cursor: pointer;
+	font-size: 0.9rem;
+	color: var(--color-text-sub);
+	border-bottom: 1px solid var(--color-border);
+	transition: background 0.15s;
+}
+
+.dropdown-item:last-child {
+	border-bottom: none;
+}
+
+.dropdown-item:hover {
+	background: var(--color-surface-hover);
+	color: var(--color-white);
+}
+
+.datos-paciente-card {
+	background: rgba(2, 15, 35, 0.8);
+	border: 1px solid var(--color-border-strong);
+	border-radius: 10px;
+	padding: 1rem 1.25rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.dato-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.dato-label {
+	font-size: 0.8rem;
+	color: var(--color-accent);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.dato-valor {
+	font-size: 0.88rem;
+	color: var(--color-white);
+	margin-right: 0.75rem;
+}
+
+.historial-visitas-section {
+	background: rgba(2, 15, 35, 0.8);
+	border-radius: 12px;
+	padding: 1.25rem;
+	border: 1px solid var(--color-border);
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	flex: 1;
 }
 
 .section-title-hist {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-  padding-bottom: 0.75rem;
-  letter-spacing: 0.5px;
+	margin: 0;
+	font-size: 1.05rem;
+	font-weight: 500;
+	padding-bottom: 0.6rem;
+	letter-spacing: 0.5px;
 }
 
 .section-title-hist.turquesa {
-  border-bottom: 2px solid #26D0CE;
-  color: white;
+	border-bottom: 2px solid var(--color-accent);
+	color: var(--color-white);
 }
 
 .section-title-hist.amarillo {
-  border-bottom: 2px solid #d4a017;
-  color: white;
+	border-bottom: 2px solid #d4a017;
+	color: var(--color-white);
 }
 
 .tabla-historial-container {
-  flex: 1;
-  overflow-y: auto;
-  border: 1px solid rgba(111, 179, 210, 0.2);
-  border-radius: 8px;
+	flex: 1;
+	overflow-y: auto;
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+}
+
+.tabla-historial-container::-webkit-scrollbar {
+	width: 6px;
+}
+
+.tabla-historial-container::-webkit-scrollbar-track {
+	background: rgba(2, 15, 35, 0.3);
+}
+
+.tabla-historial-container::-webkit-scrollbar-thumb {
+	background: var(--color-primary);
+	border-radius: 4px;
+}
+
+.tabla-historial-container::-webkit-scrollbar-thumb:hover {
+	background: var(--color-accent);
 }
 
 .tabla-historial {
-  width: 100%;
-  border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 .tabla-historial thead {
-  position: sticky;
-  top: 0;
-  background: rgba(10, 25, 41, 0.95);
-  z-index: 10;
+	position: sticky;
+	top: 0;
+	background: rgba(13, 67, 105, 0.97);
+	z-index: 10;
 }
 
 .tabla-historial th {
-  padding: 0.8rem 0.7rem;
-  text-align: left;
-  font-weight: 500;
-  color: white;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	padding: 0.75rem 0.7rem;
+	text-align: left;
+	font-weight: 500;
+	color: var(--color-light);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+	border-bottom: 2px solid var(--color-border-strong);
 }
 
 .tabla-historial tbody tr {
-  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
-  transition: all 0.2s;
-  cursor: pointer;
+	border-bottom: 1px solid var(--color-border);
+	transition: all 0.2s;
+	cursor: pointer;
 }
 
 .tabla-historial tbody tr:hover {
-  background: rgba(111, 179, 210, 0.1);
+	background: var(--color-surface-hover);
 }
 
 .tabla-historial tbody tr.selected {
-  background: rgba(111, 179, 210, 0.25);
-  border-left: 3px solid #6FB3D2;
+	background: rgba(73, 178, 212, 0.2);
+	border-left: 3px solid var(--color-accent);
 }
 
 .tabla-historial td {
-  padding: 0.8rem 0.7rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+	padding: 0.75rem 0.7rem;
+	color: var(--color-text-sub);
+	font-size: 0.875rem;
 }
 
 .sin-historial {
-  text-align: center;
-  padding: 3rem !important;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
+	text-align: center;
+	padding: 3rem !important;
+	color: var(--color-text-muted);
+	font-style: italic;
 }
 
-.panel-datos-estudios {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.panel-derecho {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-width: 0;
 }
 
-.datos-paciente-grid {
-  background: rgba(10, 25, 41, 0.85);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+.visita-info-bar {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	background: rgba(2, 15, 35, 0.8);
+	border: 1px solid var(--color-border-strong);
+	border-radius: 10px;
+	padding: 0.85rem 1.25rem;
+	font-size: 0.9rem;
+	flex-wrap: wrap;
 }
 
-.campo-dato {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.visita-info-bar strong {
+	color: var(--color-accent);
+	margin-right: 0.3rem;
 }
 
-.campo-dato label {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
-}
-
-.campo-dato span {
-  font-size: 0.95rem;
-  color: white;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+.folio-highlight {
+	color: #f0a500;
+	font-weight: 600;
+	font-size: 1rem;
 }
 
 .estudios-paciente-section {
-  background: rgba(10, 25, 41, 0.85);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex: 1;
-}
-
-.observaciones-hist-grupo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.observaciones-hist-grupo label {
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-}
-
-.textarea-observaciones-hist {
-  width: 100%;
-  padding: 0.75rem;
-  background: rgba(10, 25, 41, 0.6);
-  border: 2px solid #007bff;
-  border-radius: 6px;
-  color: white;
-  font-family: 'Codec Pro', sans-serif;
-  font-size: 0.9rem;
-  resize: vertical;
-  min-height: 70px;
-}
-
-.textarea-observaciones-hist:focus {
-  outline: none;
-  border-color: #0056b3;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+	background: rgba(2, 15, 35, 0.8);
+	border-radius: 12px;
+	padding: 1.25rem;
+	border: 1px solid var(--color-border);
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	flex: 1;
 }
 
 .tabla-estudios-hist-container {
-  flex: 1;
-  overflow-y: auto;
-  border: 1px solid rgba(111, 179, 210, 0.2);
-  border-radius: 8px;
+	flex: 1;
+	overflow-y: auto;
+	border: 1px solid var(--color-border);
+	border-radius: 8px;
+}
+
+.tabla-estudios-hist-container::-webkit-scrollbar {
+	width: 6px;
+}
+
+.tabla-estudios-hist-container::-webkit-scrollbar-track {
+	background: rgba(2, 15, 35, 0.3);
+}
+
+.tabla-estudios-hist-container::-webkit-scrollbar-thumb {
+	background: var(--color-primary);
+	border-radius: 4px;
+}
+
+.tabla-estudios-hist-container::-webkit-scrollbar-thumb:hover {
+	background: var(--color-accent);
 }
 
 .tabla-estudios-hist {
-  width: 100%;
-  border-collapse: collapse;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 .tabla-estudios-hist thead {
-  position: sticky;
-  top: 0;
-  background: rgba(10, 25, 41, 0.95);
-  z-index: 10;
+	position: sticky;
+	top: 0;
+	background: rgba(13, 67, 105, 0.97);
+	z-index: 10;
 }
 
 .tabla-estudios-hist th {
-  padding: 0.8rem 0.7rem;
-  text-align: left;
-  font-weight: 500;
-  color: white;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	padding: 0.75rem 0.7rem;
+	text-align: left;
+	font-weight: 500;
+	color: var(--color-light);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+	border-bottom: 2px solid var(--color-border-strong);
 }
 
 .tabla-estudios-hist tbody tr {
-  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
-  transition: background 0.2s;
+	border-bottom: 1px solid var(--color-border);
+	transition: background 0.15s;
 }
 
-.tabla-estudios-hist tbody tr:hover {
-  background: rgba(111, 179, 210, 0.05);
+.fila-estudio-hist {
+	background: rgba(13, 67, 105, 0.45) !important;
 }
 
-.tabla-estudios-hist td {
-  padding: 0.8rem 0.7rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+.fila-estudio-hist:hover {
+	background: rgba(13, 67, 105, 0.55) !important;
+}
+
+.estudio-header-hist {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.25rem 0;
+}
+
+.icono-estado-hist {
+	font-size: 1rem;
+}
+
+.icono-estado-hist.estado-validado {
+	color: var(--color-light);
+}
+
+.icono-estado-hist.estado-guardado {
+	color: var(--color-accent);
+}
+
+.icono-estado-hist.estado-captura {
+	color: var(--color-text-muted);
+}
+
+.estudio-nombre-hist {
+	font-weight: 500;
+	font-size: 0.88rem;
+	color: var(--color-white);
+	flex: 1;
+}
+
+.badge-estado-hist {
+	padding: 0.25rem 0.65rem;
+	border-radius: 20px;
+	font-size: 0.72rem;
+	font-weight: 500;
+}
+
+.badge-estado-hist.estado-validado {
+	background: rgba(83, 185, 219, 0.2);
+	color: var(--color-light);
+	border: 1px solid rgba(83, 185, 219, 0.4);
+}
+
+.badge-estado-hist.estado-guardado {
+	background: rgba(73, 178, 212, 0.15);
+	color: var(--color-accent);
+	border: 1px solid rgba(73, 178, 212, 0.35);
+}
+
+.badge-estado-hist.estado-captura {
+	background: rgba(13, 67, 105, 0.5);
+	color: var(--color-text-muted);
+	border: 1px solid var(--color-border);
+}
+
+.fila-analito-hist {
+	background: transparent;
+}
+
+.fila-analito-hist:hover {
+	background: var(--color-surface-hover) !important;
+}
+
+.fila-analito-hist td {
+	padding: 0.65rem 0.7rem;
+	color: var(--color-text-sub);
+	font-size: 0.875rem;
+}
+
+.fila-subtitulo-hist td {
+	padding: 0.5rem 0.7rem;
+	color: var(--color-accent);
+	font-size: 0.82rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	background: rgba(73, 178, 212, 0.07);
+}
+
+.clave-analito {
+	font-weight: 500;
+	color: var(--color-light) !important;
+	font-size: 0.82rem !important;
+}
+
+.resultado-valor {
+	font-weight: 400;
+	color: var(--color-text-muted) !important;
+}
+
+.resultado-valor.tiene-resultado {
+	color: var(--color-white) !important;
+	font-weight: 500;
+}
+
+.unidades-text {
+	color: var(--color-text-muted) !important;
+	font-size: 0.82rem !important;
+}
+
+.referencia-text {
+	color: var(--color-text-muted) !important;
+	font-size: 0.82rem !important;
+}
+
+.sin-analitos {
+	text-align: center;
+	padding: 1rem !important;
+	color: var(--color-text-muted);
+	font-style: italic;
+	font-size: 0.82rem;
 }
 
 .sin-estudios-hist {
-  text-align: center;
-  padding: 3rem !important;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
+	text-align: center;
+	padding: 3rem !important;
+	color: var(--color-text-muted);
+	font-style: italic;
 }
 
-.tabla-historial-container::-webkit-scrollbar,
-.tabla-estudios-hist-container::-webkit-scrollbar {
-  width: 8px;
+.empty-state-derecho {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	background: rgba(2, 15, 35, 0.6);
+	border-radius: 12px;
+	border: 1px dashed var(--color-border-strong);
+	padding: 3rem;
+	min-height: 300px;
 }
 
-.tabla-historial-container::-webkit-scrollbar-track,
-.tabla-estudios-hist-container::-webkit-scrollbar-track {
-  background: rgba(10, 25, 41, 0.3);
+.empty-icon {
+	font-size: 3rem;
+	opacity: 0.4;
 }
 
-.tabla-historial-container::-webkit-scrollbar-thumb,
-.tabla-estudios-hist-container::-webkit-scrollbar-thumb {
-  background: rgba(111, 179, 210, 0.5);
-  border-radius: 4px;
-}
-
-.tabla-historial-container::-webkit-scrollbar-thumb:hover,
-.tabla-estudios-hist-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 179, 210, 0.7);
+.empty-state-derecho p {
+	color: var(--color-text-muted);
+	font-size: 0.95rem;
+	text-align: center;
+	margin: 0;
 }
 
 @media (max-width: 1200px) {
-  .historial-content {
-    grid-template-columns: 1fr;
-  }
-
-  .panel-historial-paciente {
-    max-height: 50vh;
-  }
-
-  .datos-paciente-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+	.historial-content {
+		grid-template-columns: 1fr;
+		padding-left: 120px;
+	}
 }
 
 @media (max-width: 768px) {
-  .historial-header {
-    padding: 1rem;
-  }
 
-  .historial-content {
-    padding: 1rem;
-  }
+	.historial-header,
+	.historial-content {
+		padding-left: 1rem;
+	}
 
-  .datos-paciente-grid {
-    grid-template-columns: 1fr;
-  }
+	.visita-info-bar {
+		gap: 1rem;
+	}
 
-  .tabla-historial,
-  .tabla-estudios-hist {
-    font-size: 0.85rem;
-  }
+	.tabla-historial th,
+	.tabla-historial td,
+	.tabla-estudios-hist th,
+	.fila-analito-hist td {
+		padding: 0.5rem 0.4rem;
+		font-size: 0.8rem;
+	}
+}
 
-  .tabla-historial th,
-  .tabla-historial td,
-  .tabla-estudios-hist th,
-  .tabla-estudios-hist td {
-    padding: 0.6rem 0.5rem;
-  }
+.icono-buscar-hist {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	opacity: 0.8;
+	flex-shrink: 0;
+}
+
+.empty-icon-img {
+	width: 48px;
+	height: 48px;
+	object-fit: contain;
+	opacity: 0.4;
 }
