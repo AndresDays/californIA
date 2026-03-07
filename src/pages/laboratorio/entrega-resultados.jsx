@@ -1,389 +1,553 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase-client';
-import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout.jsx';
-import Header from '../../components/header-principal.jsx';
-import SidebarHome from '../../components/sidebar-home.jsx';
-import './entrega-resultados.css';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import calendarioIcono from "../../assets/calendarioIcono.png";
+import checkIcono from "../../assets/checkIcono.png";
+import guardarIcono from "../../assets/guardarIcono.png";
+import imprimirBtn from "../../assets/imprimirBtn.png";
+import imprimirIcono from "../../assets/imprimirIcono.png";
+import lupaIcono from "../../assets/lupaIcono.png";
+import relojIcono from "../../assets/relojIcono.png";
+import Header from "../../components/header-principal.jsx";
+import Layout from "../../components/layout.jsx";
+import ModalNotificacion from "../../components/ModalNotificacion";
+import SidebarHome from "../../components/sidebar-home.jsx";
+import { useAuth } from "../../context/auth-context";
+import { supabase } from "../../lib/supabase-client";
+import "./entrega-resultados.css";
 
 const EntregaResultados = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+	const { user } = useAuth();
+	const navigate = useNavigate();
 
-  const [fechaInicial, setFechaInicial] = useState(new Date().toISOString().split('T')[0]);
-  const [fechaFinal, setFechaFinal] = useState(new Date().toISOString().split('T')[0]);
-  const [mediaPagina, setMediaPagina] = useState(false);
-  const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
-  const [idioma, setIdioma] = useState('español');
-  const [buscarFolio, setBuscarFolio] = useState('');
-  const [buscarNombre, setBuscarNombre] = useState('');
-  const [pacientes, setPacientes] = useState([]);
-  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-  const [estudios, setEstudios] = useState([]);
-  const [observaciones, setObservaciones] = useState('');
-  const [historialImpresiones, setHistorialImpresiones] = useState([]);
+	const [fechaInicial, setFechaInicial] = useState(
+		new Date().toISOString().split("T")[0],
+	);
+	const [fechaFinal, setFechaFinal] = useState(
+		new Date().toISOString().split("T")[0],
+	);
 
-  const [empleadoData, setEmpleadoData] = useState(null);
+	const [buscarFolio, setBuscarFolio] = useState("");
+	const [buscarNombre, setBuscarNombre] = useState("");
 
-    useEffect(() => {
-        const fetchEmpleadoData = async () => {
-          if (!user?.id) return;
+	const [ventas, setVentas] = useState([]);
+	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
+	const [estudiosVenta, setEstudiosVenta] = useState([]);
 
-          try {
-            const { data: empleado, error } = await supabase
-              .from('empleados')
-              .select('nombre, rol')
-              .eq('auth_uuid', user.id)
-              .maybeSingle();
+	const [idioma, setIdioma] = useState("español");
+	const [mediaPagina, setMediaPagina] = useState(false);
+	const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
+	const [observacionesEntrega, setObservacionesEntrega] = useState("");
 
-            if (error) {
-              console.error('Error al obtener empleado:', error);
-              return;
-            }
+	const [empleadoData, setEmpleadoData] = useState(null);
 
-            if (empleado) {
-              setEmpleadoData(empleado);
-            }
-          } catch (error) {
-            console.error('Error al obtener datos del empleado:', error);
-          }
-        };
+	const [notificacion, setNotificacion] = useState({
+		isOpen: false,
+		mensaje: "",
+		tipo: "exito",
+	});
 
-        fetchEmpleadoData();
-      }, [user]);
+	useEffect(() => {
+		const fetchEmpleadoData = async () => {
+			if (!user?.id) return;
+			try {
+				const { data: empleado, error } = await supabase
+					.from("empleados")
+					.select("nombre, rol")
+					.eq("auth_uuid", user.id)
+					.maybeSingle();
+				if (error) {
+					console.error("Error al obtener empleado:", error);
+					return;
+				}
+				if (empleado) {
+					setEmpleadoData(empleado);
+				}
+			} catch (error) {
+				console.error("Error al obtener datos del empleado:", error);
+			}
+		};
+		fetchEmpleadoData();
+	}, [user]);
 
-  useEffect(() => {
-    cargarPacientes();
-  }, [fechaInicial, fechaFinal]);
+	useEffect(() => {
+		cargarVentas();
+	}, [fechaInicial, fechaFinal]);
 
-  const cargarPacientes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('estudios')
-        .select(`
-          id_estudio,
-          fecha_estudio,
-          estado,
-          pacientes (
-            id_paciente,
-            nombre,
-            fecha_nacimiento,
-            sexo,
-            tipo
-          )
-        `)
-        .gte('fecha_estudio', fechaInicial)
-        .lte('fecha_estudio', fechaFinal)
-        .in('estado', ['validado', 'entregado'])
-        .order('fecha_estudio', { ascending: false });
+	const mostrarNotificacion = (mensaje, tipo = "exito") => {
+		setNotificacion({ isOpen: true, mensaje, tipo });
+	};
 
-      if (error) throw error;
+	const cerrarNotificacion = () => {
+		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
+	};
 
-      const pacientesMap = new Map();
-      data?.forEach(estudio => {
-        const idPaciente = estudio.pacientes?.id_paciente;
-        if (!pacientesMap.has(idPaciente)) {
-          pacientesMap.set(idPaciente, {
-            ...estudio.pacientes,
-            folio: estudio.id_estudio,
-            empresa: estudio.pacientes?.tipo === 'empresa' ? 'ISSSTE' : 'Particular'
-          });
-        }
-      });
+	const cargarVentas = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("ventas")
+				.select(
+					`
+          id_venta, folio, fecha_venta, estado, total, pago_recibido,
+          pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
+          estudios_venta ( id_estudio_venta, estado_validacion, entregado )
+        `,
+				)
+				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
+				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
+				.eq("estado", "activo")
+				.order("fecha_venta", { ascending: false });
+			if (error) throw error;
+			setVentas(data || []);
+		} catch (error) {
+			console.error("Error al cargar ventas:", error);
+			setVentas([]);
+		}
+	};
 
-      setPacientes(Array.from(pacientesMap.values()));
-    } catch (error) {
-      console.error('Error al cargar pacientes:', error);
-    }
-  };
+	const seleccionarVenta = async (venta) => {
+		setVentaSeleccionada(venta);
+		setObservacionesEntrega("");
+		await cargarEstudiosVenta(venta.id_venta);
+	};
 
-  const seleccionarPaciente = async (paciente) => {
-    setPacienteSeleccionado(paciente);
-    await cargarEstudiosPaciente(paciente.id_paciente);
-  };
+	const cargarEstudiosVenta = async (idVenta) => {
+		try {
+			const { data, error } = await supabase
+				.from("estudios_venta")
+				.select("*")
+				.eq("id_venta", idVenta)
+				.order("id_estudio_venta");
+			if (error) throw error;
+			setEstudiosVenta(data || []);
+		} catch (error) {
+			console.error("Error al cargar estudios:", error);
+			setEstudiosVenta([]);
+		}
+	};
 
-  const cargarEstudiosPaciente = async (idPaciente) => {
-    try {
-      const { data, error } = await supabase
-        .from('estudios')
-        .select(`id_estudio, tipo_estudio, estado, fecha_estudio`)
-        .eq('id_paciente', idPaciente)
-        .in('estado', ['validado', 'entregado']);
+	const marcarComoEntregado = async (idEstudioVenta) => {
+		try {
+			const { error } = await supabase
+				.from("estudios_venta")
+				.update({
+					entregado: true,
+					fecha_entrega: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id_estudio_venta", idEstudioVenta);
+			if (error) throw error;
+			mostrarNotificacion("Estudio marcado como entregado", "exito");
+			if (ventaSeleccionada) {
+				await cargarEstudiosVenta(ventaSeleccionada.id_venta);
+			}
+			await cargarVentas();
+		} catch (error) {
+			console.error("Error al marcar como entregado:", error);
+			mostrarNotificacion("Error al marcar como entregado", "error");
+		}
+	};
 
-      if (error) throw error;
+	const imprimir = () => {
+		if (!ventaSeleccionada) {
+			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		window.print();
+	};
 
-      const estudiosFormateados = data?.map(est => ({
-        clave: `EST-${est.id_estudio}`,
-        estudio: est.tipo_estudio,
-        icono: '📄',
-        estatus: est.estado === 'entregado' ? 'Entregado' : 'Validado',
-        saldo: '$0.00',
-        entregar: est.estado !== 'entregado'
-      })) || [];
+	const enviarEmail = () => {
+		if (!ventaSeleccionada) {
+			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		mostrarNotificacion("Función de envío por email en desarrollo", "info");
+	};
 
-      setEstudios(estudiosFormateados);
-    } catch (error) {
-      console.error('Error al cargar estudios:', error);
-    }
-  };
+	const enviarWhatsApp = () => {
+		if (!ventaSeleccionada) {
+			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		mostrarNotificacion("Función de envío por WhatsApp en desarrollo", "info");
+	};
 
-  const handleEnviarEmail = () => {
-    if (!pacienteSeleccionado) {
-      alert('Seleccione un paciente primero');
-      return;
-    }
-    alert('Enviando resultados por email...');
-  };
+	const calcularEdad = (fechaNacimiento) => {
+		if (!fechaNacimiento) return "N/A";
+		const hoy = new Date();
+		const nacimiento = new Date(fechaNacimiento);
+		let edad = hoy.getFullYear() - nacimiento.getFullYear();
+		const mes = hoy.getMonth() - nacimiento.getMonth();
+		if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+			edad--;
+		}
+		return `${edad} años`;
+	};
 
-  const handleEnviarWhatsApp = () => {
-    if (!pacienteSeleccionado) {
-      alert('Seleccione un paciente primero');
-      return;
-    }
-    alert('Enviando resultados por WhatsApp...');
-  };
+	const calcularEstadoPago = (total, pagoRecibido) => {
+		const totalNum = parseFloat(total) || 0;
+		const pagoNum = parseFloat(pagoRecibido) || 0;
+		return pagoNum >= totalNum ? "Pagado" : "Saldo Pendiente";
+	};
 
-  const handleImprimir = () => {
-    if (!pacienteSeleccionado) {
-      alert('Seleccione un paciente primero');
-      return;
-    }
-    window.print();
-  };
+	const calcularSaldo = (total, pagoRecibido) => {
+		const totalNum = parseFloat(total) || 0;
+		const pagoNum = parseFloat(pagoRecibido) || 0;
+		const saldo = totalNum - pagoNum;
+		return saldo > 0 ? saldo.toFixed(2) : "0.00";
+	};
 
-  const handleGuardarObservaciones = async () => {
-    try {
-      alert('Observaciones guardadas');
-    } catch (error) {
-      console.error('Error al guardar observaciones:', error);
-    }
-  };
+	const formatFechaHora = (fecha) => {
+		if (!fecha) return "N/A";
+		return new Date(fecha).toLocaleString("es-MX", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	};
 
-  const handleEntregarEstudio = async (clave) => {
-    try {
-      const idEstudio = parseInt(clave.replace('EST-', ''));
-      
-      const { error } = await supabase
-        .from('estudios')
-        .update({ estado: 'entregado' })
-        .eq('id_estudio', idEstudio);
+	const obtenerIconoEstado = (estadoValidacion) => {
+		switch (estadoValidacion) {
+			case "captura":
+				return (
+					<img src={relojIcono} alt="En Captura" className="icono-estado-img" />
+				);
+			case "guardado":
+				return (
+					<img src={imprimirIcono} alt="Guardado" className="icono-estado-img" />
+				);
+			case "validado":
+				return <img src={checkIcono} alt="Validado" className="icono-estado-img" />;
+			default:
+				return (
+					<img src={relojIcono} alt="En Captura" className="icono-estado-img" />
+				);
+		}
+	};
 
-      if (error) throw error;
+	const obtenerTextoEstado = (estadoValidacion) => {
+		switch (estadoValidacion) {
+			case "captura":
+				return "En Captura";
+			case "guardado":
+				return "Guardado";
+			case "validado":
+				return "Validado";
+			default:
+				return "En Captura";
+		}
+	};
 
-      if (pacienteSeleccionado) {
-        await cargarEstudiosPaciente(pacienteSeleccionado.id_paciente);
-      }
-      
-      alert('Estudio marcado como entregado');
-    } catch (error) {
-      console.error('Error al entregar estudio:', error);
-      alert('Error al entregar el estudio');
-    }
-  };
+	const ventasFiltradas = ventas.filter((venta) => {
+		const matchNombre =
+			buscarNombre === "" ||
+			venta.pacientes?.nombre.toLowerCase().includes(buscarNombre.toLowerCase());
+		const matchFolio =
+			buscarFolio === "" ||
+			venta.folio.toLowerCase().includes(buscarFolio.toLowerCase());
+		return matchNombre && matchFolio;
+	});
 
-  const calcularEdad = (fechaNacimiento) => {
-    const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const mes = hoy.getMonth() - nacimiento.getMonth();
-    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-    return edad;
-  };
+	const getPrimerNombre = (nombreCompleto) => {
+		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
+		return nombreCompleto;
+	};
 
-  const pacientesFiltrados = pacientes.filter(pac => {
-    const matchFolio = buscarFolio === '' || pac.folio.toString().includes(buscarFolio);
-    const matchNombre = buscarNombre === '' || pac.nombre.toLowerCase().includes(buscarNombre.toLowerCase());
-    return matchFolio && matchNombre;
-  });
+	const formatRol = (rol) => {
+		if (!rol) return "Usuario";
+		const roles = {
+			admin: "Administrador",
+			administrador: "Administrador",
+			radiologo: "Radiólogo - Director",
+			doctor: "Médico",
+			medico: "Médico",
+			tecnico_radiologia: "Técnico en Radiología",
+			tecnico: "Técnico",
+			quimico: "Químico",
+			recepcionista: "Recepcionista",
+			desarrollador: "Desarrollador",
+		};
+		return roles[rol] || rol;
+	};
 
-  const getPrimerNombre = (nombreCompleto) => {
-     if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-     return nombreCompleto;
-   };
+	const handleLogout = async () => {
+		const { signOut } = useAuth();
+		await signOut();
+		navigate("/login");
+	};
 
-    const formatRol = (rol) => {
-     if (!rol) return 'Usuario';
+	return (
+		<Layout>
+			<div className="entrega-wrapper">
+				<Header
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="entrega"
+				/>
 
-    const roles = {
-       'admin': 'Administrador',
-       'administrador': 'Administrador',
-       'radiologo': 'Radiólogo - Director',
-       'doctor': 'Médico',
-       'medico': 'Médico',
-       'tecnico_radiologia': 'Técnico en Radiología',
-       'tecnico': 'Técnico',
-       'quimico': 'Químico',
-       'recepcionista': 'Recepcionista',
-       'desarrollador': 'Desarrollador'
-    };
+				<SidebarHome />
 
-     return roles[rol] || rol;
-    };
+				<div className="entrega-header-section">
+					<h1 className="entrega-titulo">Entrega de Resultados</h1>
+				</div>
 
-   const handleLogout = async () => {
-     const { signOut } = useAuth();
-     await signOut();
-     navigate('/login');
-   };
+				<div className="filtros-section">
+					<div className="filtros-row">
+						<div className="filtro-fecha">
+							<img
+								src={calendarioIcono}
+								alt="Calendario"
+								className="icono-calendario"
+							/>
+							<label>Fecha Inicial:</label>
+							<input
+								type="date"
+								value={fechaInicial}
+								onChange={(e) => setFechaInicial(e.target.value)}
+								className="input-fecha"
+							/>
+						</div>
 
-  return (
-    <Layout>
-      <div className="entrega-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="entrega-resultados"
-        />
+						<div className="filtro-fecha">
+							<img
+								src={calendarioIcono}
+								alt="Calendario"
+								className="icono-calendario"
+							/>
+							<label>Fecha Final:</label>
+							<input
+								type="date"
+								value={fechaFinal}
+								onChange={(e) => setFechaFinal(e.target.value)}
+								className="input-fecha"
+							/>
+						</div>
 
-        <SidebarHome/>
-        <div className="entrega-title-section">
-          <h1 className="entrega-title">Entrega de Resultados</h1>
-        </div>
-        <div className="entrega-controls-top">
-          <div className="controls-row-1">
-            <div className="fecha-grupo">
-              <label>📅 Fecha Inicial:</label>
-              <input type="date" value={fechaInicial} onChange={(e) => setFechaInicial(e.target.value)} className="input-fecha-entrega" />
-            </div>
-            <div className="fecha-grupo">
-              <label>📅 Fecha Final:</label>
-              <input type="date" value={fechaFinal} onChange={(e) => setFechaFinal(e.target.value)} className="input-fecha-entrega" />
-            </div>
-            <label className="checkbox-control">
-              <input type="checkbox" checked={mediaPagina} onChange={(e) => setMediaPagina(e.target.checked)} />
-              Media Página
-            </label>
-            <label className="checkbox-control">
-              <input type="checkbox" checked={imprimirEncabezado} onChange={(e) => setImprimirEncabezado(e.target.checked)} />
-              Imprimir Encabezado y Pie de Página
-            </label>
-            <select value={idioma} onChange={(e) => setIdioma(e.target.value)} className="select-idioma-entrega">
-              <option value="español">Español</option>
-              <option value="english">English</option>
-            </select>
-            <button className="btn-imprimir-entrega" onClick={handleImprimir}>🖨️ Imprimir</button>
-          </div>
-          <div className="controls-row-2">
-            <button className="btn-email" onClick={handleEnviarEmail}>📧 Enviar por e-mail</button>
-            <button className="btn-whatsapp" onClick={handleEnviarWhatsApp}>💬 Enviar por WhatsApp</button>
-            <div className="buscar-folio-grupo">
-              <span className="barcode-icon">|||||||||||</span>
-              <input type="text" placeholder="Buscar por Folio..." value={buscarFolio} onChange={(e) => setBuscarFolio(e.target.value)} className="input-buscar-folio" />
-            </div>
-          </div>
-        </div>
-        <div className="entrega-content">
-          <div className="panel-pacientes-entrega">
-            <div className="buscar-nombre-section">
-              <label>Busca Por Nombre</label>
-              <input type="text" value={buscarNombre} onChange={(e) => setBuscarNombre(e.target.value)} className="input-buscar-nombre" />
-            </div>
-            <div className="tabla-pacientes-entrega-container">
-              <table className="tabla-pacientes-entrega">
-                <thead>
-                  <tr>
-                    <th>Folio</th>
-                    <th>Nombre</th>
-                    <th>Edad</th>
-                    <th>Sexo</th>
-                    <th>Empresa</th>
-                    <th>Lote</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pacientesFiltrados.map((paciente) => (
-                    <tr key={paciente.id_paciente} className={pacienteSeleccionado?.id_paciente === paciente.id_paciente ? 'selected' : ''} onClick={() => seleccionarPaciente(paciente)}>
-                      <td>{paciente.folio}</td>
-                      <td>{paciente.nombre}</td>
-                      <td>{calcularEdad(paciente.fecha_nacimiento)} años</td>
-                      <td>{paciente.sexo}</td>
-                      <td>{paciente.empresa}</td>
-                      <td><input type="checkbox" /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="registros-info">Mostrando registros del 1 al {pacientesFiltrados.length} de un total de {pacientes.length}</div>
-          </div>
-          <div className="panel-detalles-entrega">
-            <div className="observaciones-entrega-section">
-              <div className="observaciones-header">
-                <label>Observaciones de Entrega</label>
-                <button className="btn-guardar-obs" onClick={handleGuardarObservaciones} title="Guardar observaciones">💾</button>
-              </div>
-              <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} className="textarea-observaciones-entrega" rows="4" />
-            </div>
-            <div className="historial-section">
-              <label>Historial de Impresiones</label>
-              <div className="historial-container">
-                {historialImpresiones.length === 0 ? (
-                  <div className="sin-historial">No hay impresiones registradas</div>
-                ) : (
-                  <table className="tabla-historial">
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Usuario</th>
-                        <th>Tipo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {historialImpresiones.map((item, index) => (
-                        <tr key={index}>
-                          <td>{item.fecha}</td>
-                          <td>{item.usuario}</td>
-                          <td>{item.tipo}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-            <div className="estudios-entrega-section">
-              <table className="tabla-estudios-entrega">
-                <thead>
-                  <tr>
-                    <th>Clave</th>
-                    <th>Estudio</th>
-                    <th>Ícono</th>
-                    <th>Estatus</th>
-                    <th>Saldo</th>
-                    <th>Entregar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estudios.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="sin-estudios">Seleccione un paciente para ver sus estudios</td>
-                    </tr>
-                  ) : (
-                    estudios.map((estudio, index) => (
-                      <tr key={index}>
-                        <td>{estudio.clave}</td>
-                        <td>{estudio.estudio}</td>
-                        <td>{estudio.icono}</td>
-                        <td><span className={`estatus-badge ${estudio.estatus.toLowerCase()}`}>{estudio.estatus}</span></td>
-                        <td>{estudio.saldo}</td>
-                        <td>{estudio.entregar && (<button className="btn-entregar" onClick={() => handleEntregarEstudio(estudio.clave)}>✓</button>)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
+						<div className="filtro-busqueda">
+							<img src={lupaIcono} alt="Lupa" className="icono-lupa" />
+							<input
+								type="text"
+								placeholder="Buscar por Folio..."
+								value={buscarFolio}
+								onChange={(e) => setBuscarFolio(e.target.value)}
+								className="input-busqueda"
+							/>
+						</div>
+
+						<label className="checkbox-inline">
+							<input
+								type="checkbox"
+								checked={mediaPagina}
+								onChange={(e) => setMediaPagina(e.target.checked)}
+							/>
+							Media Página
+						</label>
+
+						<label className="checkbox-inline">
+							<input
+								type="checkbox"
+								checked={imprimirEncabezado}
+								onChange={(e) => setImprimirEncabezado(e.target.checked)}
+							/>
+							Imprimir Encabezado y Pie de Página
+						</label>
+
+						<select
+							value={idioma}
+							onChange={(e) => setIdioma(e.target.value)}
+							className="select-idioma">
+							<option value="español">Español</option>
+							<option value="english">English</option>
+						</select>
+
+						<button className="btn-imprimir-img" onClick={imprimir}>
+							<img src={imprimirBtn} alt="Imprimir" className="icono-btn-imprimir" />
+						</button>
+						<button className="btn-action-entrega" onClick={enviarEmail}>
+							Enviar por e-mail
+						</button>
+						<button className="btn-action-entrega" onClick={enviarWhatsApp}>
+							Enviar por WhatsApp
+						</button>
+					</div>
+				</div>
+
+				<div className="entrega-content">
+					<div className="panel-busqueda-nombre">
+						<label>Buscar Por Nombre</label>
+						<input
+							type="text"
+							placeholder="Nombre del paciente..."
+							value={buscarNombre}
+							onChange={(e) => setBuscarNombre(e.target.value)}
+							className="input-buscar-nombre"
+						/>
+
+						<div className="tabla-pacientes-container">
+							<table className="tabla-pacientes-entrega">
+								<thead>
+									<tr>
+										<th>Folio</th>
+										<th>Nombre</th>
+										<th>Edad</th>
+										<th>Sexo</th>
+										<th>Empresa</th>
+										<th>Lote</th>
+									</tr>
+								</thead>
+								<tbody>
+									{ventasFiltradas.map((venta) => (
+										<tr
+											key={venta.id_venta}
+											className={
+												ventaSeleccionada?.id_venta === venta.id_venta
+													? "selected"
+													: ""
+											}
+											onClick={() => seleccionarVenta(venta)}>
+											<td>{venta.folio}</td>
+											<td>{venta.pacientes?.nombre || "N/A"}</td>
+											<td>{calcularEdad(venta.pacientes?.fecha_nacimiento)}</td>
+											<td>{venta.pacientes?.sexo || "N/A"}</td>
+											<td>
+												{venta.pacientes?.tipo === "cliente"
+													? "Cliente"
+													: "Particular"}
+											</td>
+											<td>
+												<input type="checkbox" className="checkbox-lote" />
+											</td>
+										</tr>
+									))}
+									{ventasFiltradas.length === 0 && (
+										<tr>
+											<td colSpan="6" className="no-data">
+												No hay pacientes para mostrar
+											</td>
+										</tr>
+									)}
+								</tbody>
+							</table>
+						</div>
+
+						<div className="info-registros">
+							Mostrando registros del 1 al 6 de un total de {ventasFiltradas.length}
+						</div>
+					</div>
+
+					<div className="panel-detalles-entrega">
+						<div className="observaciones-entrega-section">
+							<label>Observaciones de Entrega</label>
+							<textarea
+								value={observacionesEntrega}
+								onChange={(e) => setObservacionesEntrega(e.target.value)}
+								className="textarea-observaciones-entrega"
+								rows="3"
+								placeholder="Observaciones de entrega..."
+							/>
+							<button className="btn-guardar-observaciones">
+								<img src={guardarIcono} alt="Guardar" className="icono-guardar" />
+							</button>
+						</div>
+
+						<div className="historial-impresiones">
+							<h3>Historial de Impresiones</h3>
+							<p className="texto-descargado">
+								Descargados el Día: {new Date().toLocaleDateString("es-MX")} Hora:{" "}
+								{new Date().toLocaleTimeString("es-MX", {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</p>
+						</div>
+
+						<div className="tabla-estudios-container">
+							<table className="tabla-estudios-entrega">
+								<thead>
+									<tr>
+										<th>Clave</th>
+										<th>Estudio</th>
+										<th>Icono</th>
+										<th>Estatus</th>
+										<th>Saldo</th>
+										<th>Entregar</th>
+									</tr>
+								</thead>
+								<tbody>
+									{estudiosVenta.length === 0 ? (
+										<tr>
+											<td colSpan="6" className="no-data">
+												Seleccione un paciente para ver sus estudios
+											</td>
+										</tr>
+									) : (
+										estudiosVenta.map((estudio) => (
+											<tr key={estudio.id_estudio_venta}>
+												<td>{estudio.clave_estudio}</td>
+												<td>{estudio.descripcion_estudio}</td>
+												<td>
+													{obtenerIconoEstado(
+														estudio.estado_validacion || "captura",
+													)}
+												</td>
+												<td>
+													<span
+														className={`badge-estado-estudio estado-${estudio.estado_validacion || "captura"}`}>
+														{obtenerTextoEstado(
+															estudio.estado_validacion || "captura",
+														)}
+													</span>
+												</td>
+												<td>
+													{ventaSeleccionada ? (
+														<span
+															className={`badge-saldo ${calcularEstadoPago(ventaSeleccionada.total, ventaSeleccionada.pago_recibido) === "Pagado" ? "pagado" : "pendiente"}`}>
+															{calcularEstadoPago(
+																ventaSeleccionada.total,
+																ventaSeleccionada.pago_recibido,
+															) === "Pagado"
+																? "Pagado"
+																: `$${calcularSaldo(ventaSeleccionada.total, ventaSeleccionada.pago_recibido)}`}
+														</span>
+													) : (
+														"-"
+													)}
+												</td>
+												<td>
+													{estudio.entregado ? (
+														<span className="badge-entregado">Entregado</span>
+													) : (
+														<button
+															className="btn-entregar"
+															onClick={() =>
+																marcarComoEntregado(estudio.id_estudio_venta)
+															}>
+															Entregar
+														</button>
+													)}
+												</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+
+				<ModalNotificacion
+					isOpen={notificacion.isOpen}
+					onClose={cerrarNotificacion}
+					mensaje={notificacion.mensaje}
+					tipo={notificacion.tipo}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default EntregaResultados;
