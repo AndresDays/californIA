@@ -5,6 +5,7 @@ import Layout from "../../components/layout.jsx";
 import SidebarHome from '../../components/sidebar-home';
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { generarTicketVenta } from "../../utils/generarTicketVenta";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
@@ -111,15 +112,166 @@ const NuevoPaciente = () => {
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, pagoRecibido]);
 
 	useEffect(() => {
-		// Recargar tipos de estudio cuando cambie la empresa
 		if (empresaSeleccionada) {
 			cargarTiposEstudio(parseInt(empresaSeleccionada));
 		} else {
 			setTiposEstudio([]);
 		}
-		// Limpiar tipo de estudio seleccionado al cambiar empresa
 		setTipoEstudioSeleccionado("");
 	}, [empresaSeleccionada]);
+
+	const generarFolio = async () => {
+		const hoy = new Date();
+		const dia = String(hoy.getDate()).padStart(2, "0");
+		const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+		const ano = String(hoy.getFullYear()).slice(-2);
+
+		const prefijo = `${dia}${mes}${ano}`;
+
+		try {
+			const { data, error } = await supabase
+				.from("ventas")
+				.select("folio")
+				.like("folio", `${prefijo}%`)
+				.order("folio", { ascending: false })
+				.limit(1);
+
+			if (error) throw error;
+
+			let numeroConsecutivo = 1;
+
+			if (data && data.length > 0) {
+				const ultimoFolio = data[0].folio;
+				const ultimoNumero = parseInt(ultimoFolio.slice(-4));
+				numeroConsecutivo = ultimoNumero + 1;
+			}
+
+			const folioCompleto = `${prefijo}${String(numeroConsecutivo).padStart(4, "0")}`;
+			return folioCompleto;
+		} catch (error) {
+			console.error("Error al generar folio:", error);
+			return `${prefijo}0001`;
+		}
+	};
+
+	const guardarYPagar = async () => {
+		if (!nombreCompleto.trim()) {
+			alert("Por favor ingrese el nombre del paciente");
+			return;
+		}
+
+		if (estudiosSeleccionados.length === 0) {
+			alert("Por favor agregue al menos un estudio");
+			return;
+		}
+
+		if (parseFloat(pagoRecibido) < granTotal) {
+			alert("El pago recibido es menor al total");
+			return;
+		}
+
+		try {
+			let idPaciente = pacienteSeleccionado?.id_paciente;
+
+			if (!idPaciente) {
+				const { data: nuevoPaciente, error: errorPaciente } = await supabase
+					.from("pacientes")
+					.insert([
+						{
+							nombre: nombreCompleto,
+							telefono: telefono,
+							email: correo,
+							sexo: sexo,
+							edad: parseInt(edad) || null,
+							rfc: rfc || null,
+							tipo: clienteSeleccionado ? "cliente" : "particular",
+						},
+					])
+					.select()
+					.single();
+
+				if (errorPaciente) throw errorPaciente;
+				idPaciente = nuevoPaciente.id_paciente;
+			}
+
+			const { data: empleado } = await supabase
+				.from("empleados")
+				.select("id_empleado")
+				.eq("auth_uuid", user.id)
+				.single();
+
+			const folio = await generarFolio();
+
+			const ahora = new Date();
+
+			const fechaMexico = new Date(
+				ahora.toLocaleString("en-US", { timeZone: "America/Mexico_City" }),
+			);
+
+			const { data: venta, error: errorVenta } = await supabase
+				.from("ventas")
+				.insert([
+					{
+						folio: folio,
+						id_paciente: idPaciente,
+						id_doctor: doctorSeleccionado?.id_doctor || null,
+						id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
+						id_empleado: empleado?.id_empleado || null,
+						fecha_venta: fechaMexico.toISOString(),
+						subtotal: subtotal,
+						iva: iva,
+						descuento: descuento,
+						total: granTotal,
+						forma_pago: formaPago,
+						pago_recibido: parseFloat(pagoRecibido),
+						cambio: cambio,
+						observaciones: observaciones,
+						estado: "activo",
+					},
+				])
+				.select()
+				.single();
+
+			if (errorVenta) throw errorVenta;
+
+			const estudiosParaInsertar = estudiosSeleccionados.map((est) => ({
+				id_venta: venta.id_venta,
+				clave_estudio: est.clave,
+				descripcion_estudio: est.descripcion,
+				precio: est.precio,
+				area: est.area,
+				dias_proceso: est.diasProceso || 1,
+				estado_captura: "pendiente",
+			}));
+
+			const { error: errorEstudios } = await supabase
+				.from("estudios_venta")
+				.insert(estudiosParaInsertar);
+
+			if (errorEstudios) throw errorEstudios;
+
+			await generarTicketVenta({
+				folio,
+				fecha: new Date(),
+				paciente: nombreCompleto,
+				estudios: estudiosSeleccionados,
+				subtotal,
+				iva,
+				descuento,
+				total: granTotal,
+				pagoRecibido: parseFloat(pagoRecibido),
+				cambio,
+				formaPago,
+				observaciones,
+			});
+
+			alert(`¡Venta registrada exitosamente!\nFolio: ${folio}`);
+			limpiarFormulario();
+		} catch (error) {
+			console.error("Error al guardar:", error);
+			alert("Error al guardar la venta: " + error.message);
+		}
+	};
 
 	const cargarVendedor = async () => {
 		if (!user) return;
@@ -170,7 +322,6 @@ const NuevoPaciente = () => {
 	const cargarTiposEstudio = async (idEmpresa = null) => {
 		try {
 			if (!idEmpresa) {
-				// Si no hay empresa seleccionada, no mostrar tipos
 				setTiposEstudio([]);
 				return;
 			}
@@ -538,68 +689,6 @@ const NuevoPaciente = () => {
 		setBuscarEstudio("");
 		setPagoRecibido("");
 		setDescuentoPercent(0);
-	};
-
-	const guardarYPagar = async () => {
-		if (!nombreCompleto.trim()) {
-			alert("Por favor ingrese el nombre del paciente");
-			return;
-		}
-
-		if (estudiosSeleccionados.length === 0) {
-			alert("Por favor agregue al menos un estudio");
-			return;
-		}
-
-		if (pagoRecibido < granTotal) {
-			alert("El pago recibido es menor al total");
-			return;
-		}
-
-		try {
-			let idPaciente = pacienteSeleccionado?.id_paciente;
-
-			if (!idPaciente) {
-				const { data: nuevoPaciente, error: errorPaciente } = await supabase
-					.from("pacientes")
-					.insert([
-						{
-							nombre: nombreCompleto,
-							telefono: telefono,
-							email: correo,
-							sexo: sexo,
-							edad: parseInt(edad) || null,
-							rfc: rfc || null,
-							tipo: clienteSeleccionado ? "cliente" : "particular",
-						},
-					])
-					.select()
-					.single();
-
-				if (errorPaciente) throw errorPaciente;
-				idPaciente = nuevoPaciente.id_paciente;
-			}
-
-			const estudiosParaInsertar = estudiosSeleccionados.map((est) => ({
-				id_paciente: idPaciente,
-				tipo_estudio: est.area || "laboratorio",
-				fecha_estudio: new Date().toISOString(),
-				estado: "pendiente",
-			}));
-
-			const { data: estudiosCreados, error: errorEstudios } = await supabase
-				.from("estudios")
-				.insert(estudiosParaInsertar)
-				.select();
-
-			if (errorEstudios) throw errorEstudios;
-
-			alert("¡Venta registrada exitosamente!");
-			limpiarFormulario();
-		} catch (error) {
-			console.error("Error al guardar:", error);
-			alert("Error al guardar la venta: " + error.message);
-		}
 	};
 
 	const estudiosFiltrados = estudiosDisponibles.filter(
