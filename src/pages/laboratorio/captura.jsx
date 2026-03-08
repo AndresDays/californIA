@@ -194,7 +194,15 @@ const Captura = () => {
 								clave: analitoDetalle.clave,
 								descripcion: analitoDetalle.descripcion,
 								unidades: analitoDetalle.unidad || "",
-								referencia: analitoDetalle.valor_referencia_texto || "",
+								referencia:
+									analitoDetalle.tipo_resultado === "Subtitulo"
+										? ""
+										: analitoDetalle.vr_bajo != null &&
+											  analitoDetalle.vr_alto != null
+											? `${analitoDetalle.vr_bajo} - ${analitoDetalle.vr_alto}`
+											: analitoDetalle.vr_bajo != null
+												? `>${analitoDetalle.vr_bajo}`
+												: analitoDetalle.referencia || "",
 								tipo_resultado: analitoDetalle.tipo_resultado || "Numerico",
 								resultado: resultadoGuardado,
 								orden: relacion.orden,
@@ -640,7 +648,6 @@ const Captura = () => {
 							<table className="tabla-resultados">
 								<thead>
 									<tr>
-										<th>Estado</th>
 										<th>Clave</th>
 										<th>Descripción</th>
 										<th>Resultado</th>
@@ -651,7 +658,7 @@ const Captura = () => {
 								<tbody>
 									{resultados.length === 0 ? (
 										<tr>
-											<td colSpan="6" className="no-data">
+											<td colSpan="5" className="no-data">
 												Seleccione un paciente para capturar resultados
 											</td>
 										</tr>
@@ -659,7 +666,7 @@ const Captura = () => {
 										resultados.map((estudio) => (
 											<React.Fragment key={estudio.id_estudio_venta}>
 												<tr className="fila-estudio">
-													<td colSpan="6" className="nombre-estudio">
+													<td colSpan="5" className="nombre-estudio">
 														<div className="estudio-header">
 															<span
 																className={`estudio-icono-estado estado-${estudio.estado_validacion || "captura"}`}>
@@ -684,58 +691,70 @@ const Captura = () => {
 													</td>
 												</tr>
 												{estudio.analitos && estudio.analitos.length > 0 ? (
-													estudio.analitos.map((analito) => (
-														<tr
-															key={`${estudio.id_estudio_venta}-${analito.id_analito}`}
-															className="fila-analito">
-															<td></td>
-															<td>{analito.clave}</td>
-															<td>{analito.descripcion}</td>
-															<td>
-																{analito.tipo_resultado === "Numerico" ? (
-																	<input
-																		type="text"
-																		value={analito.resultado}
-																		onChange={(e) =>
-																			actualizarResultado(
-																				estudio.id_estudio_venta,
-																				analito.id_analito,
-																				e.target.value,
-																			)
-																		}
-																		className="input-resultado"
-																		placeholder="Ingrese resultado"
-																		disabled={
-																			estudio.estado_validacion === "validado"
-																		}
-																	/>
-																) : analito.tipo_resultado === "Subtitulo" ? (
-																	<span className="subtitulo-texto">
-																		{analito.descripcion}
-																	</span>
-																) : (
-																	<textarea
-																		value={analito.resultado}
-																		onChange={(e) =>
-																			actualizarResultado(
-																				estudio.id_estudio_venta,
-																				analito.id_analito,
-																				e.target.value,
-																			)
-																		}
-																		className="textarea-resultado"
-																		placeholder="Ingrese texto"
-																		rows="2"
-																		disabled={
-																			estudio.estado_validacion === "validado"
-																		}
-																	/>
-																)}
-															</td>
-															<td>{analito.unidades}</td>
-															<td>{analito.referencia}</td>
-														</tr>
-													))
+													estudio.analitos
+														.filter(
+															(analito) => analito.tipo_resultado !== "Subtitulo",
+														)
+														.map((analito) => (
+															<tr
+																key={`${estudio.id_estudio_venta}-${analito.id_analito}`}
+																className="fila-analito">
+																<td>{analito.clave}</td>
+																<td>{analito.descripcion}</td>
+																<td>
+																	{analito.tipo_resultado === "Numerico" ? (
+																		<input
+																			type="text"
+																			value={analito.resultado}
+																			onChange={(e) =>
+																				actualizarResultado(
+																					estudio.id_estudio_venta,
+																					analito.id_analito,
+																					e.target.value,
+																				)
+																			}
+																			className="input-resultado"
+																			placeholder="Ingrese resultado"
+																			disabled={
+																				estudio.estado_validacion === "validado"
+																			}
+																		/>
+																	) : analito.tipo_resultado === "Subtitulo" ? (
+																		<span className="subtitulo-texto">
+																			{analito.descripcion}
+																		</span>
+																	) : (
+																		<textarea
+																			value={analito.resultado}
+																			onChange={(e) =>
+																				actualizarResultado(
+																					estudio.id_estudio_venta,
+																					analito.id_analito,
+																					e.target.value,
+																				)
+																			}
+																			className="textarea-resultado"
+																			placeholder="Ingrese texto"
+																			rows="2"
+																			disabled={
+																				estudio.estado_validacion === "validado"
+																			}
+																		/>
+																	)}
+																</td>
+																<td>{analito.unidades}</td>
+																<td>
+																	{analito.referencia
+																		.split(/<br\s*\/?>/i)
+																		.map((linea, i, arr) => (
+																			<span key={i}>
+																				{linea}
+																				{i < arr.length - 1 && <br />}
+																			</span>
+																		))}
+																</td>
+															</tr>
+														))
 												) : (
 													<tr>
 														<td colSpan="6" className="no-data-mini">
