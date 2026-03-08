@@ -440,7 +440,7 @@
 }
 
 .tabla-resultados th {
-  padding: 0.9rem 0.75rem;
+	padding: 0.9rem 0.75rem 0.9rem 2.5rem;
   text-align: left;
   font-weight: 500;
   color: white;
