@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import empresaIcono from "../../../assets/empresaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import Header from '../../../components/header-principal.jsx';
-import SidebarHome from '../../../components/sidebar-home.jsx';
 import Layout from "../../../components/layout.jsx";
+import SidebarHome from '../../../components/sidebar-home.jsx';
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
@@ -13,6 +13,8 @@ import "./cotizacion.css";
 const Cotizacion = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [nombrePaciente, setNombrePaciente] = useState("");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
@@ -413,15 +415,18 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 		<Layout>
 			<div className="cotizacion-wrapper">
 				<Header
-                  empleadoData={empleadoData}
-                  formatRol={formatRol}
-                  getPrimerNombre={getPrimerNombre}
-                  user={user}
-                  handleLogout={handleLogout}
-                  currentPage="editar-solicitud"
-                />
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="editar-solicitud"
+				/>
 
-                <SidebarHome/>
+				<SidebarHome />
 
 				<div className="cotizacion-header">
 					<h1 className="cotizacion-title">Cotización</h1>

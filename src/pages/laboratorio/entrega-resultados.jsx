@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
@@ -18,6 +18,8 @@ import "./entrega-resultados.css";
 const EntregaResultados = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [fechaInicial, setFechaInicial] = useState(
 		new Date().toISOString().split("T")[0],
@@ -281,6 +283,9 @@ const EntregaResultados = () => {
 		<Layout>
 			<div className="entrega-wrapper">
 				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
 					empleadoData={empleadoData}
 					formatRol={formatRol}
 					getPrimerNombre={getPrimerNombre}

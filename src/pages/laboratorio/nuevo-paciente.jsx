@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/header-principal.jsx";
 import Layout from "../../components/layout.jsx";
-import SidebarHome from '../../components/sidebar-home';
+import SidebarHome from "../../components/sidebar-home";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { generarTicketVenta } from "../../utils/generarTicketVenta";
@@ -21,6 +21,8 @@ import warningV1 from "../../assets/warningV1.png";
 const NuevoPaciente = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
 	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
@@ -74,31 +76,31 @@ const NuevoPaciente = () => {
 	const [empleadoData, setEmpleadoData] = useState(null);
 
 	useEffect(() => {
-        const fetchEmpleadoData = async () => {
-          if (!user?.id) return;
+		const fetchEmpleadoData = async () => {
+			if (!user?.id) return;
 
-          try {
-            const { data: empleado, error } = await supabase
-              .from('empleados')
-              .select('nombre, rol')
-              .eq('auth_uuid', user.id)
-              .maybeSingle();
+			try {
+				const { data: empleado, error } = await supabase
+					.from("empleados")
+					.select("nombre, rol")
+					.eq("auth_uuid", user.id)
+					.maybeSingle();
 
-            if (error) {
-              console.error('Error al obtener empleado:', error);
-              return;
-            }
+				if (error) {
+					console.error("Error al obtener empleado:", error);
+					return;
+				}
 
-            if (empleado) {
-              setEmpleadoData(empleado);
-            }
-          } catch (error) {
-            console.error('Error al obtener datos del empleado:', error);
-          }
-        };
+				if (empleado) {
+					setEmpleadoData(empleado);
+				}
+			} catch (error) {
+				console.error("Error al obtener datos del empleado:", error);
+			}
+		};
 
-        fetchEmpleadoData();
-      }, [user]);
+		fetchEmpleadoData();
+	}, [user]);
 
 	useEffect(() => {
 		cargarClientes();
@@ -335,7 +337,7 @@ const NuevoPaciente = () => {
 						id_tipo_estudio,
 						nombre
 					)
-				`
+				`,
 				)
 				.eq("id_empresa", idEmpresa)
 				.order("tipos_estudio(nombre)");
@@ -385,13 +387,13 @@ const NuevoPaciente = () => {
 
 			if (error) {
 				console.log(
-					`No se encontró precio para ${claveEstudio} - ${nombreCliente}, usando precio por defecto`
+					`No se encontró precio para ${claveEstudio} - ${nombreCliente}, usando precio por defecto`,
 				);
 				return 150;
 			}
 
 			console.log(
-				`Precio encontrado para ${claveEstudio} - ${nombreCliente}: $${data.precio}`
+				`Precio encontrado para ${claveEstudio} - ${nombreCliente}: $${data.precio}`,
 			);
 			return parseFloat(data.precio);
 		} catch (error) {
@@ -412,7 +414,7 @@ const NuevoPaciente = () => {
 				.from("pacientes")
 				.select("*")
 				.or(
-					`nombre.ilike.%${termino}%,apellido_paterno.ilike.%${termino}%,apellido_materno.ilike.%${termino}%,telefono.ilike.%${termino}%`
+					`nombre.ilike.%${termino}%,apellido_paterno.ilike.%${termino}%,apellido_materno.ilike.%${termino}%,telefono.ilike.%${termino}%`,
 				)
 				.order("nombre")
 				.limit(10);
@@ -574,7 +576,7 @@ const NuevoPaciente = () => {
 		}
 
 		const clienteObj = clientes.find(
-			(cli) => cli.id_cliente.toString() === clienteSeleccionado.toString()
+			(cli) => cli.id_cliente.toString() === clienteSeleccionado.toString(),
 		);
 		const nombreCliente = clienteObj ? clienteObj.nombre : "";
 
@@ -600,7 +602,7 @@ const NuevoPaciente = () => {
 	const calcularTotales = () => {
 		const sub = estudiosSeleccionados.reduce(
 			(sum, est) => sum + est.precio * est.cantidad,
-			0
+			0,
 		);
 		setSubtotal(sub);
 
@@ -629,7 +631,7 @@ const NuevoPaciente = () => {
 			}
 
 			const clienteObj = clientes.find(
-				(cli) => cli.id_cliente === cotizacion.id_cliente
+				(cli) => cli.id_cliente === cotizacion.id_cliente,
 			);
 			const nombreCliente = clienteObj ? clienteObj.nombre : "";
 
@@ -641,7 +643,7 @@ const NuevoPaciente = () => {
 			const estudiosCompletos = await Promise.all(
 				estudios.map(async (est) => {
 					const estudioCatalogo = estudiosDisponibles.find(
-						(e) => e.clave === est.clave
+						(e) => e.clave === est.clave,
 					);
 
 					if (estudioCatalogo) {
@@ -654,7 +656,7 @@ const NuevoPaciente = () => {
 						};
 					}
 					return null;
-				})
+				}),
 			);
 
 			setEstudiosSeleccionados(estudiosCompletos.filter((e) => e !== null));
@@ -694,52 +696,55 @@ const NuevoPaciente = () => {
 	const estudiosFiltrados = estudiosDisponibles.filter(
 		(est) =>
 			est.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-			est.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
+			est.clave.toLowerCase().includes(buscarEstudio.toLowerCase()),
 	);
 
-    const getPrimerNombre = (nombreCompleto) => {
-        if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-        return nombreCompleto;
-      };
+	const getPrimerNombre = (nombreCompleto) => {
+		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
+		return nombreCompleto;
+	};
 
-    const formatRol = (rol) => {
-        if (!rol) return 'Usuario';
+	const formatRol = (rol) => {
+		if (!rol) return "Usuario";
 
-        const roles = {
-          'admin': 'Administrador',
-          'administrador': 'Administrador',
-          'radiologo': 'Radiólogo - Director',
-          'doctor': 'Médico',
-          'medico': 'Médico',
-          'tecnico_radiologia': 'Técnico en Radiología',
-          'tecnico': 'Técnico',
-          'quimico': 'Químico',
-          'recepcionista': 'Recepcionista',
-          'desarrollador': 'Desarrollador'
-        };
+		const roles = {
+			admin: "Administrador",
+			administrador: "Administrador",
+			radiologo: "Radiólogo - Director",
+			doctor: "Médico",
+			medico: "Médico",
+			tecnico_radiologia: "Técnico en Radiología",
+			tecnico: "Técnico",
+			quimico: "Químico",
+			recepcionista: "Recepcionista",
+			desarrollador: "Desarrollador",
+		};
 
-        return roles[rol] || rol;
-      };
+		return roles[rol] || rol;
+	};
 
-  const handleLogout = async () => {
-    const { signOut } = useAuth();
-    await signOut();
-    navigate('/login');
-  };
+	const handleLogout = async () => {
+		const { signOut } = useAuth();
+		await signOut();
+		navigate("/login");
+	};
 
 	return (
 		<Layout>
 			<div className="nuevo-paciente-wrapper">
 				<Header
-                  empleadoData={empleadoData}
-                  formatRol={formatRol}
-                  getPrimerNombre={getPrimerNombre}
-                  user={user}
-                  handleLogout={handleLogout}
-                  currentPage="nuevo-paciente"
-                />
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="nuevo-paciente"
+				/>
 
-                <SidebarHome/>
+				<SidebarHome />
 
 				<main className="page-main">
 					<div className="content-grid">
@@ -1168,7 +1173,11 @@ const NuevoPaciente = () => {
 											type="number"
 											value={pagoRecibido}
 											onChange={(e) =>
-												setPagoRecibido(e.target.value === "" ? "" : parseFloat(e.target.value) || 0)
+												setPagoRecibido(
+													e.target.value === ""
+														? ""
+														: parseFloat(e.target.value) || 0,
+												)
 											}
 											className="form-input-pago"
 											placeholder="Paga con"

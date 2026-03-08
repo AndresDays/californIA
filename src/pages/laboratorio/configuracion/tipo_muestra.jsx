@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
-import Tabla from '../componentes/tabla';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar.jsx';
+import Tabla from '../componentes/tabla';
 import './tipo_muestra.css';
 
 const TipoMuestra = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarMuestra, setBuscarMuestra] = useState('');
   const [muestras, setMuestras] = useState([]);
@@ -94,9 +96,9 @@ const TipoMuestra = () => {
           .select('*')
           .eq('id', id)
           .single();
-  
+
         if (error) throw error;
-  
+
         setModoEdicion(true);
         setMuestraEditando(data);
         setModalOpen(true);
@@ -113,20 +115,20 @@ const TipoMuestra = () => {
               .from('tipo_muestra')
               .update({ categoria: categoria })
               .eq('id', muestraEditando.id);
-    
+
             if (error) throw error;
-    
+
             alert('Muestra actualizada correctamente');
           } else {
             const { error } = await supabase
               .from('tipo_muestra')
               .insert([{ categoria: categoria }]);
-    
+
             if (error) throw error;
-    
+
             alert('Muestra agregada correctamente');
           }
-    
+
           cargarMuestras();
           setModalOpen(false);
           setModoEdicion(false);
@@ -188,122 +190,122 @@ const TipoMuestra = () => {
      };
 
   return (
-    <Layout>
-      <div className="tipo-muestra-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="tipo-muestra"
-        />
+		<Layout>
+			<div className="tipo-muestra-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="tipo-muestra"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="tipo-muestra-header">
-          <h1 className="tipo-muestra-title">Tipo de Muestra</h1>
-        </div>
+				<div className="tipo-muestra-header">
+					<h1 className="tipo-muestra-title">Tipo de Muestra</h1>
+				</div>
 
-        <div className="tipo-muestra-content">
-          <div className="controles-superiores-muestra">
-            <button className="btn-agregar-muestra" onClick={handleAgregarMuestra}>
-              Agregar Tipo de Muestra
-            </button>
-          </div>
+				<div className="tipo-muestra-content">
+					<div className="controles-superiores-muestra">
+						<button className="btn-agregar-muestra" onClick={handleAgregarMuestra}>
+							Agregar Tipo de Muestra
+						</button>
+					</div>
 
-          <div className="controles-tabla-muestra">
-            <div className="mostrar-registros-muestra">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-muestra"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-muestra">
+						<div className="mostrar-registros-muestra">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-muestra">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-muestra-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarMuestra}
-                onChange={(e) => {
-                  setBuscarMuestra(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-muestra"
-              />
-            </div>
-          </div>
+						<div className="buscar-muestra-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarMuestra}
+								onChange={(e) => {
+									setBuscarMuestra(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-muestra"
+							/>
+						</div>
+					</div>
 
-          <Tabla
-            headers={['Categoria']}
-            datos={muestras.map(m => ({ id: m.id, categoria: m.categoria }))}
-            paginaInicio={muestraInicio}
-            onEditar={handleEditarMuestra}
-            textoVacio="No hay tipos de muestra para mostrar"
-          />
+					<Tabla
+						headers={["Categoria"]}
+						datos={muestras.map((m) => ({ id: m.id, categoria: m.categoria }))}
+						paginaInicio={muestraInicio}
+						onEditar={handleEditarMuestra}
+						textoVacio="No hay tipos de muestra para mostrar"
+					/>
 
-          <div className="paginacion-muestra">
-            <div className="contador-muestra">
-              Mostrando registros del {muestraInicio} al {muestraFin} de un total de {totalMuestras}
-            </div>
+					<div className="paginacion-muestra">
+						<div className="contador-muestra">
+							Mostrando registros del {muestraInicio} al {muestraFin} de un total de{" "}
+							{totalMuestras}
+						</div>
 
-            <div className="botones-paginacion-muestra">
-              <button 
-                className="btn-pag-muestra"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-muestra ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-muestra"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setMuestraEditando(null);
-          }}
-          onGuardar={handleGuardarMuestra}
-          titulo={modoEdicion ? "Editar" : "Agregar Muestra"}
-          placeholder={modoEdicion ? "Editar Muestra" : "Ingresar Muestra"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? muestraEditando?.categoria : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+						<div className="botones-paginacion-muestra">
+							<button
+								className="btn-pag-muestra"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
+
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-muestra ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-muestra"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setMuestraEditando(null);
+					}}
+					onGuardar={handleGuardarMuestra}
+					titulo={modoEdicion ? "Editar" : "Agregar Muestra"}
+					placeholder={modoEdicion ? "Editar Muestra" : "Ingresar Muestra"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? muestraEditando?.categoria : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default TipoMuestra;

@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar.jsx';
 import './administrar-areas.css';
 
 const AdministrarAreas = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarArea, setBuscarArea] = useState('');
   const [areas, setAreas] = useState([]);
@@ -85,7 +87,7 @@ const AdministrarAreas = () => {
         setModoEdicion(false);
         setAreasEditando(null);
       };
-    
+
       const handleGuardarArea = async (nombre) => {
         try {
           if (modoEdicion && areasEditando) {
@@ -93,20 +95,20 @@ const AdministrarAreas = () => {
               .from('areas')
               .update({ nombre: nombre })
               .eq('id', areasEditando.id);
-    
+
             if (error) throw error;
-    
+
             alert('Area actualizada correctamente');
           } else {
             const { error } = await supabase
               .from('areas')
               .insert([{ nombre: nombre }]);
-    
+
             if (error) throw error;
-    
+
             alert('Area agregada correctamente');
           }
-    
+
           cargarAreas();
           setModalOpen(false);
           setModoEdicion(false);
@@ -187,157 +189,150 @@ const AdministrarAreas = () => {
      };
 
   return (
-    <Layout>
-      <div className="admin-areas-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="administrar-areas"
-        />
+		<Layout>
+			<div className="admin-areas-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="administrar-areas"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-areas-header">
-          <h1 className="admin-areas-title">Administrar Areas</h1>
-          <div className="breadcrumb-areas">
-            <span className="breadcrumb-icon">🏠</span>
-            <span>Inicio</span>
-            <span className="breadcrumb-separator">{'>'}</span>
-            <span>Administrar Areas</span>
-          </div>
-        </div>
+				<div className="admin-areas-header">
+					<h1 className="admin-areas-title">Administrar Areas</h1>
+				</div>
 
-        <div className="admin-areas-content">
-          <div className="controles-superiores-areas">
-            <button className="btn-agregar-area" onClick={handleAgregarArea}>
-              Agregar Area
-            </button>
-          </div>
+				<div className="admin-areas-content">
+					<div className="controles-superiores-areas">
+						<button className="btn-agregar-area" onClick={handleAgregarArea}>
+							Agregar Area
+						</button>
+					</div>
 
-          <div className="controles-tabla-areas">
-            <div className="mostrar-registros-areas">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-areas"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-areas">
+						<div className="mostrar-registros-areas">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-areas">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-areas-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarArea}
-                onChange={(e) => {
-                  setBuscarArea(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-areas"
-              />
-            </div>
-          </div>
+						<div className="buscar-areas-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarArea}
+								onChange={(e) => {
+									setBuscarArea(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-areas"
+							/>
+						</div>
+					</div>
 
-          <div className="tabla-areas-container">
-            <table className="tabla-areas">
-              <thead>
-                <tr>
-                  <th># ⬍</th>
-                  <th>Area ⬍</th>
-                  <th>Acciones ⬍</th>
-                </tr>
-              </thead>
-              <tbody>
-                {areas.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" className="sin-areas">
-                      No hay areas para mostrar
-                    </td>
-                  </tr>
-                ) : (
-                  areas.map((area, index) => (
-                    <tr key={area.id}>
-                      <td>{areaInicio + index}</td>
-                      <td>{area.nombre}</td>
-                      <td>
-                        <button
-                          className="btn-editar-area"
-                          onClick={() => handleEditarArea(area.id)}
-                          title="Editar area"
-                        >
-                          ✏️
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+					<div className="tabla-areas-container">
+						<table className="tabla-areas">
+							<thead>
+								<tr>
+									<th># ⬍</th>
+									<th>Area ⬍</th>
+									<th>Acciones ⬍</th>
+								</tr>
+							</thead>
+							<tbody>
+								{areas.length === 0 ? (
+									<tr>
+										<td colSpan="3" className="sin-areas">
+											No hay areas para mostrar
+										</td>
+									</tr>
+								) : (
+									areas.map((area, index) => (
+										<tr key={area.id}>
+											<td>{areaInicio + index}</td>
+											<td>{area.nombre}</td>
+											<td>
+												<button
+													className="btn-editar-area"
+													onClick={() => handleEditarArea(area.id)}
+													title="Editar area">
+													✏️
+												</button>
+											</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
 
-          <div className="paginacion-areas">
-            <div className="contador-areas">
-              Mostrando registros del {areaInicio} al {areaFin} de un total de {totalAreas}
-            </div>
+					<div className="paginacion-areas">
+						<div className="contador-areas">
+							Mostrando registros del {areaInicio} al {areaFin} de un total de{" "}
+							{totalAreas}
+						</div>
 
-            <div className="botones-paginacion-areas">
-              <button 
-                className="btn-pag-areas"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-areas ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-areas"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setAreasEditando(null);
-          }}
-          onGuardar={handleGuardarArea}
-          titulo={modoEdicion ? "Editar" : "Agregar Area"}
-          placeholder={modoEdicion ? "Editar Area" : "Ingresar Area"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? areasEditando?.nombre : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+						<div className="botones-paginacion-areas">
+							<button
+								className="btn-pag-areas"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
+
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-areas ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-areas"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setAreasEditando(null);
+					}}
+					onGuardar={handleGuardarArea}
+					titulo={modoEdicion ? "Editar" : "Agregar Area"}
+					placeholder={modoEdicion ? "Editar Area" : "Ingresar Area"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? areasEditando?.nombre : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default AdministrarAreas;

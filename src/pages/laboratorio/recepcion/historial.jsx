@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import notaIcono from "../../../assets/notaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
@@ -12,6 +12,8 @@ import "./Historial.css";
 const Historial = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [buscarCliente, setBuscarCliente] = useState("");
 	const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
@@ -255,6 +257,9 @@ const Historial = () => {
 		<Layout>
 			<div className="historial-wrapper">
 				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
 					empleadoData={empleadoData}
 					formatRol={formatRol}
 					getPrimerNombre={getPrimerNombre}

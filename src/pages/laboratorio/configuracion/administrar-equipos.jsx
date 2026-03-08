@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
-import Tabla from '../componentes/tabla';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar';
+import Tabla from '../componentes/tabla';
 import './administrar-equipos.css';
 
 const AdministrarEquipos = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarEquipo, setBuscarEquipo] = useState('');
   const [equipos, setEquipos] = useState([]);
@@ -189,122 +191,122 @@ const AdministrarEquipos = () => {
 
 
   return (
-    <Layout>
-      <div className="admin-equipos-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="administrar-equipos"
-        />
+		<Layout>
+			<div className="admin-equipos-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="administrar-equipos"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-equipos-header">
-          <h1 className="admin-equipos-title">Administrar Equipos</h1>
-        </div>
+				<div className="admin-equipos-header">
+					<h1 className="admin-equipos-title">Administrar Equipos</h1>
+				</div>
 
-        <div className="admin-equipos-content">
-          <div className="controles-superiores-equipos">
-            <button className="btn-agregar-equipo" onClick={handleAgregarEquipo}>
-              Agregar Equipo
-            </button>
-          </div>
+				<div className="admin-equipos-content">
+					<div className="controles-superiores-equipos">
+						<button className="btn-agregar-equipo" onClick={handleAgregarEquipo}>
+							Agregar Equipo
+						</button>
+					</div>
 
-          <div className="controles-tabla-equipos">
-            <div className="mostrar-registros-equipos">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-equipos"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-equipos">
+						<div className="mostrar-registros-equipos">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-equipos">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-equipos-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarEquipo}
-                onChange={(e) => {
-                  setBuscarEquipo(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-equipos"
-              />
-            </div>
-          </div>
+						<div className="buscar-equipos-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarEquipo}
+								onChange={(e) => {
+									setBuscarEquipo(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-equipos"
+							/>
+						</div>
+					</div>
 
-          <Tabla
-            headers={['Equipo']}
-            datos={equipos.map(e => ({ id: e.id, equipo: e.nombre }))}
-            paginaInicio={equipoInicio}
-            onEditar={handleEditarEquipo}
-            textoVacio="No hay equipos para mostrar"
-          />
+					<Tabla
+						headers={["Equipo"]}
+						datos={equipos.map((e) => ({ id: e.id, equipo: e.nombre }))}
+						paginaInicio={equipoInicio}
+						onEditar={handleEditarEquipo}
+						textoVacio="No hay equipos para mostrar"
+					/>
 
-          <div className="paginacion-equipos">
-            <div className="contador-equipos">
-              Mostrando registros del {equipoInicio} al {equipoFin} de un total de {totalEquipos}
-            </div>
+					<div className="paginacion-equipos">
+						<div className="contador-equipos">
+							Mostrando registros del {equipoInicio} al {equipoFin} de un total de{" "}
+							{totalEquipos}
+						</div>
 
-            <div className="botones-paginacion-equipos">
-              <button 
-                className="btn-pag-equipos"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-equipos ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-equipos"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
+						<div className="botones-paginacion-equipos">
+							<button
+								className="btn-pag-equipos"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
 
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setEquiposEditando(null);
-          }}
-          onGuardar={handleGuardarEquipo}
-          titulo={modoEdicion ? "Editar" : "Agregar Equipo"}
-          placeholder={modoEdicion ? "Editar Equipo" : "Ingresar Equipo"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? equiposEditando?.nombre : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-equipos ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-equipos"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setEquiposEditando(null);
+					}}
+					onGuardar={handleGuardarEquipo}
+					titulo={modoEdicion ? "Editar" : "Agregar Equipo"}
+					placeholder={modoEdicion ? "Editar Equipo" : "Ingresar Equipo"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? equiposEditando?.nombre : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default AdministrarEquipos;

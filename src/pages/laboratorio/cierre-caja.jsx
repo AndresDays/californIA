@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import empresaIcono from "../../assets/empresaIcono.png";
@@ -13,6 +13,8 @@ import "./cierre-caja.css";
 const CierreCaja = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [fechaActual, setFechaActual] = useState(
 		new Date().toISOString().split("T")[0],
@@ -174,6 +176,9 @@ const CierreCaja = () => {
 		<Layout>
 			<div className="cierre-caja-wrapper">
 				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
 					empleadoData={empleadoData}
 					formatRol={formatRol}
 					getPrimerNombre={getPrimerNombre}

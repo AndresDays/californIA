@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../components/header-principal.jsx";
 import Layout from "../../../components/layout.jsx";
@@ -14,6 +14,8 @@ import "./Analitos.css";
 const Analitos = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [buscarAnalito, setBuscarAnalito] = useState("");
@@ -445,6 +447,9 @@ const Analitos = () => {
 		<Layout>
 			<div className="agregar-analitos-wrapper">
 				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
 					empleadoData={empleadoData}
 					formatRol={formatRol}
 					getPrimerNombre={getPrimerNombre}

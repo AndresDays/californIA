@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
-import Header from '../../../components/header-principal.jsx';
-import SidebarHome from '../../../components/sidebar-home.jsx';
-import excelBtn from '../../../assets/excelBtn.png';
-import pdfBtn from '../../../assets/pdfBtn.png';
 import editarIconoV2 from '../../../assets/editarIconoV2.png';
 import eliminarIconoV2 from '../../../assets/eliminarIconoV2.png';
+import excelBtn from '../../../assets/excelBtn.png';
+import pdfBtn from '../../../assets/pdfBtn.png';
+import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
+import SidebarHome from '../../../components/sidebar-home.jsx';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import './estudios-lab.css';
 
 const EstudiosLab = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarEstudio, setBuscarEstudio] = useState('');
   const [estudios, setEstudios] = useState([]);
@@ -105,7 +107,7 @@ const EstudiosLab = () => {
 
       if (error) throw error;
       setAreas(data || []);
-      
+
       if (data && data.length > 0 && !area) {
         setArea(data[0].nombre);
       }
@@ -123,7 +125,7 @@ const EstudiosLab = () => {
 
       if (error) throw error;
       setTiposMuestra(data || []);
-      
+
       if (data && data.length > 0 && !tipoMuestra) {
         setTipoMuestra(data[0].categoria);
       }
@@ -141,7 +143,7 @@ const EstudiosLab = () => {
 
       if (error) throw error;
       setRecipientes(data || []);
-      
+
       if (data && data.length > 0 && !recipiente) {
         setRecipiente(data[0].nombre);
       }
@@ -159,7 +161,7 @@ const EstudiosLab = () => {
 
       if (error) throw error;
       setMetodos(data || []);
-      
+
       if (data && data.length > 0 && !metodo) {
         setMetodo(data[0].nombre);
       }
@@ -177,7 +179,7 @@ const EstudiosLab = () => {
 
       if (error) throw error;
       setTecnicas(data || []);
-      
+
       if (data && data.length > 0 && !tecnica) {
         setTecnica(data[0].nombre);
       }
@@ -195,7 +197,7 @@ const EstudiosLab = () => {
 
       if (error) throw error;
       setEquipos(data || []);
-      
+
       if (data && data.length > 0 && !equipo) {
         setEquipo(data[0].nombre);
       }
@@ -408,342 +410,346 @@ const EstudiosLab = () => {
        };
 
   return (
-    <Layout>
-      <div className="admin-estudios-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="estudios"
-        />
+		<Layout>
+			<div className="admin-estudios-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="estudios"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-estudios-header">
-          <h1 className="admin-estudios-title">Crear Estudios, Modificarlos o Borrarlos</h1>
-        </div>
+				<div className="admin-estudios-header">
+					<h1 className="admin-estudios-title">
+						Crear Estudios, Modificarlos o Borrarlos
+					</h1>
+				</div>
 
-        <div className="admin-estudios-content">
-          <div className="panel-formulario-estudios">
-            <div className="campo-estudio">
-              <label>Key</label>
-              <input
-                type="text"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                className="input-estudio"
-              />
-            </div>
+				<div className="admin-estudios-content">
+					<div className="panel-formulario-estudios">
+						<div className="campo-estudio">
+							<label>Key</label>
+							<input
+								type="text"
+								value={key}
+								onChange={(e) => setKey(e.target.value)}
+								className="input-estudio"
+							/>
+						</div>
 
-            <div className="campo-estudio">
-              <label>Clave</label>
-              <input
-                type="text"
-                value={clave}
-                onChange={(e) => setClave(e.target.value)}
-                className="input-estudio"
-              />
-            </div>
+						<div className="campo-estudio">
+							<label>Clave</label>
+							<input
+								type="text"
+								value={clave}
+								onChange={(e) => setClave(e.target.value)}
+								className="input-estudio"
+							/>
+						</div>
 
-            <div className="campo-estudio">
-              <label>Descripción</label>
-              <input
-                type="text"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                className="input-estudio"
-              />
-            </div>
+						<div className="campo-estudio">
+							<label>Descripción</label>
+							<input
+								type="text"
+								value={descripcion}
+								onChange={(e) => setDescripcion(e.target.value)}
+								className="input-estudio"
+							/>
+						</div>
 
-            <div className="campo-estudio-doble">
-              <div className="campo-estudio">
-                <label>Area</label>
-                <select
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  className="select-estudio"
-                >
-                  {areas.length === 0 ? (
-                    <option value="">Cargando...</option>
-                  ) : (
-                    areas.map((a) => (
-                      <option key={a.id} value={a.nombre}>
-                        {a.nombre}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+						<div className="campo-estudio-doble">
+							<div className="campo-estudio">
+								<label>Area</label>
+								<select
+									value={area}
+									onChange={(e) => setArea(e.target.value)}
+									className="select-estudio">
+									{areas.length === 0 ? (
+										<option value="">Cargando...</option>
+									) : (
+										areas.map((a) => (
+											<option key={a.id} value={a.nombre}>
+												{a.nombre}
+											</option>
+										))
+									)}
+								</select>
+							</div>
 
-              <div className="campo-estudio">
-                <label>Tipo de Muestra</label>
-                <select
-                  value={tipoMuestra}
-                  onChange={(e) => setTipoMuestra(e.target.value)}
-                  className="select-estudio"
-                >
-                  {tiposMuestra.length === 0 ? (
-                    <option value="">Cargando...</option>
-                  ) : (
-                    tiposMuestra.map((tm) => (
-                      <option key={tm.id} value={tm.categoria}>
-                        {tm.categoria}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            </div>
+							<div className="campo-estudio">
+								<label>Tipo de Muestra</label>
+								<select
+									value={tipoMuestra}
+									onChange={(e) => setTipoMuestra(e.target.value)}
+									className="select-estudio">
+									{tiposMuestra.length === 0 ? (
+										<option value="">Cargando...</option>
+									) : (
+										tiposMuestra.map((tm) => (
+											<option key={tm.id} value={tm.categoria}>
+												{tm.categoria}
+											</option>
+										))
+									)}
+								</select>
+							</div>
+						</div>
 
-            <div className="campo-estudio-doble">
-              <div className="campo-estudio">
-                <label>Recipiente</label>
-                <select
-                  value={recipiente}
-                  onChange={(e) => setRecipiente(e.target.value)}
-                  className="select-estudio"
-                >
-                  {recipientes.length === 0 ? (
-                    <option value="">Cargando...</option>
-                  ) : (
-                    recipientes.map((r) => (
-                      <option key={r.id} value={r.nombre}>
-                        {r.nombre}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+						<div className="campo-estudio-doble">
+							<div className="campo-estudio">
+								<label>Recipiente</label>
+								<select
+									value={recipiente}
+									onChange={(e) => setRecipiente(e.target.value)}
+									className="select-estudio">
+									{recipientes.length === 0 ? (
+										<option value="">Cargando...</option>
+									) : (
+										recipientes.map((r) => (
+											<option key={r.id} value={r.nombre}>
+												{r.nombre}
+											</option>
+										))
+									)}
+								</select>
+							</div>
 
-              <div className="campo-estudio">
-                <label>Metodo</label>
-                <select
-                  value={metodo}
-                  onChange={(e) => setMetodo(e.target.value)}
-                  className="select-estudio"
-                >
-                  {metodos.length === 0 ? (
-                    <option value="">Cargando...</option>
-                  ) : (
-                    metodos.map((m) => (
-                      <option key={m.id_metodo} value={m.nombre}>
-                        {m.nombre}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            </div>
+							<div className="campo-estudio">
+								<label>Metodo</label>
+								<select
+									value={metodo}
+									onChange={(e) => setMetodo(e.target.value)}
+									className="select-estudio">
+									{metodos.length === 0 ? (
+										<option value="">Cargando...</option>
+									) : (
+										metodos.map((m) => (
+											<option key={m.id_metodo} value={m.nombre}>
+												{m.nombre}
+											</option>
+										))
+									)}
+								</select>
+							</div>
+						</div>
 
-            <div className="campo-estudio-doble">
-              <div className="campo-estudio">
-                <label>Tecnica</label>
-                <select
-                  value={tecnica}
-                  onChange={(e) => setTecnica(e.target.value)}
-                  className="select-estudio"
-                >
-                  {tecnicas.length === 0 ? (
-                    <option value="">Cargando...</option>
-                  ) : (
-                    tecnicas.map((t) => (
-                      <option key={t.id} value={t.nombre}>
-                        {t.nombre}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
+						<div className="campo-estudio-doble">
+							<div className="campo-estudio">
+								<label>Tecnica</label>
+								<select
+									value={tecnica}
+									onChange={(e) => setTecnica(e.target.value)}
+									className="select-estudio">
+									{tecnicas.length === 0 ? (
+										<option value="">Cargando...</option>
+									) : (
+										tecnicas.map((t) => (
+											<option key={t.id} value={t.nombre}>
+												{t.nombre}
+											</option>
+										))
+									)}
+								</select>
+							</div>
 
-              <div className="campo-estudio">
-                <label>Equipo</label>
-                <select
-                  value={equipo}
-                  onChange={(e) => setEquipo(e.target.value)}
-                  className="select-estudio"
-                >
-                  {equipos.length === 0 ? (
-                    <option value="">Cargando...</option>
-                  ) : (
-                    equipos.map((e) => (
-                      <option key={e.id_equipo} value={e.nombre}>
-                        {e.nombre}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-            </div>
+							<div className="campo-estudio">
+								<label>Equipo</label>
+								<select
+									value={equipo}
+									onChange={(e) => setEquipo(e.target.value)}
+									className="select-estudio">
+									{equipos.length === 0 ? (
+										<option value="">Cargando...</option>
+									) : (
+										equipos.map((e) => (
+											<option key={e.id_equipo} value={e.nombre}>
+												{e.nombre}
+											</option>
+										))
+									)}
+								</select>
+							</div>
+						</div>
 
-            <div className="campo-estudio">
-              <label>Condiciones Del Paciente</label>
-              <textarea
-                value={condicionesPaciente}
-                onChange={(e) => setCondicionesPaciente(e.target.value)}
-                className="textarea-estudio"
-                rows="3"
-              />
-            </div>
+						<div className="campo-estudio">
+							<label>Condiciones Del Paciente</label>
+							<textarea
+								value={condicionesPaciente}
+								onChange={(e) => setCondicionesPaciente(e.target.value)}
+								className="textarea-estudio"
+								rows="3"
+							/>
+						</div>
 
-            <div className="campo-estudio">
-              <label>Etiquetas Extra</label>
-              <textarea
-                value={etiquetasExtra}
-                onChange={(e) => setEtiquetasExtra(e.target.value)}
-                className="textarea-estudio"
-                rows="3"
-              />
-            </div>
+						<div className="campo-estudio">
+							<label>Etiquetas Extra</label>
+							<textarea
+								value={etiquetasExtra}
+								onChange={(e) => setEtiquetasExtra(e.target.value)}
+								className="textarea-estudio"
+								rows="3"
+							/>
+						</div>
 
-            <div className="campo-estudio">
-              <label>Dias de Proceso</label>
-              <input
-                type="number"
-                value={diasProceso}
-                onChange={(e) => setDiasProceso(e.target.value)}
-                className="input-estudio"
-              />
-            </div>
+						<div className="campo-estudio">
+							<label>Dias de Proceso</label>
+							<input
+								type="number"
+								value={diasProceso}
+								onChange={(e) => setDiasProceso(e.target.value)}
+								className="input-estudio"
+							/>
+						</div>
 
-            <div className="checkboxes-impresion">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={imprimirMetodo}
-                  onChange={(e) => setImprimirMetodo(e.target.checked)}
-                />
-                <span>Imprimir Metodo</span>
-              </label>
+						<div className="checkboxes-impresion">
+							<label className="checkbox-label">
+								<input
+									type="checkbox"
+									checked={imprimirMetodo}
+									onChange={(e) => setImprimirMetodo(e.target.checked)}
+								/>
+								<span>Imprimir Metodo</span>
+							</label>
 
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={imprimirTecnica}
-                  onChange={(e) => setImprimirTecnica(e.target.checked)}
-                />
-                <span>Imprimir Tecnica</span>
-              </label>
+							<label className="checkbox-label">
+								<input
+									type="checkbox"
+									checked={imprimirTecnica}
+									onChange={(e) => setImprimirTecnica(e.target.checked)}
+								/>
+								<span>Imprimir Tecnica</span>
+							</label>
 
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={imprimirEquipo}
-                  onChange={(e) => setImprimirEquipo(e.target.checked)}
-                />
-                <span>Imprimir Equipo</span>
-              </label>
+							<label className="checkbox-label">
+								<input
+									type="checkbox"
+									checked={imprimirEquipo}
+									onChange={(e) => setImprimirEquipo(e.target.checked)}
+								/>
+								<span>Imprimir Equipo</span>
+							</label>
 
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={imprimirMuestra}
-                  onChange={(e) => setImprimirMuestra(e.target.checked)}
-                />
-                <span>Imprimir Muestra</span>
-              </label>
-            </div>
+							<label className="checkbox-label">
+								<input
+									type="checkbox"
+									checked={imprimirMuestra}
+									onChange={(e) => setImprimirMuestra(e.target.checked)}
+								/>
+								<span>Imprimir Muestra</span>
+							</label>
+						</div>
 
-            <div className="botones-formulario">
-              <button className="btn-guardar-estudio" onClick={handleGuardar}>
-                Guardar Estudio
-              </button>
-              <button className="btn-editar-estudio" onClick={handleEditar}>
-                Editar
-              </button>
-              <button className="btn-nuevo-estudio" onClick={handleNuevo}>
-                Nuevo
-              </button>
-            </div>
-          </div>
+						<div className="botones-formulario">
+							<button className="btn-guardar-estudio" onClick={handleGuardar}>
+								Guardar Estudio
+							</button>
+							<button className="btn-editar-estudio" onClick={handleEditar}>
+								Editar
+							</button>
+							<button className="btn-nuevo-estudio" onClick={handleNuevo}>
+								Nuevo
+							</button>
+						</div>
+					</div>
 
-          <div className="panel-tabla-estudios">
-            <div className="controles-tabla-estudios">
-              <input
-                type="text"
-                placeholder="Busca Estudios Aqui..."
-                value={buscarEstudio}
-                onChange={(e) => setBuscarEstudio(e.target.value)}
-                className="input-buscar-estudios-adm"
-              />
+					<div className="panel-tabla-estudios">
+						<div className="controles-tabla-estudios">
+							<input
+								type="text"
+								placeholder="Busca Estudios Aqui..."
+								value={buscarEstudio}
+								onChange={(e) => setBuscarEstudio(e.target.value)}
+								className="input-buscar-estudios-adm"
+							/>
 
-              <div className="botones-exportar-estudios">
-                <button 
-                  className="btn-exportar-est" 
-                  onClick={handleExportarExcel}
-                  title="Exportar a Excel"
-                >
-                  <img src={excelBtn} alt="Excel" className="icono-exportar" />
-                </button>
-                <button 
-                  className="btn-exportar-est" 
-                  onClick={handleExportarPDF}
-                  title="Exportar a PDF"
-                >
-                  <img src={pdfBtn} alt="PDF" className="icono-exportar" />
-                </button>
-              </div>
-            </div>
+							<div className="botones-exportar-estudios">
+								<button
+									className="btn-exportar-est"
+									onClick={handleExportarExcel}
+									title="Exportar a Excel">
+									<img src={excelBtn} alt="Excel" className="icono-exportar" />
+								</button>
+								<button
+									className="btn-exportar-est"
+									onClick={handleExportarPDF}
+									title="Exportar a PDF">
+									<img src={pdfBtn} alt="PDF" className="icono-exportar" />
+								</button>
+							</div>
+						</div>
 
-            <div className="tabla-estudios-adm-container">
-              <table className="tabla-estudios-adm">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Clave</th>
-                    <th>Descripcion</th>
-                    <th>Area</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estudios.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="sin-estudios-adm">
-                        No hay estudios para mostrar
-                      </td>
-                    </tr>
-                  ) : (
-                    estudios.map((estudio, index) => (
-                      <tr key={estudio.id}>
-                        <td>{index + 1}</td>
-                        <td>{estudio.clave}</td>
-                        <td>{estudio.descripcion}</td>
-                        <td>{estudio.area}</td>
-                        <td>
-                          <div className="acciones-estudios-adm">
-                            <button
-                              className="btn-editar-estudio-tabla"
-                              onClick={() => cargarEstudioParaEditar(estudio)}
-                              title="Editar estudio"
-                            >
-                              <img src={editarIconoV2} alt="Editar" className="icono-accion" />
-                            </button>
-                            <button
-                              className="btn-eliminar-estudio-tabla"
-                              onClick={() => handleEliminar(estudio.id)}
-                              title="Eliminar estudio"
-                            >
-                              <img src={eliminarIconoV2} alt="Eliminar" className="icono-accion" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+						<div className="tabla-estudios-adm-container">
+							<table className="tabla-estudios-adm">
+								<thead>
+									<tr>
+										<th>ID</th>
+										<th>Clave</th>
+										<th>Descripcion</th>
+										<th>Area</th>
+										<th>Acciones</th>
+									</tr>
+								</thead>
+								<tbody>
+									{estudios.length === 0 ? (
+										<tr>
+											<td colSpan="5" className="sin-estudios-adm">
+												No hay estudios para mostrar
+											</td>
+										</tr>
+									) : (
+										estudios.map((estudio, index) => (
+											<tr key={estudio.id}>
+												<td>{index + 1}</td>
+												<td>{estudio.clave}</td>
+												<td>{estudio.descripcion}</td>
+												<td>{estudio.area}</td>
+												<td>
+													<div className="acciones-estudios-adm">
+														<button
+															className="btn-editar-estudio-tabla"
+															onClick={() => cargarEstudioParaEditar(estudio)}
+															title="Editar estudio">
+															<img
+																src={editarIconoV2}
+																alt="Editar"
+																className="icono-accion"
+															/>
+														</button>
+														<button
+															className="btn-eliminar-estudio-tabla"
+															onClick={() => handleEliminar(estudio.id)}
+															title="Eliminar estudio">
+															<img
+																src={eliminarIconoV2}
+																alt="Eliminar"
+																className="icono-accion"
+															/>
+														</button>
+													</div>
+												</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+						</div>
 
-            <div className="contador-estudios">
-              Mostrando registros del 1 al {estudios.length} de un total de {totalEstudios}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
+						<div className="contador-estudios">
+							Mostrando registros del 1 al {estudios.length} de un total de{" "}
+							{totalEstudios}
+						</div>
+					</div>
+				</div>
+			</div>
+		</Layout>
+	);
 };
 
 export default EstudiosLab;
