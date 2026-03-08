@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import './paquetes.css';
 
 const Paquetes = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarPaquete, setBuscarPaquete] = useState('');
   const [paquetes, setPaquetes] = useState([]);
@@ -119,7 +121,7 @@ const Paquetes = () => {
 
   const buscarEstudio = async (e) => {
     e.preventDefault();
-    
+
     if (!busquedaEstudio.trim()) {
       alert('Por favor, ingresa una clave o descripción de estudio');
       return;
@@ -251,10 +253,10 @@ const Paquetes = () => {
       if (error) throw error;
 
       alert('Paquete guardado correctamente');
-      
+
       setPaqueteSeleccionado(data.id);
       setModoEdicion(true);
-      
+
       cargarPaquetes();
     } catch (error) {
       console.error('Error al guardar paquete:', error);
@@ -302,7 +304,7 @@ const Paquetes = () => {
     setDiasProceso(paquete.dias_proceso?.toString() || '');
     setModoEdicion(true);
     setPaqueteSeleccionado(paquete.id);
-    
+
     await cargarEstudiosDelPaquete(paquete.id);
   };
 
@@ -337,197 +339,203 @@ const Paquetes = () => {
      };
 
   return (
-    <Layout>
-      <div className="agregar-paquetes-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="paquetes"
-        />
+		<Layout>
+			<div className="agregar-paquetes-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="paquetes"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="agregar-paquetes-header">
-          <h1 className="agregar-paquetes-title">Agregar Paquetes</h1>
-        </div>
+				<div className="agregar-paquetes-header">
+					<h1 className="agregar-paquetes-title">Agregar Paquetes</h1>
+				</div>
 
-        <div className="agregar-paquetes-content">
-          <div className="panel-formulario-paquetes">
-            <div className="campo-paquete-icon">
-              <span className="icon-campo">🔍</span>
-              <input
-                type="text"
-                placeholder="Clave del Perfil"
-                value={clavePerfil}
-                onChange={(e) => setClavePerfil(e.target.value)}
-                className="input-paquete-icon"
-              />
-            </div>
+				<div className="agregar-paquetes-content">
+					<div className="panel-formulario-paquetes">
+						<div className="campo-paquete-icon">
+							<span className="icon-campo">🔍</span>
+							<input
+								type="text"
+								placeholder="Clave del Perfil"
+								value={clavePerfil}
+								onChange={(e) => setClavePerfil(e.target.value)}
+								className="input-paquete-icon"
+							/>
+						</div>
 
-            <div className="campo-paquete-icon">
-              <span className="icon-campo">▦</span>
-              <input
-                type="text"
-                placeholder="Descripcion del Perfil"
-                value={descripcionPerfil}
-                onChange={(e) => setDescripcionPerfil(e.target.value)}
-                className="input-paquete-icon"
-              />
-            </div>
+						<div className="campo-paquete-icon">
+							<span className="icon-campo">▦</span>
+							<input
+								type="text"
+								placeholder="Descripcion del Perfil"
+								value={descripcionPerfil}
+								onChange={(e) => setDescripcionPerfil(e.target.value)}
+								className="input-paquete-icon"
+							/>
+						</div>
 
-            <div className="campo-paquete-icon">
-              <span className="icon-campo">👤</span>
-              <input
-                type="text"
-                placeholder="Condiciones del Paciente"
-                value={condicionesPaciente}
-                onChange={(e) => setCondicionesPaciente(e.target.value)}
-                className="input-paquete-icon"
-              />
-            </div>
+						<div className="campo-paquete-icon">
+							<span className="icon-campo">👤</span>
+							<input
+								type="text"
+								placeholder="Condiciones del Paciente"
+								value={condicionesPaciente}
+								onChange={(e) => setCondicionesPaciente(e.target.value)}
+								className="input-paquete-icon"
+							/>
+						</div>
 
-            <div className="campo-paquete-icon">
-              <span className="icon-campo">📅</span>
-              <input
-                type="number"
-                placeholder="Dias de Proceso"
-                value={diasProceso}
-                onChange={(e) => setDiasProceso(e.target.value)}
-                className="input-paquete-icon"
-              />
-            </div>
+						<div className="campo-paquete-icon">
+							<span className="icon-campo">📅</span>
+							<input
+								type="number"
+								placeholder="Dias de Proceso"
+								value={diasProceso}
+								onChange={(e) => setDiasProceso(e.target.value)}
+								className="input-paquete-icon"
+							/>
+						</div>
 
-            <form onSubmit={buscarEstudio} className="campo-busqueda-paquete">
-              <input
-                type="text"
-                placeholder="Search..."
-                value={busquedaEstudio}
-                onChange={(e) => setBusquedaEstudio(e.target.value)}
-                className="input-busqueda-paquete"
-                disabled={!paqueteSeleccionado}
-              />
-              <button 
-                type="submit"
-                className="btn-buscar-paquete"
-                disabled={!paqueteSeleccionado}
-              >
-                🔍
-              </button>
-            </form>
+						<form onSubmit={buscarEstudio} className="campo-busqueda-paquete">
+							<input
+								type="text"
+								placeholder="Search..."
+								value={busquedaEstudio}
+								onChange={(e) => setBusquedaEstudio(e.target.value)}
+								className="input-busqueda-paquete"
+								disabled={!paqueteSeleccionado}
+							/>
+							<button
+								type="submit"
+								className="btn-buscar-paquete"
+								disabled={!paqueteSeleccionado}>
+								🔍
+							</button>
+						</form>
 
-            {paqueteSeleccionado && (
-              <div className="tabla-estudios-paquete-container">
-                <table className="tabla-estudios-paquete">
-                  <thead>
-                    <tr>
-                      <th>Clave</th>
-                      <th>Descripcion</th>
-                      <th>Eliminar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estudiosDelPaquete.length === 0 ? (
-                      <tr>
-                        <td colSpan="3" className="sin-estudios-paquete">
-                          No hay estudios agregados
-                        </td>
-                      </tr>
-                    ) : (
-                      estudiosDelPaquete.map((estudio) => (
-                        <tr key={estudio.id_estudio}>
-                          <td>{estudio.clave}</td>
-                          <td>{estudio.descripcion}</td>
-                          <td>
-                            <button
-                              className="btn-eliminar-estudio-paquete"
-                              onClick={() => eliminarEstudioDelPaquete(estudio.id_relacion, estudio.id_estudio)}
-                              title="Eliminar estudio"
-                            >
-                              ✖
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+						{paqueteSeleccionado && (
+							<div className="tabla-estudios-paquete-container">
+								<table className="tabla-estudios-paquete">
+									<thead>
+										<tr>
+											<th>Clave</th>
+											<th>Descripcion</th>
+											<th>Eliminar</th>
+										</tr>
+									</thead>
+									<tbody>
+										{estudiosDelPaquete.length === 0 ? (
+											<tr>
+												<td colSpan="3" className="sin-estudios-paquete">
+													No hay estudios agregados
+												</td>
+											</tr>
+										) : (
+											estudiosDelPaquete.map((estudio) => (
+												<tr key={estudio.id_estudio}>
+													<td>{estudio.clave}</td>
+													<td>{estudio.descripcion}</td>
+													<td>
+														<button
+															className="btn-eliminar-estudio-paquete"
+															onClick={() =>
+																eliminarEstudioDelPaquete(
+																	estudio.id_relacion,
+																	estudio.id_estudio,
+																)
+															}
+															title="Eliminar estudio">
+															✖
+														</button>
+													</td>
+												</tr>
+											))
+										)}
+									</tbody>
+								</table>
+							</div>
+						)}
 
-            <div className="botones-formulario-paquetes">
-              <button className="btn-guardar-paquete" onClick={handleGuardar}>
-                Guardar
-              </button>
-              <button className="btn-nuevo-paquete" onClick={handleNuevo}>
-                Nuevo
-              </button>
-              <button className="btn-cargar-cambios" onClick={handleCargarCambios}>
-                Cargar Cambios
-              </button>
-            </div>
-          </div>
+						<div className="botones-formulario-paquetes">
+							<button className="btn-guardar-paquete" onClick={handleGuardar}>
+								Guardar
+							</button>
+							<button className="btn-nuevo-paquete" onClick={handleNuevo}>
+								Nuevo
+							</button>
+							<button className="btn-cargar-cambios" onClick={handleCargarCambios}>
+								Cargar Cambios
+							</button>
+						</div>
+					</div>
 
-          <div className="panel-tabla-paquetes">
-            <div className="buscar-paquetes-header">
-              <span className="label-buscar-paquete">Buscar:</span>
-              <input
-                type="text"
-                value={buscarPaquete}
-                onChange={(e) => setBuscarPaquete(e.target.value)}
-                className="input-buscar-paquetes"
-              />
-            </div>
+					<div className="panel-tabla-paquetes">
+						<div className="buscar-paquetes-header">
+							<span className="label-buscar-paquete">Buscar:</span>
+							<input
+								type="text"
+								value={buscarPaquete}
+								onChange={(e) => setBuscarPaquete(e.target.value)}
+								className="input-buscar-paquetes"
+							/>
+						</div>
 
-            <div className="tabla-paquetes-container">
-              <table className="tabla-paquetes">
-                <thead>
-                  <tr>
-                    <th>Clave ⬍</th>
-                    <th>Descripcion ⬍</th>
-                    <th>Condiciones ⬍</th>
-                    <th>Acciones ⬍</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paquetes.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" className="sin-paquetes">
-                        No hay paquetes para mostrar
-                      </td>
-                    </tr>
-                  ) : (
-                    paquetes.map((paquete) => (
-                      <tr key={paquete.id}>
-                        <td>{paquete.clave}</td>
-                        <td>{paquete.descripcion}</td>
-                        <td>{paquete.condiciones}</td>
-                        <td>
-                          <button
-                            className="btn-editar-paquete"
-                            onClick={() => cargarPaqueteParaEditar(paquete)}
-                            title="Editar paquete"
-                          >
-                            ✏️
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+						<div className="tabla-paquetes-container">
+							<table className="tabla-paquetes">
+								<thead>
+									<tr>
+										<th>Clave ⬍</th>
+										<th>Descripcion ⬍</th>
+										<th>Condiciones ⬍</th>
+										<th>Acciones ⬍</th>
+									</tr>
+								</thead>
+								<tbody>
+									{paquetes.length === 0 ? (
+										<tr>
+											<td colSpan="4" className="sin-paquetes">
+												No hay paquetes para mostrar
+											</td>
+										</tr>
+									) : (
+										paquetes.map((paquete) => (
+											<tr key={paquete.id}>
+												<td>{paquete.clave}</td>
+												<td>{paquete.descripcion}</td>
+												<td>{paquete.condiciones}</td>
+												<td>
+													<button
+														className="btn-editar-paquete"
+														onClick={() => cargarPaqueteParaEditar(paquete)}
+														title="Editar paquete">
+														✏️
+													</button>
+												</td>
+											</tr>
+										))
+									)}
+								</tbody>
+							</table>
+						</div>
 
-            <div className="contador-paquetes">
-              Mostrando registros del 1 al {paquetes.length} de un total de {totalPaquetes}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Layout>
-  );
+						<div className="contador-paquetes">
+							Mostrando registros del 1 al {paquetes.length} de un total de{" "}
+							{totalPaquetes}
+						</div>
+					</div>
+				</div>
+			</div>
+		</Layout>
+	);
 };
 
 export default Paquetes;

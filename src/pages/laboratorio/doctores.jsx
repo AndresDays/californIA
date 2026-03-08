@@ -1,25 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase-client';
-import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout.jsx';
-import Header from '../../components/header-principal.jsx';
-import SidebarHome from '../../components/sidebar-home.jsx';
-import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
-import ModalConfirmarEliminacion from '../../components/ModalConfirmarEliminacion';
 import editarIcono from '../../assets/editarIcono.png';
 import eliminarIconoV2 from '../../assets/eliminarIconoV2.png';
+import Header from '../../components/header-principal.jsx';
+import Layout from '../../components/layout.jsx';
+import ModalConfirmarEliminacion from '../../components/ModalConfirmarEliminacion';
 import ModalNotificacion from '../../components/ModalNotificacion';
+import SidebarHome from '../../components/sidebar-home.jsx';
+import { useAuth } from '../../context/auth-context';
+import { supabase } from '../../lib/supabase-client';
+import ModalAgregarDoctor from './componentes/modal-agregar-doctor';
 import './doctores.css';
 
 const Doctores = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarDoctor, setBuscarDoctor] = useState('');
   const [doctores, setDoctores] = useState([]);
   const [totalDoctores, setTotalDoctores] = useState(0);
-  
+
   const [modalAbierto, setModalAbierto] = useState(false);
   const [doctorEditar, setDoctorEditar] = useState(null);
 
@@ -92,7 +94,7 @@ const Doctores = () => {
       if (error) throw error;
 
       setTotalDoctores(count || 0);
-      
+
       const doctoresFormateados = data?.map(doctor => ({
         id: doctor.id_doctor,
         apellidoPaterno: doctor.apellido_paterno || '',
@@ -251,154 +253,167 @@ const Doctores = () => {
   };
 
   return (
-    <Layout>
-      <div className="admin-doctores-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="doctores"
-        />
+		<Layout>
+			<div className="admin-doctores-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="doctores"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-doctores-header">
-          <h1 className="admin-doctores-title">Administrar Doctores</h1>
-        </div>
+				<div className="admin-doctores-header">
+					<h1 className="admin-doctores-title">Administrar Doctores</h1>
+				</div>
 
-        <div className="admin-doctores-content">
-          <div className="controles-admin-doctores">
-            <div className="botones-accion-doctores">
-              <button className="btn-agregar-doctor" onClick={handleAgregarDoctor}>
-                Agregar Doctor
-              </button>
-              <button className="btn-imprimir-tabla-doc" onClick={handleImprimirTabla}>
-                Imprimir tabla
-              </button>
-            </div>
-          </div>
+				<div className="admin-doctores-content">
+					<div className="controles-admin-doctores">
+						<div className="botones-accion-doctores">
+							<button className="btn-agregar-doctor" onClick={handleAgregarDoctor}>
+								Agregar Doctor
+							</button>
+							<button
+								className="btn-imprimir-tabla-doc"
+								onClick={handleImprimirTabla}>
+								Imprimir tabla
+							</button>
+						</div>
+					</div>
 
-          <div className="exportacion-busqueda">
-            <div className="botones-exportacion">
-              <button className="btn-exportar" onClick={handleExportarExcel}>
-                Excel
-              </button>
-              <button className="btn-exportar" onClick={handleExportarPDF}>
-                PDF
-              </button>
-            </div>
+					<div className="exportacion-busqueda">
+						<div className="botones-exportacion">
+							<button className="btn-exportar" onClick={handleExportarExcel}>
+								Excel
+							</button>
+							<button className="btn-exportar" onClick={handleExportarPDF}>
+								PDF
+							</button>
+						</div>
 
-            <div className="busqueda-doctores">
-              <label>Buscar:</label>
-              <input
-                type="text"
-                value={buscarDoctor}
-                onChange={(e) => setBuscarDoctor(e.target.value)}
-                className="input-buscar-doctores"
-              />
-            </div>
-          </div>
+						<div className="busqueda-doctores">
+							<label>Buscar:</label>
+							<input
+								type="text"
+								value={buscarDoctor}
+								onChange={(e) => setBuscarDoctor(e.target.value)}
+								className="input-buscar-doctores"
+							/>
+						</div>
+					</div>
 
-          <div className="tabla-admin-doctores-container">
-            <table className="tabla-admin-doctores">
-              <thead>
-                <tr>
-                  <th>Apellido paterno</th>
-                  <th>Apellido Materno</th>
-                  <th>Nombre</th>
-                  <th>Edad</th>
-                  <th>Sexo</th>
-                  <th>Fecha nacimiento</th>
-                  <th>Telefono</th>
-                  <th>Email</th>
-                  <th>Usuario</th>
-                  <th>Contraseña</th>
-                  <th>Fecha registro</th>
-                  <th>Accion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {doctores.length === 0 ? (
-                  <tr>
-                    <td colSpan="12" className="sin-doctores">
-                      No hay doctores para mostrar
-                    </td>
-                  </tr>
-                ) : (
-                  doctores.map((doctor) => (
-                    <tr key={doctor.id}>
-                      <td>{doctor.apellidoPaterno}</td>
-                      <td>{doctor.apellidoMaterno}</td>
-                      <td>{doctor.nombre}</td>
-                      <td>{doctor.edad}</td>
-                      <td>{doctor.sexo}</td>
-                      <td>{doctor.fechaNacimiento}</td>
-                      <td>{doctor.telefono}</td>
-                      <td>{doctor.email}</td>
-                      <td>{doctor.usuario}</td>
-                      <td>{doctor.contrasena}</td>
-                      <td>{doctor.fechaRegistro}</td>
-                      <td>
-                        <div className="acciones-doctores">
-                          <button
-                            className="btn-editar-doctor"
-                            onClick={() => handleEditarDoctor(doctor)}
-                            title="Editar doctor"
-                          >
-                            <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
-                          </button>
-                          <button
-                            className="btn-eliminar-doctor"
-                            onClick={() => handleEliminarDoctor(doctor)}
-                            title="Eliminar doctor"
-                          >
-                            <img src={eliminarIconoV2} alt="Eliminar" className="icono-eliminar-doctor" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+					<div className="tabla-admin-doctores-container">
+						<table className="tabla-admin-doctores">
+							<thead>
+								<tr>
+									<th>Apellido paterno</th>
+									<th>Apellido Materno</th>
+									<th>Nombre</th>
+									<th>Edad</th>
+									<th>Sexo</th>
+									<th>Fecha nacimiento</th>
+									<th>Telefono</th>
+									<th>Email</th>
+									<th>Usuario</th>
+									<th>Contraseña</th>
+									<th>Fecha registro</th>
+									<th>Accion</th>
+								</tr>
+							</thead>
+							<tbody>
+								{doctores.length === 0 ? (
+									<tr>
+										<td colSpan="12" className="sin-doctores">
+											No hay doctores para mostrar
+										</td>
+									</tr>
+								) : (
+									doctores.map((doctor) => (
+										<tr key={doctor.id}>
+											<td>{doctor.apellidoPaterno}</td>
+											<td>{doctor.apellidoMaterno}</td>
+											<td>{doctor.nombre}</td>
+											<td>{doctor.edad}</td>
+											<td>{doctor.sexo}</td>
+											<td>{doctor.fechaNacimiento}</td>
+											<td>{doctor.telefono}</td>
+											<td>{doctor.email}</td>
+											<td>{doctor.usuario}</td>
+											<td>{doctor.contrasena}</td>
+											<td>{doctor.fechaRegistro}</td>
+											<td>
+												<div className="acciones-doctores">
+													<button
+														className="btn-editar-doctor"
+														onClick={() => handleEditarDoctor(doctor)}
+														title="Editar doctor">
+														<img
+															src={editarIcono}
+															alt="Editar"
+															className="btn-edit-icon"
+														/>
+													</button>
+													<button
+														className="btn-eliminar-doctor"
+														onClick={() => handleEliminarDoctor(doctor)}
+														title="Eliminar doctor">
+														<img
+															src={eliminarIconoV2}
+															alt="Eliminar"
+															className="icono-eliminar-doctor"
+														/>
+													</button>
+												</div>
+											</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
 
-          <div className="contador-registros">
-            Mostrando registros del 1 al {doctores.length} de un total de {totalDoctores}
-          </div>
-        </div>
+					<div className="contador-registros">
+						Mostrando registros del 1 al {doctores.length} de un total de{" "}
+						{totalDoctores}
+					</div>
+				</div>
 
-        <ModalAgregarDoctor
-          isOpen={modalAbierto}
-          onClose={() => setModalAbierto(false)}
-          onSave={handleGuardarDoctor}
-          doctorEditar={doctorEditar}
-        />
+				<ModalAgregarDoctor
+					isOpen={modalAbierto}
+					onClose={() => setModalAbierto(false)}
+					onSave={handleGuardarDoctor}
+					doctorEditar={doctorEditar}
+				/>
 
-        <ModalConfirmarEliminacion
-          isOpen={modalEliminarOpen}
-          onClose={() => {
-            setModalEliminarOpen(false);
-            setDoctorAEliminar(null);
-          }}
-          onConfirm={confirmarEliminarDoctor}
-          tipo="doctor"
-          nombreElemento={doctorAEliminar ? 
-            `${doctorAEliminar.nombre} ${doctorAEliminar.apellidoPaterno} ${doctorAEliminar.apellidoMaterno}` 
-            : ''
-          }
-        />
-        <ModalNotificacion
-          isOpen={notificacion.isOpen}
-          onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
-          mensaje={notificacion.mensaje}
-          tipo={notificacion.tipo}
-        />
-      </div>
-    </Layout>
-  );
+				<ModalConfirmarEliminacion
+					isOpen={modalEliminarOpen}
+					onClose={() => {
+						setModalEliminarOpen(false);
+						setDoctorAEliminar(null);
+					}}
+					onConfirm={confirmarEliminarDoctor}
+					tipo="doctor"
+					nombreElemento={
+						doctorAEliminar
+							? `${doctorAEliminar.nombre} ${doctorAEliminar.apellidoPaterno} ${doctorAEliminar.apellidoMaterno}`
+							: ""
+					}
+				/>
+				<ModalNotificacion
+					isOpen={notificacion.isOpen}
+					onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+					mensaje={notificacion.mensaje}
+					tipo={notificacion.tipo}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default Doctores;

@@ -1,21 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase-client.js';
-import { useAuth } from '../context/auth-context.jsx';
-import Header from '../components/header-principal.jsx';
-import SidebarHome from '../components/sidebar-home.jsx';
-import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
-import editarIcono from '../assets/editarIcono.png';
 import agregarPacienteBtn from '../assets/agregarPacienteBtn.png';
-import imprimirTablaBtn from '../assets/imprimirTablaBtn.png';
+import editarIcono from '../assets/editarIcono.png';
 import eliminarIconoV2 from '../assets/eliminarIconoV2.png';
+import imprimirTablaBtn from '../assets/imprimirTablaBtn.png';
+import Header from '../components/header-principal.jsx';
 import ModalConfirmarEliminacion from '../components/ModalConfirmarEliminacion';
 import ModalNotificacion from '../components/ModalNotificacion';
+import SidebarHome from '../components/sidebar-home.jsx';
+import { useAuth } from '../context/auth-context.jsx';
+import { supabase } from '../lib/supabase-client.js';
+import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
 import './pacientes.css';
 
 const Pacientes = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [empleadoData, setEmpleadoData] = useState(null);
   const [buscarPaciente, setBuscarPaciente] = useState('');
@@ -269,169 +271,171 @@ const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
   const pacienteFin = Math.min(paginaActual * pacientesPorPagina, totalPacientes);
 
   return (
-      <div className="admin-pacientes-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="pacientes"
-        />
+		<div className="admin-pacientes-wrapper">
+			<Header
+				menuOpen={menuOpen}
+				setMenuOpen={setMenuOpen}
+				menuRef={menuRef}
+				empleadoData={empleadoData}
+				formatRol={formatRol}
+				getPrimerNombre={getPrimerNombre}
+				user={user}
+				handleLogout={handleLogout}
+				currentPage="pacientes"
+			/>
 
-        <SidebarHome />
+			<SidebarHome />
 
-        <div className="admin-pacientes-header">
-          <h1 className="admin-pacientes-title">Administrar Pacientes</h1>
-        </div>
+			<div className="admin-pacientes-header">
+				<h1 className="admin-pacientes-title">Administrar Pacientes</h1>
+			</div>
 
-        <div className="admin-pacientes-content">
-          <div className="controles-admin-pacientes">
-            <div className="botones-accion-admin">
-              <button 
-                className="btn-agregar-paciente"
-                onClick={handleAgregarPaciente}
-              >
-                <img 
-                  src={agregarPacienteBtn} 
-                  alt="Agregar Paciente" 
-                  className="btn-action-img"
-                />
-              </button>
-              <button 
-                className="btn-imprimir-tabla"
-                onClick={handleImprimirTabla}
-              >
-                <img 
-                  src={imprimirTablaBtn} 
-                  alt="Imprimir Tabla" 
-                  className="btn-action-img"
-                />
-              </button>
-            </div>
-          </div>
+			<div className="admin-pacientes-content">
+				<div className="controles-admin-pacientes">
+					<div className="botones-accion-admin">
+						<button className="btn-agregar-paciente" onClick={handleAgregarPaciente}>
+							<img
+								src={agregarPacienteBtn}
+								alt="Agregar Paciente"
+								className="btn-action-img"
+							/>
+						</button>
+						<button className="btn-imprimir-tabla" onClick={handleImprimirTabla}>
+							<img
+								src={imprimirTablaBtn}
+								alt="Imprimir Tabla"
+								className="btn-action-img"
+							/>
+						</button>
+					</div>
+				</div>
 
-          <div className="busqueda-admin">
-            <input
-              type="text"
-              placeholder="Busca Pacientes Aqui..."
-              value={buscarPaciente}
-              onChange={(e) => {
-                setBuscarPaciente(e.target.value);
-                setPaginaActual(1);
-              }}
-              className="input-buscar-admin"
-            />
-          </div>
+				<div className="busqueda-admin">
+					<input
+						type="text"
+						placeholder="Busca Pacientes Aqui..."
+						value={buscarPaciente}
+						onChange={(e) => {
+							setBuscarPaciente(e.target.value);
+							setPaginaActual(1);
+						}}
+						className="input-buscar-admin"
+					/>
+				</div>
 
-          <div className="paginacion-superior">
-            <button 
-              className="btn-paginacion"
-              onClick={paginaAnterior}
-              disabled={paginaActual === 1}
-            >
-              &#8249;
-            </button>
-            <span className="info-paginacion">
-              Mostrando: {pacienteInicio}-{pacienteFin} de {totalPacientes}
-            </span>
-            <button 
-              className="btn-paginacion"
-              onClick={paginaSiguiente}
-              disabled={paginaActual * pacientesPorPagina >= totalPacientes}
-            >
-              &#8250;
-            </button>
-          </div>
+				<div className="paginacion-superior">
+					<button
+						className="btn-paginacion"
+						onClick={paginaAnterior}
+						disabled={paginaActual === 1}>
+						&#8249;
+					</button>
+					<span className="info-paginacion">
+						Mostrando: {pacienteInicio}-{pacienteFin} de {totalPacientes}
+					</span>
+					<button
+						className="btn-paginacion"
+						onClick={paginaSiguiente}
+						disabled={paginaActual * pacientesPorPagina >= totalPacientes}>
+						&#8250;
+					</button>
+				</div>
 
-          <div className="tabla-admin-pacientes-container">
-            <table className="tabla-admin-pacientes">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Apellido paterno</th>
-                  <th>Apellido Materno</th>
-                  <th>Nombre</th>
-                  <th>Edad</th>
-                  <th>Sexo</th>
-                  <th>Telefono</th>
-                  <th>Email</th>
-                  <th>Fecha Registro</th>
-                  <th>Accion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pacientes.length === 0 ? (
-                  <tr>
-                    <td colSpan="10" className="sin-pacientes">
-                      No hay pacientes para mostrar
-                    </td>
-                  </tr>
-                ) : (
-                  pacientes.map((paciente) => (
-                    <tr key={paciente.id}>
-                      <td>{paciente.id}</td>
-                      <td>{paciente.apellidoPaterno}</td>
-                      <td>{paciente.apellidoMaterno}</td>
-                      <td>{paciente.nombre}</td>
-                      <td>{paciente.edad} años</td>
-                      <td>{paciente.sexo}</td>
-                      <td>{paciente.telefono}</td>
-                      <td>{paciente.email}</td>
-                      <td>{paciente.fechaRegistro}</td>
-                      <td>
-                        <div className="acciones-paciente">
-                          <button
-                            className="btn-editar-paciente"
-                            onClick={() => handleEditarPaciente(paciente)}
-                            title="Editar paciente"
-                          >
-                            <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
-                          </button>
-                          <button
-                            className="btn-eliminar-paciente"
-                            onClick={() => handleEliminarPaciente(paciente)}
-                            title="Eliminar paciente"
-                          >
-                            <img src={eliminarIconoV2} alt="Eliminar" className="icono-eliminar" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <ModalAgregarPaciente
-          isOpen={modalAgregarPacienteOpen}
-          onClose={() => setModalAgregarPacienteOpen(false)}
-          onGuardar={handleGuardarPacienteModal}
-          pacienteEditar={pacienteEditar}
-        />
+				<div className="tabla-admin-pacientes-container">
+					<table className="tabla-admin-pacientes">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Apellido paterno</th>
+								<th>Apellido Materno</th>
+								<th>Nombre</th>
+								<th>Edad</th>
+								<th>Sexo</th>
+								<th>Telefono</th>
+								<th>Email</th>
+								<th>Fecha Registro</th>
+								<th>Accion</th>
+							</tr>
+						</thead>
+						<tbody>
+							{pacientes.length === 0 ? (
+								<tr>
+									<td colSpan="10" className="sin-pacientes">
+										No hay pacientes para mostrar
+									</td>
+								</tr>
+							) : (
+								pacientes.map((paciente) => (
+									<tr key={paciente.id}>
+										<td>{paciente.id}</td>
+										<td>{paciente.apellidoPaterno}</td>
+										<td>{paciente.apellidoMaterno}</td>
+										<td>{paciente.nombre}</td>
+										<td>{paciente.edad} años</td>
+										<td>{paciente.sexo}</td>
+										<td>{paciente.telefono}</td>
+										<td>{paciente.email}</td>
+										<td>{paciente.fechaRegistro}</td>
+										<td>
+											<div className="acciones-paciente">
+												<button
+													className="btn-editar-paciente"
+													onClick={() => handleEditarPaciente(paciente)}
+													title="Editar paciente">
+													<img
+														src={editarIcono}
+														alt="Editar"
+														className="btn-edit-icon"
+													/>
+												</button>
+												<button
+													className="btn-eliminar-paciente"
+													onClick={() => handleEliminarPaciente(paciente)}
+													title="Eliminar paciente">
+													<img
+														src={eliminarIconoV2}
+														alt="Eliminar"
+														className="icono-eliminar"
+													/>
+												</button>
+											</div>
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<ModalAgregarPaciente
+				isOpen={modalAgregarPacienteOpen}
+				onClose={() => setModalAgregarPacienteOpen(false)}
+				onGuardar={handleGuardarPacienteModal}
+				pacienteEditar={pacienteEditar}
+			/>
 
-        <ModalConfirmarEliminacion
-          isOpen={modalEliminarOpen}
-          onClose={() => {
-            setModalEliminarOpen(false);
-            setPacienteAEliminar(null);
-          }}
-          onConfirm={confirmarEliminarPaciente}
-          tipo="paciente"
-          nombreElemento={pacienteAEliminar ? 
-            `${pacienteAEliminar.nombre} ${pacienteAEliminar.apellidoPaterno} ${pacienteAEliminar.apellidoMaterno}` 
-            : ''
-          }
-        />
-        <ModalNotificacion
-          isOpen={notificacion.isOpen}
-          onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
-          mensaje={notificacion.mensaje}
-          tipo={notificacion.tipo}
-        />
-      </div>
-  );
+			<ModalConfirmarEliminacion
+				isOpen={modalEliminarOpen}
+				onClose={() => {
+					setModalEliminarOpen(false);
+					setPacienteAEliminar(null);
+				}}
+				onConfirm={confirmarEliminarPaciente}
+				tipo="paciente"
+				nombreElemento={
+					pacienteAEliminar
+						? `${pacienteAEliminar.nombre} ${pacienteAEliminar.apellidoPaterno} ${pacienteAEliminar.apellidoMaterno}`
+						: ""
+				}
+			/>
+			<ModalNotificacion
+				isOpen={notificacion.isOpen}
+				onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+				mensaje={notificacion.mensaje}
+				tipo={notificacion.tipo}
+			/>
+		</div>
+	);
 };
 
 export default Pacientes;

@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregarPrecio from '../componentes/modal-agregar-precio';
 import './precios.css';
 
 const Precios = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [empresaFiltro, setEmpresaFiltro] = useState('');
   const [buscarPrecio, setBuscarPrecio] = useState('');
@@ -166,8 +168,8 @@ const Precios = () => {
   };
 
   const toggleSeleccion = (id) => {
-    setSeleccionados(prev => 
-      prev.includes(id) 
+    setSeleccionados(prev =>
+      prev.includes(id)
         ? prev.filter(item => item !== id)
         : [...prev, id]
     );
@@ -204,11 +206,11 @@ const Precios = () => {
   const getPaginasVisibles = () => {
     const paginas = [];
     const rango = 2;
-    
+
     for (let i = Math.max(1, paginaActual - rango); i <= Math.min(totalPaginas, paginaActual + rango); i++) {
       paginas.push(i);
     }
-    
+
     return paginas;
   };
 
@@ -243,225 +245,228 @@ const Precios = () => {
      };
 
   return (
-    <Layout>
-      <div className="admin-precios-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="precios"
-        />
+		<Layout>
+			<div className="admin-precios-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="precios"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-precios-header">
-          <h1 className="admin-precios-title">Administrar Precios</h1>
-        </div>
+				<div className="admin-precios-header">
+					<h1 className="admin-precios-title">Administrar Precios</h1>
+				</div>
 
-        <div className="admin-precios-content">
-          <div className="controles-superiores-precios">
-            <div className="filtro-empresa-grupo">
-              <label>Filtrar por Empresa</label>
-              <select
-                value={empresaFiltro}
-                onChange={(e) => {
-                  setEmpresaFiltro(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="select-empresa-filtro"
-              >
-                <option value="">Selecciona una Empresa</option>
-                <option value="ISSSTE">ISSSTE</option>
-                <option value="NAVAL">NAVAL</option>
-                <option value="SSA">SSA</option>
-                <option value="Particular">Particular</option>
-                <option value="CENTRO MEDICO ANAMAYA">CENTRO MEDICO ANAMAYA</option>
-              </select>
-            </div>
+				<div className="admin-precios-content">
+					<div className="controles-superiores-precios">
+						<div className="filtro-empresa-grupo">
+							<label>Filtrar por Empresa</label>
+							<select
+								value={empresaFiltro}
+								onChange={(e) => {
+									setEmpresaFiltro(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="select-empresa-filtro">
+								<option value="">Selecciona una Empresa</option>
+								<option value="ISSSTE">ISSSTE</option>
+								<option value="NAVAL">NAVAL</option>
+								<option value="SSA">SSA</option>
+								<option value="Particular">Particular</option>
+								<option value="CENTRO MEDICO ANAMAYA">CENTRO MEDICO ANAMAYA</option>
+							</select>
+						</div>
 
-            <div className="botones-accion-precios">
-              <button className="btn-alta-precios" onClick={handleAltaPrecios}>
-                Alta de Precios
-              </button>
-              <button className="btn-duplicar-lista" onClick={handleDuplicarLista}>
-                Duplicar Lista
-              </button>
-            </div>
-          </div>
+						<div className="botones-accion-precios">
+							<button className="btn-alta-precios" onClick={handleAltaPrecios}>
+								Alta de Precios
+							</button>
+							<button className="btn-duplicar-lista" onClick={handleDuplicarLista}>
+								Duplicar Lista
+							</button>
+						</div>
+					</div>
 
-          <div className="busqueda-exportacion-precios">
-            <input
-              type="text"
-              placeholder="Busca Precios Aqui..."
-              value={buscarPrecio}
-              onChange={(e) => {
-                setBuscarPrecio(e.target.value);
-                setPaginaActual(1);
-              }}
-              className="input-buscar-precios"
-            />
+					<div className="busqueda-exportacion-precios">
+						<input
+							type="text"
+							placeholder="Busca Precios Aqui..."
+							value={buscarPrecio}
+							onChange={(e) => {
+								setBuscarPrecio(e.target.value);
+								setPaginaActual(1);
+							}}
+							className="input-buscar-precios"
+						/>
 
-            <div className="botones-exportar-precios">
-              <button className="btn-exportar-precio" onClick={handleExportarExcel}>
-                Excel
-              </button>
-              <button className="btn-exportar-precio" onClick={handleExportarPDF}>
-                PDF
-              </button>
-            </div>
-          </div>
+						<div className="botones-exportar-precios">
+							<button className="btn-exportar-precio" onClick={handleExportarExcel}>
+								Excel
+							</button>
+							<button className="btn-exportar-precio" onClick={handleExportarPDF}>
+								PDF
+							</button>
+						</div>
+					</div>
 
-          <div className="mostrar-registros-precios">
-            <span>Mostrar</span>
-            <select
-              value={registrosPorPagina}
-              onChange={(e) => {
-                setRegistrosPorPagina(parseInt(e.target.value));
-                setPaginaActual(1);
-              }}
-              className="select-registros-precios"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span>registros</span>
-          </div>
+					<div className="mostrar-registros-precios">
+						<span>Mostrar</span>
+						<select
+							value={registrosPorPagina}
+							onChange={(e) => {
+								setRegistrosPorPagina(parseInt(e.target.value));
+								setPaginaActual(1);
+							}}
+							className="select-registros-precios">
+							<option value="10">10</option>
+							<option value="25">25</option>
+							<option value="50">50</option>
+							<option value="100">100</option>
+						</select>
+						<span>registros</span>
+					</div>
 
-          <div className="tabla-precios-container">
-            <table className="tabla-precios">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={seleccionados.length === precios.length && precios.length > 0}
-                      onChange={toggleTodos}
-                    />
-                  </th>
-                  <th>Tipo</th>
-                  <th>Clave</th>
-                  <th>Descripcion</th>
-                  <th>Empresa</th>
-                  <th>Precio</th>
-                  <th>Fecha</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {precios.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="sin-precios">
-                      No hay precios para mostrar
-                    </td>
-                  </tr>
-                ) : (
-                  precios.map((precio) => (
-                    <tr key={precio.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={seleccionados.includes(precio.id)}
-                          onChange={() => toggleSeleccion(precio.id)}
-                        />
-                      </td>
-                      <td>{precio.tipo || 'Estudio'}</td>
-                      <td>{precio.clave}</td>
-                      <td>{precio.descripcion}</td>
-                      <td>{precio.cliente}</td>
-                      <td>$ {precio.precio}</td>
-                      <td>{new Date(precio.fecha || Date.now()).toLocaleString('es-MX', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit'
-                      })}</td>
-                      <td>
-                        <div className="acciones-precios">
-                          <button
-                            className="btn-editar-precio"
-                            onClick={() => handleEditarPrecio(precio)}
-                            title="Editar precio"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="btn-eliminar-precio"
-                            onClick={() => handleEliminarPrecio(precio.id)}
-                            title="Eliminar precio"
-                          >
-                            ✖
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+					<div className="tabla-precios-container">
+						<table className="tabla-precios">
+							<thead>
+								<tr>
+									<th>
+										<input
+											type="checkbox"
+											checked={
+												seleccionados.length === precios.length && precios.length > 0
+											}
+											onChange={toggleTodos}
+										/>
+									</th>
+									<th>Tipo</th>
+									<th>Clave</th>
+									<th>Descripcion</th>
+									<th>Empresa</th>
+									<th>Precio</th>
+									<th>Fecha</th>
+									<th>Acciones</th>
+								</tr>
+							</thead>
+							<tbody>
+								{precios.length === 0 ? (
+									<tr>
+										<td colSpan="8" className="sin-precios">
+											No hay precios para mostrar
+										</td>
+									</tr>
+								) : (
+									precios.map((precio) => (
+										<tr key={precio.id}>
+											<td>
+												<input
+													type="checkbox"
+													checked={seleccionados.includes(precio.id)}
+													onChange={() => toggleSeleccion(precio.id)}
+												/>
+											</td>
+											<td>{precio.tipo || "Estudio"}</td>
+											<td>{precio.clave}</td>
+											<td>{precio.descripcion}</td>
+											<td>{precio.cliente}</td>
+											<td>$ {precio.precio}</td>
+											<td>
+												{new Date(precio.fecha || Date.now()).toLocaleString(
+													"es-MX",
+													{
+														year: "numeric",
+														month: "2-digit",
+														day: "2-digit",
+														hour: "2-digit",
+														minute: "2-digit",
+														second: "2-digit",
+													},
+												)}
+											</td>
+											<td>
+												<div className="acciones-precios">
+													<button
+														className="btn-editar-precio"
+														onClick={() => handleEditarPrecio(precio)}
+														title="Editar precio">
+														✏️
+													</button>
+													<button
+														className="btn-eliminar-precio"
+														onClick={() => handleEliminarPrecio(precio.id)}
+														title="Eliminar precio">
+														✖
+													</button>
+												</div>
+											</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
 
-          <div className="paginacion-precios">
-            <div className="contador-precios">
-              Mostrando registros del {precioInicio} al {precioFin} de un total de {totalPrecios.toLocaleString()}
-            </div>
+					<div className="paginacion-precios">
+						<div className="contador-precios">
+							Mostrando registros del {precioInicio} al {precioFin} de un total de{" "}
+							{totalPrecios.toLocaleString()}
+						</div>
 
-            <div className="botones-paginacion-precios">
-              <button 
-                className="btn-pag-precios"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {getPaginasVisibles().map((pagina) => (
-                <button
-                  key={pagina}
-                  className={`btn-pag-numero-precios ${paginaActual === pagina ? 'activo' : ''}`}
-                  onClick={() => irAPagina(pagina)}
-                >
-                  {pagina}
-                </button>
-              ))}
-              
-              {totalPaginas > 5 && paginaActual < totalPaginas - 2 && (
-                <>
-                  <span className="paginacion-ellipsis">...</span>
-                  <button
-                    className="btn-pag-numero-precios"
-                    onClick={() => irAPagina(totalPaginas)}
-                  >
-                    {totalPaginas}
-                  </button>
-                </>
-              )}
-              
-              <button 
-                className="btn-pag-precios"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
+						<div className="botones-paginacion-precios">
+							<button
+								className="btn-pag-precios"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
 
-        <ModalAgregarPrecio
-          isOpen={modalAbierto}
-          onClose={() => setModalAbierto(false)}
-          onSave={handleGuardarPrecio}
-          precioEditar={precioEditar}
-        />
-      </div>
-    </Layout>
-  );
+							{getPaginasVisibles().map((pagina) => (
+								<button
+									key={pagina}
+									className={`btn-pag-numero-precios ${paginaActual === pagina ? "activo" : ""}`}
+									onClick={() => irAPagina(pagina)}>
+									{pagina}
+								</button>
+							))}
+
+							{totalPaginas > 5 && paginaActual < totalPaginas - 2 && (
+								<>
+									<span className="paginacion-ellipsis">...</span>
+									<button
+										className="btn-pag-numero-precios"
+										onClick={() => irAPagina(totalPaginas)}>
+										{totalPaginas}
+									</button>
+								</>
+							)}
+
+							<button
+								className="btn-pag-precios"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<ModalAgregarPrecio
+					isOpen={modalAbierto}
+					onClose={() => setModalAbierto(false)}
+					onSave={handleGuardarPrecio}
+					precioEditar={precioEditar}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default Precios;

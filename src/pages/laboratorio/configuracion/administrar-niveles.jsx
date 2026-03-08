@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
-import Tabla from '../componentes/tabla';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar';
+import Tabla from '../componentes/tabla';
 import './administrar-niveles.css';
 
 const AdministrarNiveles = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarNivel, setBuscarNivel] = useState('');
   const [niveles, setNiveles] = useState([]);
@@ -94,21 +96,21 @@ const AdministrarNiveles = () => {
             .from('niveles_mar')
             .update({ nombre: nombre })
             .eq('id', nivelEditando.id);
-  
+
           if (error) throw error;
-  
+
           alert('Nivel actualizado correctamente');
         } else {
           // Crear nuevo recipiente
           const { error } = await supabase
             .from('niveles_mar')
             .insert([{ nombre: nombre }]);
-  
+
           if (error) throw error;
-  
+
           alert('Nivel agregado correctamente');
         }
-  
+
         cargarNiveles();
         setModalOpen(false);
         setModoEdicion(false);
@@ -126,9 +128,9 @@ const AdministrarNiveles = () => {
             .select('*')
             .eq('id', id)
             .single();
-    
+
           if (error) throw error;
-    
+
           setModoEdicion(true);
           setNivelEditando(data);
           setModalOpen(true);
@@ -189,123 +191,123 @@ const AdministrarNiveles = () => {
      };
 
   return (
-    <Layout>
-      <div className="admin-niveles-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="administrar-niveles"
-        />
+		<Layout>
+			<div className="admin-niveles-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="administrar-niveles"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-niveles-header">
-          <h1 className="admin-niveles-title">Administrar Niveles</h1>
-        </div>
+				<div className="admin-niveles-header">
+					<h1 className="admin-niveles-title">Administrar Niveles</h1>
+				</div>
 
-        <div className="admin-niveles-content">
-          <div className="controles-superiores-niveles">
-            <button className="btn-agregar-nivel" onClick={handleAgregarNivel}>
-              Agregar Nivel
-            </button>
-          </div>
+				<div className="admin-niveles-content">
+					<div className="controles-superiores-niveles">
+						<button className="btn-agregar-nivel" onClick={handleAgregarNivel}>
+							Agregar Nivel
+						</button>
+					</div>
 
-          <div className="controles-tabla-niveles">
-            <div className="mostrar-registros-niveles">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-niveles"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-niveles">
+						<div className="mostrar-registros-niveles">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-niveles">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-niveles-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarNivel}
-                onChange={(e) => {
-                  setBuscarNivel(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-niveles"
-              />
-            </div>
-          </div>
+						<div className="buscar-niveles-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarNivel}
+								onChange={(e) => {
+									setBuscarNivel(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-niveles"
+							/>
+						</div>
+					</div>
 
-          <Tabla
-            headers={['Nivel']}
-            datos={niveles.map(n => ({ id: n.id, nivel: n.nombre }))}
-            paginaInicio={nivelInicio}
-            onEditar={handleEditarNivel}
-            textoVacio="No hay niveles para mostrar"
-          />
+					<Tabla
+						headers={["Nivel"]}
+						datos={niveles.map((n) => ({ id: n.id, nivel: n.nombre }))}
+						paginaInicio={nivelInicio}
+						onEditar={handleEditarNivel}
+						textoVacio="No hay niveles para mostrar"
+					/>
 
-          <div className="paginacion-niveles">
-            <div className="contador-niveles">
-              Mostrando registros del {nivelInicio} al {nivelFin} de un total de {totalNiveles}
-            </div>
+					<div className="paginacion-niveles">
+						<div className="contador-niveles">
+							Mostrando registros del {nivelInicio} al {nivelFin} de un total de{" "}
+							{totalNiveles}
+						</div>
 
-            <div className="botones-paginacion-niveles">
-              <button 
-                className="btn-pag-niveles"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-niveles ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-niveles"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
+						<div className="botones-paginacion-niveles">
+							<button
+								className="btn-pag-niveles"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
 
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setNivelEditando(null);
-          }}
-          onGuardar={handleGuardarNivel}
-          titulo={modoEdicion ? "Editar" : "Agregar Nivel"}
-          placeholder={modoEdicion ? "Editar Nivel" : "Ingresar Nivel"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? nivelEditando?.nombre : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-niveles ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-niveles"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setNivelEditando(null);
+					}}
+					onGuardar={handleGuardarNivel}
+					titulo={modoEdicion ? "Editar" : "Agregar Nivel"}
+					placeholder={modoEdicion ? "Editar Nivel" : "Ingresar Nivel"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? nivelEditando?.nombre : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default AdministrarNiveles;

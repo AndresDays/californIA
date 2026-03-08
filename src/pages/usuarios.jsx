@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase-client';
-import { useAuth } from '../context/auth-context';
-import Header from '../components/header-principal';
 import editarIcono from '../assets/editarIcono.png';
 import eliminarIconoV2 from '../assets/eliminarIconoV2.png';
-import SidebarHome from '../components/sidebar-home';
+import Header from '../components/header-principal';
+import ModalAgregarUsuario from '../components/ModalAgregarUsuario';
 import ModalConfirmarEliminacion from '../components/ModalConfirmarEliminacion';
 import ModalNotificacion from '../components/ModalNotificacion';
-import ModalAgregarUsuario from '../components/ModalAgregarUsuario'; 
+import SidebarHome from '../components/sidebar-home';
+import { useAuth } from '../context/auth-context';
+import { supabase } from '../lib/supabase-client';
 import './usuarios.css';
 
 const Usuarios = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [empleadoData, setEmpleadoData] = useState(null);
   const [buscarUsuario, setBuscarUsuario] = useState('');
@@ -260,182 +262,189 @@ const Usuarios = () => {
   const totalPaginas = Math.ceil(totalUsuarios / registrosPorPagina);
 
   return (
-    <div className="admin-usuarios-wrapper">
-      <Header
-        empleadoData={empleadoData}
-        formatRol={formatRol}
-        getPrimerNombre={getPrimerNombre}
-        user={user}
-        handleLogout={handleLogout}
-        currentPage="usuarios"
-      />
+		<div className="admin-usuarios-wrapper">
+			<Header
+				menuOpen={menuOpen}
+				setMenuOpen={setMenuOpen}
+				menuRef={menuRef}
+				empleadoData={empleadoData}
+				formatRol={formatRol}
+				getPrimerNombre={getPrimerNombre}
+				user={user}
+				handleLogout={handleLogout}
+				currentPage="usuarios"
+			/>
 
-      <SidebarHome />
+			<SidebarHome />
 
-      <div className="admin-usuarios-header">
-        <h1 className="admin-usuarios-title">Administrar usuarios</h1>
-      </div>
+			<div className="admin-usuarios-header">
+				<h1 className="admin-usuarios-title">Administrar usuarios</h1>
+			</div>
 
-      <div className="admin-usuarios-content">
-        <div className="controles-usuarios-top">
-          <button className="btn-agregar-usuario" onClick={handleAgregarUsuario}>
-            Agregar usuario
-          </button>
-        </div>
+			<div className="admin-usuarios-content">
+				<div className="controles-usuarios-top">
+					<button className="btn-agregar-usuario" onClick={handleAgregarUsuario}>
+						Agregar usuario
+					</button>
+				</div>
 
-        <div className="controles-mostrar-buscar">
-          <div className="mostrar-registros">
-            <span>Mostrar</span>
-            <select
-              value={registrosPorPagina}
-              onChange={(e) => {
-                setRegistrosPorPagina(parseInt(e.target.value));
-                setPaginaActual(1);
-              }}
-              className="select-registros"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span>registros</span>
-          </div>
+				<div className="controles-mostrar-buscar">
+					<div className="mostrar-registros">
+						<span>Mostrar</span>
+						<select
+							value={registrosPorPagina}
+							onChange={(e) => {
+								setRegistrosPorPagina(parseInt(e.target.value));
+								setPaginaActual(1);
+							}}
+							className="select-registros">
+							<option value="10">10</option>
+							<option value="25">25</option>
+							<option value="50">50</option>
+							<option value="100">100</option>
+						</select>
+						<span>registros</span>
+					</div>
 
-          <div className="buscar-usuarios-grupo">
-            <span>Buscar:</span>
-            <input
-              type="text"
-              value={buscarUsuario}
-              onChange={(e) => {
-                setBuscarUsuario(e.target.value);
-                setPaginaActual(1);
-              }}
-              className="input-buscar-usuarios"
-            />
-          </div>
-        </div>
+					<div className="buscar-usuarios-grupo">
+						<span>Buscar:</span>
+						<input
+							type="text"
+							value={buscarUsuario}
+							onChange={(e) => {
+								setBuscarUsuario(e.target.value);
+								setPaginaActual(1);
+							}}
+							className="input-buscar-usuarios"
+						/>
+					</div>
+				</div>
 
-        <div className="tabla-usuarios-container">
-          <table className="tabla-usuarios">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Usuario</th>
-                <th>Rol</th>
-                <th>Sucursal</th>
-                <th>Estado</th>
-                <th>Ultimo login</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="sin-usuarios">
-                    No hay usuarios para mostrar
-                  </td>
-                </tr>
-              ) : (
-                usuarios.map((usuario, index) => (
-                  <tr key={usuario.id}>
-                    <td>{usuarioInicio + index}</td>
-                    <td>{usuario.nombre}</td>
-                    <td>{usuario.usuario}</td>
-                    <td>{usuario.rol}</td>
-                    <td>{usuario.sucursal}</td>
-                    <td>
-                      <span className={`estado-badge ${usuario.estado === 'Activado' ? 'activado' : 'desactivado'}`}>
-                        {usuario.estado}
-                      </span>
-                    </td>
-                    <td>{usuario.ultimoLogin}</td>
-                    <td>
-                      <div className="acciones-usuarios">
-                        <button
-                          className="btn-editar-usuario"
-                          onClick={() => handleEditarUsuario(usuario)}
-                          title="Editar usuario"
-                        >
-                          <img src={editarIcono} alt="Editar" className="btn-edit-icon" />
-                        </button>
-                        <button
-                          className="btn-eliminar-usuario"
-                          onClick={() => handleEliminarUsuario(usuario)}
-                          title="Eliminar usuario"
-                        >
-                          <img src={eliminarIconoV2} alt="Eliminar" className="icono-eliminar-usuario" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+				<div className="tabla-usuarios-container">
+					<table className="tabla-usuarios">
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Nombre</th>
+								<th>Usuario</th>
+								<th>Rol</th>
+								<th>Sucursal</th>
+								<th>Estado</th>
+								<th>Ultimo login</th>
+								<th>Acciones</th>
+							</tr>
+						</thead>
+						<tbody>
+							{usuarios.length === 0 ? (
+								<tr>
+									<td colSpan="8" className="sin-usuarios">
+										No hay usuarios para mostrar
+									</td>
+								</tr>
+							) : (
+								usuarios.map((usuario, index) => (
+									<tr key={usuario.id}>
+										<td>{usuarioInicio + index}</td>
+										<td>{usuario.nombre}</td>
+										<td>{usuario.usuario}</td>
+										<td>{usuario.rol}</td>
+										<td>{usuario.sucursal}</td>
+										<td>
+											<span
+												className={`estado-badge ${usuario.estado === "Activado" ? "activado" : "desactivado"}`}>
+												{usuario.estado}
+											</span>
+										</td>
+										<td>{usuario.ultimoLogin}</td>
+										<td>
+											<div className="acciones-usuarios">
+												<button
+													className="btn-editar-usuario"
+													onClick={() => handleEditarUsuario(usuario)}
+													title="Editar usuario">
+													<img
+														src={editarIcono}
+														alt="Editar"
+														className="btn-edit-icon"
+													/>
+												</button>
+												<button
+													className="btn-eliminar-usuario"
+													onClick={() => handleEliminarUsuario(usuario)}
+													title="Eliminar usuario">
+													<img
+														src={eliminarIconoV2}
+														alt="Eliminar"
+														className="icono-eliminar-usuario"
+													/>
+												</button>
+											</div>
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</div>
 
-        <div className="paginacion-inferior">
-          <div className="contador-usuarios">
-            Mostrando registros del {usuarioInicio} al {usuarioFin} de un total de {totalUsuarios}
-          </div>
+				<div className="paginacion-inferior">
+					<div className="contador-usuarios">
+						Mostrando registros del {usuarioInicio} al {usuarioFin} de un total de{" "}
+						{totalUsuarios}
+					</div>
 
-          <div className="botones-paginacion">
-            <button
-              className="btn-pag"
-              onClick={paginaAnterior}
-              disabled={paginaActual === 1}
-            >
-              Anterior
-            </button>
+					<div className="botones-paginacion">
+						<button
+							className="btn-pag"
+							onClick={paginaAnterior}
+							disabled={paginaActual === 1}>
+							Anterior
+						</button>
 
-            {[...Array(totalPaginas)].map((_, i) => (
-              <button
-                key={i + 1}
-                className={`btn-pag-numero ${paginaActual === i + 1 ? 'activo' : ''}`}
-                onClick={() => irAPagina(i + 1)}
-              >
-                {i + 1}
-              </button>
-            ))}
+						{[...Array(totalPaginas)].map((_, i) => (
+							<button
+								key={i + 1}
+								className={`btn-pag-numero ${paginaActual === i + 1 ? "activo" : ""}`}
+								onClick={() => irAPagina(i + 1)}>
+								{i + 1}
+							</button>
+						))}
 
-            <button
-              className="btn-pag"
-              onClick={paginaSiguiente}
-              disabled={paginaActual >= totalPaginas}
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-      </div>
-      <ModalConfirmarEliminacion
-        isOpen={modalEliminarOpen}
-        onClose={() => {
-          setModalEliminarOpen(false);
-          setUsuarioAEliminar(null);
-        }}
-        onConfirm={confirmarEliminarUsuario}
-        tipo="usuario"
-        nombreElemento={usuarioAEliminar?.nombre || ''}
-      />
+						<button
+							className="btn-pag"
+							onClick={paginaSiguiente}
+							disabled={paginaActual >= totalPaginas}>
+							Siguiente
+						</button>
+					</div>
+				</div>
+			</div>
+			<ModalConfirmarEliminacion
+				isOpen={modalEliminarOpen}
+				onClose={() => {
+					setModalEliminarOpen(false);
+					setUsuarioAEliminar(null);
+				}}
+				onConfirm={confirmarEliminarUsuario}
+				tipo="usuario"
+				nombreElemento={usuarioAEliminar?.nombre || ""}
+			/>
 
-      <ModalNotificacion
-        isOpen={notificacion.isOpen}
-        onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
-        mensaje={notificacion.mensaje}
-        tipo={notificacion.tipo}
-      />
+			<ModalNotificacion
+				isOpen={notificacion.isOpen}
+				onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+				mensaje={notificacion.mensaje}
+				tipo={notificacion.tipo}
+			/>
 
-      <ModalAgregarUsuario
-        isOpen={modalAgregarOpen}
-        onClose={() => setModalAgregarOpen(false)}
-        onGuardar={handleGuardarUsuario}
-        usuarioEditar={usuarioEditar}
-      />
-    </div>
-  );
+			<ModalAgregarUsuario
+				isOpen={modalAgregarOpen}
+				onClose={() => setModalAgregarOpen(false)}
+				onGuardar={handleGuardarUsuario}
+				usuarioEditar={usuarioEditar}
+			/>
+		</div>
+	);
 };
 
 export default Usuarios;

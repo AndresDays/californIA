@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
-import Tabla from '../componentes/tabla';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar';
+import Tabla from '../componentes/tabla';
 import './administrar-recipientes.css';
 
 const AdministrarRecipientes = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarRecipiente, setBuscarRecipiente] = useState('');
   const [recipientes, setRecipientes] = useState([]);
@@ -188,123 +190,125 @@ const AdministrarRecipientes = () => {
      };
 
   return (
-    <Layout>
-      <div className="admin-recipientes-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="administrar-recipientes"
-        />
+		<Layout>
+			<div className="admin-recipientes-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="administrar-recipientes"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-recipientes-header">
-          <h1 className="admin-recipientes-title">Administrar Recipientes</h1>
-        </div>
+				<div className="admin-recipientes-header">
+					<h1 className="admin-recipientes-title">Administrar Recipientes</h1>
+				</div>
 
-        <div className="admin-recipientes-content">
-          <div className="controles-superiores-recipientes">
-            <button className="btn-agregar-recipiente" onClick={handleAgregarRecipiente}>
-              Agregar Recipiente
-            </button>
-          </div>
+				<div className="admin-recipientes-content">
+					<div className="controles-superiores-recipientes">
+						<button
+							className="btn-agregar-recipiente"
+							onClick={handleAgregarRecipiente}>
+							Agregar Recipiente
+						</button>
+					</div>
 
-          <div className="controles-tabla-recipientes">
-            <div className="mostrar-registros-recipientes">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-recipientes"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-recipientes">
+						<div className="mostrar-registros-recipientes">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-recipientes">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-recipientes-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarRecipiente}
-                onChange={(e) => {
-                  setBuscarRecipiente(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-recipientes"
-              />
-            </div>
-          </div>
+						<div className="buscar-recipientes-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarRecipiente}
+								onChange={(e) => {
+									setBuscarRecipiente(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-recipientes"
+							/>
+						</div>
+					</div>
 
-          <Tabla
-            headers={['Recipiente']}
-            datos={recipientes.map(r => ({ id: r.id, recipiente: r.nombre }))}
-            paginaInicio={recipienteInicio}
-            onEditar={handleEditarRecipiente}
-            textoVacio="No hay recipientes para mostrar"
-          />
+					<Tabla
+						headers={["Recipiente"]}
+						datos={recipientes.map((r) => ({ id: r.id, recipiente: r.nombre }))}
+						paginaInicio={recipienteInicio}
+						onEditar={handleEditarRecipiente}
+						textoVacio="No hay recipientes para mostrar"
+					/>
 
-          <div className="paginacion-recipientes">
-            <div className="contador-recipientes">
-              Mostrando registros del {recipienteInicio} al {recipienteFin} de un total de {totalRecipientes}
-            </div>
+					<div className="paginacion-recipientes">
+						<div className="contador-recipientes">
+							Mostrando registros del {recipienteInicio} al {recipienteFin} de un
+							total de {totalRecipientes}
+						</div>
 
-            <div className="botones-paginacion-recipientes">
-              <button 
-                className="btn-pag-recipientes"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-recipientes ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-recipientes"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
+						<div className="botones-paginacion-recipientes">
+							<button
+								className="btn-pag-recipientes"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
 
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setRecipienteEditando(null);
-          }}
-          onGuardar={handleGuardarRecipiente}
-          titulo={modoEdicion ? "Editar" : "Agregar Recipiente"}
-          placeholder={modoEdicion ? "Editar Recipiente" : "Ingresar Recipiente"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? recipienteEditando?.nombre : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-recipientes ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-recipientes"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setRecipienteEditando(null);
+					}}
+					onGuardar={handleGuardarRecipiente}
+					titulo={modoEdicion ? "Editar" : "Agregar Recipiente"}
+					placeholder={modoEdicion ? "Editar Recipiente" : "Ingresar Recipiente"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? recipienteEditando?.nombre : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default AdministrarRecipientes;

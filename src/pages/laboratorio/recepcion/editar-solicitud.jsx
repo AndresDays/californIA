@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import doctorIcono from "../../../assets/doctorIcono.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
@@ -19,6 +19,8 @@ import "./editar-solicitud.css";
 const EditarSolicitud = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
 	const [empleadoData, setEmpleadoData] = useState(null);
 
@@ -588,6 +590,9 @@ const EditarSolicitud = () => {
 		<Layout>
 			<div className="editar-solicitud-wrapper">
 				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
 					empleadoData={empleadoData}
 					formatRol={formatRol}
 					getPrimerNombre={getPrimerNombre}

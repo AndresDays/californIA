@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
-import Tabla from '../componentes/tabla';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar';
+import Tabla from '../componentes/tabla';
 import './administrar-metodos.css';
 
 const AdministrarMetodos = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarMetodo, setBuscarMetodo] = useState('');
   const [metodos, setMetodos] = useState([]);
@@ -94,20 +96,20 @@ const AdministrarMetodos = () => {
             .from('metodos')
             .update({ nombre: nombre })
             .eq('id', metodosEditando.id);
-  
+
           if (error) throw error;
-  
+
           alert('Metodo actualizado correctamente');
         } else {
           const { error } = await supabase
             .from('metodos')
             .insert([{ nombre: nombre }]);
-  
+
           if (error) throw error;
-  
+
           alert('Metodo agregado correctamente');
         }
-  
+
         cargarMetodos();
         setModalOpen(false);
         setModoEdicion(false);
@@ -188,122 +190,122 @@ const AdministrarMetodos = () => {
      };
 
   return (
-    <Layout>
-      <div className="admin-metodos-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="administrar-metodos"
-        />
+		<Layout>
+			<div className="admin-metodos-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="administrar-metodos"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-metodos-header">
-          <h1 className="admin-metodos-title">Administrar Metodos</h1>
-        </div>
+				<div className="admin-metodos-header">
+					<h1 className="admin-metodos-title">Administrar Metodos</h1>
+				</div>
 
-        <div className="admin-metodos-content">
-          <div className="controles-superiores-metodos">
-            <button className="btn-agregar-metodo" onClick={handleAgregarMetodo}>
-              Agregar Metodo
-            </button>
-          </div>
+				<div className="admin-metodos-content">
+					<div className="controles-superiores-metodos">
+						<button className="btn-agregar-metodo" onClick={handleAgregarMetodo}>
+							Agregar Metodo
+						</button>
+					</div>
 
-          <div className="controles-tabla-metodos">
-            <div className="mostrar-registros-metodos">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-metodos"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-metodos">
+						<div className="mostrar-registros-metodos">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-metodos">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-metodos-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarMetodo}
-                onChange={(e) => {
-                  setBuscarMetodo(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-metodos"
-              />
-            </div>
-          </div>
+						<div className="buscar-metodos-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarMetodo}
+								onChange={(e) => {
+									setBuscarMetodo(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-metodos"
+							/>
+						</div>
+					</div>
 
-          <Tabla
-            headers={['Metodo']}
-            datos={metodos.map(m => ({ id: m.id, metodo: m.nombre }))}
-            paginaInicio={metodoInicio}
-            onEditar={handleEditarMetodo}
-            textoVacio="No hay metodos para mostrar"
-          />
+					<Tabla
+						headers={["Metodo"]}
+						datos={metodos.map((m) => ({ id: m.id, metodo: m.nombre }))}
+						paginaInicio={metodoInicio}
+						onEditar={handleEditarMetodo}
+						textoVacio="No hay metodos para mostrar"
+					/>
 
-          <div className="paginacion-metodos">
-            <div className="contador-metodos">
-              Mostrando registros del {metodoInicio} al {metodoFin} de un total de {totalMetodos}
-            </div>
+					<div className="paginacion-metodos">
+						<div className="contador-metodos">
+							Mostrando registros del {metodoInicio} al {metodoFin} de un total de{" "}
+							{totalMetodos}
+						</div>
 
-            <div className="botones-paginacion-metodos">
-              <button 
-                className="btn-pag-metodos"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-metodos ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-metodos"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setMetodosEditando(null);
-          }}
-          onGuardar={handleGuardarMetodo}
-          titulo={modoEdicion ? "Editar" : "Agregar Metodo"}
-          placeholder={modoEdicion ? "Editar Metodo" : "Ingresar Metodo"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? metodosEditando?.nombre : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+						<div className="botones-paginacion-metodos">
+							<button
+								className="btn-pag-metodos"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
+
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-metodos ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-metodos"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setMetodosEditando(null);
+					}}
+					onGuardar={handleGuardarMetodo}
+					titulo={modoEdicion ? "Editar" : "Agregar Metodo"}
+					placeholder={modoEdicion ? "Editar Metodo" : "Ingresar Metodo"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? metodosEditando?.nombre : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default AdministrarMetodos;

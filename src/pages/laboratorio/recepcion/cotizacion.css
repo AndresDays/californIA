@@ -321,7 +321,7 @@
 .buscar-estudios-grupo-cot {
 	display: flex;
 	position: relative;
-	z-index: 100;
+	z-index: 1;
 }
 
 .input-buscar-estudios-cot {

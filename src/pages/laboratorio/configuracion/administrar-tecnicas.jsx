@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Layout from '../../../components/layout.jsx';
 import Header from '../../../components/header-principal.jsx';
+import Layout from '../../../components/layout.jsx';
 import SidebarHome from '../../../components/sidebar-home.jsx';
-import Tabla from '../componentes/tabla';
+import { useAuth } from '../../../context/auth-context';
+import { supabase } from '../../../lib/supabase-client';
 import ModalAgregar from '../componentes/modal-agregar.jsx';
+import Tabla from '../componentes/tabla';
 import './administrar-tecnicas.css';
 
 const AdministrarTecnicas = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+	const navigate = useNavigate();
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef(null);
 
   const [buscarTecnica, setBuscarTecnica] = useState('');
   const [tecnicas, setTecnicas] = useState([]);
@@ -86,7 +88,7 @@ const AdministrarTecnicas = () => {
         setModoEdicion(false);
         setTecnicasEditando(null);
       };
-    
+
   const handleGuardarTecnica = async (nombre) => {
       try {
         if (modoEdicion && tecnicasEditando) {
@@ -94,20 +96,20 @@ const AdministrarTecnicas = () => {
             .from('tecnicas')
             .update({ nombre: nombre })
             .eq('id', tecnicasEditando.id);
-  
+
           if (error) throw error;
-  
+
           alert('Tecnica actualizada correctamente');
         } else {
           const { error } = await supabase
             .from('tecnicas')
             .insert([{ nombre: nombre }]);
-  
+
           if (error) throw error;
-  
+
           alert('Tecnica agregada correctamente');
         }
-  
+
         cargarTecnicas();
         setModalOpen(false);
         setModoEdicion(false);
@@ -125,9 +127,9 @@ const AdministrarTecnicas = () => {
           .select('*')
           .eq('id', id)
           .single();
-  
+
         if (error) throw error;
-  
+
         setModoEdicion(true);
         setTecnicasEditando(data);
         setModalOpen(true);
@@ -188,122 +190,122 @@ const AdministrarTecnicas = () => {
      };
 
   return (
-    <Layout>
-      <div className="admin-tecnicas-wrapper">
-        <Header
-          empleadoData={empleadoData}
-          formatRol={formatRol}
-          getPrimerNombre={getPrimerNombre}
-          user={user}
-          handleLogout={handleLogout}
-          currentPage="administrar-tecnicas"
-        />
+		<Layout>
+			<div className="admin-tecnicas-wrapper">
+				<Header
+					menuOpen={menuOpen}
+					setMenuOpen={setMenuOpen}
+					menuRef={menuRef}
+					empleadoData={empleadoData}
+					formatRol={formatRol}
+					getPrimerNombre={getPrimerNombre}
+					user={user}
+					handleLogout={handleLogout}
+					currentPage="administrar-tecnicas"
+				/>
 
-        <SidebarHome/>
+				<SidebarHome />
 
-        <div className="admin-tecnicas-header">
-          <h1 className="admin-tecnicas-title">Administrar Tecnicas</h1>
-        </div>
+				<div className="admin-tecnicas-header">
+					<h1 className="admin-tecnicas-title">Administrar Tecnicas</h1>
+				</div>
 
-        <div className="admin-tecnicas-content">
-          <div className="controles-superiores-tecnicas">
-            <button className="btn-agregar-tecnica" onClick={handleAgregarTecnica}>
-              Agregar Tecnica
-            </button>
-          </div>
+				<div className="admin-tecnicas-content">
+					<div className="controles-superiores-tecnicas">
+						<button className="btn-agregar-tecnica" onClick={handleAgregarTecnica}>
+							Agregar Tecnica
+						</button>
+					</div>
 
-          <div className="controles-tabla-tecnicas">
-            <div className="mostrar-registros-tecnicas">
-              <span>Mostrar</span>
-              <select
-                value={registrosPorPagina}
-                onChange={(e) => {
-                  setRegistrosPorPagina(parseInt(e.target.value));
-                  setPaginaActual(1);
-                }}
-                className="select-registros-tecnicas"
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              <span>registros</span>
-            </div>
+					<div className="controles-tabla-tecnicas">
+						<div className="mostrar-registros-tecnicas">
+							<span>Mostrar</span>
+							<select
+								value={registrosPorPagina}
+								onChange={(e) => {
+									setRegistrosPorPagina(parseInt(e.target.value));
+									setPaginaActual(1);
+								}}
+								className="select-registros-tecnicas">
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+							<span>registros</span>
+						</div>
 
-            <div className="buscar-tecnicas-grupo">
-              <span>Buscar:</span>
-              <input
-                type="text"
-                value={buscarTecnica}
-                onChange={(e) => {
-                  setBuscarTecnica(e.target.value);
-                  setPaginaActual(1);
-                }}
-                className="input-buscar-tecnicas"
-              />
-            </div>
-          </div>
+						<div className="buscar-tecnicas-grupo">
+							<span>Buscar:</span>
+							<input
+								type="text"
+								value={buscarTecnica}
+								onChange={(e) => {
+									setBuscarTecnica(e.target.value);
+									setPaginaActual(1);
+								}}
+								className="input-buscar-tecnicas"
+							/>
+						</div>
+					</div>
 
-          <Tabla
-            headers={['Tecnica']}
-            datos={tecnicas.map(t => ({ id: t.id, tecnica: t.nombre }))}
-            paginaInicio={tecnicaInicio}
-            onEditar={handleEditarTecnica}
-            textoVacio="No hay tecnicas para mostrar"
-          />
+					<Tabla
+						headers={["Tecnica"]}
+						datos={tecnicas.map((t) => ({ id: t.id, tecnica: t.nombre }))}
+						paginaInicio={tecnicaInicio}
+						onEditar={handleEditarTecnica}
+						textoVacio="No hay tecnicas para mostrar"
+					/>
 
-          <div className="paginacion-tecnicas">
-            <div className="contador-tecnicas">
-              Mostrando registros del {tecnicaInicio} al {tecnicaFin} de un total de {totalTecnicas}
-            </div>
+					<div className="paginacion-tecnicas">
+						<div className="contador-tecnicas">
+							Mostrando registros del {tecnicaInicio} al {tecnicaFin} de un total de{" "}
+							{totalTecnicas}
+						</div>
 
-            <div className="botones-paginacion-tecnicas">
-              <button 
-                className="btn-pag-tecnicas"
-                onClick={paginaAnterior}
-                disabled={paginaActual === 1}
-              >
-                Anterior
-              </button>
-              
-              {[...Array(totalPaginas)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  className={`btn-pag-numero-tecnicas ${paginaActual === i + 1 ? 'activo' : ''}`}
-                  onClick={() => irAPagina(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              <button 
-                className="btn-pag-tecnicas"
-                onClick={paginaSiguiente}
-                disabled={paginaActual >= totalPaginas}
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
-        <ModalAgregar
-          isOpen={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModoEdicion(false);
-            setTecnicasEditando(null);
-          }}
-          onGuardar={handleGuardarTecnica}
-          titulo={modoEdicion ? "Editar" : "Agregar Tecnica"}
-          placeholder={modoEdicion ? "Editar Tecnica" : "Ingresar Tecnica"}
-          icono="⚙️"
-          valorInicial={modoEdicion ? tecnicasEditando?.nombre : ""}
-          modoEdicion={modoEdicion}
-        />
-      </div>
-    </Layout>
-  );
+						<div className="botones-paginacion-tecnicas">
+							<button
+								className="btn-pag-tecnicas"
+								onClick={paginaAnterior}
+								disabled={paginaActual === 1}>
+								Anterior
+							</button>
+
+							{[...Array(totalPaginas)].map((_, i) => (
+								<button
+									key={i + 1}
+									className={`btn-pag-numero-tecnicas ${paginaActual === i + 1 ? "activo" : ""}`}
+									onClick={() => irAPagina(i + 1)}>
+									{i + 1}
+								</button>
+							))}
+
+							<button
+								className="btn-pag-tecnicas"
+								onClick={paginaSiguiente}
+								disabled={paginaActual >= totalPaginas}>
+								Siguiente
+							</button>
+						</div>
+					</div>
+				</div>
+				<ModalAgregar
+					isOpen={modalOpen}
+					onClose={() => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setTecnicasEditando(null);
+					}}
+					onGuardar={handleGuardarTecnica}
+					titulo={modoEdicion ? "Editar" : "Agregar Tecnica"}
+					placeholder={modoEdicion ? "Editar Tecnica" : "Ingresar Tecnica"}
+					icono="⚙️"
+					valorInicial={modoEdicion ? tecnicasEditando?.nombre : ""}
+					modoEdicion={modoEdicion}
+				/>
+			</div>
+		</Layout>
+	);
 };
 
 export default AdministrarTecnicas;
