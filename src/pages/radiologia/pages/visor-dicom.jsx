@@ -15,7 +15,7 @@ import descargarIcon from "../../../assets/descargarIcono.png";
 import detallesIcon from "../../../assets/detallesIcono.png";
 import reporteIcon from "../../../assets/editarIcono.png";
 import formatoIcon from "../../../assets/formatoIcono.png";
-import capturaIcon from "../../../assets/imprimirIcono.png";
+import capturaIcon from "../../../assets/capturaIcono.png";
 import informacionIcon from "../../../assets/informacionIcono.png";
 import longitudIcono from "../../../assets/longitudIcono.png";
 import ampliarIcon from "../../../assets/lupaIcono.png";
@@ -24,6 +24,26 @@ import moverIcon from "../../../assets/moverIcono.png";
 import ojosIcono from "../../../assets/ojosIcono.png";
 import restaurarIcon from "../../../assets/restaurarIcono.png";
 import scrollIcon from "../../../assets/scrollIcono.png";
+import ventanaIcon from "../../../assets/ventanaIcono.png";
+import elipeIcon from "../../../assets/elipseIcono.png";
+import rectanguloIcon from "../../../assets/rectanguloIcono.png";
+import negativoIcon from "../../../assets/negativoIcono.png";
+import girarIcon from "../../../assets/girarIcono.png";
+import horizontalIcon from "../../../assets/horizontalIcono.png";
+import verticalIcon from "../../../assets/verticalIcono.png";
+import basuraIcon from "../../../assets/basuraIcon.png";
+import bidireccionalIcon from "../../../assets/bidireccionalIcono.png";
+import doctorIcon from "../../../assets/doctorV2Icono.png";
+import referenteIcon from "../../../assets/referenteIcono.png";
+import tecnicoIcon from "../../../assets/tecnicoIcono.png";
+import exclamacionIcon from "../../../assets/exclamacionIcono.png";
+import comentarioIcon from "../../../assets/comentarioIcono.png";
+import etiquetaIcon from "../../../assets/etiquetaIcono.png";
+import solicitudIcon from "../../../assets/solicitudIcono.png";
+import metricasIcon from "../../../assets/metricasIcono.png";
+import pestanaIcon from "../../../assets/pestanaIcono.png";
+import splitIcon from "../../../assets/splitIcono.png";
+import clipIcon from "../../../assets/clipIcon.png";
 
 let csModules = null;
 let csInitPromise = null;
@@ -86,32 +106,32 @@ const FORMATOS = [
 
 const MAS_ITEMS = [
 	{ id: "lupa", icon: ampliarIcon, emoji: null, label: "Lupa" },
-	{ id: "ventanaROI", icon: null, emoji: "⬛", label: "Ventana ROI" },
-	{ id: "elipse", icon: null, emoji: "⬭", label: "Elipse" },
-	{ id: "rectangulo", icon: null, emoji: "▭", label: "Rectángulo" },
-	{ id: "negativo", icon: contrasteIcono, emoji: null, label: "Negativo" },
-	{ id: "girar", icon: restaurarIcon, emoji: null, label: "Girar →" },
-	{ id: "voltearH", icon: null, emoji: "↔", label: "Voltear H" },
-	{ id: "voltearV", icon: null, emoji: "↕", label: "Voltear V" },
-	{ id: "limpiar", icon: null, emoji: "🗑", label: "Limpiar" },
-	{ id: "bidireccional", icon: null, emoji: "⇄", label: "Bidireccional" },
+	{ id: "ventanaROI", icon: ventanaIcon, emoji: "⬛", label: "Ventana ROI" },
+	{ id: "elipse", icon: elipeIcon, emoji: "⬭", label: "Elipse" },
+	{ id: "rectangulo", icon: rectanguloIcon, emoji: "▭", label: "Rectángulo" },
+	{ id: "negativo", icon: negativoIcon, emoji: null, label: "Negativo" },
+	{ id: "girar", icon: girarIcon, emoji: null, label: "Girar →" },
+	{ id: "voltearH", icon: horizontalIcon, emoji: "↔", label: "Voltear H" },
+	{ id: "voltearV", icon: verticalIcon, emoji: "↕", label: "Voltear V" },
+	{ id: "limpiar", icon: basuraIcon, emoji: "🗑", label: "Limpiar" },
+	{ id: "bidireccional", icon: bidireccionalIcon, emoji: "⇄", label: "Bidireccional" },
 ];
 
 const DETALLE_ITEMS = [
-	{ id: "referente", emoji: "👤", label: "Referente" },
-	{ id: "radiologo", emoji: "👨‍⚕️", label: "Radiólogo" },
-	{ id: "tecnico", emoji: "👩‍💻", label: "Técnico" },
-	{ id: "prioridad", emoji: "❗", label: "Prioridad" },
-	{ id: "comentarios", emoji: "🗒", label: "Comentarios" },
-	{ id: "etiquetas", emoji: "🏷", label: "Etiquetas" },
-	{ id: "solicitud", emoji: "📄", label: "Solicitud" },
-	{ id: "metricas", emoji: "📊", label: "Métricas" },
+	{ id: "referente", icon: referenteIcon, emoji: "👤", label: "Referente" },
+	{ id: "radiologo", icon: doctorIcon, emoji: "👨‍⚕️", label: "Radiólogo" },
+	{ id: "tecnico", icon: tecnicoIcon, emoji: "👩‍💻", label: "Técnico" },
+	{ id: "prioridad", icon: exclamacionIcon, emoji: "❗", label: "Prioridad" },
+	{ id: "comentarios", icon: comentarioIcon,emoji: "🗒", label: "Comentarios" },
+	{ id: "etiquetas", icon: etiquetaIcon, emoji: "🏷", label: "Etiquetas" },
+	{ id: "solicitud", icon: solicitudIcon, emoji: "📄", label: "Solicitud" },
+	{ id: "metricas", icon: metricasIcon, emoji: "📊", label: "Métricas" },
 ];
 
 const REPORTE_ITEMS = [
-	{ id: "nueva-pestana", emoji: "📋", label: "Nueva pestaña" },
-	{ id: "visualizacion-simultanea", emoji: "🖥", label: "Visualización simultánea" },
-	{ id: "adjuntar", emoji: "📎", label: "Adjuntar" },
+	{ id: "nueva-pestana", icon: pestanaIcon, emoji: "📋", label: "Nueva pestaña" },
+	{ id: "visualizacion-simultanea", icon: splitIcon, emoji: "🖥", label: "Visualización simultánea" },
+	{ id: "adjuntar", icon: clipIcon, emoji: "📎", label: "Adjuntar" },
 ];
 
 const PanelDicom = ({
