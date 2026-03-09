@@ -503,7 +503,7 @@ const PanelDicom = ({
 		angulos.forEach((a, i) =>
 			dibujarAngulo(ctx, a, i === angHov ? "hover" : "normal"),
 		);
-		// preview línea 1 (arrastrando)
+
 		if (fase === 1) {
 			ctx.save();
 			ctx.strokeStyle = "rgba(255,220,0,0.75)";
@@ -515,7 +515,7 @@ const PanelDicom = ({
 			ctx.stroke();
 			ctx.restore();
 		}
-		// preview línea 2 (arrastrando desde vértice)
+
 		if (fase === 2) {
 			const grados = calcularAngulo(p1x, p1y, p2x, p2y, previewX, previewY);
 			dibujarAngulo(
@@ -525,7 +525,7 @@ const PanelDicom = ({
 			);
 		}
 
-		// Elipses guardadas
+
 		const {
 			elipses,
 			hoveredIdx: eHov,
@@ -538,7 +538,7 @@ const PanelDicom = ({
 		elipses.forEach((e, i) =>
 			dibujarElipseShape(ctx, e, i === eHov ? "hover" : "normal"),
 		);
-		// Preview elipse en construcción — calcular stats en tiempo real
+
 		if (eDib && eRx > 0 && eRy > 0) {
 			const statsPreview = calcularEstadisticasElipse(eCx, eCy, eRx, eRy);
 			dibujarElipseShape(
@@ -548,7 +548,7 @@ const PanelDicom = ({
 			);
 		}
 
-		// Rectángulos guardados
+
 		const {
 			rects,
 			hoveredIdx: rHov,
@@ -570,7 +570,7 @@ const PanelDicom = ({
 			);
 		}
 
-		// Bidireccionales guardadas
+
 		const {
 			bidis,
 			hoveredIdx: bHov,
@@ -641,7 +641,7 @@ const PanelDicom = ({
 		const color = isHover ? "#4cff72" : "#FFE000";
 		const arrowLen = 22;
 		ctx.save();
-		// Flecha apuntando al punto
+
 		ctx.strokeStyle = color;
 		ctx.fillStyle = color;
 		ctx.lineWidth = 1.5;
@@ -649,7 +649,7 @@ const PanelDicom = ({
 		ctx.moveTo(a.x, a.y);
 		ctx.lineTo(a.x + arrowLen, a.y - arrowLen * 0.6);
 		ctx.stroke();
-		// punta de flecha
+
 		const ang = Math.atan2(-arrowLen * 0.6, arrowLen);
 		const tipX = a.x,
 			tipY = a.y;
@@ -659,7 +659,7 @@ const PanelDicom = ({
 		ctx.lineTo(tipX + 9 * Math.cos(ang + 0.4), tipY + 9 * Math.sin(ang + 0.4));
 		ctx.closePath();
 		ctx.fill();
-		// Texto sin fondo
+
 		ctx.font = "bold 13px monospace";
 		ctx.fillStyle = color;
 		ctx.textAlign = "left";
@@ -670,8 +670,7 @@ const PanelDicom = ({
 	};
 
 	const dibujarAngulo = (ctx, a, mode) => {
-		// a = { p1x, p1y, p2x, p2y, p3x, p3y, grados }
-		// p2 es el vértice (unión de las dos líneas)
+
 		const isHover = mode === "hover";
 		const isPreview = mode === "preview";
 		const color = isPreview
@@ -683,17 +682,17 @@ const PanelDicom = ({
 		ctx.strokeStyle = color;
 		ctx.lineWidth = isHover ? 2 : 1.5;
 		ctx.setLineDash(isPreview ? [6, 3] : []);
-		// línea 1: p1 → p2 (vértice)
+
 		ctx.beginPath();
 		ctx.moveTo(a.p1x, a.p1y);
 		ctx.lineTo(a.p2x, a.p2y);
 		ctx.stroke();
-		// línea 2: p2 (vértice) → p3
+
 		ctx.beginPath();
 		ctx.moveTo(a.p2x, a.p2y);
 		ctx.lineTo(a.p3x, a.p3y);
 		ctx.stroke();
-		// puntos extremos
+
 		[
 			{ x: a.p1x, y: a.p1y },
 			{ x: a.p2x, y: a.p2y },
@@ -704,12 +703,12 @@ const PanelDicom = ({
 			ctx.fillStyle = color;
 			ctx.fill();
 		});
-		// arco en el vértice p2
+
 		const r = 22;
 		const ang1 = Math.atan2(a.p1y - a.p2y, a.p1x - a.p2x);
 		const ang2 = Math.atan2(a.p3y - a.p2y, a.p3x - a.p2x);
 		ctx.setLineDash([]);
-		// dibujar el arco menor
+
 		let startA = ang1,
 			endA = ang2;
 		let diff = endA - startA;
@@ -718,7 +717,7 @@ const PanelDicom = ({
 		ctx.beginPath();
 		ctx.arc(a.p2x, a.p2y, r, startA, startA + diff, diff < 0);
 		ctx.stroke();
-		// texto grados junto al arco
+
 		if (a.grados !== undefined) {
 			const midAng = startA + diff / 2;
 			const tx = a.p2x + (r + 18) * Math.cos(midAng);
@@ -755,7 +754,7 @@ const PanelDicom = ({
 	};
 
 	const elipseHitTest = (x, y, e) => {
-		// Distancia normalizada al borde de la elipse
+
 		const dx = (x - e.cx) / (e.rx || 1);
 		const dy = (y - e.cy) / (e.ry || 1);
 		const d = Math.sqrt(dx * dx + dy * dy);
@@ -812,7 +811,7 @@ const PanelDicom = ({
 	};
 
 	const calcularEstadisticasElipse = (cx, cy, rx, ry) => {
-		// Calcula Area, Mean y Std Dev a partir del canvas DICOM
+
 		const dicomCanvas = divRef.current?.querySelector("canvas");
 		if (!dicomCanvas) return { area: 0, mean: 0, std: 0 };
 		const ctx2 = document.createElement("canvas").getContext("2d");
@@ -838,7 +837,7 @@ const PanelDicom = ({
 					dy = (y - cy) / ry;
 				if (dx * dx + dy * dy <= 1) {
 					const idx = (y * W + x) * 4;
-					valores.push(data[idx]); // canal R (grayscale)
+					valores.push(data[idx]);
 				}
 			}
 		}
@@ -847,10 +846,10 @@ const PanelDicom = ({
 		const std = Math.sqrt(
 			valores.reduce((a, b) => a + (b - mean) ** 2, 0) / valores.length,
 		);
-		// Pixel spacing real desde metadata DICOM (default 1.0 si no hay)
+
 		const ps = pixelSpacing();
 		const area = Math.PI * rx * ry * ps.x * ps.y;
-		// HU aproximado: los píxeles 8-bit del canvas [0-255] escalan a rango HU típico [-1024, 3071]
+
 		const toHU = (v) => (v / 255) * 4095 - 1024;
 		const meanHU = toHU(mean);
 		const stdHU = std * (4095 / 255);
@@ -858,7 +857,7 @@ const PanelDicom = ({
 	};
 
 	const bidiHitTest = (x, y, b) => {
-		// hit en cualquiera de las dos líneas
+
 		const hitSeg = (x1, y1, x2, y2) => {
 			const dx = x2 - x1,
 				dy = y2 - y1,
@@ -867,13 +866,12 @@ const PanelDicom = ({
 			const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / len2));
 			return Math.hypot(x1 + t * dx - x, y1 + t * dy - y) < 8;
 		};
-		// línea 1: extremo1 ↔ extremo2 (horizontal aproximada)
-		// línea 2: perpendicular cruzando el centro
+
 		const { cx, cy, ex, ey } = b;
 		const dx = ex - cx,
 			dy = ey - cy;
 		const len = Math.hypot(dx, dy) || 1;
-		// mitad del ancho (W = L/2 perp)
+
 		const hw = len / 2;
 		const px = (-dy / len) * hw,
 			py = (dx / len) * hw;
@@ -897,10 +895,10 @@ const PanelDicom = ({
 		const Lpx = Math.hypot(dx, dy);
 		if (Lpx < 1) return;
 
-		// línea principal (L)
+
 		const ux = dx / Lpx,
 			uy = dy / Lpx;
-		// perpendicular centrada (W = L/2 en píxeles de canvas)
+
 		const Wpx = Lpx / 2;
 		const mx = cx + dx / 2,
 			my = cy + dy / 2;
@@ -912,18 +910,18 @@ const PanelDicom = ({
 		ctx.lineWidth = isHover ? 2.5 : 1.8;
 		ctx.setLineDash(isPreview ? [6, 3] : []);
 
-		// línea L
+
 		ctx.beginPath();
 		ctx.moveTo(cx, cy);
 		ctx.lineTo(ex, ey);
 		ctx.stroke();
-		// línea W (perpendicular en el centro)
+
 		ctx.beginPath();
 		ctx.moveTo(mx - perpX, my - perpY);
 		ctx.lineTo(mx + perpX, my + perpY);
 		ctx.stroke();
 
-		// puntos extremos
+
 		[
 			[cx, cy],
 			[ex, ey],
@@ -936,7 +934,7 @@ const PanelDicom = ({
 			ctx.fill();
 		});
 
-		// Medidas usando distanciaMM (misma lógica que Length tool — considera scale y translation)
+
 		const Lmm = distanciaMM(cx, cy, ex, ey).toFixed(1);
 		const Wmm = distanciaMM(mx - perpX, my - perpY, mx + perpX, my + perpY).toFixed(
 			1,
@@ -973,7 +971,7 @@ const PanelDicom = ({
 		ctx.lineWidth = isHover ? 2.5 : 1.8;
 		ctx.setLineDash(isPreview ? [6, 3] : []);
 		ctx.strokeRect(lx, ly, rw, rh);
-		// puntos en esquinas
+
 		[
 			[x1, y1],
 			[x2, y1],
@@ -1016,7 +1014,7 @@ const PanelDicom = ({
 		ctx.beginPath();
 		ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
 		ctx.stroke();
-		// Stats label
+
 		if (stats) {
 			const tx = cx + rx + 8;
 			const ty = cy - ry / 2;
@@ -1037,29 +1035,28 @@ const PanelDicom = ({
 		const overlay = overlayRef.current;
 		if (!dicomCanvas || !overlay) return;
 
-		const RADIO = 100; // radio px en pantalla
-		const ZOOM = 3; // factor de ampliación
+		const RADIO = 100;
+		const ZOOM = 3;
 
-		// Posición del cursor en coordenadas del overlay/canvas
+
 		const rect = overlay.getBoundingClientRect();
 		const scaleX = overlay.width / rect.width;
 		const scaleY = overlay.height / rect.height;
 		const cx = (clientX - rect.left) * scaleX;
 		const cy = (clientY - rect.top) * scaleY;
 
-		// Región fuente en el canvas DICOM:
-		// queremos mostrar un área de (2*RADIO/ZOOM) centrada en cx,cy
+
 		const srcW = (RADIO * 2) / ZOOM;
 		const srcH = (RADIO * 2) / ZOOM;
 		const srcX = cx - srcW / 2;
 		const srcY = cy - srcH / 2;
 
-		// Redibujar overlay base (mediciones, etc.)
+
 		redibujarOverlay();
 
 		const ctx = overlay.getContext("2d");
 
-		// Fondo negro para la lupa
+
 		ctx.save();
 		ctx.beginPath();
 		ctx.arc(cx, cy, RADIO, 0, Math.PI * 2);
@@ -1067,7 +1064,6 @@ const PanelDicom = ({
 		ctx.fill();
 		ctx.restore();
 
-		// Clip circular y dibujar región ampliada
 		ctx.save();
 		ctx.beginPath();
 		ctx.arc(cx, cy, RADIO, 0, Math.PI * 2);
@@ -1077,22 +1073,22 @@ const PanelDicom = ({
 			srcX,
 			srcY,
 			srcW,
-			srcH, // fuente: región pequeña
+			srcH,
 			cx - RADIO,
 			cy - RADIO,
 			RADIO * 2,
-			RADIO * 2, // destino: círculo completo
+			RADIO * 2,
 		);
 		ctx.restore();
 
-		// Borde azul
+
 		ctx.save();
 		ctx.beginPath();
 		ctx.arc(cx, cy, RADIO, 0, Math.PI * 2);
 		ctx.strokeStyle = "rgba(73,178,212,0.95)";
 		ctx.lineWidth = 2.5;
 		ctx.stroke();
-		// Cruz central
+
 		ctx.strokeStyle = "rgba(73,178,212,0.7)";
 		ctx.lineWidth = 1;
 		ctx.beginPath();
@@ -1164,7 +1160,7 @@ const PanelDicom = ({
 				ar.clickY = pos.y;
 				ar.wasDrag = false;
 			} else if (ar.fase === 1) {
-				// segundo click → fija p2, inicia línea 2
+
 				ar.p2x = pos.x;
 				ar.p2y = pos.y;
 				ar.previewX = pos.x;
@@ -1174,7 +1170,7 @@ const PanelDicom = ({
 				ar.wasDrag = false;
 				ar.fase = 2;
 			} else if (ar.fase === 2) {
-				// segundo click en línea 2 → guarda
+
 				const grados = calcularAngulo(ar.p1x, ar.p1y, ar.p2x, ar.p2y, pos.x, pos.y);
 				if (grados > 0.5)
 					ar.angulos.push({
@@ -1212,7 +1208,6 @@ const PanelDicom = ({
 
 		dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
 
-		// Elipse activa — iniciar dibujo
 		if (elipseActivaRef.current) {
 			if (e.button !== 0) return;
 			e.preventDefault();
@@ -1225,7 +1220,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Rectángulo activo — iniciar dibujo
 		if (rectActivaRef.current) {
 			if (e.button !== 0) return;
 			e.preventDefault();
@@ -1238,7 +1232,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Bidireccional activa — iniciar dibujo
 		if (bidiActivaRef.current) {
 			if (e.button !== 0) return;
 			e.preventDefault();
@@ -1288,7 +1281,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Elipse activa — clic derecho sobre borde
 		if (elipseActivaRef.current) {
 			const idx = elipseRef.current.elipses.findIndex((el) =>
 				elipseHitTest(pos.x, pos.y, el),
@@ -1298,7 +1290,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Rectángulo activo — clic derecho sobre borde
 		if (rectActivaRef.current) {
 			const idx = rectRef.current.rects.findIndex((r) =>
 				rectHitTest(pos.x, pos.y, r),
@@ -1308,7 +1299,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Bidireccional activa — clic derecho sobre líneas
 		if (bidiActivaRef.current) {
 			const idx = bidiRef.current.bidis.findIndex((b) =>
 				bidiHitTest(pos.x, pos.y, b),
@@ -1372,7 +1362,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Hover elipse (cuando no está dibujando)
 		if (elipseActivaRef.current && !elipseRef.current.dibujando) {
 			const pos = getCanvasPos(e);
 			const idx = elipseRef.current.elipses.findIndex((el) =>
@@ -1389,7 +1378,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Elipse — actualizar radios mientras arrastra
 		if (elipseActivaRef.current && elipseRef.current.dibujando) {
 			const pos = getCanvasPos(e);
 			const { cx, cy } = elipseRef.current;
@@ -1399,7 +1387,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Rectángulo — actualizar esquina opuesta mientras arrastra
 		if (rectActivaRef.current && rectRef.current.dibujando) {
 			const pos = getCanvasPos(e);
 			rectRef.current.x2 = pos.x;
@@ -1408,7 +1395,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Hover rectángulo (cuando no está dibujando)
 		if (rectActivaRef.current && !rectRef.current.dibujando) {
 			const pos = getCanvasPos(e);
 			const idx = rectRef.current.rects.findIndex((r) =>
@@ -1420,7 +1406,6 @@ const PanelDicom = ({
 			}
 		}
 
-		// Bidireccional — actualizar extremo mientras arrastra
 		if (bidiActivaRef.current && bidiRef.current.dibujando) {
 			const pos = getCanvasPos(e);
 			bidiRef.current.ex = pos.x;
@@ -1429,7 +1414,6 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Hover bidireccional
 		if (bidiActivaRef.current && !bidiRef.current.dibujando) {
 			const pos = getCanvasPos(e);
 			const idx = bidiRef.current.bidis.findIndex((b) =>
@@ -1481,7 +1465,7 @@ const PanelDicom = ({
 			const dist = Math.hypot(pos.x - (ar.clickX || 0), pos.y - (ar.clickY || 0));
 			const isDrag = dist > 4;
 			if (ar.fase === 1 && isDrag) {
-				// drag terminó → fija p2, inicia línea 2
+
 				ar.p2x = pos.x;
 				ar.p2y = pos.y;
 				ar.previewX = pos.x;
@@ -1494,7 +1478,7 @@ const PanelDicom = ({
 				return;
 			}
 			if (ar.fase === 2 && isDrag) {
-				// drag terminó → guarda ángulo
+
 				const grados = calcularAngulo(ar.p1x, ar.p1y, ar.p2x, ar.p2y, pos.x, pos.y);
 				if (grados > 0.5)
 					ar.angulos.push({
@@ -1510,7 +1494,7 @@ const PanelDicom = ({
 				redibujarOverlay();
 				return;
 			}
-			// si no fue drag → quedarse en la fase actual esperando el siguiente click
+
 			dragRef.current.active = false;
 			return;
 		}
@@ -1533,7 +1517,7 @@ const PanelDicom = ({
 		}
 		dragRef.current.active = false;
 
-		// Elipse — finalizar al soltar el mouse
+
 		if (elipseActivaRef.current && elipseRef.current.dibujando) {
 			const { cx, cy, rx, ry } = elipseRef.current;
 			if (rx > 5 && ry > 5) {
@@ -1545,7 +1529,7 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Rectángulo — finalizar al soltar el mouse
+
 		if (rectActivaRef.current && rectRef.current.dibujando) {
 			const { x1, y1, x2, y2 } = rectRef.current;
 			if (Math.abs(x2 - x1) > 5 && Math.abs(y2 - y1) > 5) {
@@ -1557,7 +1541,7 @@ const PanelDicom = ({
 			return;
 		}
 
-		// Bidireccional — finalizar al soltar el mouse
+
 		if (bidiActivaRef.current && bidiRef.current.dibujando) {
 			const { cx, cy, ex, ey } = bidiRef.current;
 			if (Math.hypot(ex - cx, ey - cy) > 5) {
@@ -2260,7 +2244,7 @@ const VisorDicom = () => {
 	};
 
 	const handleMasItem = (id) => {
-		// Toggle de modos activos — nunca cierran el submenú
+
 		if (id === "lupa") {
 			setLupaGlobal((f) => !f);
 			return;
@@ -2277,7 +2261,7 @@ const VisorDicom = () => {
 			setBidiGlobal((f) => !f);
 			return;
 		}
-		// Acciones puntuales — tampoco cierran el submenú
+
 		setMasAccion({ id, ts: Date.now() });
 	};
 
@@ -2295,7 +2279,7 @@ const VisorDicom = () => {
 			setMostrarPanelReporte((f) => !f);
 		}
 		if (id === "adjuntar") {
-			// funcionalidad futura
+
 		}
 	};
 

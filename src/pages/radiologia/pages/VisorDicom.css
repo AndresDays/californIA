@@ -780,11 +780,10 @@
 	z-index: 199;
 }
 
-/* ── Barra secundaria Más ────────────────────────────────────────── */
+
 .vd-mas-bar {
 	position: fixed;
 	top: var(--toolbar-bottom, 112px);
-	/* header ~56px + toolbar 56px */
 	left: 50%;
 	transform: translateX(-50%);
 	display: flex;
@@ -853,7 +852,6 @@
 	opacity: 1;
 }
 
-/* ── Toast notificación ──────────────────────────────────────────── */
 .vd-toast {
 	position: fixed;
 	bottom: 32px;
