@@ -1,414 +1,2662 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../../../lib/supabase-client';
-import { useAuth } from '../../../context/auth-context';
-import Header from '../../../components/header-principal';
-import SidebarHome from '../../../components/sidebar-home';
-import './VisorDicom.css';
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import Header from "../../../components/header-principal";
+import ModalNotificacion from "../../../components/ModalNotificacion";
+import { useAuth } from "../../../context/auth-context";
+import { supabase } from "../../../lib/supabase-client";
+import "./VisorDicom.css";
 
-import scrollIcon from '../../../assets/scrollIcono.png';
-import ampliarIcon from '../../../assets/lupaIcono.png';
-import moverIcon from '../../../assets/moverIcono.png';
-import anguloIcono from '../../../assets/anguloIcono.png';
-import restaurarIcon from '../../../assets/restaurarIcono.png';
-import cineIcon from '../../../assets/cineIcono.png';
-import descargarIcon from '../../../assets/descargarIcono.png';
-import reporteIcon from '../../../assets/editarIcono.png';
-import capturaIcon from '../../../assets/imprimirIcono.png';
-import informacionIcon from '../../../assets/informacionIcono.png';
-import compartirIcon from '../../../assets/compartirIcono.png';
-import formatoIcon from '../../../assets/formatoIcono.png';
+import anguloIcono from "../../../assets/anguloIcono.png";
+import anotarIcono from "../../../assets/anotarIcono.png";
+import cineIcon from "../../../assets/cineIcono.png";
+import compartirIcon from "../../../assets/compartirIcono.png";
+import contrasteIcono from "../../../assets/contrasteIcono.png";
+import descargarIcon from "../../../assets/descargarIcono.png";
+import detallesIcon from "../../../assets/detallesIcono.png";
+import reporteIcon from "../../../assets/editarIcono.png";
+import formatoIcon from "../../../assets/formatoIcono.png";
+import capturaIcon from "../../../assets/imprimirIcono.png";
+import informacionIcon from "../../../assets/informacionIcono.png";
+import longitudIcono from "../../../assets/longitudIcono.png";
+import ampliarIcon from "../../../assets/lupaIcono.png";
+import masIcon from "../../../assets/masIcono.png";
+import moverIcon from "../../../assets/moverIcono.png";
+import ojosIcono from "../../../assets/ojosIcono.png";
+import restaurarIcon from "../../../assets/restaurarIcono.png";
+import scrollIcon from "../../../assets/scrollIcono.png";
+
+let csModules = null;
+let csInitPromise = null;
+
+const initCornerstone = () => {
+	if (csModules) return Promise.resolve(csModules);
+	if (csInitPromise) return csInitPromise;
+	csInitPromise = (async () => {
+		const cornerstoneModule = await import("cornerstone-core");
+		const dicomParserModule = await import("dicom-parser");
+		const cornerstoneWADO = await import("cornerstone-wado-image-loader");
+		const cornerstoneTools = await import("cornerstone-tools");
+		const cornerstone = cornerstoneModule.default || cornerstoneModule;
+		const dicomParser = dicomParserModule.default || dicomParserModule;
+		cornerstoneWADO.external.cornerstone = cornerstone;
+		cornerstoneWADO.external.dicomParser = dicomParser;
+		cornerstoneTools.external.cornerstone = cornerstone;
+		cornerstoneWADO.configure({
+			useWebWorkers: false,
+			decodeConfig: { convertFloatPixelDataToInt: false, use16BitDataType: true },
+		});
+		csModules = { cornerstone, cornerstoneWADO, cornerstoneTools };
+		return csModules;
+	})();
+	return csInitPromise;
+};
+
+const TOOLS = [
+	{ id: "StackScroll", icon: scrollIcon, label: "Scroll", emoji: "≡" },
+	{ id: "Zoom", icon: ampliarIcon, label: "Ampliar", emoji: "🔍" },
+	{ id: "Wwwc", icon: contrasteIcono, label: "W/L", emoji: "◑" },
+	{ id: "Pan", icon: moverIcon, label: "Mover", emoji: "✥" },
+	{ id: "Datos", icon: ojosIcono, label: "Datos", emoji: "👁" },
+	{ id: "Length", icon: longitudIcono, label: "Longitud", emoji: "⟵⟶" },
+	{ id: "Annotate", icon: anotarIcono, label: "Anotar", emoji: "✎" },
+	{ id: "Angle", icon: anguloIcono, label: "Ángulo", emoji: "∠" },
+];
+
+const ACTIONS = [
+	{ id: "restaurar", icon: restaurarIcon, label: "Restaurar" },
+	{ id: "cine", icon: cineIcon, label: "CINE" },
+	{ id: "mas", icon: masIcon, label: "Más" },
+	{ id: "detalle", icon: detallesIcon, label: "Detalle" },
+	{ id: "descargar", icon: descargarIcon, label: "Descargar" },
+	{ id: "captura", icon: capturaIcon, label: "Captura" },
+	{ id: "reporte", icon: reporteIcon, label: "Reporte" },
+	{ id: "informacion", icon: informacionIcon, label: "Info" },
+	{ id: "compartir", icon: compartirIcon, label: "Compartir" },
+	{ id: "formato", icon: formatoIcon, label: "Formato" },
+];
+
+const FORMATOS = [
+	{ id: "1x1", cols: 1, rows: 1, label: "1×1" },
+	{ id: "2x1", cols: 2, rows: 1, label: "2×1" },
+	{ id: "1x2", cols: 1, rows: 2, label: "1×2" },
+	{ id: "2x2", cols: 2, rows: 2, label: "2×2" },
+	{ id: "3x1", cols: 3, rows: 1, label: "3×1" },
+	{ id: "2x3", cols: 3, rows: 2, label: "2×3" },
+];
+
+const MAS_ITEMS = [
+	{ id: "lupa", icon: ampliarIcon, emoji: null, label: "Lupa" },
+	{ id: "ventanaROI", icon: null, emoji: "⬛", label: "Ventana ROI" },
+	{ id: "elipse", icon: null, emoji: "⬭", label: "Elipse" },
+	{ id: "rectangulo", icon: null, emoji: "▭", label: "Rectángulo" },
+	{ id: "negativo", icon: contrasteIcono, emoji: null, label: "Negativo" },
+	{ id: "girar", icon: restaurarIcon, emoji: null, label: "Girar →" },
+	{ id: "voltearH", icon: null, emoji: "↔", label: "Voltear H" },
+	{ id: "voltearV", icon: null, emoji: "↕", label: "Voltear V" },
+	{ id: "limpiar", icon: null, emoji: "🗑", label: "Limpiar" },
+	{ id: "bidireccional", icon: null, emoji: "⇄", label: "Bidireccional" },
+];
+
+const DETALLE_ITEMS = [
+	{ id: "referente", emoji: "👤", label: "Referente" },
+	{ id: "radiologo", emoji: "👨‍⚕️", label: "Radiólogo" },
+	{ id: "tecnico", emoji: "👩‍💻", label: "Técnico" },
+	{ id: "prioridad", emoji: "❗", label: "Prioridad" },
+	{ id: "comentarios", emoji: "🗒", label: "Comentarios" },
+	{ id: "etiquetas", emoji: "🏷", label: "Etiquetas" },
+	{ id: "solicitud", emoji: "📄", label: "Solicitud" },
+	{ id: "metricas", emoji: "📊", label: "Métricas" },
+];
+
+const REPORTE_ITEMS = [
+	{ id: "nueva-pestana", emoji: "📋", label: "Nueva pestaña" },
+	{ id: "visualizacion-simultanea", emoji: "🖥", label: "Visualización simultánea" },
+	{ id: "adjuntar", emoji: "📎", label: "Adjuntar" },
+];
+
+const PanelDicom = ({
+	imageId,
+	herramienta,
+	isActive,
+	resetCounter,
+	masAccion,
+	capturaClip,
+	lupaExterna,
+	elipseExterna,
+	rectExterna,
+	bidiExterna,
+	onCapturaOk,
+	onCapturaFail,
+	onClick,
+}) => {
+	const wrapperRef = useRef(null);
+	const divRef = useRef(null);
+	const overlayRef = useRef(null);
+	const csRef = useRef(null);
+	const enabledRef = useRef(false);
+	const herramientaRef = useRef(herramienta);
+	const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+	const lupaActivaRef = useRef(false);
+	const medicionRef = useRef({
+		dibujando: false,
+		x1: 0,
+		y1: 0,
+		lineas: [],
+		hoveredIdx: -1,
+	});
+	const anguloRef = useRef({
+		fase: 0,
+		p1x: 0,
+		p1y: 0,
+		p2x: 0,
+		p2y: 0,
+		previewX: 0,
+		previewY: 0,
+		angulos: [],
+		hoveredIdx: -1,
+	});
+	const elipseRef = useRef({
+		elipses: [],
+		dibujando: false,
+		hoveredIdx: -1,
+		cx: 0,
+		cy: 0,
+		rx: 0,
+		ry: 0,
+	});
+	const elipseActivaRef = useRef(false);
+	const rectRef = useRef({
+		rects: [],
+		dibujando: false,
+		hoveredIdx: -1,
+		x1: 0,
+		y1: 0,
+		x2: 0,
+		y2: 0,
+	});
+	const rectActivaRef = useRef(false);
+	const bidiRef = useRef({
+		bidis: [],
+		dibujando: false,
+		hoveredIdx: -1,
+		cx: 0,
+		cy: 0,
+		ex: 0,
+		ey: 0,
+	});
+	const bidiActivaRef = useRef(false);
+	const anotacionRef = useRef({ anotaciones: [], hoveredIdx: -1 });
+
+	const [zoom, setZoom] = useState(null);
+	const [wl, setWl] = useState(null);
+	const [ctxMenu, setCtxMenu] = useState(null);
+	const [labelEdit, setLabelEdit] = useState(null);
+	const [elipseLabelEdit, setElipseLabelEdit] = useState(null);
+	const [rectLabelEdit, setRectLabelEdit] = useState(null);
+	const [bidiLabelEdit, setBidiLabelEdit] = useState(null);
+	const [inputAnotacion, setInputAnotacion] = useState(null);
+
+	useEffect(() => {
+		herramientaRef.current = herramienta;
+	}, [herramienta]);
+
+	useEffect(() => {
+		lupaActivaRef.current = !!lupaExterna;
+		if (!lupaExterna) redibujarOverlay();
+	}, [lupaExterna]); // eslint-disable-line
+
+	useEffect(() => {
+		elipseActivaRef.current = !!elipseExterna;
+		if (!elipseExterna) {
+			elipseRef.current.dibujando = false;
+			redibujarOverlay();
+		}
+	}, [elipseExterna]); // eslint-disable-line
+
+	useEffect(() => {
+		rectActivaRef.current = !!rectExterna;
+		if (!rectExterna) {
+			rectRef.current.dibujando = false;
+			redibujarOverlay();
+		}
+	}, [rectExterna]); // eslint-disable-line
+
+	useEffect(() => {
+		bidiActivaRef.current = !!bidiExterna;
+		if (!bidiExterna) {
+			bidiRef.current.dibujando = false;
+			redibujarOverlay();
+		}
+	}, [bidiExterna]); // eslint-disable-line
+
+	useEffect(() => {
+		let cancelled = false;
+		const init = async () => {
+			const { cornerstone } = await initCornerstone();
+			if (cancelled || !divRef.current) return;
+			try {
+				cornerstone.getEnabledElement(divRef.current);
+			} catch (e) {
+				try {
+					cornerstone.enable(divRef.current);
+					enabledRef.current = true;
+					csRef.current = cornerstone;
+					cornerstone.events.addEventListener("cornerstoneimagerendered", (ev) => {
+						if (ev.detail.element !== divRef.current) return;
+						const vp = cornerstone.getViewport(divRef.current);
+						if (vp) {
+							setZoom(Math.round(vp.scale * 100));
+							setWl(
+								`W:${Math.round(vp.voi?.windowWidth || 0)} L:${Math.round(vp.voi?.windowCenter || 0)}`,
+							);
+						}
+						redibujarOverlay();
+					});
+				} catch (err) {
+					console.error("[Panel] enable:", err.message);
+					return;
+				}
+			}
+			if (imageId) await cargarImagen(imageId);
+		};
+		init();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	const cargarImagen = async (id) => {
+		const cs = csRef.current;
+		const el = divRef.current;
+		if (!enabledRef.current || !cs || !el) return;
+		try {
+			const image = await cs.loadAndCacheImage(id);
+			cs.displayImage(el, image);
+			const vp = cs.getViewport(el);
+			if (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1) {
+				cs.setViewport(el, { ...vp, voi: { windowWidth: 2000, windowCenter: 0 } });
+			}
+			cs.resize(el, true);
+			sincronizarOverlay();
+		} catch (err) {
+			console.error("[Panel] cargarImagen:", err);
+		}
+	};
+
+	useEffect(() => {
+		if (!imageId) return;
+		const intentar = async () => {
+			if (!enabledRef.current) await new Promise((r) => setTimeout(r, 200));
+			await cargarImagen(imageId);
+		};
+		intentar();
+	}, [imageId]);
+
+	useEffect(() => {
+		if (!capturaClip) return;
+		const dicomCanvas = divRef.current?.querySelector("canvas");
+		const overlay = overlayRef.current;
+		if (!dicomCanvas) return;
+		const merged = document.createElement("canvas");
+		merged.width = dicomCanvas.width;
+		merged.height = dicomCanvas.height;
+		const ctx = merged.getContext("2d");
+		ctx.drawImage(dicomCanvas, 0, 0);
+		if (overlay) ctx.drawImage(overlay, 0, 0);
+		merged.toBlob(async (blob) => {
+			try {
+				await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+				onCapturaOk?.();
+			} catch (err) {
+				const link = document.createElement("a");
+				link.download = `captura_${Date.now()}.png`;
+				link.href = URL.createObjectURL(blob);
+				link.click();
+				onCapturaFail?.();
+			}
+		}, "image/png");
+	}, [capturaClip]);
+
+	useEffect(() => {
+		if (!masAccion) return;
+		const cs = csRef.current,
+			el = divRef.current;
+		if (!enabledRef.current || !cs || !el) return;
+		try {
+			const vp = cs.getViewport(el);
+			if (!vp) return;
+			const id = masAccion.id;
+			if (id === "negativo") {
+				vp.invert = !vp.invert;
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+			if (id === "girar") {
+				vp.rotation = ((vp.rotation || 0) + 90) % 360;
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+			if (id === "voltearH") {
+				vp.hflip = !vp.hflip;
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+			if (id === "voltearV") {
+				vp.vflip = !vp.vflip;
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+			if (id === "limpiar") {
+				medicionRef.current.lineas = [];
+				medicionRef.current.dibujando = false;
+				anotacionRef.current.anotaciones = [];
+				anguloRef.current.angulos = [];
+				anguloRef.current.fase = 0;
+				elipseRef.current.elipses = [];
+				elipseRef.current.dibujando = false;
+				rectRef.current.rects = [];
+				rectRef.current.dibujando = false;
+				bidiRef.current.bidis = [];
+				bidiRef.current.dibujando = false;
+				const overlay = overlayRef.current;
+				if (overlay)
+					overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+			}
+		} catch (err) {}
+	}, [masAccion]);
+
+	useEffect(() => {
+		if (!resetCounter) return;
+		const cs = csRef.current,
+			el = divRef.current;
+		if (!enabledRef.current || !cs || !el) return;
+		try {
+			cs.reset(el);
+			cs.updateImage(el);
+			medicionRef.current.lineas = [];
+			medicionRef.current.dibujando = false;
+			anotacionRef.current.anotaciones = [];
+			anguloRef.current.angulos = [];
+			anguloRef.current.fase = 0;
+			const overlay = overlayRef.current;
+			if (overlay)
+				overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+		} catch (err) {}
+	}, [resetCounter]);
+
+	const sincronizarOverlay = () => {
+		const canvas = divRef.current?.querySelector("canvas");
+		const overlay = overlayRef.current;
+		if (!canvas || !overlay) return;
+		overlay.width = canvas.width;
+		overlay.height = canvas.height;
+		overlay.style.width = canvas.style.width || canvas.width + "px";
+		overlay.style.height = canvas.style.height || canvas.height + "px";
+	};
+
+	const getCanvasPos = (e) => {
+		const overlay = overlayRef.current;
+		if (!overlay) return { x: 0, y: 0 };
+		const rect = overlay.getBoundingClientRect();
+		return {
+			x: (e.clientX - rect.left) * (overlay.width / rect.width),
+			y: (e.clientY - rect.top) * (overlay.height / rect.height),
+		};
+	};
+
+	const getScreenPos = (canvasX, canvasY) => {
+		const overlay = overlayRef.current;
+		if (!overlay) return { x: 0, y: 0 };
+		const rect = overlay.getBoundingClientRect();
+		return {
+			x: canvasX * (rect.width / overlay.width) + rect.left,
+			y: canvasY * (rect.height / overlay.height) + rect.top,
+		};
+	};
+
+	const pixelSpacing = () => {
+		const cs = csRef.current;
+		const el = divRef.current;
+		if (!cs || !el) return { x: 1, y: 1 };
+		try {
+			const img = cs.getImage(el);
+			const rcs = img?.rowPixelSpacing || img?.data?.floatString?.("x00280030") || 1;
+			const cps = img?.columnPixelSpacing || rcs;
+			return { x: parseFloat(cps) || 1, y: parseFloat(rcs) || 1 };
+		} catch (e) {
+			return { x: 1, y: 1 };
+		}
+	};
+
+	const distanciaMM = (x1, y1, x2, y2) => {
+		const cs = csRef.current;
+		const el = divRef.current;
+		if (!cs || !el) return 0;
+		try {
+			const vp = cs.getViewport(el);
+			const canvas = el.querySelector("canvas");
+			if (!vp || !canvas) return 0;
+			const ps = pixelSpacing();
+			const cx = canvas.width / 2 + vp.translation.x * vp.scale;
+			const cy = canvas.height / 2 + vp.translation.y * vp.scale;
+			const px1 = (x1 - cx) / vp.scale,
+				py1 = (y1 - cy) / vp.scale;
+			const px2 = (x2 - cx) / vp.scale,
+				py2 = (y2 - cy) / vp.scale;
+			const dx = (px2 - px1) * ps.x,
+				dy = (py2 - py1) * ps.y;
+			return Math.sqrt(dx * dx + dy * dy);
+		} catch (e) {
+			return 0;
+		}
+	};
+
+	const lineaHitTest = (x, y, l) => {
+		const dx = l.x2 - l.x1,
+			dy = l.y2 - l.y1;
+		const len2 = dx * dx + dy * dy;
+		if (len2 === 0) return false;
+		const t = Math.max(0, Math.min(1, ((x - l.x1) * dx + (y - l.y1) * dy) / len2));
+		const nx = l.x1 + t * dx - x,
+			ny = l.y1 + t * dy - y;
+		return Math.sqrt(nx * nx + ny * ny) < 8;
+	};
+
+	const anotacionHitTest = (x, y, a) => {
+		return Math.abs(x - a.x) < 60 && Math.abs(y - a.y) < 16;
+	};
+
+	const redibujarOverlay = () => {
+		const overlay = overlayRef.current;
+		if (!overlay) return;
+		sincronizarOverlay();
+		const ctx = overlay.getContext("2d");
+		ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+		const { lineas, hoveredIdx: lHov, dibujando } = medicionRef.current;
+		lineas.forEach((l, i) => dibujarLinea(ctx, l, i === lHov ? "hover" : "normal"));
+		if (dibujando && medicionRef.current.x2 !== undefined) {
+			const { x1, y1, x2, y2 } = medicionRef.current;
+			dibujarLinea(
+				ctx,
+				{ x1, y1, x2, y2, dist: distanciaMM(x1, y1, x2, y2) },
+				"preview",
+			);
+		}
+
+		const { anotaciones, hoveredIdx: aHov } = anotacionRef.current;
+		anotaciones.forEach((a, i) =>
+			dibujarAnotacion(ctx, a, i === aHov ? "hover" : "normal"),
+		);
+
+		const {
+			angulos,
+			hoveredIdx: angHov,
+			fase,
+			p1x,
+			p1y,
+			p2x,
+			p2y,
+			previewX,
+			previewY,
+		} = anguloRef.current;
+		angulos.forEach((a, i) =>
+			dibujarAngulo(ctx, a, i === angHov ? "hover" : "normal"),
+		);
+		// preview línea 1 (arrastrando)
+		if (fase === 1) {
+			ctx.save();
+			ctx.strokeStyle = "rgba(255,220,0,0.75)";
+			ctx.lineWidth = 1.5;
+			ctx.setLineDash([5, 3]);
+			ctx.beginPath();
+			ctx.moveTo(p1x, p1y);
+			ctx.lineTo(previewX, previewY);
+			ctx.stroke();
+			ctx.restore();
+		}
+		// preview línea 2 (arrastrando desde vértice)
+		if (fase === 2) {
+			const grados = calcularAngulo(p1x, p1y, p2x, p2y, previewX, previewY);
+			dibujarAngulo(
+				ctx,
+				{ p1x, p1y, p2x, p2y, p3x: previewX, p3y: previewY, grados },
+				"preview",
+			);
+		}
+
+		// Elipses guardadas
+		const {
+			elipses,
+			hoveredIdx: eHov,
+			dibujando: eDib,
+			cx: eCx,
+			cy: eCy,
+			rx: eRx,
+			ry: eRy,
+		} = elipseRef.current;
+		elipses.forEach((e, i) =>
+			dibujarElipseShape(ctx, e, i === eHov ? "hover" : "normal"),
+		);
+		// Preview elipse en construcción — calcular stats en tiempo real
+		if (eDib && eRx > 0 && eRy > 0) {
+			const statsPreview = calcularEstadisticasElipse(eCx, eCy, eRx, eRy);
+			dibujarElipseShape(
+				ctx,
+				{ cx: eCx, cy: eCy, rx: eRx, ry: eRy, stats: statsPreview },
+				"preview",
+			);
+		}
+
+		// Rectángulos guardados
+		const {
+			rects,
+			hoveredIdx: rHov,
+			dibujando: rDib,
+			x1: rX1,
+			y1: rY1,
+			x2: rX2,
+			y2: rY2,
+		} = rectRef.current;
+		rects.forEach((r, i) =>
+			dibujarRectShape(ctx, r, i === rHov ? "hover" : "normal"),
+		);
+		if (rDib && Math.abs(rX2 - rX1) > 2 && Math.abs(rY2 - rY1) > 2) {
+			const statsR = calcularEstadisticasRect(rX1, rY1, rX2, rY2);
+			dibujarRectShape(
+				ctx,
+				{ x1: rX1, y1: rY1, x2: rX2, y2: rY2, stats: statsR },
+				"preview",
+			);
+		}
+
+		// Bidireccionales guardadas
+		const {
+			bidis,
+			hoveredIdx: bHov,
+			dibujando: bDib,
+			cx: bCx,
+			cy: bCy,
+			ex: bEx,
+			ey: bEy,
+		} = bidiRef.current;
+		bidis.forEach((b, i) =>
+			dibujarBidiShape(ctx, b, i === bHov ? "hover" : "normal"),
+		);
+		if (bDib && Math.hypot(bEx - bCx, bEy - bCy) > 5) {
+			dibujarBidiShape(ctx, { cx: bCx, cy: bCy, ex: bEx, ey: bEy }, "preview");
+		}
+	};
+
+	const dibujarLinea = (ctx, l, mode) => {
+		const { x1, y1, x2, y2, dist, label } = l;
+		const isPreview = mode === "preview";
+		const isHover = mode === "hover";
+		const color = isPreview
+			? "rgba(255,220,0,0.9)"
+			: isHover
+				? "#4cff72"
+				: "rgba(73,178,212,0.95)";
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth = isHover ? 2 : 1.5;
+		ctx.setLineDash(isPreview ? [6, 3] : []);
+		ctx.beginPath();
+		ctx.moveTo(x1, y1);
+		ctx.lineTo(x2, y2);
+		ctx.stroke();
+		[
+			{ x: x1, y: y1 },
+			{ x: x2, y: y2 },
+		].forEach((p) => {
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+			ctx.fillStyle = color;
+			ctx.fill();
+		});
+		const mx = (x1 + x2) / 2,
+			my = (y1 + y2) / 2;
+		const txt = label
+			? `${label} (${dist?.toFixed(1)} mm)`
+			: dist > 0
+				? `${dist.toFixed(1)} mm`
+				: "";
+		if (!txt) {
+			ctx.restore();
+			return;
+		}
+		ctx.font = "bold 13px monospace";
+		const tw = ctx.measureText(txt).width;
+		const pad = 4;
+		ctx.fillStyle = "rgba(0,0,0,0.65)";
+		ctx.fillRect(mx - tw / 2 - pad, my - 14, tw + pad * 2, 20);
+		ctx.fillStyle = isPreview ? "#FFE000" : isHover ? "#4cff72" : "#53B9DB";
+		ctx.textAlign = "center";
+		ctx.fillText(txt, mx, my + 2);
+		ctx.restore();
+	};
+
+	const dibujarAnotacion = (ctx, a, mode) => {
+		const isHover = mode === "hover";
+		const color = isHover ? "#4cff72" : "#FFE000";
+		const arrowLen = 22;
+		ctx.save();
+		// Flecha apuntando al punto
+		ctx.strokeStyle = color;
+		ctx.fillStyle = color;
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.moveTo(a.x, a.y);
+		ctx.lineTo(a.x + arrowLen, a.y - arrowLen * 0.6);
+		ctx.stroke();
+		// punta de flecha
+		const ang = Math.atan2(-arrowLen * 0.6, arrowLen);
+		const tipX = a.x,
+			tipY = a.y;
+		ctx.beginPath();
+		ctx.moveTo(tipX, tipY);
+		ctx.lineTo(tipX + 9 * Math.cos(ang - 0.4), tipY + 9 * Math.sin(ang - 0.4));
+		ctx.lineTo(tipX + 9 * Math.cos(ang + 0.4), tipY + 9 * Math.sin(ang + 0.4));
+		ctx.closePath();
+		ctx.fill();
+		// Texto sin fondo
+		ctx.font = "bold 13px monospace";
+		ctx.fillStyle = color;
+		ctx.textAlign = "left";
+		ctx.shadowColor = "rgba(0,0,0,0.9)";
+		ctx.shadowBlur = 4;
+		ctx.fillText(a.texto, a.x + arrowLen + 4, a.y - arrowLen * 0.6 + 4);
+		ctx.restore();
+	};
+
+	const dibujarAngulo = (ctx, a, mode) => {
+		// a = { p1x, p1y, p2x, p2y, p3x, p3y, grados }
+		// p2 es el vértice (unión de las dos líneas)
+		const isHover = mode === "hover";
+		const isPreview = mode === "preview";
+		const color = isPreview
+			? "rgba(255,220,0,0.9)"
+			: isHover
+				? "#4cff72"
+				: "#FFE000";
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth = isHover ? 2 : 1.5;
+		ctx.setLineDash(isPreview ? [6, 3] : []);
+		// línea 1: p1 → p2 (vértice)
+		ctx.beginPath();
+		ctx.moveTo(a.p1x, a.p1y);
+		ctx.lineTo(a.p2x, a.p2y);
+		ctx.stroke();
+		// línea 2: p2 (vértice) → p3
+		ctx.beginPath();
+		ctx.moveTo(a.p2x, a.p2y);
+		ctx.lineTo(a.p3x, a.p3y);
+		ctx.stroke();
+		// puntos extremos
+		[
+			{ x: a.p1x, y: a.p1y },
+			{ x: a.p2x, y: a.p2y },
+			{ x: a.p3x, y: a.p3y },
+		].forEach((p) => {
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+			ctx.fillStyle = color;
+			ctx.fill();
+		});
+		// arco en el vértice p2
+		const r = 22;
+		const ang1 = Math.atan2(a.p1y - a.p2y, a.p1x - a.p2x);
+		const ang2 = Math.atan2(a.p3y - a.p2y, a.p3x - a.p2x);
+		ctx.setLineDash([]);
+		// dibujar el arco menor
+		let startA = ang1,
+			endA = ang2;
+		let diff = endA - startA;
+		while (diff < -Math.PI) diff += 2 * Math.PI;
+		while (diff > Math.PI) diff -= 2 * Math.PI;
+		ctx.beginPath();
+		ctx.arc(a.p2x, a.p2y, r, startA, startA + diff, diff < 0);
+		ctx.stroke();
+		// texto grados junto al arco
+		if (a.grados !== undefined) {
+			const midAng = startA + diff / 2;
+			const tx = a.p2x + (r + 18) * Math.cos(midAng);
+			const ty = a.p2y + (r + 18) * Math.sin(midAng);
+			ctx.font = "bold 13px monospace";
+			ctx.fillStyle = color;
+			ctx.textAlign = "center";
+			ctx.shadowColor = "rgba(0,0,0,0.9)";
+			ctx.shadowBlur = 4;
+			ctx.fillText(`${a.grados.toFixed(2)}°`, tx, ty);
+		}
+		ctx.restore();
+	};
+
+	const calcularAngulo = (p1x, p1y, p2x, p2y, p3x, p3y) => {
+		const ang1 = Math.atan2(p1y - p2y, p1x - p2x);
+		const ang2 = Math.atan2(p3y - p2y, p3x - p2x);
+		let diff = ang2 - ang1;
+		while (diff < -Math.PI) diff += 2 * Math.PI;
+		while (diff > Math.PI) diff -= 2 * Math.PI;
+		return Math.abs((diff * 180) / Math.PI);
+	};
+
+	const rectHitTest = (x, y, r) => {
+		const lx = Math.min(r.x1, r.x2),
+			rx2 = Math.max(r.x1, r.x2);
+		const ly = Math.min(r.y1, r.y2),
+			ry2 = Math.max(r.y1, r.y2);
+		const onH = Math.abs(y - ly) < 8 || Math.abs(y - ry2) < 8;
+		const onV = Math.abs(x - lx) < 8 || Math.abs(x - rx2) < 8;
+		const inX = x >= lx - 8 && x <= rx2 + 8;
+		const inY = y >= ly - 8 && y <= ry2 + 8;
+		return (onH && inX) || (onV && inY);
+	};
+
+	const elipseHitTest = (x, y, e) => {
+		// Distancia normalizada al borde de la elipse
+		const dx = (x - e.cx) / (e.rx || 1);
+		const dy = (y - e.cy) / (e.ry || 1);
+		const d = Math.sqrt(dx * dx + dy * dy);
+		return Math.abs(d - 1) < 10 / Math.min(e.rx, e.ry || 1);
+	};
+
+	const anguloHitTest = (x, y, a) => {
+		const hitSeg = (x1, y1, x2, y2) => {
+			const dx = x2 - x1,
+				dy = y2 - y1,
+				len2 = dx * dx + dy * dy;
+			if (len2 === 0) return false;
+			const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / len2));
+			return Math.hypot(x1 + t * dx - x, y1 + t * dy - y) < 8;
+		};
+		return hitSeg(a.p1x, a.p1y, a.p2x, a.p2y) || hitSeg(a.p2x, a.p2y, a.p3x, a.p3y);
+	};
+
+	const calcularEstadisticasRect = (x1, y1, x2, y2) => {
+		const dicomCanvas = divRef.current?.querySelector("canvas");
+		if (!dicomCanvas) return { area: 0, mean: 0, std: 0 };
+		const ctx2 = document.createElement("canvas").getContext("2d");
+		const W = dicomCanvas.width,
+			H = dicomCanvas.height;
+		ctx2.canvas.width = W;
+		ctx2.canvas.height = H;
+		ctx2.drawImage(dicomCanvas, 0, 0);
+		const imageData = ctx2.getImageData(0, 0, W, H);
+		const data = imageData.data;
+		const valores = [];
+		const minX = Math.max(0, Math.floor(Math.min(x1, x2)));
+		const maxX = Math.min(W - 1, Math.ceil(Math.max(x1, x2)));
+		const minY = Math.max(0, Math.floor(Math.min(y1, y2)));
+		const maxY = Math.min(H - 1, Math.ceil(Math.max(y1, y2)));
+		for (let y = minY; y <= maxY; y++) {
+			for (let x = minX; x <= maxX; x++) {
+				const idx = (y * W + x) * 4;
+				valores.push(data[idx]);
+			}
+		}
+		if (valores.length === 0) return { area: 0, mean: 0, std: 0 };
+		const mean = valores.reduce((a, b) => a + b, 0) / valores.length;
+		const std = Math.sqrt(
+			valores.reduce((a, b) => a + (b - mean) ** 2, 0) / valores.length,
+		);
+		const ps = pixelSpacing();
+		const area = Math.abs(x2 - x1) * Math.abs(y2 - y1) * ps.x * ps.y;
+		const toHU = (v) => (v / 255) * 4095 - 1024;
+		return {
+			area: area.toFixed(2),
+			mean: toHU(mean).toFixed(2),
+			std: (std * (4095 / 255)).toFixed(2),
+		};
+	};
+
+	const calcularEstadisticasElipse = (cx, cy, rx, ry) => {
+		// Calcula Area, Mean y Std Dev a partir del canvas DICOM
+		const dicomCanvas = divRef.current?.querySelector("canvas");
+		if (!dicomCanvas) return { area: 0, mean: 0, std: 0 };
+		const ctx2 = document.createElement("canvas").getContext("2d");
+		const W = dicomCanvas.width,
+			H = dicomCanvas.height;
+		ctx2.canvas.width = W;
+		ctx2.canvas.height = H;
+		ctx2.drawImage(dicomCanvas, 0, 0);
+		const imageData = ctx2.getImageData(0, 0, W, H);
+		const data = imageData.data;
+		const valores = [];
+		for (
+			let y = Math.max(0, Math.floor(cy - ry));
+			y <= Math.min(H - 1, Math.ceil(cy + ry));
+			y++
+		) {
+			for (
+				let x = Math.max(0, Math.floor(cx - rx));
+				x <= Math.min(W - 1, Math.ceil(cx + rx));
+				x++
+			) {
+				const dx = (x - cx) / rx,
+					dy = (y - cy) / ry;
+				if (dx * dx + dy * dy <= 1) {
+					const idx = (y * W + x) * 4;
+					valores.push(data[idx]); // canal R (grayscale)
+				}
+			}
+		}
+		if (valores.length === 0) return { area: 0, mean: 0, std: 0 };
+		const mean = valores.reduce((a, b) => a + b, 0) / valores.length;
+		const std = Math.sqrt(
+			valores.reduce((a, b) => a + (b - mean) ** 2, 0) / valores.length,
+		);
+		// Pixel spacing real desde metadata DICOM (default 1.0 si no hay)
+		const ps = pixelSpacing();
+		const area = Math.PI * rx * ry * ps.x * ps.y;
+		// HU aproximado: los píxeles 8-bit del canvas [0-255] escalan a rango HU típico [-1024, 3071]
+		const toHU = (v) => (v / 255) * 4095 - 1024;
+		const meanHU = toHU(mean);
+		const stdHU = std * (4095 / 255);
+		return { area: area.toFixed(2), mean: meanHU.toFixed(2), std: stdHU.toFixed(2) };
+	};
+
+	const bidiHitTest = (x, y, b) => {
+		// hit en cualquiera de las dos líneas
+		const hitSeg = (x1, y1, x2, y2) => {
+			const dx = x2 - x1,
+				dy = y2 - y1,
+				len2 = dx * dx + dy * dy;
+			if (len2 === 0) return false;
+			const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / len2));
+			return Math.hypot(x1 + t * dx - x, y1 + t * dy - y) < 8;
+		};
+		// línea 1: extremo1 ↔ extremo2 (horizontal aproximada)
+		// línea 2: perpendicular cruzando el centro
+		const { cx, cy, ex, ey } = b;
+		const dx = ex - cx,
+			dy = ey - cy;
+		const len = Math.hypot(dx, dy) || 1;
+		// mitad del ancho (W = L/2 perp)
+		const hw = len / 2;
+		const px = (-dy / len) * hw,
+			py = (dx / len) * hw;
+		return (
+			hitSeg(cx, cy, ex, ey) ||
+			hitSeg(cx + dx / 2 - px, cy + dy / 2 - py, cx + dx / 2 + px, cy + dy / 2 + py)
+		);
+	};
+
+	const dibujarBidiShape = (ctx, b, mode) => {
+		const { cx, cy, ex, ey, label } = b;
+		const isPreview = mode === "preview";
+		const isHover = mode === "hover";
+		const color = isPreview
+			? "rgba(255,220,0,0.85)"
+			: isHover
+				? "#4cff72"
+				: "rgba(255,220,0,0.95)";
+		const dx = ex - cx,
+			dy = ey - cy;
+		const Lpx = Math.hypot(dx, dy);
+		if (Lpx < 1) return;
+
+		// línea principal (L)
+		const ux = dx / Lpx,
+			uy = dy / Lpx;
+		// perpendicular centrada (W = L/2 en píxeles de canvas)
+		const Wpx = Lpx / 2;
+		const mx = cx + dx / 2,
+			my = cy + dy / 2;
+		const perpX = (-uy * Wpx) / 2,
+			perpY = (ux * Wpx) / 2;
+
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth = isHover ? 2.5 : 1.8;
+		ctx.setLineDash(isPreview ? [6, 3] : []);
+
+		// línea L
+		ctx.beginPath();
+		ctx.moveTo(cx, cy);
+		ctx.lineTo(ex, ey);
+		ctx.stroke();
+		// línea W (perpendicular en el centro)
+		ctx.beginPath();
+		ctx.moveTo(mx - perpX, my - perpY);
+		ctx.lineTo(mx + perpX, my + perpY);
+		ctx.stroke();
+
+		// puntos extremos
+		[
+			[cx, cy],
+			[ex, ey],
+			[mx - perpX, my - perpY],
+			[mx + perpX, my + perpY],
+		].forEach(([px2, py2]) => {
+			ctx.beginPath();
+			ctx.arc(px2, py2, 4, 0, Math.PI * 2);
+			ctx.fillStyle = color;
+			ctx.fill();
+		});
+
+		// Medidas usando distanciaMM (misma lógica que Length tool — considera scale y translation)
+		const Lmm = distanciaMM(cx, cy, ex, ey).toFixed(1);
+		const Wmm = distanciaMM(mx - perpX, my - perpY, mx + perpX, my + perpY).toFixed(
+			1,
+		);
+
+		const tx = cx + 8,
+			ty = cy - 8;
+		ctx.font = "bold 13px monospace";
+		ctx.fillStyle = color;
+		ctx.shadowColor = "rgba(0,0,0,0.9)";
+		ctx.shadowBlur = 4;
+		ctx.setLineDash([]);
+		if (label) ctx.fillText(label, tx, ty - 36);
+		ctx.fillText("L " + Lmm + " mm", tx, ty - 18);
+		ctx.fillText("W " + Wmm + " mm", tx, ty);
+		ctx.restore();
+	};
+
+	const dibujarRectShape = (ctx, r, mode) => {
+		const { x1, y1, x2, y2, stats, label } = r;
+		const isPreview = mode === "preview";
+		const isHover = mode === "hover";
+		const color = isPreview
+			? "rgba(73,178,212,0.85)"
+			: isHover
+				? "#4cff72"
+				: "rgba(73,178,212,0.95)";
+		const lx = Math.min(x1, x2),
+			ly = Math.min(y1, y2);
+		const rw = Math.abs(x2 - x1),
+			rh = Math.abs(y2 - y1);
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth = isHover ? 2.5 : 1.8;
+		ctx.setLineDash(isPreview ? [6, 3] : []);
+		ctx.strokeRect(lx, ly, rw, rh);
+		// puntos en esquinas
+		[
+			[x1, y1],
+			[x2, y1],
+			[x2, y2],
+			[x1, y2],
+		].forEach(([px, py]) => {
+			ctx.beginPath();
+			ctx.arc(px, py, 4, 0, Math.PI * 2);
+			ctx.fillStyle = color;
+			ctx.fill();
+		});
+		if (stats) {
+			const tx = Math.max(x1, x2) + 8;
+			const ty = Math.min(y1, y2) + 16;
+			ctx.font = "bold 13px monospace";
+			ctx.fillStyle = color;
+			ctx.shadowColor = "rgba(0,0,0,0.8)";
+			ctx.shadowBlur = 4;
+			if (label) ctx.fillText(label, tx, ty - 18);
+			ctx.fillText("Área: " + stats.area + " mm²", tx, ty);
+			ctx.fillText("Media: " + stats.mean, tx, ty + 18);
+			ctx.fillText("Desv. Est.: " + stats.std, tx, ty + 36);
+		}
+		ctx.restore();
+	};
+
+	const dibujarElipseShape = (ctx, e, mode) => {
+		const { cx, cy, rx, ry, stats } = e;
+		const isPreview = mode === "preview";
+		const isHover = mode === "hover";
+		const color = isPreview
+			? "rgba(255,220,0,0.85)"
+			: isHover
+				? "#4cff72"
+				: "rgba(255,220,0,0.95)";
+		ctx.save();
+		ctx.strokeStyle = color;
+		ctx.lineWidth = isHover ? 2.5 : 1.8;
+		ctx.setLineDash(isPreview ? [6, 3] : []);
+		ctx.beginPath();
+		ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+		ctx.stroke();
+		// Stats label
+		if (stats) {
+			const tx = cx + rx + 8;
+			const ty = cy - ry / 2;
+			ctx.font = "bold 13px monospace";
+			ctx.fillStyle = color;
+			ctx.shadowColor = "rgba(0,0,0,0.8)";
+			ctx.shadowBlur = 4;
+			if (e.label) ctx.fillText(e.label, tx, ty - 18);
+			ctx.fillText("Área: " + stats.area + " mm²", tx, ty);
+			ctx.fillText("Media: " + stats.mean, tx, ty + 18);
+			ctx.fillText("Desv. Est.: " + stats.std, tx, ty + 36);
+		}
+		ctx.restore();
+	};
+
+	const dibujarLupa = (clientX, clientY) => {
+		const dicomCanvas = divRef.current?.querySelector("canvas");
+		const overlay = overlayRef.current;
+		if (!dicomCanvas || !overlay) return;
+
+		const RADIO = 100; // radio px en pantalla
+		const ZOOM = 3; // factor de ampliación
+
+		// Posición del cursor en coordenadas del overlay/canvas
+		const rect = overlay.getBoundingClientRect();
+		const scaleX = overlay.width / rect.width;
+		const scaleY = overlay.height / rect.height;
+		const cx = (clientX - rect.left) * scaleX;
+		const cy = (clientY - rect.top) * scaleY;
+
+		// Región fuente en el canvas DICOM:
+		// queremos mostrar un área de (2*RADIO/ZOOM) centrada en cx,cy
+		const srcW = (RADIO * 2) / ZOOM;
+		const srcH = (RADIO * 2) / ZOOM;
+		const srcX = cx - srcW / 2;
+		const srcY = cy - srcH / 2;
+
+		// Redibujar overlay base (mediciones, etc.)
+		redibujarOverlay();
+
+		const ctx = overlay.getContext("2d");
+
+		// Fondo negro para la lupa
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(cx, cy, RADIO, 0, Math.PI * 2);
+		ctx.fillStyle = "#000";
+		ctx.fill();
+		ctx.restore();
+
+		// Clip circular y dibujar región ampliada
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(cx, cy, RADIO, 0, Math.PI * 2);
+		ctx.clip();
+		ctx.drawImage(
+			dicomCanvas,
+			srcX,
+			srcY,
+			srcW,
+			srcH, // fuente: región pequeña
+			cx - RADIO,
+			cy - RADIO,
+			RADIO * 2,
+			RADIO * 2, // destino: círculo completo
+		);
+		ctx.restore();
+
+		// Borde azul
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(cx, cy, RADIO, 0, Math.PI * 2);
+		ctx.strokeStyle = "rgba(73,178,212,0.95)";
+		ctx.lineWidth = 2.5;
+		ctx.stroke();
+		// Cruz central
+		ctx.strokeStyle = "rgba(73,178,212,0.7)";
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(cx - 12, cy);
+		ctx.lineTo(cx + 12, cy);
+		ctx.moveTo(cx, cy - 12);
+		ctx.lineTo(cx, cy + 12);
+		ctx.stroke();
+		ctx.restore();
+	};
+
+	const getCursor = (tool) => {
+		if (tool === "Pan") return "grab";
+		if (tool === "Zoom") return "ns-resize";
+		if (tool === "Wwwc") return "col-resize";
+		if (tool === "Length")
+			return medicionRef.current.dibujando
+				? "crosshair"
+				: medicionRef.current.hoveredIdx >= 0
+					? "pointer"
+					: "crosshair";
+		if (tool === "Annotate") return "text";
+		if (tool === "Angle")
+			return anguloRef.current.fase > 0 ? "crosshair" : "crosshair";
+		if (tool === "StackScroll") return "row-resize";
+
+		return "default";
+	};
+
+	const onMouseDown = (e) => {
+		const tool = herramientaRef.current;
+
+		if (tool === "Length") {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const pos = getCanvasPos(e);
+			if (medicionRef.current.dibujando) {
+				const { x1, y1 } = medicionRef.current;
+				const dist = distanciaMM(x1, y1, pos.x, pos.y);
+				if (dist > 2)
+					medicionRef.current.lineas.push({ x1, y1, x2: pos.x, y2: pos.y, dist });
+				medicionRef.current.dibujando = false;
+				delete medicionRef.current.x2;
+				delete medicionRef.current.y2;
+				redibujarOverlay();
+			} else {
+				medicionRef.current.dibujando = true;
+				medicionRef.current.dragging = false;
+				medicionRef.current.x1 = pos.x;
+				medicionRef.current.y1 = pos.y;
+				medicionRef.current.x2 = pos.x;
+				medicionRef.current.y2 = pos.y;
+			}
+			return;
+		}
+
+		if (tool === "Angle") {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const pos = getCanvasPos(e);
+			const ar = anguloRef.current;
+			if (ar.fase === 0) {
+				ar.fase = 1;
+				ar.p1x = pos.x;
+				ar.p1y = pos.y;
+				ar.previewX = pos.x;
+				ar.previewY = pos.y;
+				ar.clickX = pos.x;
+				ar.clickY = pos.y;
+				ar.wasDrag = false;
+			} else if (ar.fase === 1) {
+				// segundo click → fija p2, inicia línea 2
+				ar.p2x = pos.x;
+				ar.p2y = pos.y;
+				ar.previewX = pos.x;
+				ar.previewY = pos.y;
+				ar.clickX = pos.x;
+				ar.clickY = pos.y;
+				ar.wasDrag = false;
+				ar.fase = 2;
+			} else if (ar.fase === 2) {
+				// segundo click en línea 2 → guarda
+				const grados = calcularAngulo(ar.p1x, ar.p1y, ar.p2x, ar.p2y, pos.x, pos.y);
+				if (grados > 0.5)
+					ar.angulos.push({
+						p1x: ar.p1x,
+						p1y: ar.p1y,
+						p2x: ar.p2x,
+						p2y: ar.p2y,
+						p3x: pos.x,
+						p3y: pos.y,
+						grados,
+					});
+				ar.fase = 0;
+			}
+			redibujarOverlay();
+			return;
+		}
+
+		if (tool === "Annotate") {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const pos = getCanvasPos(e);
+			const scrPos = getScreenPos(pos.x, pos.y);
+			setInputAnotacion({
+				canvasX: pos.x,
+				canvasY: pos.y,
+				screenX: scrPos.x,
+				screenY: scrPos.y,
+				value: "",
+			});
+			return;
+		}
+
+		if (e.button !== 0) return;
+		e.preventDefault();
+
+		dragRef.current = { active: true, lastX: e.clientX, lastY: e.clientY };
+
+		// Elipse activa — iniciar dibujo
+		if (elipseActivaRef.current) {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const pos = getCanvasPos(e);
+			elipseRef.current.dibujando = true;
+			elipseRef.current.cx = pos.x;
+			elipseRef.current.cy = pos.y;
+			elipseRef.current.rx = 0;
+			elipseRef.current.ry = 0;
+			return;
+		}
+
+		// Rectángulo activo — iniciar dibujo
+		if (rectActivaRef.current) {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const pos = getCanvasPos(e);
+			rectRef.current.dibujando = true;
+			rectRef.current.x1 = pos.x;
+			rectRef.current.y1 = pos.y;
+			rectRef.current.x2 = pos.x;
+			rectRef.current.y2 = pos.y;
+			return;
+		}
+
+		// Bidireccional activa — iniciar dibujo
+		if (bidiActivaRef.current) {
+			if (e.button !== 0) return;
+			e.preventDefault();
+			const pos = getCanvasPos(e);
+			bidiRef.current.dibujando = true;
+			bidiRef.current.cx = pos.x;
+			bidiRef.current.cy = pos.y;
+			bidiRef.current.ex = pos.x;
+			bidiRef.current.ey = pos.y;
+			return;
+		}
+	};
+
+	const onContextMenu = (e) => {
+		e.preventDefault();
+		const tool = herramientaRef.current;
+		const pos = getCanvasPos(e);
+		const overlay = overlayRef.current;
+		const rect = overlay?.getBoundingClientRect();
+		const sx = e.clientX - (rect?.left || 0);
+		const sy = e.clientY - (rect?.top || 0);
+
+		if (tool === "Length") {
+			const idx = medicionRef.current.lineas.findIndex((l) =>
+				lineaHitTest(pos.x, pos.y, l),
+			);
+			if (idx < 0) return;
+			setCtxMenu({ tipo: "linea", idx, screenX: sx, screenY: sy });
+			return;
+		}
+
+		if (tool === "Annotate") {
+			const idx = anotacionRef.current.anotaciones.findIndex((a) =>
+				anotacionHitTest(pos.x, pos.y, a),
+			);
+			if (idx < 0) return;
+			setCtxMenu({ tipo: "anotacion", idx, screenX: sx, screenY: sy });
+			return;
+		}
+
+		if (tool === "Angle") {
+			const idx = anguloRef.current.angulos.findIndex((a) =>
+				anguloHitTest(pos.x, pos.y, a),
+			);
+			if (idx < 0) return;
+			setCtxMenu({ tipo: "angulo", idx, screenX: sx, screenY: sy });
+			return;
+		}
+
+		// Elipse activa — clic derecho sobre borde
+		if (elipseActivaRef.current) {
+			const idx = elipseRef.current.elipses.findIndex((el) =>
+				elipseHitTest(pos.x, pos.y, el),
+			);
+			if (idx < 0) return;
+			setCtxMenu({ tipo: "elipse", idx, screenX: sx, screenY: sy });
+			return;
+		}
+
+		// Rectángulo activo — clic derecho sobre borde
+		if (rectActivaRef.current) {
+			const idx = rectRef.current.rects.findIndex((r) =>
+				rectHitTest(pos.x, pos.y, r),
+			);
+			if (idx < 0) return;
+			setCtxMenu({ tipo: "rect", idx, screenX: sx, screenY: sy });
+			return;
+		}
+
+		// Bidireccional activa — clic derecho sobre líneas
+		if (bidiActivaRef.current) {
+			const idx = bidiRef.current.bidis.findIndex((b) =>
+				bidiHitTest(pos.x, pos.y, b),
+			);
+			if (idx < 0) return;
+			setCtxMenu({ tipo: "bidi", idx, screenX: sx, screenY: sy });
+			return;
+		}
+	};
+
+	const cerrarMenu = () => setCtxMenu(null);
+
+	const onMouseMove = (e) => {
+		const tool = herramientaRef.current;
+
+		if (tool === "Length") {
+			const pos = getCanvasPos(e);
+			if (medicionRef.current.dibujando) {
+				medicionRef.current.x2 = pos.x;
+				medicionRef.current.y2 = pos.y;
+				medicionRef.current.dragging = true;
+				redibujarOverlay();
+				return;
+			}
+			const idx = medicionRef.current.lineas.findIndex((l) =>
+				lineaHitTest(pos.x, pos.y, l),
+			);
+			if (idx !== medicionRef.current.hoveredIdx) {
+				medicionRef.current.hoveredIdx = idx;
+				redibujarOverlay();
+			}
+			return;
+		}
+
+		if (tool === "Angle") {
+			const pos = getCanvasPos(e);
+			const ar = anguloRef.current;
+			if (ar.fase === 1 || ar.fase === 2) {
+				ar.previewX = pos.x;
+				ar.previewY = pos.y;
+				redibujarOverlay();
+				return;
+			}
+			const idx = ar.angulos.findIndex((a) => anguloHitTest(pos.x, pos.y, a));
+			if (idx !== ar.hoveredIdx) {
+				ar.hoveredIdx = idx;
+				redibujarOverlay();
+			}
+			return;
+		}
+
+		if (tool === "Annotate") {
+			const pos = getCanvasPos(e);
+			const idx = anotacionRef.current.anotaciones.findIndex((a) =>
+				anotacionHitTest(pos.x, pos.y, a),
+			);
+			if (idx !== anotacionRef.current.hoveredIdx) {
+				anotacionRef.current.hoveredIdx = idx;
+				redibujarOverlay();
+			}
+			return;
+		}
+
+		// Hover elipse (cuando no está dibujando)
+		if (elipseActivaRef.current && !elipseRef.current.dibujando) {
+			const pos = getCanvasPos(e);
+			const idx = elipseRef.current.elipses.findIndex((el) =>
+				elipseHitTest(pos.x, pos.y, el),
+			);
+			if (idx !== elipseRef.current.hoveredIdx) {
+				elipseRef.current.hoveredIdx = idx;
+				redibujarOverlay();
+			}
+		}
+
+		if (lupaActivaRef.current) {
+			dibujarLupa(e.clientX, e.clientY);
+			return;
+		}
+
+		// Elipse — actualizar radios mientras arrastra
+		if (elipseActivaRef.current && elipseRef.current.dibujando) {
+			const pos = getCanvasPos(e);
+			const { cx, cy } = elipseRef.current;
+			elipseRef.current.rx = Math.abs(pos.x - cx);
+			elipseRef.current.ry = Math.abs(pos.y - cy);
+			redibujarOverlay();
+			return;
+		}
+
+		// Rectángulo — actualizar esquina opuesta mientras arrastra
+		if (rectActivaRef.current && rectRef.current.dibujando) {
+			const pos = getCanvasPos(e);
+			rectRef.current.x2 = pos.x;
+			rectRef.current.y2 = pos.y;
+			redibujarOverlay();
+			return;
+		}
+
+		// Hover rectángulo (cuando no está dibujando)
+		if (rectActivaRef.current && !rectRef.current.dibujando) {
+			const pos = getCanvasPos(e);
+			const idx = rectRef.current.rects.findIndex((r) =>
+				rectHitTest(pos.x, pos.y, r),
+			);
+			if (idx !== rectRef.current.hoveredIdx) {
+				rectRef.current.hoveredIdx = idx;
+				redibujarOverlay();
+			}
+		}
+
+		// Bidireccional — actualizar extremo mientras arrastra
+		if (bidiActivaRef.current && bidiRef.current.dibujando) {
+			const pos = getCanvasPos(e);
+			bidiRef.current.ex = pos.x;
+			bidiRef.current.ey = pos.y;
+			redibujarOverlay();
+			return;
+		}
+
+		// Hover bidireccional
+		if (bidiActivaRef.current && !bidiRef.current.dibujando) {
+			const pos = getCanvasPos(e);
+			const idx = bidiRef.current.bidis.findIndex((b) =>
+				bidiHitTest(pos.x, pos.y, b),
+			);
+			if (idx !== bidiRef.current.hoveredIdx) {
+				bidiRef.current.hoveredIdx = idx;
+				redibujarOverlay();
+			}
+		}
+
+		const drag = dragRef.current;
+		if (!drag.active || !csRef.current || !divRef.current) return;
+		const cs = csRef.current,
+			el = divRef.current;
+		const dx = e.clientX - drag.lastX,
+			dy = e.clientY - drag.lastY;
+		drag.lastX = e.clientX;
+		drag.lastY = e.clientY;
+		try {
+			const vp = cs.getViewport(el);
+			if (!vp) return;
+			if (tool === "Pan") {
+				const rect = el.getBoundingClientRect();
+				vp.translation.x += (dx * (el.offsetWidth / rect.width)) / vp.scale;
+				vp.translation.y += (dy * (el.offsetHeight / rect.height)) / vp.scale;
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+			if (tool === "Zoom") {
+				vp.scale = Math.max(0.1, Math.min(vp.scale * (dy > 0 ? 0.97 : 1.03), 10));
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+			if (tool === "Wwwc") {
+				vp.voi.windowWidth = Math.max(1, vp.voi.windowWidth + dx * 10);
+				vp.voi.windowCenter = vp.voi.windowCenter + dy * 5;
+				cs.setViewport(el, vp);
+				cs.updateImage(el);
+			}
+		} catch (err) {}
+	};
+
+	const onMouseUp = (e) => {
+		const tool = herramientaRef.current;
+		if (tool === "Angle") {
+			const ar = anguloRef.current;
+			const pos = getCanvasPos(e);
+			const dist = Math.hypot(pos.x - (ar.clickX || 0), pos.y - (ar.clickY || 0));
+			const isDrag = dist > 4;
+			if (ar.fase === 1 && isDrag) {
+				// drag terminó → fija p2, inicia línea 2
+				ar.p2x = pos.x;
+				ar.p2y = pos.y;
+				ar.previewX = pos.x;
+				ar.previewY = pos.y;
+				ar.clickX = pos.x;
+				ar.clickY = pos.y;
+				ar.wasDrag = false;
+				ar.fase = 2;
+				redibujarOverlay();
+				return;
+			}
+			if (ar.fase === 2 && isDrag) {
+				// drag terminó → guarda ángulo
+				const grados = calcularAngulo(ar.p1x, ar.p1y, ar.p2x, ar.p2y, pos.x, pos.y);
+				if (grados > 0.5)
+					ar.angulos.push({
+						p1x: ar.p1x,
+						p1y: ar.p1y,
+						p2x: ar.p2x,
+						p2y: ar.p2y,
+						p3x: pos.x,
+						p3y: pos.y,
+						grados,
+					});
+				ar.fase = 0;
+				redibujarOverlay();
+				return;
+			}
+			// si no fue drag → quedarse en la fase actual esperando el siguiente click
+			dragRef.current.active = false;
+			return;
+		}
+		if (
+			tool === "Length" &&
+			medicionRef.current.dibujando &&
+			medicionRef.current.dragging
+		) {
+			const pos = getCanvasPos(e);
+			const { x1, y1 } = medicionRef.current;
+			const dist = distanciaMM(x1, y1, pos.x, pos.y);
+			if (dist > 2)
+				medicionRef.current.lineas.push({ x1, y1, x2: pos.x, y2: pos.y, dist });
+			medicionRef.current.dibujando = false;
+			medicionRef.current.dragging = false;
+			delete medicionRef.current.x2;
+			delete medicionRef.current.y2;
+			redibujarOverlay();
+			return;
+		}
+		dragRef.current.active = false;
+
+		// Elipse — finalizar al soltar el mouse
+		if (elipseActivaRef.current && elipseRef.current.dibujando) {
+			const { cx, cy, rx, ry } = elipseRef.current;
+			if (rx > 5 && ry > 5) {
+				const stats = calcularEstadisticasElipse(cx, cy, rx, ry);
+				elipseRef.current.elipses.push({ cx, cy, rx, ry, stats });
+			}
+			elipseRef.current.dibujando = false;
+			redibujarOverlay();
+			return;
+		}
+
+		// Rectángulo — finalizar al soltar el mouse
+		if (rectActivaRef.current && rectRef.current.dibujando) {
+			const { x1, y1, x2, y2 } = rectRef.current;
+			if (Math.abs(x2 - x1) > 5 && Math.abs(y2 - y1) > 5) {
+				const stats = calcularEstadisticasRect(x1, y1, x2, y2);
+				rectRef.current.rects.push({ x1, y1, x2, y2, stats });
+			}
+			rectRef.current.dibujando = false;
+			redibujarOverlay();
+			return;
+		}
+
+		// Bidireccional — finalizar al soltar el mouse
+		if (bidiActivaRef.current && bidiRef.current.dibujando) {
+			const { cx, cy, ex, ey } = bidiRef.current;
+			if (Math.hypot(ex - cx, ey - cy) > 5) {
+				bidiRef.current.bidis.push({ cx, cy, ex, ey });
+			}
+			bidiRef.current.dibujando = false;
+			redibujarOverlay();
+			return;
+		}
+	};
+
+	const handleWheel = (e) => {
+		e.preventDefault();
+		const cs = csRef.current,
+			el = divRef.current;
+		if (!enabledRef.current || !cs || !el) return;
+		try {
+			const vp = cs.getViewport(el);
+			if (!vp) return;
+			vp.scale = Math.max(0.1, Math.min(vp.scale * (e.deltaY < 0 ? 1.1 : 0.9), 10));
+			cs.setViewport(el, vp);
+			cs.updateImage(el);
+		} catch (err) {}
+	};
+
+	const handleReset = (e) => {
+		e.stopPropagation();
+		const cs = csRef.current,
+			el = divRef.current;
+		if (!enabledRef.current || !cs || !el) return;
+		try {
+			cs.reset(el);
+			medicionRef.current.lineas = [];
+			medicionRef.current.dibujando = false;
+			anotacionRef.current.anotaciones = [];
+			anguloRef.current.angulos = [];
+			anguloRef.current.fase = 0;
+			const overlay = overlayRef.current;
+			if (overlay)
+				overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+		} catch (err) {}
+	};
+
+	const handleCaptura = (e) => {
+		e.stopPropagation();
+		const dicomCanvas = divRef.current?.querySelector("canvas");
+		const overlay = overlayRef.current;
+		if (!dicomCanvas) return;
+		const merged = document.createElement("canvas");
+		merged.width = dicomCanvas.width;
+		merged.height = dicomCanvas.height;
+		const ctx = merged.getContext("2d");
+		ctx.drawImage(dicomCanvas, 0, 0);
+		if (overlay) ctx.drawImage(overlay, 0, 0);
+		const link = document.createElement("a");
+		link.download = `captura_${Date.now()}.png`;
+		link.href = merged.toDataURL();
+		link.click();
+	};
+
+	const confirmarAnotacion = (texto) => {
+		if (texto.trim() && inputAnotacion) {
+			anotacionRef.current.anotaciones.push({
+				x: inputAnotacion.canvasX,
+				y: inputAnotacion.canvasY,
+				texto: texto.trim(),
+			});
+			redibujarOverlay();
+		}
+		setInputAnotacion(null);
+	};
+
+	return (
+		<div
+			ref={wrapperRef}
+			className={`panel-imagen ${isActive ? "activo" : ""}`}
+			onClick={onClick}
+			onMouseDown={onMouseDown}
+			onMouseMove={onMouseMove}
+			onMouseUp={onMouseUp}
+			onMouseLeave={() => {
+				dragRef.current.active = false;
+				medicionRef.current.hoveredIdx = -1;
+				anotacionRef.current.hoveredIdx = -1;
+				anguloRef.current.hoveredIdx = -1;
+				redibujarOverlay();
+			}}
+			onWheel={handleWheel}
+			onContextMenu={onContextMenu}
+			style={{ cursor: getCursor(herramienta) }}>
+			<div
+				ref={divRef}
+				className="cornerstone-element"
+				style={{ display: imageId ? "block" : "none", pointerEvents: "none" }}
+			/>
+			<canvas
+				ref={overlayRef}
+				className="overlay-canvas"
+				style={{ display: imageId ? "block" : "none", pointerEvents: "none" }}
+			/>
+			{!imageId && (
+				<div className="panel-vacio">
+					<span>+</span>
+					<span>Sin imagen</span>
+				</div>
+			)}
+			{imageId && (
+				<>
+					<div className="overlay-acciones-imagen">
+						<button
+							className="btn-overlay-accion"
+							onMouseDown={(e) => e.stopPropagation()}
+							onClick={handleReset}>
+							⟲
+						</button>
+						<button
+							className="btn-overlay-accion"
+							onMouseDown={(e) => e.stopPropagation()}
+							onClick={handleCaptura}>
+							⬡
+						</button>
+					</div>
+					{zoom && (
+						<div className="overlay-stats">
+							<span>Zoom: {zoom}%</span>
+							{wl && <span>{wl}</span>}
+						</div>
+					)}
+				</>
+			)}
+
+			{inputAnotacion && (
+				<div
+					className="ctx-menu-medicion label-edit"
+					style={{
+						position: "fixed",
+						left: inputAnotacion.screenX,
+						top: inputAnotacion.screenY,
+						zIndex: 300,
+						transform: "translate(-50%, -120%)",
+					}}
+					onMouseDown={(e) => e.stopPropagation()}>
+					<p>Anotación</p>
+					<input
+						autoFocus
+						placeholder="Escribir texto..."
+						onKeyDown={(e) => {
+							if (e.key === "Enter") confirmarAnotacion(e.target.value);
+							if (e.key === "Escape") setInputAnotacion(null);
+						}}
+					/>
+					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+						<button
+							onClick={(e) =>
+								confirmarAnotacion(
+									e.target.closest(".ctx-menu-medicion").querySelector("input")
+										.value,
+								)
+							}>
+							OK
+						</button>
+						<button onClick={() => setInputAnotacion(null)}>Cancelar</button>
+					</div>
+				</div>
+			)}
+
+			{ctxMenu && (
+				<div
+					className="ctx-menu-medicion"
+					style={{ left: ctxMenu.screenX, top: ctxMenu.screenY }}
+					onMouseDown={(e) => e.stopPropagation()}>
+					{ctxMenu.tipo === "linea" && (
+						<>
+							<button
+								onClick={() => {
+									medicionRef.current.lineas.splice(ctxMenu.idx, 1);
+									medicionRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Eliminar medición
+							</button>
+							<button
+								onClick={() => {
+									setLabelEdit({
+										idx: ctxMenu.idx,
+										value: medicionRef.current.lineas[ctxMenu.idx]?.label || "",
+									});
+									cerrarMenu();
+								}}>
+								Etiquetar
+							</button>
+							<button
+								onClick={() => {
+									medicionRef.current.lineas = [];
+									medicionRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Borrar todas
+							</button>
+						</>
+					)}
+					{ctxMenu.tipo === "angulo" && (
+						<>
+							<button
+								onClick={() => {
+									anguloRef.current.angulos.splice(ctxMenu.idx, 1);
+									anguloRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Eliminar ángulo
+							</button>
+							<button
+								onClick={() => {
+									anguloRef.current.angulos = [];
+									anguloRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Borrar todos
+							</button>
+						</>
+					)}
+					{ctxMenu.tipo === "anotacion" && (
+						<>
+							<button
+								onClick={() => {
+									const a = anotacionRef.current.anotaciones[ctxMenu.idx];
+									const scrPos = getScreenPos(a.x, a.y);
+									setInputAnotacion({
+										canvasX: a.x,
+										canvasY: a.y,
+										screenX: scrPos.x,
+										screenY: scrPos.y,
+										value: a.texto,
+										editIdx: ctxMenu.idx,
+									});
+									anotacionRef.current.anotaciones.splice(ctxMenu.idx, 1);
+									anotacionRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Editar
+							</button>
+							<button
+								onClick={() => {
+									anotacionRef.current.anotaciones.splice(ctxMenu.idx, 1);
+									anotacionRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Eliminar
+							</button>
+							<button
+								onClick={() => {
+									anotacionRef.current.anotaciones = [];
+									anotacionRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Borrar todas
+							</button>
+						</>
+					)}
+					{ctxMenu.tipo === "elipse" && (
+						<>
+							<button
+								onClick={() => {
+									elipseRef.current.elipses.splice(ctxMenu.idx, 1);
+									elipseRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Eliminar elipse
+							</button>
+							<button
+								onClick={() => {
+									setElipseLabelEdit({
+										idx: ctxMenu.idx,
+										value: elipseRef.current.elipses[ctxMenu.idx]?.label || "",
+									});
+									cerrarMenu();
+								}}>
+								Etiquetar
+							</button>
+							<button
+								onClick={() => {
+									elipseRef.current.elipses = [];
+									elipseRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Borrar todas
+							</button>
+						</>
+					)}
+					{ctxMenu.tipo === "rect" && (
+						<>
+							<button
+								onClick={() => {
+									rectRef.current.rects.splice(ctxMenu.idx, 1);
+									rectRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Eliminar rectángulo
+							</button>
+							<button
+								onClick={() => {
+									setRectLabelEdit({
+										idx: ctxMenu.idx,
+										value: rectRef.current.rects[ctxMenu.idx]?.label || "",
+									});
+									cerrarMenu();
+								}}>
+								Etiquetar
+							</button>
+							<button
+								onClick={() => {
+									rectRef.current.rects = [];
+									rectRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Borrar todas
+							</button>
+						</>
+					)}
+					{ctxMenu.tipo === "bidi" && (
+						<>
+							<button
+								onClick={() => {
+									bidiRef.current.bidis.splice(ctxMenu.idx, 1);
+									bidiRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Eliminar medición
+							</button>
+							<button
+								onClick={() => {
+									setBidiLabelEdit({
+										idx: ctxMenu.idx,
+										value: bidiRef.current.bidis[ctxMenu.idx]?.label || "",
+									});
+									cerrarMenu();
+								}}>
+								Etiquetar
+							</button>
+							<button
+								onClick={() => {
+									bidiRef.current.bidis = [];
+									bidiRef.current.hoveredIdx = -1;
+									redibujarOverlay();
+									cerrarMenu();
+								}}>
+								Borrar todas
+							</button>
+						</>
+					)}
+				</div>
+			)}
+
+			{labelEdit && (
+				<div
+					className="ctx-menu-medicion label-edit"
+					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
+					onMouseDown={(e) => e.stopPropagation()}>
+					<p>Etiqueta</p>
+					<input
+						autoFocus
+						value={labelEdit.value}
+						onChange={(e) => setLabelEdit((v) => ({ ...v, value: e.target.value }))}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								medicionRef.current.lineas[labelEdit.idx].label = labelEdit.value;
+								redibujarOverlay();
+								setLabelEdit(null);
+							}
+							if (e.key === "Escape") setLabelEdit(null);
+						}}
+					/>
+					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+						<button
+							onClick={() => {
+								medicionRef.current.lineas[labelEdit.idx].label = labelEdit.value;
+								redibujarOverlay();
+								setLabelEdit(null);
+							}}>
+							OK
+						</button>
+						<button onClick={() => setLabelEdit(null)}>Cancelar</button>
+					</div>
+				</div>
+			)}
+
+			{elipseLabelEdit && (
+				<div
+					className="ctx-menu-medicion label-edit"
+					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
+					onMouseDown={(e) => e.stopPropagation()}>
+					<p>Descripción de elipse</p>
+					<input
+						autoFocus
+						value={elipseLabelEdit.value}
+						onChange={(e) =>
+							setElipseLabelEdit((v) => ({ ...v, value: e.target.value }))
+						}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								elipseRef.current.elipses[elipseLabelEdit.idx].label =
+									elipseLabelEdit.value;
+								redibujarOverlay();
+								setElipseLabelEdit(null);
+							}
+							if (e.key === "Escape") setElipseLabelEdit(null);
+						}}
+					/>
+					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+						<button
+							onClick={() => {
+								elipseRef.current.elipses[elipseLabelEdit.idx].label =
+									elipseLabelEdit.value;
+								redibujarOverlay();
+								setElipseLabelEdit(null);
+							}}>
+							OK
+						</button>
+						<button onClick={() => setElipseLabelEdit(null)}>Cancelar</button>
+					</div>
+				</div>
+			)}
+
+			{rectLabelEdit && (
+				<div
+					className="ctx-menu-medicion label-edit"
+					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
+					onMouseDown={(e) => e.stopPropagation()}>
+					<p>Descripción de rectángulo</p>
+					<input
+						autoFocus
+						value={rectLabelEdit.value}
+						onChange={(e) =>
+							setRectLabelEdit((v) => ({ ...v, value: e.target.value }))
+						}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								rectRef.current.rects[rectLabelEdit.idx].label = rectLabelEdit.value;
+								redibujarOverlay();
+								setRectLabelEdit(null);
+							}
+							if (e.key === "Escape") setRectLabelEdit(null);
+						}}
+					/>
+					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+						<button
+							onClick={() => {
+								rectRef.current.rects[rectLabelEdit.idx].label = rectLabelEdit.value;
+								redibujarOverlay();
+								setRectLabelEdit(null);
+							}}>
+							OK
+						</button>
+						<button onClick={() => setRectLabelEdit(null)}>Cancelar</button>
+					</div>
+				</div>
+			)}
+
+			{bidiLabelEdit && (
+				<div
+					className="ctx-menu-medicion label-edit"
+					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
+					onMouseDown={(e) => e.stopPropagation()}>
+					<p>Etiqueta bidireccional</p>
+					<input
+						autoFocus
+						value={bidiLabelEdit.value}
+						onChange={(e) =>
+							setBidiLabelEdit((v) => ({ ...v, value: e.target.value }))
+						}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") {
+								bidiRef.current.bidis[bidiLabelEdit.idx].label = bidiLabelEdit.value;
+								redibujarOverlay();
+								setBidiLabelEdit(null);
+							}
+							if (e.key === "Escape") setBidiLabelEdit(null);
+						}}
+					/>
+					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+						<button
+							onClick={() => {
+								bidiRef.current.bidis[bidiLabelEdit.idx].label = bidiLabelEdit.value;
+								redibujarOverlay();
+								setBidiLabelEdit(null);
+							}}>
+							OK
+						</button>
+						<button onClick={() => setBidiLabelEdit(null)}>Cancelar</button>
+					</div>
+				</div>
+			)}
+
+			{(ctxMenu ||
+				labelEdit ||
+				elipseLabelEdit ||
+				rectLabelEdit ||
+				bidiLabelEdit) && (
+				<div
+					className="ctx-menu-backdrop"
+					onClick={() => {
+						cerrarMenu();
+						setLabelEdit(null);
+						setElipseLabelEdit(null);
+						setRectLabelEdit(null);
+						setBidiLabelEdit(null);
+					}}
+				/>
+			)}
+		</div>
+	);
+};
 
 const VisorDicom = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { estudoId } = useParams();
+	const { user, signOut } = useAuth();
+	const navigate = useNavigate();
+	const { estudioId } = useParams();
+	const location = useLocation();
+	const estudioData = location.state?.estudio;
 
-  const [empleadoData, setEmpleadoData] = useState(null);
-  const [imagenes, setImagenes] = useState([]);
-  const [imagenActual, setImagenActual] = useState(0);
-  const [zoom, setZoom] = useState(28);
-  const [herramientaActiva, setHerramientaActiva] = useState('scroll');
-  const [serieActual, setSerieActual] = useState(1);
+	const [empleadoData, setEmpleadoData] = useState(null);
+	const [imageIds, setImageIds] = useState([]);
+	const [panelActivo, setPanelActivo] = useState(0);
+	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
+	const [herramienta, setHerramienta] = useState("Wwwc");
+	const [formatoGrid, setFormatoGrid] = useState(FORMATOS[0]);
+	const [mostrarFormatos, setMostrarFormatos] = useState(false);
+	const [mostrarMas, setMostrarMas] = useState(false);
+	const [mostrarDetalle, setMostrarDetalle] = useState(false);
+	const [detalleBarTop, setDetalleBarTop] = useState(112);
+	const [reporteBarTop, setReporteBarTop] = useState(112);
+	const [reporteBarLeft, setReporteBarLeft] = useState("50%");
+	const [mostrarInfo, setMostrarInfo] = useState(true);
+	const [mostrarReporte, setMostrarReporte] = useState(false);
+	const [cineActivo, setCineActivo] = useState(false);
+	const [reporteTexto, setReporteTexto] = useState("");
+	const [mostrarPanelReporte, setMostrarPanelReporte] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [resetCounter, setResetCounter] = useState(0);
+	const [masAccion, setMasAccion] = useState(null);
+	const [lupaGlobal, setLupaGlobal] = useState(false);
+	const [elipseGlobal, setElipseGlobal] = useState(false);
+	const [rectanguloGlobal, setRectanguloGlobal] = useState(false);
+	const [bidiGlobal, setBidiGlobal] = useState(false);
+	const [capturaClip, setCapturaClip] = useState(0);
+	const [notif, setNotif] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 
-  // Datos del paciente (ejemplo)
-  const pacienteInfo = {
-    nombre: 'GUTIERREZ AGUIRRE, BLANCA JUDITH',
-    sexo: 'Femenino',
-    fechaNacimiento: 'Aug 13, 1980',
-    fecha: 'Mar 3, 2026 08:20:31'
-  };
+	const cineRef = useRef(null);
+	const cineIdx = useRef(0);
+	const toolbarRef = useRef(null);
+	const [masBarTop, setMasBarTop] = useState(112);
 
-  const serieInfo = {
-    numero: 1,
-    resolucion: '3072 x 2560',
-    dimensiones: 'W: 10075 L: 8555',
-    compresion: 'Lossless / Uncompressed'
-  };
+	const pacienteInfo = {
+		nombre: estudioData?.nombrePaciente || "Sin paciente",
+		tipoEstudio: estudioData?.tipoEstudio || "—",
+		sucursal: estudioData?.sucursal || "—",
+		horaFecha: estudioData?.horaFecha || "—",
+		estado: estudioData?.estado || "—",
+	};
 
-  useEffect(() => {
-    const fetchEmpleadoData = async () => {
-      if (!user?.id) return;
+	const getPrimerNombre = (n) => n || user?.email?.split("@")[0] || "Usuario";
+	const formatRol = (rol) => {
+		const roles = {
+			admin: "Administrador",
+			radiologo: "Radiólogo - Director",
+			doctor: "Médico",
+			tecnico_radiologia: "Técnico en Radiología",
+			quimico: "Químico",
+			recepcionista: "Recepcionista",
+			desarrollador: "Desarrollador",
+		};
+		return roles[rol] || rol || "Usuario";
+	};
+	const handleLogout = async () => {
+		await signOut();
+		navigate("/login");
+	};
 
-      try {
-        const { data: empleado, error } = await supabase
-          .from('empleados')
-          .select('nombre, rol')
-          .eq('auth_uuid', user.id)
-          .maybeSingle();
+	useEffect(() => {
+		const fetchEmpleado = async () => {
+			if (!user?.id) return;
+			const { data } = await supabase
+				.from("empleados")
+				.select("nombre, rol")
+				.eq("auth_uuid", user.id)
+				.maybeSingle();
+			if (data) setEmpleadoData(data);
+		};
+		fetchEmpleado();
+	}, [user]);
 
-        if (error) {
-          console.error('Error al obtener empleado:', error);
-          return;
-        }
+	useEffect(() => {
+		cargarImagenes();
+		return () => {
+			if (cineRef.current) clearInterval(cineRef.current);
+		};
+	}, [estudioId]);
 
-        if (empleado) {
-          setEmpleadoData(empleado);
-        }
-      } catch (error) {
-        console.error('Error al obtener datos del empleado:', error);
-      }
-    };
+	const cargarImagenes = async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			await initCornerstone();
+			const idEstudio = estudioId || estudioData?.id;
+			const { data: estudio, error: errEst } = await supabase
+				.from("estudios_radiologia")
+				.select("storage_path, reporte")
+				.eq("id_estudio", idEstudio)
+				.single();
+			if (errEst) throw errEst;
+			if (!estudio?.storage_path) throw new Error("Sin archivo");
+			if (estudio.reporte) setReporteTexto(estudio.reporte);
+			const storagePath = estudio.storage_path.includes("supabase.co")
+				? estudio.storage_path.split("/radiologia/").pop().split("?")[0]
+				: estudio.storage_path;
+			const { data: urlData } = supabase.storage
+				.from("radiologia")
+				.getPublicUrl(storagePath);
+			const wadouri = `wadouri:${urlData.publicUrl}`;
+			setImageIds([wadouri]);
+			setPanelImageIds((prev) => {
+				const n = [...prev];
+				n[0] = wadouri;
+				return n;
+			});
+		} catch (e) {
+			setError(e.message);
+		} finally {
+			setLoading(false);
+		}
+	};
 
-    fetchEmpleadoData();
-  }, [user]);
+	const handleAction = (id) => {
+		if (id === "restaurar") {
+			setResetCounter((c) => c + 1);
+			return;
+		}
+		if (id === "cine") {
+			toggleCine();
+			return;
+		}
+		if (id === "formato") {
+			setMostrarFormatos((f) => !f);
+			setMostrarMas(false);
+			setMostrarDetalle(false);
+			return;
+		}
+		if (id === "reporte") {
+			return;
+		} // handled inline
+		if (id === "descargar") {
+			descargarArchivo();
+			return;
+		}
+		if (id === "captura") {
+			setCapturaClip((c) => c + 1);
+			return;
+		}
+		if (id === "compartir") {
+			compartir();
+			return;
+		}
+		if (id === "mas") {
+			setMostrarMas((f) => {
+				if (!f && toolbarRef.current) {
+					const r = toolbarRef.current.getBoundingClientRect();
+					setMasBarTop(r.bottom);
+				}
+				return !f;
+			});
+			setMostrarFormatos(false);
+			setMostrarDetalle(false);
+			return;
+		}
+		if (id === "detalle") {
+			setMostrarDetalle((f) => {
+				if (!f && toolbarRef.current) {
+					const r = toolbarRef.current.getBoundingClientRect();
+					setDetalleBarTop(r.bottom);
+				}
+				return !f;
+			});
+			setMostrarFormatos(false);
+			setMostrarMas(false);
+			return;
+		}
+	};
 
-  useEffect(() => {
-    cargarImagenes();
-  }, []);
+	const handleMasItem = (id) => {
+		// Toggle de modos activos — nunca cierran el submenú
+		if (id === "lupa") {
+			setLupaGlobal((f) => !f);
+			return;
+		}
+		if (id === "elipse") {
+			setElipseGlobal((f) => !f);
+			return;
+		}
+		if (id === "rectangulo") {
+			setRectanguloGlobal((f) => !f);
+			return;
+		}
+		if (id === "bidireccional") {
+			setBidiGlobal((f) => !f);
+			return;
+		}
+		// Acciones puntuales — tampoco cierran el submenú
+		setMasAccion({ id, ts: Date.now() });
+	};
 
-  const cargarImagenes = () => {
-    // Aquí cargarías las imágenes DICOM reales
-    // Por ahora uso placeholders
-    const imagenesEjemplo = [
-      { id: 1, url: '/placeholder-radiografia.jpg', serie: 1 },
-      { id: 2, url: '/placeholder-reporte.jpg', serie: 2 }
-    ];
-    setImagenes(imagenesEjemplo);
-  };
+	const handleDetalleItem = (id) => {
+		setMostrarDetalle(false);
+	};
 
-  const handleHerramienta = (herramienta) => {
-    setHerramientaActiva(herramienta);
-  };
+	const showNotif = (mensaje, tipo = "exito") => {
+		setNotif({ isOpen: true, mensaje, tipo });
+	};
 
-  const handleImagenAnterior = () => {
-    if (imagenActual > 0) {
-      setImagenActual(imagenActual - 1);
-    }
-  };
+	const handleReporteItem = (id) => {
+		setMostrarReporte(false);
+		if (id === "nueva-pestana") {
+			setMostrarPanelReporte((f) => !f);
+		}
+		if (id === "adjuntar") {
+			// funcionalidad futura
+		}
+	};
 
-  const handleImagenSiguiente = () => {
-    if (imagenActual < imagenes.length - 1) {
-      setImagenActual(imagenActual + 1);
-    }
-  };
+	const handleTool = (id) => {
+		if (id === "Datos") {
+			setMostrarInfo((f) => !f);
+			return;
+		}
+		setHerramienta(id);
+	};
 
-  const getPrimerNombre = (nombreCompleto) => {
-    if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-    return nombreCompleto;
-  };
+	const toggleCine = () => {
+		if (cineActivo) {
+			clearInterval(cineRef.current);
+			setCineActivo(false);
+			return;
+		}
+		cineIdx.current = 0;
+		cineRef.current = setInterval(() => {
+			cineIdx.current = (cineIdx.current + 1) % imageIds.length;
+			setPanelImageIds((p) => {
+				const n = [...p];
+				n[panelActivo] = imageIds[cineIdx.current];
+				return n;
+			});
+		}, 300);
+		setCineActivo(true);
+	};
 
-  const formatRol = (rol) => {
-    if (!rol) return 'Usuario';
+	const descargarArchivo = () => {
+		const url = imageIds[0]?.replace("wadouri:", "");
+		if (!url) return;
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "estudio.dcm";
+		a.click();
+	};
 
-    const roles = {
-      'admin': 'Administrador',
-      'administrador': 'Administrador',
-      'radiologo': 'Radiólogo - Director',
-      'doctor': 'Médico',
-      'medico': 'Médico',
-      'tecnico_radiologia': 'Técnico en Radiología',
-      'tecnico': 'Técnico',
-      'quimico': 'Químico',
-      'recepcionista': 'Recepcionista',
-      'desarrollador': 'Desarrollador'
-    };
+	const compartir = async () => {
+		if (navigator.share)
+			await navigator.share({
+				title: pacienteInfo.nombre,
+				url: window.location.href,
+			});
+		else {
+			navigator.clipboard.writeText(window.location.href);
+			alert("URL copiada");
+		}
+	};
 
-    return roles[rol] || rol;
-  };
+	const guardarReporte = async () => {
+		await supabase
+			.from("estudios_radiologia")
+			.update({ reporte: reporteTexto, updated_at: new Date().toISOString() })
+			.eq("id_estudio", estudioId || estudioData?.id);
+		alert("Guardado");
+	};
 
-  const handleLogout = async () => {
-    const { signOut } = useAuth();
-    await signOut();
-    navigate('/login');
-  };
+	const totalPaneles = formatoGrid.cols * formatoGrid.rows;
 
-  return (
-    <div className="visor-dicom-wrapper">
-      <Header
-        empleadoData={empleadoData}
-        formatRol={formatRol}
-        getPrimerNombre={getPrimerNombre}
-        user={user}
-        handleLogout={handleLogout}
-        currentPage="visor"
-      />
+	return (
+		<div className="vd-root">
+			<Header
+				empleadoData={empleadoData}
+				formatRol={formatRol}
+				getPrimerNombre={getPrimerNombre}
+				user={user}
+				handleLogout={handleLogout}
+				currentPage="visor"
+			/>
 
-      <SidebarHome />
+			<div className="vd-toolbar" ref={toolbarRef}>
+				<button className="vd-btn-back" onClick={() => navigate(-1)}>
+					‹ Atrás
+				</button>
 
-      <div className="visor-dicom-content">
-        {/* Barra de herramientas superior */}
-        <div className="toolbar-superior">
-          <button 
-            className="btn-volver"
-            onClick={() => navigate(-1)}
-            title="Volver"
-          >
-            ← Atrás
-          </button>
+				<div className="vd-paciente-chip">
+					<span className="vd-chip-tipo">{pacienteInfo.tipoEstudio}</span>
+					<span className="vd-chip-nombre">{pacienteInfo.nombre}</span>
+					<span className="vd-chip-fecha">{pacienteInfo.horaFecha}</span>
+				</div>
 
-          <div className="herramientas-grupo">
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'imagenes' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('imagenes')}
-              title="Más imágenes"
-            >
-              <span className="icon-grid">⊞</span>
-              Más imágenes
-            </button>
+				<div className="vd-tools-group">
+					{TOOLS.map((t) => (
+						<button
+							key={t.id}
+							className={`vd-tool-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
+							onClick={() => handleTool(t.id)}
+							title={t.label}>
+							{t.icon ? <img src={t.icon} alt={t.label} /> : <span>{t.emoji}</span>}
+							<span>{t.label}</span>
+						</button>
+					))}
+				</div>
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'scroll' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('scroll')}
-              title="Scroll"
-            >
-              ☰ Scroll
-            </button>
+				<div className="vd-separator" />
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'ampliar' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('ampliar')}
-              title="Ampliar"
-            >
-              🔍 Ampliar
-            </button>
+				<div className="vd-actions-group">
+					{ACTIONS.map((a) => (
+						<button
+							key={a.id}
+							className={`vd-tool-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "reporte" && mostrarReporte ? "activo" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "detalle" && mostrarDetalle ? "activo" : ""}`}
+							onClick={(e) => {
+								if (a.id === "reporte") {
+									const r = e.currentTarget.getBoundingClientRect();
+									setReporteBarLeft(r.left + r.width / 2);
+									if (toolbarRef.current)
+										setReporteBarTop(
+											toolbarRef.current.getBoundingClientRect().bottom,
+										);
+									setMostrarReporte((f) => !f);
+									setMostrarMas(false);
+									setMostrarDetalle(false);
+									setMostrarFormatos(false);
+								} else {
+									handleAction(a.id);
+								}
+							}}
+							title={a.label}>
+							{a.icon ? <img src={a.icon} alt={a.label} /> : <span>⊞</span>}
+							<span>{a.label}</span>
+						</button>
+					))}
+				</div>
+			</div>
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'wl' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('wl')}
-              title="W/L"
-            >
-              ⚪ W/L
-            </button>
+			{mostrarMas && (
+				<div className="vd-mas-bar" style={{ top: masBarTop }}>
+					{MAS_ITEMS.map((item) => (
+						<button
+							key={item.id}
+							className={`vd-mas-item${item.id === "lupa" && lupaGlobal ? " activo" : ""}${item.id === "elipse" && elipseGlobal ? " activo" : ""}${item.id === "rectangulo" && rectanguloGlobal ? " activo" : ""}${item.id === "bidireccional" && bidiGlobal ? " activo" : ""}`}
+							onClick={() => handleMasItem(item.id)}
+							title={item.label}>
+							{item.icon ? (
+								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
+							) : (
+								<span className="vd-mas-emoji">{item.emoji}</span>
+							)}
+							<span>{item.label}</span>
+						</button>
+					))}
+				</div>
+			)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'mover' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('mover')}
-              title="Mover"
-            >
-              ✥ Mover
-            </button>
+			{mostrarDetalle && (
+				<div className="vd-mas-bar" style={{ top: detalleBarTop }}>
+					{DETALLE_ITEMS.map((item) => (
+						<button
+							key={item.id}
+							className="vd-mas-item"
+							onClick={() => handleDetalleItem(item.id)}
+							title={item.label}>
+							{item.icon ? (
+								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
+							) : (
+								<span className="vd-mas-emoji">{item.emoji}</span>
+							)}
+							<span>{item.label}</span>
+						</button>
+					))}
+				</div>
+			)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'datos' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('datos')}
-              title="Datos"
-            >
-              ≡ Datos
-            </button>
+			{mostrarReporte && (
+				<div
+					className="vd-mas-bar"
+					style={{
+						top: reporteBarTop,
+						left: reporteBarLeft,
+						transform: "translateX(-50%)",
+					}}>
+					{REPORTE_ITEMS.map((item) => (
+						<button
+							key={item.id}
+							className="vd-mas-item"
+							onClick={() => handleReporteItem(item.id)}
+							title={item.label}>
+							{item.icon ? (
+								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
+							) : (
+								<span className="vd-mas-emoji">{item.emoji}</span>
+							)}
+							<span>{item.label}</span>
+						</button>
+					))}
+				</div>
+			)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'longitud' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('longitud')}
-              title="Longitud"
-            >
-              📏 Longitud
-            </button>
+			<div className="vd-body">
+				<div className="vd-sidebar">
+					<div className="vd-sidebar-header">
+						<span>Serie</span>
+						<span className="vd-serie-count">{imageIds.length}</span>
+					</div>
+					<div className="vd-miniaturas">
+						{loading ? (
+							<div className="vd-mini-estado">
+								<div className="vd-spinner" />
+								Cargando...
+							</div>
+						) : error ? (
+							<div className="vd-mini-estado error">⚠ {error}</div>
+						) : (
+							imageIds.map((id, i) => (
+								<div
+									key={i}
+									className={`vd-miniatura ${panelImageIds[panelActivo] === id ? "activa" : ""}`}
+									onClick={() =>
+										setPanelImageIds((prev) => {
+											const n = [...prev];
+											n[panelActivo] = id;
+											return n;
+										})
+									}>
+									<div className="vd-mini-img">
+										<span className="vd-mini-dcm">DCM</span>
+										<span className="vd-mini-num">{i + 1}</span>
+									</div>
+									<div className="vd-mini-footer">
+										{i + 1}/{imageIds.length}
+									</div>
+								</div>
+							))
+						)}
+					</div>
+				</div>
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'annotate' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('annotate')}
-              title="Annotate"
-            >
-              ✎ Annotate
-            </button>
+				<div className="vd-viewer">
+					{mostrarInfo && (
+						<div className="vd-overlay-paciente">
+							<div>
+								<p className="vd-ov-nombre">{pacienteInfo.nombre}</p>
+								<p className="vd-ov-dato">
+									{pacienteInfo.tipoEstudio} · {pacienteInfo.sucursal}
+								</p>
+								<p className="vd-ov-dato">{pacienteInfo.horaFecha}</p>
+							</div>
+							<span
+								className={`vd-ov-estado estado-${pacienteInfo.estado?.toLowerCase().replace(/ /g, "-")}`}>
+								{pacienteInfo.estado}
+							</span>
+						</div>
+					)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'angulo' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('angulo')}
-              title="Ángulo"
-            >
-              ∠ Ángulo
-            </button>
+					{loading && (
+						<div className="vd-loading">
+							<div className="vd-spinner-lg" />
+							<p>Cargando DICOM...</p>
+						</div>
+					)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'restaurar' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('restaurar')}
-              title="Restaurar"
-            >
-              ⟲ Restaurar
-            </button>
+					{error && (
+						<div className="vd-error">
+							<span>⚠</span>
+							<p>{error}</p>
+							<button onClick={cargarImagenes}>Reintentar</button>
+						</div>
+					)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'cine' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('cine')}
-              title="CINE"
-            >
-              ▶ CINE
-            </button>
+					{mostrarFormatos && (
+						<div className="vd-formatos-popup">
+							{FORMATOS.map((f) => (
+								<button
+									key={f.id}
+									className={`vd-formato-btn ${formatoGrid.id === f.id ? "activo" : ""}`}
+									onClick={() => {
+										setFormatoGrid(f);
+										setMostrarFormatos(false);
+									}}>
+									<div
+										className="vd-formato-grid"
+										style={{
+											gridTemplateColumns: `repeat(${f.cols},1fr)`,
+											gridTemplateRows: `repeat(${f.rows},1fr)`,
+										}}>
+										{Array(f.cols * f.rows)
+											.fill(0)
+											.map((_, i) => (
+												<div key={i} />
+											))}
+									</div>
+									<span>{f.label}</span>
+								</button>
+							))}
+						</div>
+					)}
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'descargar' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('descargar')}
-              title="Descargar"
-            >
-              ↓ Descargar
-            </button>
+					<div
+						className="vd-grid"
+						style={{
+							gridTemplateColumns: `repeat(${formatoGrid.cols},1fr)`,
+							gridTemplateRows: `repeat(${formatoGrid.rows},1fr)`,
+						}}>
+						{Array(totalPaneles)
+							.fill(0)
+							.map((_, i) => (
+								<PanelDicom
+									key={`${formatoGrid.id}-${i}`}
+									imageId={panelImageIds[i] || null}
+									herramienta={herramienta}
+									isActive={panelActivo === i}
+									resetCounter={resetCounter}
+									masAccion={masAccion}
+									capturaClip={panelActivo === i ? capturaClip : 0}
+									lupaExterna={panelActivo === i ? lupaGlobal : false}
+									elipseExterna={panelActivo === i ? elipseGlobal : false}
+									rectExterna={panelActivo === i ? rectanguloGlobal : false}
+									bidiExterna={panelActivo === i ? bidiGlobal : false}
+									onCapturaOk={() =>
+										showNotif("Captura copiada al portapapeles", "exito")
+									}
+									onCapturaFail={() => showNotif("Captura descargada", "info")}
+									onClick={() => setPanelActivo(i)}
+								/>
+							))}
+					</div>
+				</div>
 
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'mas' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('mas')}
-              title="Más"
-            >
-              ⋮ Más
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'detalle' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('detalle')}
-              title="Detalle"
-            >
-              ⓘ Detalle
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'reporte' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('reporte')}
-              title="Reporte"
-            >
-              ✎ Reporte
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'captura' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('captura')}
-              title="Captura"
-            >
-              □ Captura
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'informacion' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('informacion')}
-              title="Información"
-            >
-              ≣ Información
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'compartir' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('compartir')}
-              title="Compartir"
-            >
-              ⇄ Compartir
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'atajos' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('atajos')}
-              title="Atajos"
-            >
-              ⌨ Atajos
-            </button>
-
-            <button 
-              className={`btn-herramienta ${herramientaActiva === 'formato' ? 'activo' : ''}`}
-              onClick={() => handleHerramienta('formato')}
-              title="Formato"
-            >
-              ⊞ Formato
-            </button>
-          </div>
-
-          <button className="btn-medidas">
-            ⌨ Medidas
-          </button>
-        </div>
-
-        {/* Contenedor principal */}
-        <div className="visor-container">
-          {/* Panel izquierdo - Miniaturas */}
-          <div className="panel-miniaturas">
-            <button className="btn-expandir-miniaturas">
-              ▲
-            </button>
-
-            <div className="lista-miniaturas">
-              {imagenes.map((imagen, index) => (
-                <div 
-                  key={imagen.id}
-                  className={`miniatura-item ${imagenActual === index ? 'activa' : ''}`}
-                  onClick={() => setImagenActual(index)}
-                >
-                  <div className="miniatura-preview">
-                    {index === 0 ? (
-                      <div className="miniatura-placeholder">
-                        <span className="miniatura-numero">S: {imagen.serie}</span>
-                      </div>
-                    ) : (
-                      <div className="miniatura-reporte">
-                        <span className="icono-reporte">📄</span>
-                        <span className="texto-reporte">Reporte</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="miniatura-info">
-                    <span className="miniatura-serie">S: {imagen.serie}</span>
-                    <span className="miniatura-imagenes">📷 1</span>
-                  </div>
-                  <button className="btn-eliminar-miniatura">🗑</button>
-                </div>
-              ))}
-            </div>
-
-            <button className="btn-expandir-miniaturas-bottom">
-              ▼
-            </button>
-          </div>
-
-          {/* Visor central */}
-          <div className="visor-principal">
-            {/* Info del paciente */}
-            <div className="info-paciente-overlay">
-              <div className="info-paciente-texto">
-                <p className="paciente-nombre">{pacienteInfo.nombre}</p>
-                <p className="paciente-detalles">{pacienteInfo.sexo},</p>
-                <p className="paciente-detalles">{pacienteInfo.fechaNacimiento}</p>
-              </div>
-              <div className="info-fecha">
-                <p>{pacienteInfo.fecha}</p>
-              </div>
-            </div>
-
-            {/* Imagen DICOM */}
-            <div className="imagen-container">
-              {imagenActual === 0 ? (
-                <div className="imagen-placeholder">
-                  <span className="marcador-lado">R</span>
-                  {/* Aquí iría la imagen DICOM real */}
-                  <div className="imagen-dicom-simulada"></div>
-                </div>
-              ) : (
-                <div className="reporte-container">
-                  <span className="icono-reporte-grande">📄</span>
-                  <span className="texto-reporte-grande">Reporte</span>
-                </div>
-              )}
-            </div>
-
-            {/* Info de serie */}
-            <div className="info-serie-overlay">
-              <p>Ser: {serieInfo.numero}</p>
-              <p>{serieInfo.resolucion}</p>
-              <p className="zoom-info">Zoom: {zoom}%</p>
-              <p>{serieInfo.dimensiones}</p>
-              <p>{serieInfo.compresion}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+				{mostrarPanelReporte && (
+					<div className="vd-reporte">
+						<div className="vd-reporte-header">
+							<span>Reporte Radiológico</span>
+							<button onClick={() => setMostrarPanelReporte(false)}>✕</button>
+						</div>
+						<div className="vd-reporte-info">
+							<p>
+								<b>Paciente:</b> {pacienteInfo.nombre}
+							</p>
+							<p>
+								<b>Estudio:</b> {pacienteInfo.tipoEstudio}
+							</p>
+							<p>
+								<b>Fecha:</b> {pacienteInfo.horaFecha}
+							</p>
+						</div>
+						<textarea
+							className="vd-reporte-textarea"
+							value={reporteTexto}
+							onChange={(e) => setReporteTexto(e.target.value)}
+							placeholder="Escribir reporte radiológico..."
+						/>
+						<div className="vd-reporte-footer">
+							<button className="vd-btn-guardar" onClick={guardarReporte}>
+								Guardar
+							</button>
+							<button className="vd-btn-imprimir" onClick={() => window.print()}>
+								Imprimir
+							</button>
+						</div>
+					</div>
+				)}
+			</div>
+			<ModalNotificacion
+				isOpen={notif.isOpen}
+				onClose={() => setNotif((n) => ({ ...n, isOpen: false }))}
+				mensaje={notif.mensaje}
+				tipo={notif.tipo}
+			/>
+		</div>
+	);
 };
 
 export default VisorDicom;
