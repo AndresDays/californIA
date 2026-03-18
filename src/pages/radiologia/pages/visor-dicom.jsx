@@ -30,6 +30,7 @@ import ampliarIcon from "../../../assets/lupaIcono.png";
 import masIcon from "../../../assets/masIcono.png";
 import metricasIcon from "../../../assets/metricasIcono.png";
 import moverIcon from "../../../assets/moverIcono.png";
+import nubeIcono from "../../../assets/nubeIcono.png";
 import ojosIcono from "../../../assets/ojosIcono.png";
 import referenteIcon from "../../../assets/referenteIcono.png";
 import restaurarIcon from "../../../assets/restaurarIcono.png";
@@ -1024,9 +1025,7 @@ const PanelDicom = ({
 		});
 
 		const Lmm = distanciaMM(cx, cy, ex, ey).toFixed(1);
-		const Wmm = distanciaMM(mx - perpX, my - perpY, mx + perpX, my + perpY).toFixed(
-			1,
-		);
+		const Wmm = distanciaMM(mx - perpX, my - perpY, mx + perpX, my + perpY).toFixed(1);
 
 		const tx = cx + 8,
 			ty = cy - 8;
@@ -1152,14 +1151,8 @@ const PanelDicom = ({
 		ctx.clip();
 		ctx.drawImage(
 			dicomCanvas,
-			srcX,
-			srcY,
-			srcW,
-			srcH,
-			cx - RADIO,
-			cy - RADIO,
-			RADIO * 2,
-			RADIO * 2,
+			srcX, srcY, srcW, srcH,
+			cx - RADIO, cy - RADIO, RADIO * 2, RADIO * 2,
 		);
 		ctx.restore();
 
@@ -1196,11 +1189,7 @@ const PanelDicom = ({
 					const d1 = canvasToPixel(x1, y1),
 						d2 = canvasToPixel(pos.x, pos.y);
 					medicionRef.current.lineas.push({
-						px1: d1.px,
-						py1: d1.py,
-						px2: d2.px,
-						py2: d2.py,
-						dist,
+						px1: d1.px, py1: d1.py, px2: d2.px, py2: d2.py, dist,
 					});
 				}
 				medicionRef.current.dibujando = false;
@@ -1225,20 +1214,14 @@ const PanelDicom = ({
 			const ar = anguloRef.current;
 			if (ar.fase === 0) {
 				ar.fase = 1;
-				ar.p1x = pos.x;
-				ar.p1y = pos.y;
-				ar.previewX = pos.x;
-				ar.previewY = pos.y;
-				ar.clickX = pos.x;
-				ar.clickY = pos.y;
+				ar.p1x = pos.x; ar.p1y = pos.y;
+				ar.previewX = pos.x; ar.previewY = pos.y;
+				ar.clickX = pos.x; ar.clickY = pos.y;
 				ar.wasDrag = false;
 			} else if (ar.fase === 1) {
-				ar.p2x = pos.x;
-				ar.p2y = pos.y;
-				ar.previewX = pos.x;
-				ar.previewY = pos.y;
-				ar.clickX = pos.x;
-				ar.clickY = pos.y;
+				ar.p2x = pos.x; ar.p2y = pos.y;
+				ar.previewX = pos.x; ar.previewY = pos.y;
+				ar.clickX = pos.x; ar.clickY = pos.y;
 				ar.wasDrag = false;
 				ar.fase = 2;
 			} else if (ar.fase === 2) {
@@ -1248,12 +1231,9 @@ const PanelDicom = ({
 						dp2 = canvasToPixel(ar.p2x, ar.p2y),
 						dp3 = canvasToPixel(pos.x, pos.y);
 					ar.angulos.push({
-						pp1x: dp1.px,
-						pp1y: dp1.py,
-						pp2x: dp2.px,
-						pp2y: dp2.py,
-						pp3x: dp3.px,
-						pp3y: dp3.py,
+						pp1x: dp1.px, pp1y: dp1.py,
+						pp2x: dp2.px, pp2y: dp2.py,
+						pp3x: dp3.px, pp3y: dp3.py,
 						grados,
 					});
 				}
@@ -1270,12 +1250,9 @@ const PanelDicom = ({
 			const scrPos = getScreenPos(pos.x, pos.y);
 			const dp = canvasToPixel(pos.x, pos.y);
 			setInputAnotacion({
-				canvasX: pos.x,
-				canvasY: pos.y,
-				screenX: scrPos.x,
-				screenY: scrPos.y,
-				dicomX: dp.px,
-				dicomY: dp.py,
+				canvasX: pos.x, canvasY: pos.y,
+				screenX: scrPos.x, screenY: scrPos.y,
+				dicomX: dp.px, dicomY: dp.py,
 				value: "",
 			});
 			return;
@@ -1292,19 +1269,12 @@ const PanelDicom = ({
 			const pos = getCanvasPos(e);
 			if (elipseRef.current.dibujando) {
 				const { cx, cy } = elipseRef.current;
-				const rx = Math.abs(pos.x - cx),
-					ry = Math.abs(pos.y - cy);
+				const rx = Math.abs(pos.x - cx), ry = Math.abs(pos.y - cy);
 				if (rx > 5 && ry > 5) {
 					const stats = calcularEstadisticasElipse(cx, cy, rx, ry);
 					const dc = canvasToPixel(cx, cy);
 					const sc = getVp()?.vp.scale ?? 1;
-					elipseRef.current.elipses.push({
-						pcx: dc.px,
-						pcy: dc.py,
-						prx: rx / sc,
-						pry: ry / sc,
-						stats,
-					});
+					elipseRef.current.elipses.push({ pcx: dc.px, pcy: dc.py, prx: rx / sc, pry: ry / sc, stats });
 				}
 				elipseRef.current.dibujando = false;
 				elipseRef.current.dragging = false;
@@ -1328,15 +1298,8 @@ const PanelDicom = ({
 				const { x1, y1 } = rectRef.current;
 				if (Math.abs(pos.x - x1) > 5 && Math.abs(pos.y - y1) > 5) {
 					const stats = calcularEstadisticasRect(x1, y1, pos.x, pos.y);
-					const dr1 = canvasToPixel(x1, y1),
-						dr2 = canvasToPixel(pos.x, pos.y);
-					rectRef.current.rects.push({
-						px1: dr1.px,
-						py1: dr1.py,
-						px2: dr2.px,
-						py2: dr2.py,
-						stats,
-					});
+					const dr1 = canvasToPixel(x1, y1), dr2 = canvasToPixel(pos.x, pos.y);
+					rectRef.current.rects.push({ px1: dr1.px, py1: dr1.py, px2: dr2.px, py2: dr2.py, stats });
 				}
 				rectRef.current.dibujando = false;
 				rectRef.current.dragging = false;
@@ -1359,14 +1322,8 @@ const PanelDicom = ({
 			if (bidiRef.current.dibujando) {
 				const { cx, cy } = bidiRef.current;
 				if (Math.hypot(pos.x - cx, pos.y - cy) > 5) {
-					const db1 = canvasToPixel(cx, cy),
-						db2 = canvasToPixel(pos.x, pos.y);
-					bidiRef.current.bidis.push({
-						pcx: db1.px,
-						pcy: db1.py,
-						pex: db2.px,
-						pey: db2.py,
-					});
+					const db1 = canvasToPixel(cx, cy), db2 = canvasToPixel(pos.x, pos.y);
+					bidiRef.current.bidis.push({ pcx: db1.px, pcy: db1.py, pex: db2.px, pey: db2.py });
 				}
 				bidiRef.current.dibujando = false;
 				bidiRef.current.dragging = false;
@@ -1392,26 +1349,13 @@ const PanelDicom = ({
 		const sy = e.clientY - (rect?.top || 0);
 
 		const lineaC = (l) => {
-			const c1 = pixelToCanvas(l.px1, l.py1),
-				c2 = pixelToCanvas(l.px2, l.py2);
+			const c1 = pixelToCanvas(l.px1, l.py1), c2 = pixelToCanvas(l.px2, l.py2);
 			return { x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy };
 		};
-		const anotC = (a) => {
-			const ca = pixelToCanvas(a.px, a.py);
-			return { x: ca.cx, y: ca.cy };
-		};
+		const anotC = (a) => { const ca = pixelToCanvas(a.px, a.py); return { x: ca.cx, y: ca.cy }; };
 		const anguloC = (a) => {
-			const c1 = pixelToCanvas(a.pp1x, a.pp1y),
-				c2 = pixelToCanvas(a.pp2x, a.pp2y),
-				c3 = pixelToCanvas(a.pp3x, a.pp3y);
-			return {
-				p1x: c1.cx,
-				p1y: c1.cy,
-				p2x: c2.cx,
-				p2y: c2.cy,
-				p3x: c3.cx,
-				p3y: c3.cy,
-			};
+			const c1 = pixelToCanvas(a.pp1x, a.pp1y), c2 = pixelToCanvas(a.pp2x, a.pp2y), c3 = pixelToCanvas(a.pp3x, a.pp3y);
+			return { p1x: c1.cx, p1y: c1.cy, p2x: c2.cx, p2y: c2.cy, p3x: c3.cx, p3y: c3.cy };
 		};
 		const elipseC = (el) => {
 			const cc = pixelToCanvas(el.pcx, el.pcy);
@@ -1419,70 +1363,20 @@ const PanelDicom = ({
 			return { cx: cc.cx, cy: cc.cy, rx: el.prx * sc, ry: el.pry * sc };
 		};
 		const rectC = (r) => {
-			const c1 = pixelToCanvas(r.px1, r.py1),
-				c2 = pixelToCanvas(r.px2, r.py2);
+			const c1 = pixelToCanvas(r.px1, r.py1), c2 = pixelToCanvas(r.px2, r.py2);
 			return { x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy };
 		};
 		const bidiC = (b) => {
-			const c1 = pixelToCanvas(b.pcx, b.pcy),
-				c2 = pixelToCanvas(b.pex, b.pey);
+			const c1 = pixelToCanvas(b.pcx, b.pcy), c2 = pixelToCanvas(b.pex, b.pey);
 			return { cx: c1.cx, cy: c1.cy, ex: c2.cx, ey: c2.cy };
 		};
 
-		{
-			const idx = medicionRef.current.lineas.findIndex((l) =>
-				lineaHitTest(pos.x, pos.y, lineaC(l)),
-			);
-			if (idx >= 0) {
-				setCtxMenu({ tipo: "linea", idx, screenX: sx, screenY: sy });
-				return;
-			}
-		}
-		{
-			const idx = anotacionRef.current.anotaciones.findIndex((a) =>
-				anotacionHitTest(pos.x, pos.y, anotC(a)),
-			);
-			if (idx >= 0) {
-				setCtxMenu({ tipo: "anotacion", idx, screenX: sx, screenY: sy });
-				return;
-			}
-		}
-		{
-			const idx = anguloRef.current.angulos.findIndex((a) =>
-				anguloHitTest(pos.x, pos.y, anguloC(a)),
-			);
-			if (idx >= 0) {
-				setCtxMenu({ tipo: "angulo", idx, screenX: sx, screenY: sy });
-				return;
-			}
-		}
-		{
-			const idx = elipseRef.current.elipses.findIndex((el) =>
-				elipseHitTest(pos.x, pos.y, elipseC(el)),
-			);
-			if (idx >= 0) {
-				setCtxMenu({ tipo: "elipse", idx, screenX: sx, screenY: sy });
-				return;
-			}
-		}
-		{
-			const idx = rectRef.current.rects.findIndex((r) =>
-				rectHitTest(pos.x, pos.y, rectC(r)),
-			);
-			if (idx >= 0) {
-				setCtxMenu({ tipo: "rect", idx, screenX: sx, screenY: sy });
-				return;
-			}
-		}
-		{
-			const idx = bidiRef.current.bidis.findIndex((b) =>
-				bidiHitTest(pos.x, pos.y, bidiC(b)),
-			);
-			if (idx >= 0) {
-				setCtxMenu({ tipo: "bidi", idx, screenX: sx, screenY: sy });
-				return;
-			}
-		}
+		{ const idx = medicionRef.current.lineas.findIndex((l) => lineaHitTest(pos.x, pos.y, lineaC(l))); if (idx >= 0) { setCtxMenu({ tipo: "linea", idx, screenX: sx, screenY: sy }); return; } }
+		{ const idx = anotacionRef.current.anotaciones.findIndex((a) => anotacionHitTest(pos.x, pos.y, anotC(a))); if (idx >= 0) { setCtxMenu({ tipo: "anotacion", idx, screenX: sx, screenY: sy }); return; } }
+		{ const idx = anguloRef.current.angulos.findIndex((a) => anguloHitTest(pos.x, pos.y, anguloC(a))); if (idx >= 0) { setCtxMenu({ tipo: "angulo", idx, screenX: sx, screenY: sy }); return; } }
+		{ const idx = elipseRef.current.elipses.findIndex((el) => elipseHitTest(pos.x, pos.y, elipseC(el))); if (idx >= 0) { setCtxMenu({ tipo: "elipse", idx, screenX: sx, screenY: sy }); return; } }
+		{ const idx = rectRef.current.rects.findIndex((r) => rectHitTest(pos.x, pos.y, rectC(r))); if (idx >= 0) { setCtxMenu({ tipo: "rect", idx, screenX: sx, screenY: sy }); return; } }
+		{ const idx = bidiRef.current.bidis.findIndex((b) => bidiHitTest(pos.x, pos.y, bidiC(b))); if (idx >= 0) { setCtxMenu({ tipo: "bidi", idx, screenX: sx, screenY: sy }); return; } }
 	};
 	const cerrarMenu = () => setCtxMenu(null);
 
@@ -1495,90 +1389,40 @@ const PanelDicom = ({
 			const sc = getVp()?.vp.scale ?? 1;
 
 			const lIdx = medicionRef.current.lineas.findIndex((l) => {
-				const c1 = pixelToCanvas(l.px1, l.py1),
-					c2 = pixelToCanvas(l.px2, l.py2);
-				return lineaHitTest(pos.x, pos.y, {
-					x1: c1.cx,
-					y1: c1.cy,
-					x2: c2.cx,
-					y2: c2.cy,
-				});
+				const c1 = pixelToCanvas(l.px1, l.py1), c2 = pixelToCanvas(l.px2, l.py2);
+				return lineaHitTest(pos.x, pos.y, { x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy });
 			});
-			if (lIdx !== medicionRef.current.hoveredIdx) {
-				medicionRef.current.hoveredIdx = lIdx;
-				changed = true;
-			}
+			if (lIdx !== medicionRef.current.hoveredIdx) { medicionRef.current.hoveredIdx = lIdx; changed = true; }
 
 			const angIdx = anguloRef.current.angulos.findIndex((a) => {
-				const c1 = pixelToCanvas(a.pp1x, a.pp1y),
-					c2 = pixelToCanvas(a.pp2x, a.pp2y),
-					c3 = pixelToCanvas(a.pp3x, a.pp3y);
-				return anguloHitTest(pos.x, pos.y, {
-					p1x: c1.cx,
-					p1y: c1.cy,
-					p2x: c2.cx,
-					p2y: c2.cy,
-					p3x: c3.cx,
-					p3y: c3.cy,
-				});
+				const c1 = pixelToCanvas(a.pp1x, a.pp1y), c2 = pixelToCanvas(a.pp2x, a.pp2y), c3 = pixelToCanvas(a.pp3x, a.pp3y);
+				return anguloHitTest(pos.x, pos.y, { p1x: c1.cx, p1y: c1.cy, p2x: c2.cx, p2y: c2.cy, p3x: c3.cx, p3y: c3.cy });
 			});
-			if (angIdx !== anguloRef.current.hoveredIdx) {
-				anguloRef.current.hoveredIdx = angIdx;
-				changed = true;
-			}
+			if (angIdx !== anguloRef.current.hoveredIdx) { anguloRef.current.hoveredIdx = angIdx; changed = true; }
 
 			const aIdx = anotacionRef.current.anotaciones.findIndex((a) => {
 				const ca = pixelToCanvas(a.px, a.py);
 				return anotacionHitTest(pos.x, pos.y, { x: ca.cx, y: ca.cy });
 			});
-			if (aIdx !== anotacionRef.current.hoveredIdx) {
-				anotacionRef.current.hoveredIdx = aIdx;
-				changed = true;
-			}
+			if (aIdx !== anotacionRef.current.hoveredIdx) { anotacionRef.current.hoveredIdx = aIdx; changed = true; }
 
 			const eIdx = elipseRef.current.elipses.findIndex((el) => {
 				const cc = pixelToCanvas(el.pcx, el.pcy);
-				return elipseHitTest(pos.x, pos.y, {
-					cx: cc.cx,
-					cy: cc.cy,
-					rx: el.prx * sc,
-					ry: el.pry * sc,
-				});
+				return elipseHitTest(pos.x, pos.y, { cx: cc.cx, cy: cc.cy, rx: el.prx * sc, ry: el.pry * sc });
 			});
-			if (eIdx !== elipseRef.current.hoveredIdx) {
-				elipseRef.current.hoveredIdx = eIdx;
-				changed = true;
-			}
+			if (eIdx !== elipseRef.current.hoveredIdx) { elipseRef.current.hoveredIdx = eIdx; changed = true; }
 
 			const rIdx = rectRef.current.rects.findIndex((r) => {
-				const c1 = pixelToCanvas(r.px1, r.py1),
-					c2 = pixelToCanvas(r.px2, r.py2);
-				return rectHitTest(pos.x, pos.y, {
-					x1: c1.cx,
-					y1: c1.cy,
-					x2: c2.cx,
-					y2: c2.cy,
-				});
+				const c1 = pixelToCanvas(r.px1, r.py1), c2 = pixelToCanvas(r.px2, r.py2);
+				return rectHitTest(pos.x, pos.y, { x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy });
 			});
-			if (rIdx !== rectRef.current.hoveredIdx) {
-				rectRef.current.hoveredIdx = rIdx;
-				changed = true;
-			}
+			if (rIdx !== rectRef.current.hoveredIdx) { rectRef.current.hoveredIdx = rIdx; changed = true; }
 
 			const bIdx = bidiRef.current.bidis.findIndex((b) => {
-				const c1 = pixelToCanvas(b.pcx, b.pcy),
-					c2 = pixelToCanvas(b.pex, b.pey);
-				return bidiHitTest(pos.x, pos.y, {
-					cx: c1.cx,
-					cy: c1.cy,
-					ex: c2.cx,
-					ey: c2.cy,
-				});
+				const c1 = pixelToCanvas(b.pcx, b.pcy), c2 = pixelToCanvas(b.pex, b.pey);
+				return bidiHitTest(pos.x, pos.y, { cx: c1.cx, cy: c1.cy, ex: c2.cx, ey: c2.cy });
 			});
-			if (bIdx !== bidiRef.current.hoveredIdx) {
-				bidiRef.current.hoveredIdx = bIdx;
-				changed = true;
-			}
+			if (bIdx !== bidiRef.current.hoveredIdx) { bidiRef.current.hoveredIdx = bIdx; changed = true; }
 
 			if (changed) redibujarOverlay();
 		}
@@ -1633,10 +1477,8 @@ const PanelDicom = ({
 
 		const drag = dragRef.current;
 		if (!drag.active || !csRef.current || !divRef.current) return;
-		const cs = csRef.current,
-			el = divRef.current;
-		const dx = e.clientX - drag.lastX,
-			dy = e.clientY - drag.lastY;
+		const cs = csRef.current, el = divRef.current;
+		const dx = e.clientX - drag.lastX, dy = e.clientY - drag.lastY;
 		drag.lastX = e.clientX;
 		drag.lastY = e.clientY;
 		try {
@@ -1673,12 +1515,9 @@ const PanelDicom = ({
 			const dist = Math.hypot(pos.x - (ar.clickX || 0), pos.y - (ar.clickY || 0));
 			const isDrag = dist > 4;
 			if (ar.fase === 1 && isDrag) {
-				ar.p2x = pos.x;
-				ar.p2y = pos.y;
-				ar.previewX = pos.x;
-				ar.previewY = pos.y;
-				ar.clickX = pos.x;
-				ar.clickY = pos.y;
+				ar.p2x = pos.x; ar.p2y = pos.y;
+				ar.previewX = pos.x; ar.previewY = pos.y;
+				ar.clickX = pos.x; ar.clickY = pos.y;
 				ar.wasDrag = false;
 				ar.fase = 2;
 				redibujarOverlay();
@@ -1687,18 +1526,8 @@ const PanelDicom = ({
 			if (ar.fase === 2 && isDrag) {
 				const grados = calcularAngulo(ar.p1x, ar.p1y, ar.p2x, ar.p2y, pos.x, pos.y);
 				if (grados > 0.5) {
-					const dp1 = canvasToPixel(ar.p1x, ar.p1y),
-						dp2 = canvasToPixel(ar.p2x, ar.p2y),
-						dp3 = canvasToPixel(pos.x, pos.y);
-					ar.angulos.push({
-						pp1x: dp1.px,
-						pp1y: dp1.py,
-						pp2x: dp2.px,
-						pp2y: dp2.py,
-						pp3x: dp3.px,
-						pp3y: dp3.py,
-						grados,
-					});
+					const dp1 = canvasToPixel(ar.p1x, ar.p1y), dp2 = canvasToPixel(ar.p2x, ar.p2y), dp3 = canvasToPixel(pos.x, pos.y);
+					ar.angulos.push({ pp1x: dp1.px, pp1y: dp1.py, pp2x: dp2.px, pp2y: dp2.py, pp3x: dp3.px, pp3y: dp3.py, grados });
 				}
 				ar.fase = 0;
 				redibujarOverlay();
@@ -1707,24 +1536,13 @@ const PanelDicom = ({
 			dragRef.current.active = false;
 			return;
 		}
-		if (
-			tool === "Length" &&
-			medicionRef.current.dibujando &&
-			medicionRef.current.dragging
-		) {
+		if (tool === "Length" && medicionRef.current.dibujando && medicionRef.current.dragging) {
 			const pos = getCanvasPos(e);
 			const { x1, y1 } = medicionRef.current;
 			const dist = distanciaMM(x1, y1, pos.x, pos.y);
 			if (dist > 2) {
-				const d1 = canvasToPixel(x1, y1),
-					d2 = canvasToPixel(pos.x, pos.y);
-				medicionRef.current.lineas.push({
-					px1: d1.px,
-					py1: d1.py,
-					px2: d2.px,
-					py2: d2.py,
-					dist,
-				});
+				const d1 = canvasToPixel(x1, y1), d2 = canvasToPixel(pos.x, pos.y);
+				medicionRef.current.lineas.push({ px1: d1.px, py1: d1.py, px2: d2.px, py2: d2.py, dist });
 			}
 			medicionRef.current.dibujando = false;
 			medicionRef.current.dragging = false;
@@ -1735,23 +1553,13 @@ const PanelDicom = ({
 		}
 		dragRef.current.active = false;
 
-		if (
-			elipseActivaRef.current &&
-			elipseRef.current.dibujando &&
-			elipseRef.current.dragging
-		) {
+		if (elipseActivaRef.current && elipseRef.current.dibujando && elipseRef.current.dragging) {
 			const { cx, cy, rx, ry } = elipseRef.current;
 			if (rx > 5 && ry > 5) {
 				const stats = calcularEstadisticasElipse(cx, cy, rx, ry);
 				const dc = canvasToPixel(cx, cy);
 				const sc = getVp()?.vp.scale ?? 1;
-				elipseRef.current.elipses.push({
-					pcx: dc.px,
-					pcy: dc.py,
-					prx: rx / sc,
-					pry: ry / sc,
-					stats,
-				});
+				elipseRef.current.elipses.push({ pcx: dc.px, pcy: dc.py, prx: rx / sc, pry: ry / sc, stats });
 			}
 			elipseRef.current.dibujando = false;
 			elipseRef.current.dragging = false;
@@ -1759,23 +1567,12 @@ const PanelDicom = ({
 			return;
 		}
 
-		if (
-			rectActivaRef.current &&
-			rectRef.current.dibujando &&
-			rectRef.current.dragging
-		) {
+		if (rectActivaRef.current && rectRef.current.dibujando && rectRef.current.dragging) {
 			const { x1, y1, x2, y2 } = rectRef.current;
 			if (Math.abs(x2 - x1) > 5 && Math.abs(y2 - y1) > 5) {
 				const stats = calcularEstadisticasRect(x1, y1, x2, y2);
-				const dr1 = canvasToPixel(x1, y1),
-					dr2 = canvasToPixel(x2, y2);
-				rectRef.current.rects.push({
-					px1: dr1.px,
-					py1: dr1.py,
-					px2: dr2.px,
-					py2: dr2.py,
-					stats,
-				});
+				const dr1 = canvasToPixel(x1, y1), dr2 = canvasToPixel(x2, y2);
+				rectRef.current.rects.push({ px1: dr1.px, py1: dr1.py, px2: dr2.px, py2: dr2.py, stats });
 			}
 			rectRef.current.dibujando = false;
 			rectRef.current.dragging = false;
@@ -1783,21 +1580,11 @@ const PanelDicom = ({
 			return;
 		}
 
-		if (
-			bidiActivaRef.current &&
-			bidiRef.current.dibujando &&
-			bidiRef.current.dragging
-		) {
+		if (bidiActivaRef.current && bidiRef.current.dibujando && bidiRef.current.dragging) {
 			const { cx, cy, ex, ey } = bidiRef.current;
 			if (Math.hypot(ex - cx, ey - cy) > 5) {
-				const db1 = canvasToPixel(cx, cy),
-					db2 = canvasToPixel(ex, ey);
-				bidiRef.current.bidis.push({
-					pcx: db1.px,
-					pcy: db1.py,
-					pex: db2.px,
-					pey: db2.py,
-				});
+				const db1 = canvasToPixel(cx, cy), db2 = canvasToPixel(ex, ey);
+				bidiRef.current.bidis.push({ pcx: db1.px, pcy: db1.py, pex: db2.px, pey: db2.py });
 			}
 			bidiRef.current.dibujando = false;
 			bidiRef.current.dragging = false;
@@ -1808,8 +1595,7 @@ const PanelDicom = ({
 
 	const handleWheel = (e) => {
 		e.preventDefault();
-		const cs = csRef.current,
-			el = divRef.current;
+		const cs = csRef.current, el = divRef.current;
 		if (!enabledRef.current || !cs || !el) return;
 		try {
 			const vp = cs.getViewport(el);
@@ -1823,8 +1609,7 @@ const PanelDicom = ({
 
 	const handleReset = (e) => {
 		e.stopPropagation();
-		const cs = csRef.current,
-			el = divRef.current;
+		const cs = csRef.current, el = divRef.current;
 		if (!enabledRef.current || !cs || !el) return;
 		try {
 			cs.reset(el);
@@ -1834,8 +1619,7 @@ const PanelDicom = ({
 			anguloRef.current.angulos = [];
 			anguloRef.current.fase = 0;
 			const overlay = overlayRef.current;
-			if (overlay)
-				overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+			if (overlay) overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
 		} catch (err) {}
 	};
 
@@ -1858,15 +1642,10 @@ const PanelDicom = ({
 
 	const confirmarAnotacion = (texto) => {
 		if (texto.trim() && inputAnotacion) {
-			const dp =
-				inputAnotacion.dicomX !== undefined
-					? { px: inputAnotacion.dicomX, py: inputAnotacion.dicomY }
-					: canvasToPixel(inputAnotacion.canvasX, inputAnotacion.canvasY);
-			anotacionRef.current.anotaciones.push({
-				px: dp.px,
-				py: dp.py,
-				texto: texto.trim(),
-			});
+			const dp = inputAnotacion.dicomX !== undefined
+				? { px: inputAnotacion.dicomX, py: inputAnotacion.dicomY }
+				: canvasToPixel(inputAnotacion.canvasX, inputAnotacion.canvasY);
+			anotacionRef.current.anotaciones.push({ px: dp.px, py: dp.py, texto: texto.trim() });
 			redibujarOverlay();
 		}
 		setInputAnotacion(null);
@@ -1909,18 +1688,8 @@ const PanelDicom = ({
 			{imageId && (
 				<>
 					<div className="overlay-acciones-imagen">
-						<button
-							className="btn-overlay-accion"
-							onMouseDown={(e) => e.stopPropagation()}
-							onClick={handleReset}>
-							⟲
-						</button>
-						<button
-							className="btn-overlay-accion"
-							onMouseDown={(e) => e.stopPropagation()}
-							onClick={handleCaptura}>
-							⬡
-						</button>
+						<button className="btn-overlay-accion" onMouseDown={(e) => e.stopPropagation()} onClick={handleReset}>⟲</button>
+						<button className="btn-overlay-accion" onMouseDown={(e) => e.stopPropagation()} onClick={handleCaptura}>⬡</button>
 					</div>
 					{zoom && (
 						<div className="overlay-stats">
@@ -1934,395 +1703,127 @@ const PanelDicom = ({
 			{inputAnotacion && (
 				<div
 					className="ctx-menu-medicion label-edit"
-					style={{
-						position: "fixed",
-						left: inputAnotacion.screenX,
-						top: inputAnotacion.screenY,
-						zIndex: 300,
-						transform: "translate(-50%, -120%)",
-					}}
+					style={{ position: "fixed", left: inputAnotacion.screenX, top: inputAnotacion.screenY, zIndex: 300, transform: "translate(-50%, -120%)" }}
 					onMouseDown={(e) => e.stopPropagation()}>
 					<p>Anotación</p>
-					<input
-						autoFocus
-						placeholder="Escribir texto..."
+					<input autoFocus placeholder="Escribir texto..."
 						onKeyDown={(e) => {
 							if (e.key === "Enter") confirmarAnotacion(e.target.value);
 							if (e.key === "Escape") setInputAnotacion(null);
 						}}
 					/>
 					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
-						<button
-							onClick={(e) =>
-								confirmarAnotacion(
-									e.target.closest(".ctx-menu-medicion").querySelector("input")
-										.value,
-								)
-							}>
-							OK
-						</button>
+						<button onClick={(e) => confirmarAnotacion(e.target.closest(".ctx-menu-medicion").querySelector("input").value)}>OK</button>
 						<button onClick={() => setInputAnotacion(null)}>Cancelar</button>
 					</div>
 				</div>
 			)}
 
 			{ctxMenu && (
-				<div
-					className="ctx-menu-medicion"
-					style={{ left: ctxMenu.screenX, top: ctxMenu.screenY }}
-					onMouseDown={(e) => e.stopPropagation()}>
+				<div className="ctx-menu-medicion" style={{ left: ctxMenu.screenX, top: ctxMenu.screenY }} onMouseDown={(e) => e.stopPropagation()}>
 					{ctxMenu.tipo === "linea" && (
 						<>
-							<button
-								onClick={() => {
-									medicionRef.current.lineas.splice(ctxMenu.idx, 1);
-									medicionRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Eliminar medición
-							</button>
-							<button
-								onClick={() => {
-									setLabelEdit({
-										idx: ctxMenu.idx,
-										value: medicionRef.current.lineas[ctxMenu.idx]?.label || "",
-									});
-									cerrarMenu();
-								}}>
-								Etiquetar
-							</button>
-							<button
-								onClick={() => {
-									medicionRef.current.lineas = [];
-									medicionRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Borrar todas
-							</button>
+							<button onClick={() => { medicionRef.current.lineas.splice(ctxMenu.idx, 1); medicionRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Eliminar medición</button>
+							<button onClick={() => { setLabelEdit({ idx: ctxMenu.idx, value: medicionRef.current.lineas[ctxMenu.idx]?.label || "" }); cerrarMenu(); }}>Etiquetar</button>
+							<button onClick={() => { medicionRef.current.lineas = []; medicionRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Borrar todas</button>
 						</>
 					)}
 					{ctxMenu.tipo === "angulo" && (
 						<>
-							<button
-								onClick={() => {
-									anguloRef.current.angulos.splice(ctxMenu.idx, 1);
-									anguloRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Eliminar ángulo
-							</button>
-							<button
-								onClick={() => {
-									anguloRef.current.angulos = [];
-									anguloRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Borrar todos
-							</button>
+							<button onClick={() => { anguloRef.current.angulos.splice(ctxMenu.idx, 1); anguloRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Eliminar ángulo</button>
+							<button onClick={() => { anguloRef.current.angulos = []; anguloRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Borrar todos</button>
 						</>
 					)}
 					{ctxMenu.tipo === "anotacion" && (
 						<>
-							<button
-								onClick={() => {
-									const a = anotacionRef.current.anotaciones[ctxMenu.idx];
-									const ca = pixelToCanvas(a.px, a.py);
-									const scrPos = getScreenPos(ca.cx, ca.cy);
-									setInputAnotacion({
-										canvasX: ca.cx,
-										canvasY: ca.cy,
-										screenX: scrPos.x,
-										screenY: scrPos.y,
-										dicomX: a.px,
-										dicomY: a.py,
-										value: a.texto,
-										editIdx: ctxMenu.idx,
-									});
-									anotacionRef.current.anotaciones.splice(ctxMenu.idx, 1);
-									anotacionRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Editar
-							</button>
-							<button
-								onClick={() => {
-									anotacionRef.current.anotaciones.splice(ctxMenu.idx, 1);
-									anotacionRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Eliminar
-							</button>
-							<button
-								onClick={() => {
-									anotacionRef.current.anotaciones = [];
-									anotacionRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Borrar todas
-							</button>
+							<button onClick={() => {
+								const a = anotacionRef.current.anotaciones[ctxMenu.idx];
+								const ca = pixelToCanvas(a.px, a.py);
+								const scrPos = getScreenPos(ca.cx, ca.cy);
+								setInputAnotacion({ canvasX: ca.cx, canvasY: ca.cy, screenX: scrPos.x, screenY: scrPos.y, dicomX: a.px, dicomY: a.py, value: a.texto, editIdx: ctxMenu.idx });
+								anotacionRef.current.anotaciones.splice(ctxMenu.idx, 1);
+								anotacionRef.current.hoveredIdx = -1;
+								redibujarOverlay();
+								cerrarMenu();
+							}}>Editar</button>
+							<button onClick={() => { anotacionRef.current.anotaciones.splice(ctxMenu.idx, 1); anotacionRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Eliminar</button>
+							<button onClick={() => { anotacionRef.current.anotaciones = []; anotacionRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Borrar todas</button>
 						</>
 					)}
 					{ctxMenu.tipo === "elipse" && (
 						<>
-							<button
-								onClick={() => {
-									elipseRef.current.elipses.splice(ctxMenu.idx, 1);
-									elipseRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Eliminar elipse
-							</button>
-							<button
-								onClick={() => {
-									setElipseLabelEdit({
-										idx: ctxMenu.idx,
-										value: elipseRef.current.elipses[ctxMenu.idx]?.label || "",
-									});
-									cerrarMenu();
-								}}>
-								Etiquetar
-							</button>
-							<button
-								onClick={() => {
-									elipseRef.current.elipses = [];
-									elipseRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Borrar todas
-							</button>
+							<button onClick={() => { elipseRef.current.elipses.splice(ctxMenu.idx, 1); elipseRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Eliminar elipse</button>
+							<button onClick={() => { setElipseLabelEdit({ idx: ctxMenu.idx, value: elipseRef.current.elipses[ctxMenu.idx]?.label || "" }); cerrarMenu(); }}>Etiquetar</button>
+							<button onClick={() => { elipseRef.current.elipses = []; elipseRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Borrar todas</button>
 						</>
 					)}
 					{ctxMenu.tipo === "rect" && (
 						<>
-							<button
-								onClick={() => {
-									rectRef.current.rects.splice(ctxMenu.idx, 1);
-									rectRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Eliminar rectángulo
-							</button>
-							<button
-								onClick={() => {
-									setRectLabelEdit({
-										idx: ctxMenu.idx,
-										value: rectRef.current.rects[ctxMenu.idx]?.label || "",
-									});
-									cerrarMenu();
-								}}>
-								Etiquetar
-							</button>
-							<button
-								onClick={() => {
-									rectRef.current.rects = [];
-									rectRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Borrar todas
-							</button>
+							<button onClick={() => { rectRef.current.rects.splice(ctxMenu.idx, 1); rectRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Eliminar rectángulo</button>
+							<button onClick={() => { setRectLabelEdit({ idx: ctxMenu.idx, value: rectRef.current.rects[ctxMenu.idx]?.label || "" }); cerrarMenu(); }}>Etiquetar</button>
+							<button onClick={() => { rectRef.current.rects = []; rectRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Borrar todas</button>
 						</>
 					)}
 					{ctxMenu.tipo === "bidi" && (
 						<>
-							<button
-								onClick={() => {
-									bidiRef.current.bidis.splice(ctxMenu.idx, 1);
-									bidiRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Eliminar medición
-							</button>
-							<button
-								onClick={() => {
-									setBidiLabelEdit({
-										idx: ctxMenu.idx,
-										value: bidiRef.current.bidis[ctxMenu.idx]?.label || "",
-									});
-									cerrarMenu();
-								}}>
-								Etiquetar
-							</button>
-							<button
-								onClick={() => {
-									bidiRef.current.bidis = [];
-									bidiRef.current.hoveredIdx = -1;
-									redibujarOverlay();
-									cerrarMenu();
-								}}>
-								Borrar todas
-							</button>
+							<button onClick={() => { bidiRef.current.bidis.splice(ctxMenu.idx, 1); bidiRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Eliminar medición</button>
+							<button onClick={() => { setBidiLabelEdit({ idx: ctxMenu.idx, value: bidiRef.current.bidis[ctxMenu.idx]?.label || "" }); cerrarMenu(); }}>Etiquetar</button>
+							<button onClick={() => { bidiRef.current.bidis = []; bidiRef.current.hoveredIdx = -1; redibujarOverlay(); cerrarMenu(); }}>Borrar todas</button>
 						</>
 					)}
 				</div>
 			)}
 
 			{labelEdit && (
-				<div
-					className="ctx-menu-medicion label-edit"
-					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
-					onMouseDown={(e) => e.stopPropagation()}>
+				<div className="ctx-menu-medicion label-edit" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} onMouseDown={(e) => e.stopPropagation()}>
 					<p>Etiqueta</p>
-					<input
-						autoFocus
-						value={labelEdit.value}
-						onChange={(e) => setLabelEdit((v) => ({ ...v, value: e.target.value }))}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								medicionRef.current.lineas[labelEdit.idx].label = labelEdit.value;
-								redibujarOverlay();
-								setLabelEdit(null);
-							}
-							if (e.key === "Escape") setLabelEdit(null);
-						}}
-					/>
+					<input autoFocus value={labelEdit.value} onChange={(e) => setLabelEdit((v) => ({ ...v, value: e.target.value }))}
+						onKeyDown={(e) => { if (e.key === "Enter") { medicionRef.current.lineas[labelEdit.idx].label = labelEdit.value; redibujarOverlay(); setLabelEdit(null); } if (e.key === "Escape") setLabelEdit(null); }} />
 					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
-						<button
-							onClick={() => {
-								medicionRef.current.lineas[labelEdit.idx].label = labelEdit.value;
-								redibujarOverlay();
-								setLabelEdit(null);
-							}}>
-							OK
-						</button>
+						<button onClick={() => { medicionRef.current.lineas[labelEdit.idx].label = labelEdit.value; redibujarOverlay(); setLabelEdit(null); }}>OK</button>
 						<button onClick={() => setLabelEdit(null)}>Cancelar</button>
 					</div>
 				</div>
 			)}
 
 			{elipseLabelEdit && (
-				<div
-					className="ctx-menu-medicion label-edit"
-					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
-					onMouseDown={(e) => e.stopPropagation()}>
+				<div className="ctx-menu-medicion label-edit" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} onMouseDown={(e) => e.stopPropagation()}>
 					<p>Descripción de elipse</p>
-					<input
-						autoFocus
-						value={elipseLabelEdit.value}
-						onChange={(e) =>
-							setElipseLabelEdit((v) => ({ ...v, value: e.target.value }))
-						}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								elipseRef.current.elipses[elipseLabelEdit.idx].label =
-									elipseLabelEdit.value;
-								redibujarOverlay();
-								setElipseLabelEdit(null);
-							}
-							if (e.key === "Escape") setElipseLabelEdit(null);
-						}}
-					/>
+					<input autoFocus value={elipseLabelEdit.value} onChange={(e) => setElipseLabelEdit((v) => ({ ...v, value: e.target.value }))}
+						onKeyDown={(e) => { if (e.key === "Enter") { elipseRef.current.elipses[elipseLabelEdit.idx].label = elipseLabelEdit.value; redibujarOverlay(); setElipseLabelEdit(null); } if (e.key === "Escape") setElipseLabelEdit(null); }} />
 					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
-						<button
-							onClick={() => {
-								elipseRef.current.elipses[elipseLabelEdit.idx].label =
-									elipseLabelEdit.value;
-								redibujarOverlay();
-								setElipseLabelEdit(null);
-							}}>
-							OK
-						</button>
+						<button onClick={() => { elipseRef.current.elipses[elipseLabelEdit.idx].label = elipseLabelEdit.value; redibujarOverlay(); setElipseLabelEdit(null); }}>OK</button>
 						<button onClick={() => setElipseLabelEdit(null)}>Cancelar</button>
 					</div>
 				</div>
 			)}
 
 			{rectLabelEdit && (
-				<div
-					className="ctx-menu-medicion label-edit"
-					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
-					onMouseDown={(e) => e.stopPropagation()}>
+				<div className="ctx-menu-medicion label-edit" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} onMouseDown={(e) => e.stopPropagation()}>
 					<p>Descripción de rectángulo</p>
-					<input
-						autoFocus
-						value={rectLabelEdit.value}
-						onChange={(e) =>
-							setRectLabelEdit((v) => ({ ...v, value: e.target.value }))
-						}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								rectRef.current.rects[rectLabelEdit.idx].label = rectLabelEdit.value;
-								redibujarOverlay();
-								setRectLabelEdit(null);
-							}
-							if (e.key === "Escape") setRectLabelEdit(null);
-						}}
-					/>
+					<input autoFocus value={rectLabelEdit.value} onChange={(e) => setRectLabelEdit((v) => ({ ...v, value: e.target.value }))}
+						onKeyDown={(e) => { if (e.key === "Enter") { rectRef.current.rects[rectLabelEdit.idx].label = rectLabelEdit.value; redibujarOverlay(); setRectLabelEdit(null); } if (e.key === "Escape") setRectLabelEdit(null); }} />
 					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
-						<button
-							onClick={() => {
-								rectRef.current.rects[rectLabelEdit.idx].label = rectLabelEdit.value;
-								redibujarOverlay();
-								setRectLabelEdit(null);
-							}}>
-							OK
-						</button>
+						<button onClick={() => { rectRef.current.rects[rectLabelEdit.idx].label = rectLabelEdit.value; redibujarOverlay(); setRectLabelEdit(null); }}>OK</button>
 						<button onClick={() => setRectLabelEdit(null)}>Cancelar</button>
 					</div>
 				</div>
 			)}
 
 			{bidiLabelEdit && (
-				<div
-					className="ctx-menu-medicion label-edit"
-					style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}
-					onMouseDown={(e) => e.stopPropagation()}>
+				<div className="ctx-menu-medicion label-edit" style={{ left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} onMouseDown={(e) => e.stopPropagation()}>
 					<p>Etiqueta bidireccional</p>
-					<input
-						autoFocus
-						value={bidiLabelEdit.value}
-						onChange={(e) =>
-							setBidiLabelEdit((v) => ({ ...v, value: e.target.value }))
-						}
-						onKeyDown={(e) => {
-							if (e.key === "Enter") {
-								bidiRef.current.bidis[bidiLabelEdit.idx].label = bidiLabelEdit.value;
-								redibujarOverlay();
-								setBidiLabelEdit(null);
-							}
-							if (e.key === "Escape") setBidiLabelEdit(null);
-						}}
-					/>
+					<input autoFocus value={bidiLabelEdit.value} onChange={(e) => setBidiLabelEdit((v) => ({ ...v, value: e.target.value }))}
+						onKeyDown={(e) => { if (e.key === "Enter") { bidiRef.current.bidis[bidiLabelEdit.idx].label = bidiLabelEdit.value; redibujarOverlay(); setBidiLabelEdit(null); } if (e.key === "Escape") setBidiLabelEdit(null); }} />
 					<div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
-						<button
-							onClick={() => {
-								bidiRef.current.bidis[bidiLabelEdit.idx].label = bidiLabelEdit.value;
-								redibujarOverlay();
-								setBidiLabelEdit(null);
-							}}>
-							OK
-						</button>
+						<button onClick={() => { bidiRef.current.bidis[bidiLabelEdit.idx].label = bidiLabelEdit.value; redibujarOverlay(); setBidiLabelEdit(null); }}>OK</button>
 						<button onClick={() => setBidiLabelEdit(null)}>Cancelar</button>
 					</div>
 				</div>
 			)}
 
-			{(ctxMenu ||
-				labelEdit ||
-				elipseLabelEdit ||
-				rectLabelEdit ||
-				bidiLabelEdit) && (
-				<div
-					className="ctx-menu-backdrop"
-					onClick={() => {
-						cerrarMenu();
-						setLabelEdit(null);
-						setElipseLabelEdit(null);
-						setRectLabelEdit(null);
-						setBidiLabelEdit(null);
-					}}
-				/>
+			{(ctxMenu || labelEdit || elipseLabelEdit || rectLabelEdit || bidiLabelEdit) && (
+				<div className="ctx-menu-backdrop" onClick={() => { cerrarMenu(); setLabelEdit(null); setElipseLabelEdit(null); setRectLabelEdit(null); setBidiLabelEdit(null); }} />
 			)}
 		</div>
 	);
@@ -2380,7 +1881,6 @@ const VisorDicom = () => {
 	const [capturaClip, setCapturaClip] = useState(0);
 	const [notif, setNotif] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 
-	// ── Estados Ficha Clínica (modal Info) ───────────────────────────────────
 	const [modalInfo, setModalInfo] = useState(false);
 	const [fichaData, setFichaData] = useState(null);
 	const [fichaLoading, setFichaLoading] = useState(false);
@@ -2395,9 +1895,11 @@ const VisorDicom = () => {
 	const [tecnicosLista, setTecnicosLista] = useState([]);
 	const [tecnicoSeleccionado, setTecnicoSeleccionado] = useState(null);
 	const [solicitudFile, setSolicitudFile] = useState(null);
+	const [modalSolicitud, setModalSolicitud] = useState(false);
+	const [solicitudSubiendo, setSolicitudSubiendo] = useState(false);
+	const [solicitudPreview, setSolicitudPreview] = useState(null);
 	const [comentariosInfo, setComentariosInfo] = useState([]);
 	const [comentarioInfoTxt, setComentarioInfoTxt] = useState("");
-	// ────────────────────────────────────────────────────────────────────────
 
 	const cineRef = useRef(null);
 	const cineIdx = useRef(0);
@@ -2467,16 +1969,10 @@ const VisorDicom = () => {
 			const storagePath = estudio.storage_path.includes("supabase.co")
 				? estudio.storage_path.split("/radiologia/").pop().split("?")[0]
 				: estudio.storage_path;
-			const { data: urlData } = supabase.storage
-				.from("radiologia")
-				.getPublicUrl(storagePath);
+			const { data: urlData } = supabase.storage.from("radiologia").getPublicUrl(storagePath);
 			const wadouri = `wadouri:${urlData.publicUrl}`;
 			setImageIds([wadouri]);
-			setPanelImageIds((prev) => {
-				const n = [...prev];
-				n[0] = wadouri;
-				return n;
-			});
+			setPanelImageIds((prev) => { const n = [...prev]; n[0] = wadouri; return n; });
 		} catch (e) {
 			setError(e.message);
 		} finally {
@@ -2488,39 +1984,66 @@ const VisorDicom = () => {
 		setNotif({ isOpen: true, mensaje, tipo });
 	};
 
-	// ── Ficha Clínica ─────────────────────────────────────────────────────────
 	const abrirModalInfo = async () => {
 		setModalInfo(true);
 		setFichaLoading(true);
-		const idEstudio = estudioId || estudioData?.id;
+		const idEstudio = Number(estudioId || estudioData?.id);
 		try {
-			const { data: est } = await supabase
+			const { data: est, error: errEst } = await supabase
 				.from("estudios_radiologia")
-				.select(
-					"id_estudio, fecha_estudio, tipo_estudio, descripcion, id_paciente, id_tecnico, storage_path, alta_prioridad, etiquetas, reporte, solicitud_url",
-				)
+				.select("id_estudio, fecha_estudio, tipo_estudio, descripcion, id_paciente, id_tecnico, storage_path, alta_prioridad, etiquetas, reporte, solicitud_url")
 				.eq("id_estudio", idEstudio)
 				.single();
+			if (errEst) throw errEst;
+
 			let paciente = null;
 			if (est?.id_paciente) {
-				const { data: p } = await supabase
+				const { data: p, error: errP } = await supabase
 					.from("pacientes")
-					.select("*")
+					.select("id_paciente, primer_nombre, apellido_paterno, apellido_materno, fecha_nacimiento, telefono, sexo, email")
 					.eq("id_paciente", est.id_paciente)
 					.single();
-				paciente = p;
+				if (!errP) paciente = p;
 			}
+
 			let historial = [];
 			if (est?.id_paciente) {
-				const { data: h } = await supabase
-					.from("estudios_radiologia")
-					.select("id_estudio, tipo_estudio, descripcion, fecha_estudio")
-					.eq("id_paciente", est.id_paciente)
-					.neq("id_estudio", idEstudio)
-					.order("fecha_estudio", { ascending: false })
-					.limit(10);
-				historial = h || [];
+				const [{ data: hRad, error: errRad }, { data: hLab, error: errLab }] = await Promise.all([
+					supabase
+						.from("estudios_radiologia")
+						.select("id_estudio, tipo_estudio, descripcion, fecha_estudio")
+						.eq("id_paciente", est.id_paciente)
+						.neq("id_estudio", idEstudio)
+						.order("fecha_estudio", { ascending: false })
+						.limit(10),
+					supabase
+						.from("ventas")
+						.select("id_venta, folio, fecha_venta, estudios_venta(descripcion_estudio)")
+						.eq("id_paciente", est.id_paciente)
+						.eq("estado", "activo")
+						.order("fecha_venta", { ascending: false })
+						.limit(10),
+				]);
+				const radList = (hRad || []).map((r) => ({
+					tipo: r.tipo_estudio || "RAD",
+					descripcion: r.descripcion || "Estudio radiológico",
+					fecha: r.fecha_estudio,
+				}));
+				const labList = (hLab || []).flatMap((v) =>
+					(v.estudios_venta || []).map((e) => ({
+						tipo: "LAB",
+						descripcion: e.descripcion_estudio || "Estudio de laboratorio",
+						fecha: v.fecha_venta,
+					}))
+				);
+				console.log("[historial] rad:", hRad, "errRad:", errRad);
+				console.log("[historial] lab:", hLab, "errLab:", errLab);
+				historial = [...radList, ...labList].sort(
+					(a, b) => new Date(b.fecha) - new Date(a.fecha)
+				).slice(0, 15);
+				console.log("[historial] final:", historial);
 			}
+
 			const { data: tecnicos } = await supabase
 				.from("empleados")
 				.select("id_empleado, nombre")
@@ -2528,15 +2051,18 @@ const VisorDicom = () => {
 				.order("nombre");
 			setTecnicosLista(tecnicos || []);
 			setTecnicoSeleccionado(est?.id_tecnico || null);
+
 			const { data: comsInfo } = await supabase
 				.from("comentarios_estudio")
 				.select("id, texto, autor_nombre, autor_iniciales, created_at")
 				.eq("id_estudio", idEstudio)
 				.order("created_at", { ascending: true });
 			setComentariosInfo(comsInfo || []);
+
 			setFichaData({ est, paciente, historial });
 		} catch (err) {
-			console.error("Error al cargar ficha:", err);
+			console.error("[abrirModalInfo] error:", err);
+			showNotif("Error al cargar la ficha clínica", "error");
 		} finally {
 			setFichaLoading(false);
 		}
@@ -2547,11 +2073,12 @@ const VisorDicom = () => {
 		const { error } = await supabase
 			.from("pacientes")
 			.update({
-				nombre: fichaData.paciente.nombre,
-				apellido: fichaData.paciente.apellido,
+				primer_nombre: fichaData.paciente.primer_nombre,
+				apellido_paterno: fichaData.paciente.apellido_paterno,
+				apellido_materno: fichaData.paciente.apellido_materno,
 				fecha_nacimiento: fichaData.paciente.fecha_nacimiento,
 				telefono: fichaData.paciente.telefono,
-				genero: fichaData.paciente.genero,
+				sexo: fichaData.paciente.sexo,
 				email: fichaData.paciente.email,
 			})
 			.eq("id_paciente", fichaData.paciente.id_paciente);
@@ -2560,13 +2087,10 @@ const VisorDicom = () => {
 	};
 
 	const guardarInfoEstudio = async () => {
-		const idEstudio = estudioId || estudioData?.id;
+		const idEstudio = Number(estudioId || estudioData?.id);
 		const { error } = await supabase
 			.from("estudios_radiologia")
-			.update({
-				descripcion: fichaData?.est?.descripcion,
-				updated_at: new Date().toISOString(),
-			})
+			.update({ descripcion: fichaData?.est?.descripcion, updated_at: new Date().toISOString() })
 			.eq("id_estudio", idEstudio);
 		if (error) showNotif("Error al guardar", "error");
 		else showNotif("Estudio actualizado", "exito");
@@ -2574,13 +2098,10 @@ const VisorDicom = () => {
 
 	const asignarTecnicoInfo = async () => {
 		if (!tecnicoSeleccionado) return;
-		const idEstudio = estudioId || estudioData?.id;
+		const idEstudio = Number(estudioId || estudioData?.id);
 		const { error } = await supabase
 			.from("estudios_radiologia")
-			.update({
-				id_tecnico: tecnicoSeleccionado,
-				updated_at: new Date().toISOString(),
-			})
+			.update({ id_tecnico: tecnicoSeleccionado, updated_at: new Date().toISOString() })
 			.eq("id_estudio", idEstudio);
 		if (error) showNotif("Error al asignar técnico", "error");
 		else showNotif("Técnico asignado", "exito");
@@ -2589,102 +2110,89 @@ const VisorDicom = () => {
 	const agregarComentarioInfo = async () => {
 		const texto = comentarioInfoTxt.trim();
 		if (!texto) return;
-		const idEstudio = estudioId || estudioData?.id;
-		const nombreCompleto =
-			empleadoData?.nombre || user?.email?.split("@")[0] || "Usuario";
-		const iniciales = nombreCompleto
-			.split(" ")
-			.filter(Boolean)
-			.slice(0, 2)
-			.map((p) => p[0].toUpperCase())
-			.join("");
+		const idEstudio = Number(estudioId || estudioData?.id);
+		const nombreCompleto = empleadoData?.nombre || user?.email?.split("@")[0] || "Usuario";
+		const iniciales = nombreCompleto.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
 		const { data, error } = await supabase
 			.from("comentarios_estudio")
-			.insert({
-				id_estudio: idEstudio,
-				texto,
-				autor_nombre: nombreCompleto,
-				autor_iniciales: iniciales,
-				autor_uuid: user?.id || null,
-			})
-			.select()
-			.single();
-		if (error) {
-			showNotif("Error al agregar comentario", "error");
-			return;
-		}
+			.insert({ id_estudio: idEstudio, texto, autor_nombre: nombreCompleto, autor_iniciales: iniciales, autor_uuid: user?.id || null })
+			.select().single();
+		if (error) { showNotif("Error al agregar comentario", "error"); return; }
 		setComentariosInfo((c) => [...c, data]);
 		setComentarioInfoTxt("");
 		showNotif("Comentario agregado", "exito");
 	};
 
-	const toggleFichaSeccion = (key) =>
-		setFichaSeccion((s) => ({ ...s, [key]: !s[key] }));
-	// ─────────────────────────────────────────────────────────────────────────
+	const toggleFichaSeccion = (key) => setFichaSeccion((s) => ({ ...s, [key]: !s[key] }));
+
+	const abrirModalSolicitud = async () => {
+		setMostrarDetalle(false);
+		const idEstudio = Number(estudioId || estudioData?.id);
+		const { data } = await supabase
+			.from("estudios_radiologia")
+			.select("solicitud_url")
+			.eq("id_estudio", idEstudio)
+			.single();
+		setSolicitudPreview(data?.solicitud_url || null);
+		setSolicitudFile(null);
+		setModalSolicitud(true);
+	};
+
+	const subirSolicitud = async () => {
+		if (!solicitudFile) return;
+		const idEstudio = Number(estudioId || estudioData?.id);
+		setSolicitudSubiendo(true);
+		try {
+			const ext = solicitudFile.name.split(".").pop();
+			const path = `solicitudes/\${idEstudio}_\${Date.now()}.\${ext}\``;
+			const { error: errUp } = await supabase.storage
+				.from("radiologia")
+				.upload(path, solicitudFile, { upsert: true });
+			if (errUp) throw errUp;
+			const { data: urlData } = supabase.storage
+				.from("radiologia")
+				.getPublicUrl(path);
+			const { error: errDb } = await supabase
+				.from("estudios_radiologia")
+				.update({ solicitud_url: urlData.publicUrl })
+				.eq("id_estudio", idEstudio);
+			if (errDb) throw errDb;
+			setSolicitudPreview(urlData.publicUrl);
+			setSolicitudFile(null);
+			showNotif("Solicitud subida correctamente", "exito");
+			setModalSolicitud(false);
+		} catch (err) {
+			console.error("[subirSolicitud]", err);
+			showNotif("Error al subir la solicitud", "error");
+		} finally {
+			setSolicitudSubiendo(false);
+		}
+	};
 
 	const handleAction = (id) => {
-		if (id === "restaurar") {
-			setResetCounter((c) => c + 1);
-			return;
-		}
-		if (id === "centrar") {
-			setCentrarCounter((c) => c + 1);
-			return;
-		}
-		if (id === "informacion") {
-			abrirModalInfo();
-			return;
-		}
-		if (id === "cine") {
-			toggleCine();
-			return;
-		}
-		if (id === "formato") {
-			setMostrarFormatos((f) => !f);
-			setMostrarMas(false);
-			setMostrarDetalle(false);
-			setMostrarReporte(false);
-			return;
-		}
-		if (id === "reporte") {
-			return;
-		}
-		if (id === "descargar") {
-			descargarArchivo();
-			return;
-		}
-		if (id === "captura") {
-			setCapturaClip((c) => c + 1);
-			return;
-		}
-		if (id === "compartir") {
-			compartir();
-			return;
-		}
+		if (id === "restaurar") { setResetCounter((c) => c + 1); return; }
+		if (id === "centrar")   { setCentrarCounter((c) => c + 1); return; }
+		if (id === "informacion") { abrirModalInfo(); return; }
+		if (id === "cine")     { toggleCine(); return; }
+		if (id === "formato")  { setMostrarFormatos((f) => !f); setMostrarMas(false); setMostrarDetalle(false); setMostrarReporte(false); return; }
+		if (id === "reporte")  { return; }
+		if (id === "descargar") { descargarArchivo(); return; }
+		if (id === "captura")  { setCapturaClip((c) => c + 1); return; }
+		if (id === "compartir") { compartir(); return; }
 		if (id === "mas") {
 			setMostrarMas((f) => {
-				if (!f && toolbarRef.current) {
-					const r = toolbarRef.current.getBoundingClientRect();
-					setMasBarTop(r.bottom);
-				}
+				if (!f && toolbarRef.current) { const r = toolbarRef.current.getBoundingClientRect(); setMasBarTop(r.bottom); }
 				return !f;
 			});
-			setMostrarFormatos(false);
-			setMostrarDetalle(false);
-			setMostrarReporte(false);
+			setMostrarFormatos(false); setMostrarDetalle(false); setMostrarReporte(false);
 			return;
 		}
 		if (id === "detalle") {
 			setMostrarDetalle((f) => {
-				if (!f && toolbarRef.current) {
-					const r = toolbarRef.current.getBoundingClientRect();
-					setDetalleBarTop(r.bottom);
-				}
+				if (!f && toolbarRef.current) { const r = toolbarRef.current.getBoundingClientRect(); setDetalleBarTop(r.bottom); }
 				return !f;
 			});
-			setMostrarFormatos(false);
-			setMostrarMas(false);
-			setMostrarReporte(false);
+			setMostrarFormatos(false); setMostrarMas(false); setMostrarReporte(false);
 			return;
 		}
 	};
@@ -2698,10 +2206,7 @@ const VisorDicom = () => {
 				(id === "elipse" && elipseGlobal) ||
 				(id === "rectangulo" && rectanguloGlobal) ||
 				(id === "bidireccional" && bidiGlobal);
-			setLupaGlobal(false);
-			setElipseGlobal(false);
-			setRectanguloGlobal(false);
-			setBidiGlobal(false);
+			setLupaGlobal(false); setElipseGlobal(false); setRectanguloGlobal(false); setBidiGlobal(false);
 			if (!yaActivo) {
 				if (id === "lupa") setLupaGlobal(true);
 				else if (id === "elipse") setElipseGlobal(true);
@@ -2755,33 +2260,13 @@ const VisorDicom = () => {
 		const cfg = MODAL_CONFIG[id];
 		if (!cfg) return;
 		setMostrarDetalle(false);
-		setModalAsignar({
-			...cfg,
-			items: [],
-			actual: null,
-			seleccionado: null,
-			loading: true,
-		});
+		setModalAsignar({ ...cfg, items: [], actual: null, seleccionado: null, loading: true });
 		const idEstudio = estudioId || estudioData?.id;
 		Promise.all([
-			supabase
-				.from(cfg.tabla)
-				.select(cfg.select)
-				.eq(cfg.filtro.col, cfg.filtro.val)
-				.order("nombre"),
-			supabase
-				.from("estudios_radiologia")
-				.select(cfg.col)
-				.eq("id_estudio", idEstudio)
-				.single(),
+			supabase.from(cfg.tabla).select(cfg.select).eq(cfg.filtro.col, cfg.filtro.val).order("nombre"),
+			supabase.from("estudios_radiologia").select(cfg.col).eq("id_estudio", idEstudio).single(),
 		]).then(([{ data: items }, { data: estudio }]) => {
-			setModalAsignar((m) => ({
-				...m,
-				items: items || [],
-				actual: estudio?.[cfg.col] || null,
-				seleccionado: estudio?.[cfg.col] || null,
-				loading: false,
-			}));
+			setModalAsignar((m) => ({ ...m, items: items || [], actual: estudio?.[cfg.col] || null, seleccionado: estudio?.[cfg.col] || null, loading: false }));
 		});
 	};
 
@@ -2790,16 +2275,10 @@ const VisorDicom = () => {
 		const idEstudio = estudioId || estudioData?.id;
 		const { error } = await supabase
 			.from("estudios_radiologia")
-			.update({
-				[modalAsignar.col]: modalAsignar.seleccionado,
-				updated_at: new Date().toISOString(),
-			})
+			.update({ [modalAsignar.col]: modalAsignar.seleccionado, updated_at: new Date().toISOString() })
 			.eq("id_estudio", idEstudio);
 		if (error) showNotif(modalAsignar.notifErr, "error");
-		else {
-			showNotif(modalAsignar.notifOk, "exito");
-			setModalAsignar(null);
-		}
+		else { showNotif(modalAsignar.notifOk, "exito"); setModalAsignar(null); }
 	};
 
 	const abrirModalComentarios = async () => {
@@ -2820,29 +2299,13 @@ const VisorDicom = () => {
 		const texto = comentarioTexto.trim();
 		if (!texto) return;
 		const idEstudio = estudioId || estudioData?.id;
-		const nombreCompleto =
-			empleadoData?.nombre || user?.email?.split("@")[0] || "Usuario";
-		const iniciales = nombreCompleto
-			.split(" ")
-			.filter(Boolean)
-			.slice(0, 2)
-			.map((p) => p[0].toUpperCase())
-			.join("");
+		const nombreCompleto = empleadoData?.nombre || user?.email?.split("@")[0] || "Usuario";
+		const iniciales = nombreCompleto.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("");
 		const { data, error } = await supabase
 			.from("comentarios_estudio")
-			.insert({
-				id_estudio: idEstudio,
-				texto,
-				autor_nombre: nombreCompleto,
-				autor_iniciales: iniciales,
-				autor_uuid: user?.id || null,
-			})
-			.select()
-			.single();
-		if (error) {
-			showNotif("Error al agregar comentario", "error");
-			return;
-		}
+			.insert({ id_estudio: idEstudio, texto, autor_nombre: nombreCompleto, autor_iniciales: iniciales, autor_uuid: user?.id || null })
+			.select().single();
+		if (error) { showNotif("Error al agregar comentario", "error"); return; }
 		setComentarios((c) => [...c, data]);
 		setComentarioTexto("");
 		showNotif("Comentario agregado", "exito");
@@ -2855,10 +2318,7 @@ const VisorDicom = () => {
 			.from("comentarios_estudio")
 			.update({ texto, updated_at: new Date().toISOString() })
 			.eq("id", id);
-		if (error) {
-			showNotif("Error al actualizar comentario", "error");
-			return;
-		}
+		if (error) { showNotif("Error al actualizar comentario", "error"); return; }
 		setComentarios((c) => c.map((x) => (x.id === id ? { ...x, texto } : x)));
 		setComentarioEditId(null);
 		setComentarioEditTxt("");
@@ -2866,14 +2326,8 @@ const VisorDicom = () => {
 	};
 
 	const handleEliminarComentario = async (id) => {
-		const { error } = await supabase
-			.from("comentarios_estudio")
-			.delete()
-			.eq("id", id);
-		if (error) {
-			showNotif("Error al eliminar comentario", "error");
-			return;
-		}
+		const { error } = await supabase.from("comentarios_estudio").delete().eq("id", id);
+		if (error) { showNotif("Error al eliminar comentario", "error"); return; }
 		setComentarios((c) => c.filter((x) => x.id !== id));
 		showNotif("Comentario eliminado", "exito");
 	};
@@ -2887,29 +2341,17 @@ const VisorDicom = () => {
 			.select("alta_prioridad")
 			.eq("id_estudio", idEstudio)
 			.single();
-		setModalPrioridad({
-			altaPrioridad: data?.alta_prioridad ?? false,
-			loading: false,
-		});
+		setModalPrioridad({ altaPrioridad: data?.alta_prioridad ?? false, loading: false });
 	};
 
 	const handlePrioridadConfirmar = async () => {
 		const idEstudio = estudioId || estudioData?.id;
 		const { error } = await supabase
 			.from("estudios_radiologia")
-			.update({
-				alta_prioridad: modalPrioridad.altaPrioridad,
-				updated_at: new Date().toISOString(),
-			})
+			.update({ alta_prioridad: modalPrioridad.altaPrioridad, updated_at: new Date().toISOString() })
 			.eq("id_estudio", idEstudio);
 		if (error) showNotif("Error al actualizar prioridad", "error");
-		else
-			showNotif(
-				modalPrioridad.altaPrioridad
-					? "Estudio marcado como alta prioridad"
-					: "Prioridad normal restablecida",
-				"exito",
-			);
+		else showNotif(modalPrioridad.altaPrioridad ? "Estudio marcado como alta prioridad" : "Prioridad normal restablecida", "exito");
 		setModalPrioridad(null);
 	};
 
@@ -2919,17 +2361,14 @@ const VisorDicom = () => {
 		else if (id === "comentarios") abrirModalComentarios();
 		else if (id === "etiquetas") abrirModalEtiquetas();
 		else if (id === "metricas") abrirModalMetricas();
+		else if (id === "solicitud") abrirModalSolicitud();
 		else setMostrarDetalle(false);
 	};
 
 	const abrirModalEtiquetas = async () => {
 		setMostrarDetalle(false);
 		const idEstudio = estudioId || estudioData?.id;
-		const { data } = await supabase
-			.from("estudios_radiologia")
-			.select("etiquetas")
-			.eq("id_estudio", idEstudio)
-			.single();
+		const { data } = await supabase.from("estudios_radiologia").select("etiquetas").eq("id_estudio", idEstudio).single();
 		setEtiquetas(data?.etiquetas || []);
 		setEtiquetaInput("");
 		setEtiquetaSugerencia(false);
@@ -2938,14 +2377,8 @@ const VisorDicom = () => {
 
 	const handleGuardarEtiquetas = async (lista) => {
 		const idEstudio = estudioId || estudioData?.id;
-		const { error } = await supabase
-			.from("estudios_radiologia")
-			.update({ etiquetas: lista })
-			.eq("id_estudio", idEstudio);
-		if (error) {
-			showNotif("Error al guardar etiquetas", "error");
-			return;
-		}
+		const { error } = await supabase.from("estudios_radiologia").update({ etiquetas: lista }).eq("id_estudio", idEstudio);
+		if (error) { showNotif("Error al guardar etiquetas", "error"); return; }
 		setEtiquetas(lista);
 	};
 
@@ -2957,8 +2390,7 @@ const VisorDicom = () => {
 		setEtiquetaSugerencia(false);
 	};
 
-	const quitarEtiqueta = (tag) =>
-		handleGuardarEtiquetas(etiquetas.filter((e) => e !== tag));
+	const quitarEtiqueta = (tag) => handleGuardarEtiquetas(etiquetas.filter((e) => e !== tag));
 
 	const abrirModalMetricas = async () => {
 		setMostrarDetalle(false);
@@ -2966,35 +2398,17 @@ const VisorDicom = () => {
 		setModalMetricas({ loading: true });
 		const { data } = await supabase
 			.from("estudios_radiologia")
-			.select(
-				"tipo_estudio, fecha_estudio, primer_reporte_at, primer_reporte_usuario",
-			)
+			.select("tipo_estudio, fecha_estudio, primer_reporte_at, primer_reporte_usuario")
 			.eq("id_estudio", idEstudio)
 			.single();
-		if (!data) {
-			setModalMetricas(null);
-			showNotif("No se encontraron métricas", "error");
-			return;
-		}
+		if (!data) { setModalMetricas(null); showNotif("No se encontraron métricas", "error"); return; }
 		let tiempoTxt = "—";
 		if (data.fecha_estudio && data.primer_reporte_at) {
-			const diff = Math.round(
-				(new Date(data.primer_reporte_at) - new Date(data.fecha_estudio)) / 60000,
-			);
+			const diff = Math.round((new Date(data.primer_reporte_at) - new Date(data.fecha_estudio)) / 60000);
 			if (diff < 60) tiempoTxt = `${diff} minuto${diff !== 1 ? "s" : ""}`;
-			else {
-				const h = Math.floor(diff / 60),
-					m = diff % 60;
-				tiempoTxt = m > 0 ? `${h}h ${m}min` : `${h}h`;
-			}
+			else { const h = Math.floor(diff / 60), m = diff % 60; tiempoTxt = m > 0 ? `${h}h ${m}min` : `${h}h`; }
 		}
-		const fmtDate = (iso) =>
-			iso
-				? new Date(iso).toLocaleString("es-MX", {
-						dateStyle: "long",
-						timeStyle: "short",
-					})
-				: "—";
+		const fmtDate = (iso) => iso ? new Date(iso).toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" }) : "—";
 		setModalMetricas({
 			loading: false,
 			modalidad: data.tipo_estudio || "—",
@@ -3027,40 +2441,22 @@ const VisorDicom = () => {
 			});
 			window.open(`/reporte?${params.toString()}`, "_blank");
 		}
-		if (id === "adjuntar") {
-		}
+		if (id === "adjuntar") {}
 	};
 
 	const handleTool = (id) => {
-		if (id === "Datos") {
-			setMostrarInfo((f) => !f);
-			return;
-		}
-		if (id === "centrar") {
-			setCentrarCounter((c) => c + 1);
-			return;
-		}
-		setLupaGlobal(false);
-		setElipseGlobal(false);
-		setRectanguloGlobal(false);
-		setBidiGlobal(false);
+		if (id === "Datos")   { setMostrarInfo((f) => !f); return; }
+		if (id === "centrar") { setCentrarCounter((c) => c + 1); return; }
+		setLupaGlobal(false); setElipseGlobal(false); setRectanguloGlobal(false); setBidiGlobal(false);
 		setHerramienta(id);
 	};
 
 	const toggleCine = () => {
-		if (cineActivo) {
-			clearInterval(cineRef.current);
-			setCineActivo(false);
-			return;
-		}
+		if (cineActivo) { clearInterval(cineRef.current); setCineActivo(false); return; }
 		cineIdx.current = 0;
 		cineRef.current = setInterval(() => {
 			cineIdx.current = (cineIdx.current + 1) % imageIds.length;
-			setPanelImageIds((p) => {
-				const n = [...p];
-				n[panelActivo] = imageIds[cineIdx.current];
-				return n;
-			});
+			setPanelImageIds((p) => { const n = [...p]; n[panelActivo] = imageIds[cineIdx.current]; return n; });
 		}, 300);
 		setCineActivo(true);
 	};
@@ -3069,28 +2465,16 @@ const VisorDicom = () => {
 		const url = imageIds[0]?.replace("wadouri:", "");
 		if (!url) return;
 		const a = document.createElement("a");
-		a.href = url;
-		a.download = "estudio.dcm";
-		a.click();
+		a.href = url; a.download = "estudio.dcm"; a.click();
 	};
 
 	const compartir = async () => {
-		if (navigator.share)
-			await navigator.share({
-				title: pacienteInfo.nombre,
-				url: window.location.href,
-			});
-		else {
-			navigator.clipboard.writeText(window.location.href);
-			alert("URL copiada");
-		}
+		if (navigator.share) await navigator.share({ title: pacienteInfo.nombre, url: window.location.href });
+		else { navigator.clipboard.writeText(window.location.href); alert("URL copiada"); }
 	};
 
 	const guardarReporte = async () => {
-		await supabase
-			.from("estudios_radiologia")
-			.update({ reporte: reporteTexto, updated_at: new Date().toISOString() })
-			.eq("id_estudio", estudioId || estudioData?.id);
+		await supabase.from("estudios_radiologia").update({ reporte: reporteTexto, updated_at: new Date().toISOString() }).eq("id_estudio", estudioId || estudioData?.id);
 		alert("Guardado");
 	};
 
@@ -3108,9 +2492,7 @@ const VisorDicom = () => {
 			/>
 
 			<div className="vd-toolbar" ref={toolbarRef}>
-				<button className="vd-btn-back" onClick={() => navigate(-1)}>
-					‹ Atrás
-				</button>
+				<button className="vd-btn-back" onClick={() => navigate(-1)}>‹ Atrás</button>
 
 				<div className="vd-paciente-chip">
 					<span className="vd-chip-tipo">{pacienteInfo.tipoEstudio}</span>
@@ -3142,14 +2524,9 @@ const VisorDicom = () => {
 								if (a.id === "reporte") {
 									const r = e.currentTarget.getBoundingClientRect();
 									setReporteBarLeft(r.left + r.width / 2);
-									if (toolbarRef.current)
-										setReporteBarTop(
-											toolbarRef.current.getBoundingClientRect().bottom,
-										);
+									if (toolbarRef.current) setReporteBarTop(toolbarRef.current.getBoundingClientRect().bottom);
 									setMostrarReporte((f) => !f);
-									setMostrarMas(false);
-									setMostrarDetalle(false);
-									setMostrarFormatos(false);
+									setMostrarMas(false); setMostrarDetalle(false); setMostrarFormatos(false);
 								} else {
 									handleAction(a.id);
 								}
@@ -3170,11 +2547,7 @@ const VisorDicom = () => {
 							className={`vd-mas-item${item.id === "lupa" && lupaGlobal ? " activo" : ""}${item.id === "elipse" && elipseGlobal ? " activo" : ""}${item.id === "rectangulo" && rectanguloGlobal ? " activo" : ""}${item.id === "bidireccional" && bidiGlobal ? " activo" : ""}`}
 							onClick={() => handleMasItem(item.id)}
 							title={item.label}>
-							{item.icon ? (
-								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
-							) : (
-								<span className="vd-mas-emoji">{item.emoji}</span>
-							)}
+							{item.icon ? <img src={item.icon} alt={item.label} className="vd-mas-icon" /> : <span className="vd-mas-emoji">{item.emoji}</span>}
 							<span>{item.label}</span>
 						</button>
 					))}
@@ -3184,16 +2557,8 @@ const VisorDicom = () => {
 			{mostrarDetalle && (
 				<div className="vd-mas-bar" style={{ top: detalleBarTop }}>
 					{DETALLE_ITEMS.map((item) => (
-						<button
-							key={item.id}
-							className="vd-mas-item"
-							onClick={() => handleDetalleItem(item.id)}
-							title={item.label}>
-							{item.icon ? (
-								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
-							) : (
-								<span className="vd-mas-emoji">{item.emoji}</span>
-							)}
+						<button key={item.id} className="vd-mas-item" onClick={() => handleDetalleItem(item.id)} title={item.label}>
+							{item.icon ? <img src={item.icon} alt={item.label} className="vd-mas-icon" /> : <span className="vd-mas-emoji">{item.emoji}</span>}
 							<span>{item.label}</span>
 						</button>
 					))}
@@ -3201,24 +2566,10 @@ const VisorDicom = () => {
 			)}
 
 			{mostrarReporte && (
-				<div
-					className="vd-mas-bar"
-					style={{
-						top: reporteBarTop,
-						left: reporteBarLeft,
-						transform: "translateX(-50%)",
-					}}>
+				<div className="vd-mas-bar" style={{ top: reporteBarTop, left: reporteBarLeft, transform: "translateX(-50%)" }}>
 					{REPORTE_ITEMS.map((item) => (
-						<button
-							key={item.id}
-							className="vd-mas-item"
-							onClick={() => handleReporteItem(item.id)}
-							title={item.label}>
-							{item.icon ? (
-								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
-							) : (
-								<span className="vd-mas-emoji">{item.emoji}</span>
-							)}
+						<button key={item.id} className="vd-mas-item" onClick={() => handleReporteItem(item.id)} title={item.label}>
+							{item.icon ? <img src={item.icon} alt={item.label} className="vd-mas-icon" /> : <span className="vd-mas-emoji">{item.emoji}</span>}
 							<span>{item.label}</span>
 						</button>
 					))}
@@ -3233,10 +2584,7 @@ const VisorDicom = () => {
 					</div>
 					<div className="vd-miniaturas">
 						{loading ? (
-							<div className="vd-mini-estado">
-								<div className="vd-spinner" />
-								Cargando...
-							</div>
+							<div className="vd-mini-estado"><div className="vd-spinner" />Cargando...</div>
 						) : error ? (
 							<div className="vd-mini-estado error">⚠ {error}</div>
 						) : (
@@ -3244,20 +2592,12 @@ const VisorDicom = () => {
 								<div
 									key={i}
 									className={`vd-miniatura ${panelImageIds[panelActivo] === id ? "activa" : ""}`}
-									onClick={() =>
-										setPanelImageIds((prev) => {
-											const n = [...prev];
-											n[panelActivo] = id;
-											return n;
-										})
-									}>
+									onClick={() => setPanelImageIds((prev) => { const n = [...prev]; n[panelActivo] = id; return n; })}>
 									<div className="vd-mini-img">
 										<span className="vd-mini-dcm">DCM</span>
 										<span className="vd-mini-num">{i + 1}</span>
 									</div>
-									<div className="vd-mini-footer">
-										{i + 1}/{imageIds.length}
-									</div>
+									<div className="vd-mini-footer">{i + 1}/{imageIds.length}</div>
 								</div>
 							))
 						)}
@@ -3269,13 +2609,10 @@ const VisorDicom = () => {
 						<div className="vd-overlay-paciente">
 							<div>
 								<p className="vd-ov-nombre">{pacienteInfo.nombre}</p>
-								<p className="vd-ov-dato">
-									{pacienteInfo.tipoEstudio} · {pacienteInfo.sucursal}
-								</p>
+								<p className="vd-ov-dato">{pacienteInfo.tipoEstudio} · {pacienteInfo.sucursal}</p>
 								<p className="vd-ov-dato">{pacienteInfo.horaFecha}</p>
 							</div>
-							<span
-								className={`vd-ov-estado estado-${pacienteInfo.estado?.toLowerCase().replace(/ /g, "-")}`}>
+							<span className={`vd-ov-estado estado-${pacienteInfo.estado?.toLowerCase().replace(/ /g, "-")}`}>
 								{pacienteInfo.estado}
 							</span>
 						</div>
@@ -3302,21 +2639,9 @@ const VisorDicom = () => {
 								<button
 									key={f.id}
 									className={`vd-formato-btn ${formatoGrid.id === f.id ? "activo" : ""}`}
-									onClick={() => {
-										setFormatoGrid(f);
-										setMostrarFormatos(false);
-									}}>
-									<div
-										className="vd-formato-grid"
-										style={{
-											gridTemplateColumns: `repeat(${f.cols},1fr)`,
-											gridTemplateRows: `repeat(${f.rows},1fr)`,
-										}}>
-										{Array(f.cols * f.rows)
-											.fill(0)
-											.map((_, i) => (
-												<div key={i} />
-											))}
+									onClick={() => { setFormatoGrid(f); setMostrarFormatos(false); }}>
+									<div className="vd-formato-grid" style={{ gridTemplateColumns: `repeat(${f.cols},1fr)`, gridTemplateRows: `repeat(${f.rows},1fr)` }}>
+										{Array(f.cols * f.rows).fill(0).map((_, i) => <div key={i} />)}
 									</div>
 									<span>{f.label}</span>
 								</button>
@@ -3326,33 +2651,26 @@ const VisorDicom = () => {
 
 					<div
 						className="vd-grid"
-						style={{
-							gridTemplateColumns: `repeat(${formatoGrid.cols},1fr)`,
-							gridTemplateRows: `repeat(${formatoGrid.rows},1fr)`,
-						}}>
-						{Array(totalPaneles)
-							.fill(0)
-							.map((_, i) => (
-								<PanelDicom
-									key={`${formatoGrid.id}-${i}`}
-									imageId={panelImageIds[i] || null}
-									herramienta={herramienta}
-									isActive={panelActivo === i}
-									resetCounter={resetCounter}
-									centrarCounter={centrarCounter}
-									masAccion={masAccion}
-									capturaClip={panelActivo === i ? capturaClip : 0}
-									lupaExterna={panelActivo === i ? lupaGlobal : false}
-									elipseExterna={panelActivo === i ? elipseGlobal : false}
-									rectExterna={panelActivo === i ? rectanguloGlobal : false}
-									bidiExterna={panelActivo === i ? bidiGlobal : false}
-									onCapturaOk={() =>
-										showNotif("Captura copiada al portapapeles", "exito")
-									}
-									onCapturaFail={() => showNotif("Captura descargada", "info")}
-									onClick={() => setPanelActivo(i)}
-								/>
-							))}
+						style={{ gridTemplateColumns: `repeat(${formatoGrid.cols},1fr)`, gridTemplateRows: `repeat(${formatoGrid.rows},1fr)` }}>
+						{Array(totalPaneles).fill(0).map((_, i) => (
+							<PanelDicom
+								key={`${formatoGrid.id}-${i}`}
+								imageId={panelImageIds[i] || null}
+								herramienta={herramienta}
+								isActive={panelActivo === i}
+								resetCounter={resetCounter}
+								centrarCounter={centrarCounter}
+								masAccion={masAccion}
+								capturaClip={panelActivo === i ? capturaClip : 0}
+								lupaExterna={panelActivo === i ? lupaGlobal : false}
+								elipseExterna={panelActivo === i ? elipseGlobal : false}
+								rectExterna={panelActivo === i ? rectanguloGlobal : false}
+								bidiExterna={panelActivo === i ? bidiGlobal : false}
+								onCapturaOk={() => showNotif("Captura copiada al portapapeles", "exito")}
+								onCapturaFail={() => showNotif("Captura descargada", "info")}
+								onClick={() => setPanelActivo(i)}
+							/>
+						))}
 					</div>
 				</div>
 
@@ -3363,248 +2681,116 @@ const VisorDicom = () => {
 							<button onClick={() => setMostrarPanelReporte(false)}>✕</button>
 						</div>
 						<div className="vd-reporte-info">
-							<p>
-								<b>Paciente:</b> {pacienteInfo.nombre}
-							</p>
-							<p>
-								<b>Estudio:</b> {pacienteInfo.tipoEstudio}
-							</p>
-							<p>
-								<b>Fecha:</b> {pacienteInfo.horaFecha}
-							</p>
+							<p><b>Paciente:</b> {pacienteInfo.nombre}</p>
+							<p><b>Estudio:</b> {pacienteInfo.tipoEstudio}</p>
+							<p><b>Fecha:</b> {pacienteInfo.horaFecha}</p>
 						</div>
-						<textarea
-							className="vd-reporte-textarea"
-							value={reporteTexto}
-							onChange={(e) => setReporteTexto(e.target.value)}
-							placeholder="Escribir reporte radiológico..."
-						/>
+						<textarea className="vd-reporte-textarea" value={reporteTexto} onChange={(e) => setReporteTexto(e.target.value)} placeholder="Escribir reporte radiológico..." />
 						<div className="vd-reporte-footer">
-							<button className="vd-btn-guardar" onClick={guardarReporte}>
-								Guardar
-							</button>
-							<button className="vd-btn-imprimir" onClick={() => window.print()}>
-								Imprimir
-							</button>
+							<button className="vd-btn-guardar" onClick={guardarReporte}>Guardar</button>
+							<button className="vd-btn-imprimir" onClick={() => window.print()}>Imprimir</button>
 						</div>
 					</div>
 				)}
 			</div>
 
-			{/* ── MODAL FICHA CLÍNICA (botón Info) ────────────────────────────────── */}
 			{modalInfo && (
 				<div className="vd-modal-overlay" onClick={() => setModalInfo(false)}>
-					<div
-						className="vd-modal-box vd-modal-ficha"
-						onClick={(e) => e.stopPropagation()}>
+					<div className="vd-modal-box vd-modal-ficha" onClick={(e) => e.stopPropagation()}>
 						<div className="vd-modal-header">
 							<div>
 								<span className="vd-modal-titulo">Ficha clínica</span>
-								<p className="vd-modal-subtitulo">
-									Información del paciente y del estudio.
-								</p>
+								<p className="vd-modal-subtitulo">Información del paciente y del estudio.</p>
 							</div>
-							<button className="vd-modal-close" onClick={() => setModalInfo(false)}>
-								✕
-							</button>
+							<button className="vd-modal-close" onClick={() => setModalInfo(false)}>✕</button>
 						</div>
 						<div className="vd-ficha-body">
 							{fichaLoading ? (
-								<div className="vd-modal-body">
-									<span className="vd-modal-cargando">Cargando…</span>
-								</div>
+								<div className="vd-modal-body"><span className="vd-modal-cargando">Cargando…</span></div>
 							) : (
 								<>
-									{/* ── Información del paciente ── */}
 									<div className="vd-ficha-seccion">
-										<button
-											className="vd-ficha-seccion-hdr"
-											onClick={() => toggleFichaSeccion("paciente")}>
+										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("paciente")}>
 											<span>Información del paciente</span>
-											<span className="vd-ficha-chevron">
-												{fichaSeccion.paciente ? "∧" : "∨"}
-											</span>
+											<span className="vd-ficha-chevron">{fichaSeccion.paciente ? "∧" : "∨"}</span>
 										</button>
 										{fichaSeccion.paciente && (
 											<div className="vd-ficha-grid">
 												<div className="vd-ficha-row">
 													<label>Id del paciente</label>
-													<input
-														className="vd-ficha-input"
-														readOnly
-														value={fichaData?.paciente?.id_paciente || "—"}
-													/>
+													<input className="vd-ficha-input" readOnly value={fichaData?.paciente?.id_paciente || "—"} />
 												</div>
 												<div className="vd-ficha-row">
-													<label>Nombre del paciente</label>
-													<input
-														className="vd-ficha-input"
-														value={fichaData?.paciente?.nombre || ""}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																paciente: { ...d.paciente, nombre: e.target.value },
-															}))
-														}
-													/>
+													<label>Nombre</label>
+													<input className="vd-ficha-input" value={fichaData?.paciente?.primer_nombre || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, primer_nombre: e.target.value } }))} />
 												</div>
 												<div className="vd-ficha-row">
-													<label>Apellido del paciente</label>
-													<input
-														className="vd-ficha-input"
-														value={fichaData?.paciente?.apellido || ""}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																paciente: {
-																	...d.paciente,
-																	apellido: e.target.value,
-																},
-															}))
-														}
-													/>
+													<label>Apellido paterno</label>
+													<input className="vd-ficha-input" value={fichaData?.paciente?.apellido_paterno || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, apellido_paterno: e.target.value } }))} />
+												</div>
+												<div className="vd-ficha-row">
+													<label>Apellido materno</label>
+													<input className="vd-ficha-input" value={fichaData?.paciente?.apellido_materno || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, apellido_materno: e.target.value } }))} />
 												</div>
 												<div className="vd-ficha-row">
 													<label>Edad</label>
-													<input
-														className="vd-ficha-input"
-														readOnly
-														value={
-															fichaData?.paciente?.fecha_nacimiento
-																? (() => {
-																		const d = new Date(
-																			fichaData.paciente.fecha_nacimiento,
-																		);
-																		return (
-																			Math.floor((Date.now() - d) / 31557600000) +
-																			"Y"
-																		);
-																	})()
-																: "—"
-														}
-													/>
+													<input className="vd-ficha-input" readOnly
+														value={fichaData?.paciente?.fecha_nacimiento ? (() => { const d = new Date(fichaData.paciente.fecha_nacimiento); return Math.floor((Date.now() - d) / 31557600000) + "Y"; })() : "—"} />
 												</div>
 												<div className="vd-ficha-row">
 													<label>Fecha de nacimiento</label>
-													<input
-														className="vd-ficha-input"
-														type="date"
-														value={
-															fichaData?.paciente?.fecha_nacimiento?.split("T")[0] ||
-															""
-														}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																paciente: {
-																	...d.paciente,
-																	fecha_nacimiento: e.target.value,
-																},
-															}))
-														}
-													/>
+													<input className="vd-ficha-input" type="date" value={fichaData?.paciente?.fecha_nacimiento?.split("T")[0] || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, fecha_nacimiento: e.target.value } }))} />
 												</div>
 												<div className="vd-ficha-row">
 													<label>Número de teléfono</label>
-													<input
-														className="vd-ficha-input"
-														value={fichaData?.paciente?.telefono || ""}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																paciente: {
-																	...d.paciente,
-																	telefono: e.target.value,
-																},
-															}))
-														}
-													/>
+													<input className="vd-ficha-input" value={fichaData?.paciente?.telefono || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, telefono: e.target.value } }))} />
 												</div>
 												<div className="vd-ficha-row">
-													<label>Género</label>
-													<select
-														className="vd-ficha-input"
-														value={fichaData?.paciente?.genero || ""}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																paciente: { ...d.paciente, genero: e.target.value },
-															}))
-														}>
+													<label>Sexo</label>
+													<select className="vd-ficha-input" value={fichaData?.paciente?.sexo || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, sexo: e.target.value } }))}>
 														<option value="">Seleccionar</option>
-														<option value="Masculino">Masculino</option>
-														<option value="Femenino">Femenino</option>
-														<option value="Otro">Otro</option>
+														<option value="masculino">Masculino</option>
+														<option value="femenino">Femenino</option>
+														<option value="otro">Otro</option>
 													</select>
 												</div>
 												<div className="vd-ficha-row">
 													<label>Email</label>
-													<input
-														className="vd-ficha-input"
-														type="email"
-														value={fichaData?.paciente?.email || ""}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																paciente: { ...d.paciente, email: e.target.value },
-															}))
-														}
-													/>
+													<input className="vd-ficha-input" type="email" value={fichaData?.paciente?.email || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, paciente: { ...d.paciente, email: e.target.value } }))} />
 												</div>
 												<div className="vd-ficha-footer">
-													<button
-														className="vd-modal-btn-cancel"
-														onClick={() => abrirModalInfo()}>
-														Reiniciar
-													</button>
-													<button
-														className="vd-modal-btn-ok"
-														onClick={guardarFichaPaciente}>
-														Guardar
-													</button>
+													<button className="vd-modal-btn-cancel" onClick={() => abrirModalInfo()}>Reiniciar</button>
+													<button className="vd-modal-btn-ok" onClick={guardarFichaPaciente}>Guardar</button>
 												</div>
 											</div>
 										)}
 									</div>
 
-									{/* ── Historial del paciente ── */}
 									<div className="vd-ficha-seccion">
-										<button
-											className="vd-ficha-seccion-hdr"
-											onClick={() => toggleFichaSeccion("historial")}>
+										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("historial")}>
 											<span>Historial del paciente</span>
-											<span className="vd-ficha-chevron">
-												{fichaSeccion.historial ? "∧" : "∨"}
-											</span>
+											<span className="vd-ficha-chevron">{fichaSeccion.historial ? "∧" : "∨"}</span>
 										</button>
 										{fichaSeccion.historial && (
 											<div className="vd-ficha-tabla-wrap">
 												{fichaData?.historial?.length === 0 ? (
-													<p className="vd-ficha-empty">
-														Actualmente no hay estudios relacionados con el ID de
-														paciente ingresado
-													</p>
+													<p className="vd-ficha-empty">Actualmente no hay estudios relacionados con el ID de paciente ingresado</p>
 												) : (
 													<table className="vd-ficha-tabla">
-														<thead>
-															<tr>
-																<th>MOD</th>
-																<th>DESCRIPCION</th>
-																<th>FECHA</th>
-															</tr>
-														</thead>
+														<thead><tr><th>MOD</th><th>DESCRIPCION</th><th>FECHA</th></tr></thead>
 														<tbody>
-															{fichaData?.historial?.map((h) => (
-																<tr key={h.id_estudio}>
-																	<td>{h.tipo_estudio || "—"}</td>
+															{fichaData?.historial?.map((h, i) => (
+																<tr key={i}>
+																	<td>{h.tipo || "—"}</td>
 																	<td>{h.descripcion || "—"}</td>
-																	<td>
-																		{h.fecha_estudio
-																			? new Date(h.fecha_estudio).toLocaleDateString(
-																					"es-MX",
-																				)
-																			: "—"}
-																	</td>
+																	<td>{h.fecha ? new Date(h.fecha).toLocaleDateString("es-MX") : "—"}</td>
 																</tr>
 															))}
 														</tbody>
@@ -3614,177 +2800,94 @@ const VisorDicom = () => {
 										)}
 									</div>
 
-									{/* ── Información del estudio ── */}
 									<div className="vd-ficha-seccion">
-										<button
-											className="vd-ficha-seccion-hdr"
-											onClick={() => toggleFichaSeccion("estudio")}>
+										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("estudio")}>
 											<span>Informacion del estudio</span>
-											<span className="vd-ficha-chevron">
-												{fichaSeccion.estudio ? "∧" : "∨"}
-											</span>
+											<span className="vd-ficha-chevron">{fichaSeccion.estudio ? "∧" : "∨"}</span>
 										</button>
 										{fichaSeccion.estudio && (
 											<div className="vd-ficha-grid">
 												<div className="vd-ficha-row">
 													<label>Fecha</label>
-													<input
-														className="vd-ficha-input"
-														readOnly
-														value={
-															fichaData?.est?.fecha_estudio
-																? new Date(
-																		fichaData.est.fecha_estudio,
-																	).toLocaleString("es-MX", {
-																		dateStyle: "long",
-																		timeStyle: "short",
-																	})
-																: "—"
-														}
-													/>
+													<input className="vd-ficha-input" readOnly
+														value={fichaData?.est?.fecha_estudio ? new Date(fichaData.est.fecha_estudio).toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" }) : "—"} />
 												</div>
 												<div className="vd-ficha-row">
 													<label>Descripción del Estudio</label>
-													<input
-														className="vd-ficha-input"
-														value={fichaData?.est?.descripcion || ""}
-														onChange={(e) =>
-															setFichaData((d) => ({
-																...d,
-																est: { ...d.est, descripcion: e.target.value },
-															}))
-														}
-													/>
+													<input className="vd-ficha-input" value={fichaData?.est?.descripcion || ""}
+														onChange={(e) => setFichaData((d) => ({ ...d, est: { ...d.est, descripcion: e.target.value } }))} />
 												</div>
 												<div className="vd-ficha-row">
 													<label>Doctor:</label>
-													<input
-														className="vd-ficha-input"
-														readOnly
-														value={empleadoData?.nombre || "—"}
-													/>
+													<input className="vd-ficha-input" readOnly value={empleadoData?.nombre || "—"} />
 												</div>
 												<div className="vd-ficha-footer">
-													<button
-														className="vd-modal-btn-cancel"
-														onClick={() => abrirModalInfo()}>
-														Reiniciar
-													</button>
-													<button
-														className="vd-modal-btn-ok"
-														onClick={guardarInfoEstudio}>
-														Guardar
-													</button>
+													<button className="vd-modal-btn-cancel" onClick={() => abrirModalInfo()}>Reiniciar</button>
+													<button className="vd-modal-btn-ok" onClick={guardarInfoEstudio}>Guardar</button>
 												</div>
 											</div>
 										)}
 									</div>
 
-									{/* ── Técnico asignado ── */}
 									<div className="vd-ficha-seccion">
-										<button
-											className="vd-ficha-seccion-hdr"
-											onClick={() => toggleFichaSeccion("tecnico")}>
+										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("tecnico")}>
 											<span>Técnico asignado</span>
-											<span className="vd-ficha-chevron">
-												{fichaSeccion.tecnico ? "∧" : "∨"}
-											</span>
+											<span className="vd-ficha-chevron">{fichaSeccion.tecnico ? "∧" : "∨"}</span>
 										</button>
 										{fichaSeccion.tecnico && (
 											<div className="vd-ficha-grid">
 												<div className="vd-ficha-row">
 													<label></label>
-													<select
-														className="vd-ficha-input"
-														value={tecnicoSeleccionado || ""}
-														onChange={(e) =>
-															setTecnicoSeleccionado(
-																e.target.value ? Number(e.target.value) : null,
-															)
-														}>
+													<select className="vd-ficha-input" value={tecnicoSeleccionado || ""}
+														onChange={(e) => setTecnicoSeleccionado(e.target.value ? Number(e.target.value) : null)}>
 														<option value="">Seleccionar técnico radiólogo</option>
 														{tecnicosLista.map((t) => (
-															<option key={t.id_empleado} value={t.id_empleado}>
-																{t.nombre}
-															</option>
+															<option key={t.id_empleado} value={t.id_empleado}>{t.nombre}</option>
 														))}
 													</select>
 												</div>
 												<div className="vd-ficha-footer vd-ficha-footer--right">
-													<button
-														className="vd-modal-btn-ok"
-														onClick={asignarTecnicoInfo}>
-														Asignar Estudio
-													</button>
+													<button className="vd-modal-btn-ok" onClick={asignarTecnicoInfo}>Asignar Estudio</button>
 												</div>
 											</div>
 										)}
 									</div>
 
-									{/* ── Solicitud del estudio ── */}
 									<div className="vd-ficha-seccion">
-										<button
-											className="vd-ficha-seccion-hdr"
-											onClick={() => toggleFichaSeccion("solicitud")}>
+										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("solicitud")}>
 											<span>Solicitud del estudio</span>
-											<span className="vd-ficha-chevron">
-												{fichaSeccion.solicitud ? "∧" : "∨"}
-											</span>
+											<span className="vd-ficha-chevron">{fichaSeccion.solicitud ? "∧" : "∨"}</span>
 										</button>
 										{fichaSeccion.solicitud && (
 											<div className="vd-ficha-solicitud">
 												{fichaData?.est?.solicitud_url ? (
-													<img
-														src={fichaData.est.solicitud_url}
-														alt="Solicitud"
-														className="vd-ficha-solicitud-img"
-													/>
+													<img src={fichaData.est.solicitud_url} alt="Solicitud" className="vd-ficha-solicitud-img" />
 												) : (
 													<label className="vd-ficha-dropzone">
-														<input
-															type="file"
-															accept="image/*"
-															style={{ display: "none" }}
-															onChange={(e) => setSolicitudFile(e.target.files[0])}
-														/>
+														<input type="file" accept="image/*" style={{ display: "none" }}
+															onChange={(e) => setSolicitudFile(e.target.files[0])} />
 														<span className="vd-ficha-cloud">☁</span>
-														<span>
-															<u>Seleccione</u> un archivo o arrastre aquí su foto.
-														</span>
+														<span><u>Seleccione</u> un archivo o arrastre aquí su foto.</span>
 													</label>
 												)}
-												{solicitudFile && (
-													<p className="vd-ficha-filename">{solicitudFile.name}</p>
-												)}
+												{solicitudFile && <p className="vd-ficha-filename">{solicitudFile.name}</p>}
 											</div>
 										)}
 									</div>
 
-									{/* ── Comentarios ── */}
 									<div className="vd-ficha-seccion">
-										<button
-											className="vd-ficha-seccion-hdr"
-											onClick={() => toggleFichaSeccion("comentariosInfo")}>
+										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("comentariosInfo")}>
 											<span>Comentarios</span>
-											<span className="vd-ficha-chevron">
-												{fichaSeccion.comentariosInfo ? "∧" : "∨"}
-											</span>
+											<span className="vd-ficha-chevron">{fichaSeccion.comentariosInfo ? "∧" : "∨"}</span>
 										</button>
 										{fichaSeccion.comentariosInfo && (
 											<div className="vd-ficha-grid">
 												{comentariosInfo.map((c) => (
-													<div
-														key={c.id}
-														className="vd-coment-item vd-ficha-coment-item">
-														<div className="vd-coment-avatar">
-															{c.autor_iniciales || "??"}
-														</div>
+													<div key={c.id} className="vd-coment-item vd-ficha-coment-item">
+														<div className="vd-coment-avatar">{c.autor_iniciales || "??"}</div>
 														<div className="vd-coment-content">
 															<p className="vd-coment-texto">{c.texto}</p>
-															<span className="vd-coment-meta">
-																{c.autor_nombre} ·{" "}
-																{new Date(c.created_at).toLocaleDateString("es-MX")}
-															</span>
+															<span className="vd-coment-meta">{c.autor_nombre} · {new Date(c.created_at).toLocaleDateString("es-MX")}</span>
 														</div>
 													</div>
 												))}
@@ -3796,10 +2899,7 @@ const VisorDicom = () => {
 													onChange={(e) => setComentarioInfoTxt(e.target.value)}
 												/>
 												<div className="vd-ficha-footer vd-ficha-footer--right">
-													<button
-														className="vd-modal-btn-ok"
-														disabled={!comentarioInfoTxt.trim()}
-														onClick={agregarComentarioInfo}>
+													<button className="vd-modal-btn-ok" disabled={!comentarioInfoTxt.trim()} onClick={agregarComentarioInfo}>
 														Agregar un comentario
 													</button>
 												</div>
@@ -3813,7 +2913,6 @@ const VisorDicom = () => {
 				</div>
 			)}
 
-			{/* Modal Asignar — radiólogo / técnico / referente */}
 			<ModalAsignar
 				config={modalAsignar}
 				onSeleccionar={(id) => setModalAsignar((m) => ({ ...m, seleccionado: id }))}
@@ -3821,34 +2920,22 @@ const VisorDicom = () => {
 				onCerrar={() => setModalAsignar(null)}
 			/>
 
-			{/* Modal Prioridad */}
 			{modalPrioridad && (
 				<div className="vd-modal-overlay" onClick={() => setModalPrioridad(null)}>
 					<div className="vd-modal-box" onClick={(e) => e.stopPropagation()}>
 						<div className="vd-modal-header">
 							<span className="vd-modal-titulo">Cambiar prioridad del estudio</span>
-							<button
-								className="vd-modal-close"
-								onClick={() => setModalPrioridad(null)}>
-								✕
-							</button>
+							<button className="vd-modal-close" onClick={() => setModalPrioridad(null)}>✕</button>
 						</div>
 						<div className="vd-modal-body">
 							{modalPrioridad.loading ? (
 								<span className="vd-modal-cargando">Cargando…</span>
 							) : (
 								<label className="vd-prioridad-row">
-									<span className="vd-prioridad-label">
-										Este estudio es de alta prioridad
-									</span>
+									<span className="vd-prioridad-label">Este estudio es de alta prioridad</span>
 									<button
 										className={`vd-toggle ${modalPrioridad.altaPrioridad ? "on" : ""}`}
-										onClick={() =>
-											setModalPrioridad((m) => ({
-												...m,
-												altaPrioridad: !m.altaPrioridad,
-											}))
-										}
+										onClick={() => setModalPrioridad((m) => ({ ...m, altaPrioridad: !m.altaPrioridad }))}
 										aria-label="Toggle alta prioridad">
 										<span className="vd-toggle-thumb" />
 									</button>
@@ -3856,124 +2943,53 @@ const VisorDicom = () => {
 							)}
 						</div>
 						<div className="vd-modal-footer">
-							<button
-								className="vd-modal-btn-cancel"
-								onClick={() => setModalPrioridad(null)}>
-								Cancelar
-							</button>
-							<button
-								className="vd-modal-btn-ok"
-								disabled={modalPrioridad.loading}
-								onClick={handlePrioridadConfirmar}>
-								Aceptar
-							</button>
+							<button className="vd-modal-btn-cancel" onClick={() => setModalPrioridad(null)}>Cancelar</button>
+							<button className="vd-modal-btn-ok" disabled={modalPrioridad.loading} onClick={handlePrioridadConfirmar}>Aceptar</button>
 						</div>
 					</div>
 				</div>
 			)}
 
-			{/* Modal Comentarios */}
 			{modalComentarios && (
 				<div className="vd-modal-overlay" onClick={() => setModalComentarios(false)}>
-					<div
-						className="vd-modal-box vd-modal-comentarios"
-						onClick={(e) => e.stopPropagation()}>
+					<div className="vd-modal-box vd-modal-comentarios" onClick={(e) => e.stopPropagation()}>
 						<div className="vd-modal-header">
 							<span className="vd-modal-titulo">Comentarios</span>
-							<button
-								className="vd-modal-close"
-								onClick={() => setModalComentarios(false)}>
-								✕
-							</button>
+							<button className="vd-modal-close" onClick={() => setModalComentarios(false)}>✕</button>
 						</div>
 						<div className="vd-modal-body vd-coment-body">
-							<textarea
-								className="vd-coment-textarea"
-								placeholder="Escribe un comentario…"
-								value={comentarioTexto}
-								onChange={(e) => setComentarioTexto(e.target.value)}
-								rows={4}
-							/>
+							<textarea className="vd-coment-textarea" placeholder="Escribe un comentario…" value={comentarioTexto} onChange={(e) => setComentarioTexto(e.target.value)} rows={4} />
 						</div>
 						<div className="vd-modal-footer">
-							<button
-								className="vd-modal-btn-cancel"
-								onClick={() => setModalComentarios(false)}>
-								Cancelar
-							</button>
-							<button
-								className="vd-modal-btn-ok"
-								disabled={!comentarioTexto.trim()}
-								onClick={handleAgregarComentario}>
-								Agregar un comentario
-							</button>
+							<button className="vd-modal-btn-cancel" onClick={() => setModalComentarios(false)}>Cancelar</button>
+							<button className="vd-modal-btn-ok" disabled={!comentarioTexto.trim()} onClick={handleAgregarComentario}>Agregar un comentario</button>
 						</div>
 						{comentarios.length > 0 && (
 							<div className="vd-coment-lista">
 								{comentarios.map((c) => (
 									<div key={c.id} className="vd-coment-item">
-										<div className="vd-coment-avatar">
-											{c.autor_iniciales || "??"}
-										</div>
+										<div className="vd-coment-avatar">{c.autor_iniciales || "??"}</div>
 										<div className="vd-coment-content">
 											{comentarioEditId === c.id ? (
 												<>
-													<textarea
-														className="vd-coment-textarea vd-coment-textarea--edit"
-														value={comentarioEditTxt}
-														onChange={(e) => setComentarioEditTxt(e.target.value)}
-														rows={2}
-														autoFocus
-													/>
+													<textarea className="vd-coment-textarea vd-coment-textarea--edit" value={comentarioEditTxt} onChange={(e) => setComentarioEditTxt(e.target.value)} rows={2} autoFocus />
 													<div className="vd-coment-edit-actions">
-														<button
-															className="vd-modal-btn-cancel vd-coment-btn-sm"
-															onClick={() => {
-																setComentarioEditId(null);
-																setComentarioEditTxt("");
-															}}>
-															Cancelar
-														</button>
-														<button
-															className="vd-modal-btn-ok vd-coment-btn-sm"
-															disabled={!comentarioEditTxt.trim()}
-															onClick={() => handleEditarComentario(c.id)}>
-															Actualizar comentario
-														</button>
+														<button className="vd-modal-btn-cancel vd-coment-btn-sm" onClick={() => { setComentarioEditId(null); setComentarioEditTxt(""); }}>Cancelar</button>
+														<button className="vd-modal-btn-ok vd-coment-btn-sm" disabled={!comentarioEditTxt.trim()} onClick={() => handleEditarComentario(c.id)}>Actualizar comentario</button>
 													</div>
 												</>
 											) : (
 												<p className="vd-coment-texto">{c.texto}</p>
 											)}
-											<span className="vd-coment-meta">
-												{c.autor_nombre}{" "}
-												{new Date(c.created_at).toLocaleDateString("es-MX")}
-											</span>
+											<span className="vd-coment-meta">{c.autor_nombre} {new Date(c.created_at).toLocaleDateString("es-MX")}</span>
 										</div>
 										{comentarioEditId !== c.id && (
 											<div className="vd-coment-actions">
-												<button
-													className="vd-coment-action-btn"
-													title="Editar"
-													onClick={() => {
-														setComentarioEditId(c.id);
-														setComentarioEditTxt(c.texto);
-													}}>
-													<img
-														src={lapizIcono}
-														alt="Editar"
-														className="vd-coment-icon"
-													/>
+												<button className="vd-coment-action-btn" title="Editar" onClick={() => { setComentarioEditId(c.id); setComentarioEditTxt(c.texto); }}>
+													<img src={lapizIcono} alt="Editar" className="vd-coment-icon" />
 												</button>
-												<button
-													className="vd-coment-action-btn vd-coment-action-btn--del"
-													title="Eliminar"
-													onClick={() => setConfirmElimComentario(c.id)}>
-													<img
-														src={basuraIcon}
-														alt="Eliminar"
-														className="vd-coment-icon vd-coment-icon--del"
-													/>
+												<button className="vd-coment-action-btn vd-coment-action-btn--del" title="Eliminar" onClick={() => setConfirmElimComentario(c.id)}>
+													<img src={basuraIcon} alt="Eliminar" className="vd-coment-icon vd-coment-icon--del" />
 												</button>
 											</div>
 										)}
@@ -3985,44 +3001,23 @@ const VisorDicom = () => {
 				</div>
 			)}
 
-			{/* ── MODAL MÉTRICAS ────────────────────────────────────────── */}
 			{modalMetricas && (
 				<div className="vd-modal-overlay" onClick={() => setModalMetricas(null)}>
-					<div
-						className="vd-modal-box vd-modal-metricas"
-						onClick={(e) => e.stopPropagation()}>
+					<div className="vd-modal-box vd-modal-metricas" onClick={(e) => e.stopPropagation()}>
 						<div className="vd-modal-header">
 							<span className="vd-modal-titulo">Tiempo de reporte</span>
-							<button
-								className="vd-modal-close"
-								onClick={() => setModalMetricas(null)}>
-								✕
-							</button>
+							<button className="vd-modal-close" onClick={() => setModalMetricas(null)}>✕</button>
 						</div>
 						{modalMetricas.loading ? (
-							<div className="vd-modal-body">
-								<span className="vd-modal-cargando">Cargando…</span>
-							</div>
+							<div className="vd-modal-body"><span className="vd-modal-cargando">Cargando…</span></div>
 						) : (
 							<div className="vd-metricas-body">
 								{[
 									{ label: "Modalidad", valor: modalMetricas.modalidad },
-									{
-										label: "Fecha y hora del estudio",
-										valor: modalMetricas.fechaEstudio,
-									},
-									{
-										label: "Fecha y hora del primer reporte",
-										valor: modalMetricas.primerReporte,
-									},
-									{
-										label: "Tiempo transcurrido",
-										valor: modalMetricas.tiempoTranscurrido,
-									},
-									{
-										label: "Usuario del primer reporte",
-										valor: modalMetricas.usuario,
-									},
+									{ label: "Fecha y hora del estudio", valor: modalMetricas.fechaEstudio },
+									{ label: "Fecha y hora del primer reporte", valor: modalMetricas.primerReporte },
+									{ label: "Tiempo transcurrido", valor: modalMetricas.tiempoTranscurrido },
+									{ label: "Usuario del primer reporte", valor: modalMetricas.usuario },
 								].map(({ label, valor }) => (
 									<div key={label} className="vd-metricas-row">
 										<span className="vd-metricas-label">{label}</span>
@@ -4035,33 +3030,20 @@ const VisorDicom = () => {
 				</div>
 			)}
 
-			{/* ── MODAL ETIQUETAS ────────────────────────────────────────── */}
 			{modalEtiquetas && (
 				<div className="vd-modal-overlay" onClick={() => setModalEtiquetas(false)}>
-					<div
-						className="vd-modal-box vd-modal-etiquetas"
-						onClick={(e) => e.stopPropagation()}>
+					<div className="vd-modal-box vd-modal-etiquetas" onClick={(e) => e.stopPropagation()}>
 						<div className="vd-modal-header">
 							<span className="vd-modal-titulo">Agregar etiquetas al estudio</span>
-							<button
-								className="vd-modal-close"
-								onClick={() => setModalEtiquetas(false)}>
-								✕
-							</button>
+							<button className="vd-modal-close" onClick={() => setModalEtiquetas(false)}>✕</button>
 						</div>
 						<div className="vd-etiq-row">
 							<span className="vd-etiq-label">Etiquetas</span>
-							<div
-								className="vd-etiq-input-wrap"
-								onClick={() => document.getElementById("vd-etiq-input").focus()}>
+							<div className="vd-etiq-input-wrap" onClick={() => document.getElementById("vd-etiq-input").focus()}>
 								{etiquetas.map((tag) => (
 									<span key={tag} className="vd-etiq-chip">
 										{tag}
-										<button
-											className="vd-etiq-chip-remove"
-											onClick={() => quitarEtiqueta(tag)}>
-											×
-										</button>
+										<button className="vd-etiq-chip-remove" onClick={() => quitarEtiqueta(tag)}>×</button>
 									</span>
 								))}
 								<input
@@ -4069,34 +3051,66 @@ const VisorDicom = () => {
 									className="vd-etiq-text-input"
 									value={etiquetaInput}
 									placeholder={etiquetas.length === 0 ? "Escribe una etiqueta…" : ""}
-									onChange={(e) => {
-										setEtiquetaInput(e.target.value);
-										setEtiquetaSugerencia(e.target.value.trim().length > 0);
-									}}
+									onChange={(e) => { setEtiquetaInput(e.target.value); setEtiquetaSugerencia(e.target.value.trim().length > 0); }}
 									onKeyDown={(e) => {
-										if (e.key === "Enter" || e.key === ",") {
-											e.preventDefault();
-											agregarEtiqueta(etiquetaInput);
-										}
-										if (
-											e.key === "Backspace" &&
-											etiquetaInput === "" &&
-											etiquetas.length > 0
-										)
-											quitarEtiqueta(etiquetas[etiquetas.length - 1]);
+										if (e.key === "Enter" || e.key === ",") { e.preventDefault(); agregarEtiqueta(etiquetaInput); }
+										if (e.key === "Backspace" && etiquetaInput === "" && etiquetas.length > 0) quitarEtiqueta(etiquetas[etiquetas.length - 1]);
 									}}
 									autoComplete="off"
 								/>
 								{etiquetaSugerencia && (
 									<div className="vd-etiq-dropdown">
-										<div
-											className="vd-etiq-dropdown-item"
-											onMouseDown={() => agregarEtiqueta(etiquetaInput)}>
+										<div className="vd-etiq-dropdown-item" onMouseDown={() => agregarEtiqueta(etiquetaInput)}>
 											Agregar: <em>&ldquo;{etiquetaInput}&rdquo;</em>
 										</div>
 									</div>
 								)}
 							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{modalSolicitud && (
+				<div className="vd-modal-overlay" onClick={() => setModalSolicitud(false)}>
+					<div className="vd-modal-box" style={{ width: "min(520px, 94vw)" }} onClick={(e) => e.stopPropagation()}>
+						<div className="vd-modal-header">
+							<div>
+								<span className="vd-modal-titulo">Solicitud del estudio</span>
+								<p className="vd-modal-subtitulo">Seleccione y adjunte su solicitud para este estudio. Optativamente puede tomar una fotografía usando su cámara</p>
+							</div>
+							<button className="vd-modal-close" onClick={() => setModalSolicitud(false)}>✕</button>
+						</div>
+						<div className="vd-modal-body">
+							{solicitudPreview ? (
+								<div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+									<img src={solicitudPreview} alt="Solicitud" className="vd-ficha-solicitud-img" />
+									<button className="vd-modal-btn-cancel" style={{ alignSelf: "flex-start" }}
+										onClick={() => setSolicitudPreview(null)}>
+										Reemplazar
+									</button>
+								</div>
+							) : (
+								<label className="vd-ficha-dropzone" style={{ cursor: "pointer" }}>
+									<input type="file" accept="image/*,application/pdf" style={{ display: "none" }}
+										onChange={(e) => setSolicitudFile(e.target.files[0])} />
+									<img src={nubeIcono} alt="Subir" style={{ width: 48, height: 48, opacity: 0.7, filter: "brightness(0) invert(1)" }} />
+									<span><u>Seleccione</u> un archivo o arrastre aquí su foto.</span>
+									{solicitudFile && <p className="vd-ficha-filename">{solicitudFile.name}</p>}
+								</label>
+							)}
+							<label className="vd-ficha-dropzone" style={{ marginTop: "0.75rem", cursor: "pointer" }}>
+								<input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+									onChange={(e) => setSolicitudFile(e.target.files[0])} />
+								<img src={capturaIcon} alt="Cámara" style={{ width: 28, height: 28, filter: "brightness(0) invert(1)", opacity: 0.85 }} />
+								<span>Tomar una fotografía</span>
+							</label>
+						</div>
+						<div className="vd-modal-footer">
+							<button className="vd-modal-btn-cancel" onClick={() => setModalSolicitud(false)}>Cancelar</button>
+							<button className="vd-modal-btn-ok" disabled={!solicitudFile || solicitudSubiendo} onClick={subirSolicitud}>
+								{solicitudSubiendo ? "Subiendo..." : "Guardar"}
+							</button>
 						</div>
 					</div>
 				</div>
