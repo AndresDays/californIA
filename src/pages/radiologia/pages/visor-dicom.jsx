@@ -1881,6 +1881,7 @@ const VisorDicom = () => {
 	const [capturaClip, setCapturaClip] = useState(0);
 	const [notif, setNotif] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 
+	// ── Estados Ficha Clínica (modal Info) ───────────────────────────────────
 	const [modalInfo, setModalInfo] = useState(false);
 	const [fichaData, setFichaData] = useState(null);
 	const [fichaLoading, setFichaLoading] = useState(false);
@@ -1900,6 +1901,7 @@ const VisorDicom = () => {
 	const [solicitudPreview, setSolicitudPreview] = useState(null);
 	const [comentariosInfo, setComentariosInfo] = useState([]);
 	const [comentarioInfoTxt, setComentarioInfoTxt] = useState("");
+	// ────────────────────────────────────────────────────────────────────────
 
 	const cineRef = useRef(null);
 	const cineIdx = useRef(0);
@@ -1984,6 +1986,7 @@ const VisorDicom = () => {
 		setNotif({ isOpen: true, mensaje, tipo });
 	};
 
+	// ── Ficha Clínica ─────────────────────────────────────────────────────────
 	const abrirModalInfo = async () => {
 		setModalInfo(true);
 		setFichaLoading(true);
@@ -2491,92 +2494,92 @@ const VisorDicom = () => {
 				currentPage="visor"
 			/>
 
-			<div className="vd-toolbar" ref={toolbarRef}>
-				<button className="vd-btn-back" onClick={() => navigate(-1)}>‹ Atrás</button>
-
-				<div className="vd-paciente-chip">
-					<span className="vd-chip-tipo">{pacienteInfo.tipoEstudio}</span>
-					<span className="vd-chip-nombre">{pacienteInfo.nombre}</span>
-					<span className="vd-chip-fecha">{pacienteInfo.horaFecha}</span>
-				</div>
-
-				<div className="vd-tools-group">
-					{TOOLS.map((t) => (
-						<button
-							key={t.id}
-							className={`vd-tool-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
-							onClick={() => handleTool(t.id)}
-							title={t.label}>
-							{t.icon ? <img src={t.icon} alt={t.label} /> : <span>{t.emoji}</span>}
-							<span>{t.label}</span>
-						</button>
-					))}
-				</div>
-
-				<div className="vd-separator" />
-
-				<div className="vd-actions-group">
-					{ACTIONS.map((a) => (
-						<button
-							key={a.id}
-							className={`vd-tool-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "reporte" && mostrarReporte ? "activo" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "detalle" && mostrarDetalle ? "activo" : ""}`}
-							onClick={(e) => {
-								if (a.id === "reporte") {
-									const r = e.currentTarget.getBoundingClientRect();
-									setReporteBarLeft(r.left + r.width / 2);
-									if (toolbarRef.current) setReporteBarTop(toolbarRef.current.getBoundingClientRect().bottom);
-									setMostrarReporte((f) => !f);
-									setMostrarMas(false); setMostrarDetalle(false); setMostrarFormatos(false);
-								} else {
-									handleAction(a.id);
-								}
-							}}
-							title={a.label}>
-							{a.icon ? <img src={a.icon} alt={a.label} /> : <span>⊞</span>}
-							<span>{a.label}</span>
-						</button>
-					))}
-				</div>
-			</div>
-
-			{mostrarMas && (
-				<div className="vd-mas-bar" style={{ top: masBarTop }}>
-					{MAS_ITEMS.map((item) => (
-						<button
-							key={item.id}
-							className={`vd-mas-item${item.id === "lupa" && lupaGlobal ? " activo" : ""}${item.id === "elipse" && elipseGlobal ? " activo" : ""}${item.id === "rectangulo" && rectanguloGlobal ? " activo" : ""}${item.id === "bidireccional" && bidiGlobal ? " activo" : ""}`}
-							onClick={() => handleMasItem(item.id)}
-							title={item.label}>
-							{item.icon ? <img src={item.icon} alt={item.label} className="vd-mas-icon" /> : <span className="vd-mas-emoji">{item.emoji}</span>}
-							<span>{item.label}</span>
-						</button>
-					))}
-				</div>
-			)}
-
-			{mostrarDetalle && (
-				<div className="vd-mas-bar" style={{ top: detalleBarTop }}>
-					{DETALLE_ITEMS.map((item) => (
-						<button key={item.id} className="vd-mas-item" onClick={() => handleDetalleItem(item.id)} title={item.label}>
-							{item.icon ? <img src={item.icon} alt={item.label} className="vd-mas-icon" /> : <span className="vd-mas-emoji">{item.emoji}</span>}
-							<span>{item.label}</span>
-						</button>
-					))}
-				</div>
-			)}
-
-			{mostrarReporte && (
-				<div className="vd-mas-bar" style={{ top: reporteBarTop, left: reporteBarLeft, transform: "translateX(-50%)" }}>
-					{REPORTE_ITEMS.map((item) => (
-						<button key={item.id} className="vd-mas-item" onClick={() => handleReporteItem(item.id)} title={item.label}>
-							{item.icon ? <img src={item.icon} alt={item.label} className="vd-mas-icon" /> : <span className="vd-mas-emoji">{item.emoji}</span>}
-							<span>{item.label}</span>
-						</button>
-					))}
-				</div>
-			)}
-
 			<div className="vd-body">
+				<div className="vd-panel-tools" ref={toolbarRef}>
+					<button className="vd-btn-back-panel" onClick={() => navigate(-1)}>‹ Atrás</button>
+
+					<div className="vd-panel-section-label">HERRAMIENTAS</div>
+					<div className="vd-panel-grid">
+						{TOOLS.map((t) => (
+							<button
+								key={t.id}
+								className={`vd-panel-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
+								onClick={() => handleTool(t.id)}
+								title={t.label}>
+								{t.icon ? <img src={t.icon} alt={t.label} className="vd-panel-icon" /> : <span className="vd-panel-emoji">{t.emoji}</span>}
+								<span className="vd-panel-label">{t.label}</span>
+							</button>
+						))}
+					</div>
+
+					<div className="vd-panel-divider" />
+
+					<div className="vd-panel-section-label">ACCIONES</div>
+					<div className="vd-panel-grid">
+						{ACTIONS.map((a) => (
+							<button
+								key={a.id}
+								className={`vd-panel-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "reporte" && mostrarReporte ? "activo" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "detalle" && mostrarDetalle ? "activo" : ""}`}
+								onClick={(e) => {
+									if (a.id === "reporte") {
+										setMostrarReporte((f) => !f);
+										setMostrarMas(false); setMostrarDetalle(false); setMostrarFormatos(false);
+									} else { handleAction(a.id); }
+								}}
+								title={a.label}>
+								{a.icon ? <img src={a.icon} alt={a.label} className="vd-panel-icon" /> : <span className="vd-panel-emoji">⊞</span>}
+								<span className="vd-panel-label">{a.label}</span>
+							</button>
+						))}
+					</div>
+
+					{mostrarMas && (
+						<div className="vd-submenu-panel">
+							<div className="vd-panel-section-label">MÁS</div>
+							<div className="vd-panel-grid">
+								{MAS_ITEMS.map((item) => (
+									<button
+										key={item.id}
+										className={`vd-panel-btn${item.id === "lupa" && lupaGlobal ? " activo" : ""}${item.id === "elipse" && elipseGlobal ? " activo" : ""}${item.id === "rectangulo" && rectanguloGlobal ? " activo" : ""}${item.id === "bidireccional" && bidiGlobal ? " activo" : ""}`}
+										onClick={() => handleMasItem(item.id)}
+										title={item.label}>
+										{item.icon ? <img src={item.icon} alt={item.label} className="vd-panel-icon" /> : <span className="vd-panel-emoji">{item.emoji}</span>}
+										<span className="vd-panel-label">{item.label}</span>
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+
+					{mostrarDetalle && (
+						<div className="vd-submenu-panel">
+							<div className="vd-panel-section-label">DETALLE</div>
+							<div className="vd-panel-grid">
+								{DETALLE_ITEMS.map((item) => (
+									<button key={item.id} className="vd-panel-btn" onClick={() => handleDetalleItem(item.id)} title={item.label}>
+										{item.icon ? <img src={item.icon} alt={item.label} className="vd-panel-icon" /> : <span className="vd-panel-emoji">{item.emoji}</span>}
+										<span className="vd-panel-label">{item.label}</span>
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+
+					{mostrarReporte && (
+						<div className="vd-submenu-panel">
+							<div className="vd-panel-section-label">REPORTE</div>
+							<div className="vd-panel-grid vd-panel-grid--single">
+								{REPORTE_ITEMS.map((item) => (
+									<button key={item.id} className="vd-panel-btn" onClick={() => handleReporteItem(item.id)} title={item.label}>
+										<span className="vd-panel-emoji">{item.emoji}</span>
+										<span className="vd-panel-label">{item.label}</span>
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+
 				<div className="vd-sidebar">
 					<div className="vd-sidebar-header">
 						<span>Serie</span>
@@ -2694,6 +2697,7 @@ const VisorDicom = () => {
 				)}
 			</div>
 
+			{/* ── MODAL FICHA CLÍNICA (botón Info) ────────────────────────────────── */}
 			{modalInfo && (
 				<div className="vd-modal-overlay" onClick={() => setModalInfo(false)}>
 					<div className="vd-modal-box vd-modal-ficha" onClick={(e) => e.stopPropagation()}>
@@ -2709,6 +2713,7 @@ const VisorDicom = () => {
 								<div className="vd-modal-body"><span className="vd-modal-cargando">Cargando…</span></div>
 							) : (
 								<>
+									{/* ── Información del paciente ── */}
 									<div className="vd-ficha-seccion">
 										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("paciente")}>
 											<span>Información del paciente</span>
@@ -2773,6 +2778,7 @@ const VisorDicom = () => {
 										)}
 									</div>
 
+									{/* ── Historial del paciente ── */}
 									<div className="vd-ficha-seccion">
 										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("historial")}>
 											<span>Historial del paciente</span>
@@ -2800,6 +2806,7 @@ const VisorDicom = () => {
 										)}
 									</div>
 
+									{/* ── Información del estudio ── */}
 									<div className="vd-ficha-seccion">
 										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("estudio")}>
 											<span>Informacion del estudio</span>
@@ -2829,6 +2836,7 @@ const VisorDicom = () => {
 										)}
 									</div>
 
+									{/* ── Técnico asignado ── */}
 									<div className="vd-ficha-seccion">
 										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("tecnico")}>
 											<span>Técnico asignado</span>
@@ -2853,6 +2861,7 @@ const VisorDicom = () => {
 										)}
 									</div>
 
+									{/* ── Solicitud del estudio ── */}
 									<div className="vd-ficha-seccion">
 										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("solicitud")}>
 											<span>Solicitud del estudio</span>
@@ -2875,6 +2884,7 @@ const VisorDicom = () => {
 										)}
 									</div>
 
+									{/* ── Comentarios ── */}
 									<div className="vd-ficha-seccion">
 										<button className="vd-ficha-seccion-hdr" onClick={() => toggleFichaSeccion("comentariosInfo")}>
 											<span>Comentarios</span>
@@ -2913,6 +2923,7 @@ const VisorDicom = () => {
 				</div>
 			)}
 
+			{/* Modal Asignar — radiólogo / técnico / referente */}
 			<ModalAsignar
 				config={modalAsignar}
 				onSeleccionar={(id) => setModalAsignar((m) => ({ ...m, seleccionado: id }))}
@@ -2920,6 +2931,7 @@ const VisorDicom = () => {
 				onCerrar={() => setModalAsignar(null)}
 			/>
 
+			{/* Modal Prioridad */}
 			{modalPrioridad && (
 				<div className="vd-modal-overlay" onClick={() => setModalPrioridad(null)}>
 					<div className="vd-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -2950,6 +2962,7 @@ const VisorDicom = () => {
 				</div>
 			)}
 
+			{/* Modal Comentarios */}
 			{modalComentarios && (
 				<div className="vd-modal-overlay" onClick={() => setModalComentarios(false)}>
 					<div className="vd-modal-box vd-modal-comentarios" onClick={(e) => e.stopPropagation()}>
@@ -3001,6 +3014,7 @@ const VisorDicom = () => {
 				</div>
 			)}
 
+			{/* ── MODAL MÉTRICAS ────────────────────────────────────────── */}
 			{modalMetricas && (
 				<div className="vd-modal-overlay" onClick={() => setModalMetricas(null)}>
 					<div className="vd-modal-box vd-modal-metricas" onClick={(e) => e.stopPropagation()}>
@@ -3030,6 +3044,7 @@ const VisorDicom = () => {
 				</div>
 			)}
 
+			{/* ── MODAL ETIQUETAS ────────────────────────────────────────── */}
 			{modalEtiquetas && (
 				<div className="vd-modal-overlay" onClick={() => setModalEtiquetas(false)}>
 					<div className="vd-modal-box vd-modal-etiquetas" onClick={(e) => e.stopPropagation()}>
