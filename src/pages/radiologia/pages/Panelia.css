@@ -1,0 +1,804 @@
+/* ── PanelIA — Pathology Risk panel ─────────────────────────────── */
+
+.pia-panel {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 320px;
+	background: #111827;
+	border-left: 1px solid rgba(255, 255, 255, 0.07);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	z-index: 40;
+	font-family: 'Codec Pro', 'Inter', sans-serif;
+	transform: translateX(100%);
+	transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+	pointer-events: none;
+}
+
+.pia-panel--visible {
+	transform: translateX(0);
+	pointer-events: all;
+}
+
+/* ── Header ── */
+.pia-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	padding: 0.9rem 1rem 0.7rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	flex-shrink: 0;
+}
+
+.pia-header-left {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6rem;
+}
+
+.pia-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #53B9DB;
+	box-shadow: 0 0 6px #53B9DB;
+	margin-top: 4px;
+	flex-shrink: 0;
+	animation: pia-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pia-pulse {
+
+	0%,
+	100% {
+		opacity: 1;
+		box-shadow: 0 0 6px #53B9DB;
+	}
+
+	50% {
+		opacity: 0.5;
+		box-shadow: 0 0 2px #53B9DB;
+	}
+}
+
+.pia-titulo {
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: #fff;
+	line-height: 1.2;
+	margin: 0;
+}
+
+.pia-subtitle {
+	font-size: 0.65rem;
+	color: rgba(255, 255, 255, 0.35);
+	line-height: 1.4;
+	margin: 0.15rem 0 0;
+}
+
+.pia-close {
+	background: none;
+	border: none;
+	color: rgba(255, 255, 255, 0.3);
+	font-size: 1rem;
+	cursor: pointer;
+	padding: 0;
+	line-height: 1;
+	transition: color 0.15s;
+	flex-shrink: 0;
+}
+
+.pia-close:hover {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Scanning ── */
+.pia-scanning {
+	padding: 1.2rem 1rem 1rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.75rem;
+	flex-shrink: 0;
+}
+
+.pia-scan-box {
+	width: 100%;
+	height: 72px;
+	position: relative;
+	background: rgba(83, 185, 219, 0.04);
+	border: 1px solid rgba(83, 185, 219, 0.1);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.pia-scan-grid {
+	position: absolute;
+	inset: 0;
+	background-image:
+		linear-gradient(rgba(83, 185, 219, 0.06) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(83, 185, 219, 0.06) 1px, transparent 1px);
+	background-size: 16px 16px;
+}
+
+.pia-scan-beam {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, #53B9DB, transparent);
+	box-shadow: 0 0 8px #53B9DB;
+	animation: pia-beam 1.4s ease-in-out infinite;
+}
+
+@keyframes pia-beam {
+	0% {
+		top: 0;
+	}
+
+	50% {
+		top: 70px;
+	}
+
+	100% {
+		top: 0;
+	}
+}
+
+.pia-fase {
+	font-size: 0.68rem;
+	color: rgba(83, 185, 219, 0.7);
+	text-align: center;
+}
+
+.pia-ellipsis::after {
+	content: '';
+	animation: pia-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes pia-dots {
+	0% {
+		content: '';
+	}
+
+	25% {
+		content: '.';
+	}
+
+	50% {
+		content: '..';
+	}
+
+	75% {
+		content: '...';
+	}
+
+	100% {
+		content: '';
+	}
+}
+
+.pia-prog-track {
+	width: 100%;
+	height: 3px;
+	background: rgba(83, 185, 219, 0.1);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.pia-prog-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #1a6fa0, #53B9DB);
+	border-radius: 2px;
+	transition: width 0.08s linear;
+}
+
+.pia-prog-num {
+	font-size: 0.62rem;
+	color: rgba(83, 185, 219, 0.5);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ── Vacío ── */
+.pia-vacio {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem;
+	padding: 2rem 1rem;
+	text-align: center;
+}
+
+.pia-vacio-icon {
+	font-size: 2.2rem;
+	color: rgba(83, 185, 219, 0.12);
+}
+
+.pia-vacio p {
+	font-size: 0.72rem;
+	color: rgba(255, 255, 255, 0.2);
+	line-height: 1.6;
+	margin: 0;
+}
+
+/* ── Table header ── */
+.pia-table-header {
+	display: flex;
+	align-items: center;
+	padding: 0.5rem 1rem 0.3rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	flex-shrink: 0;
+}
+
+.pia-th-name {
+	font-size: 0.62rem;
+	color: rgba(255, 255, 255, 0.5);
+	width: 100px;
+	flex-shrink: 0;
+	cursor: pointer;
+}
+
+.pia-th-healthy {
+	font-size: 0.6rem;
+	color: rgba(255, 255, 255, 0.3);
+	flex: 1;
+	text-align: left;
+	padding-left: 4px;
+}
+
+.pia-th-risk {
+	font-size: 0.6rem;
+	color: rgba(255, 255, 255, 0.3);
+	text-align: right;
+	width: 28px;
+}
+
+/* ── Lista ── */
+.pia-lista {
+	flex: 1;
+	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+	padding: 0.1rem 0 0;
+}
+
+.pia-lista::-webkit-scrollbar {
+	width: 3px;
+}
+
+.pia-lista::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.08);
+	border-radius: 2px;
+}
+
+/* ── Fila ── */
+.pia-row {
+	display: flex;
+	align-items: center;
+	padding: 0.3rem 1rem;
+	gap: 0.6rem;
+	transition: background 0.15s;
+	min-height: 36px;
+}
+
+.pia-row:hover {
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.pia-row--alert {
+	background: rgba(248, 124, 124, 0.04);
+}
+
+.pia-row--alert:hover {
+	background: rgba(248, 124, 124, 0.07);
+}
+
+.pia-row-name {
+	width: 100px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+}
+
+.pia-row-label {
+	font-size: 0.72rem;
+	color: rgba(255, 255, 255, 0.75);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.pia-row--alert .pia-row-label {
+	color: #fff;
+	font-weight: 600;
+}
+
+.pia-info-icon {
+	font-size: 0.65rem;
+	color: rgba(83, 185, 219, 0.6);
+	cursor: default;
+	flex-shrink: 0;
+}
+
+/* ── Barra gradiente ── */
+.pia-bar-wrap {
+	flex: 1;
+	position: relative;
+	height: 16px;
+	display: flex;
+	align-items: center;
+}
+
+.pia-bar-gradient {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 10px;
+	border-radius: 5px;
+	background: linear-gradient(to right,
+			#4ab3e8 0%,
+			#5bc9e0 15%,
+			#7dd4c0 28%,
+			#f5c842 45%,
+			#f59a42 58%,
+			#e85c3a 72%,
+			#c0281a 85%,
+			#8b1010 100%);
+	opacity: 0.85;
+}
+
+/* Marcador de posición (la "aguja" blanca) */
+.pia-bar-marker {
+	position: absolute;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 3px;
+	height: 16px;
+	background: rgba(255, 255, 255, 0.9);
+	border-radius: 2px;
+	box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+	z-index: 2;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.pia-bar-marker--alert {
+	background: #fff;
+	box-shadow: 0 0 6px rgba(255, 100, 100, 0.8);
+}
+
+/* Badge rojo encima del marcador cuando supera umbral */
+.pia-marker-badge {
+	position: absolute;
+	top: -18px;
+	font-size: 0.7rem;
+	filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* ── Footer ── */
+.pia-footer {
+	padding: 0.6rem 1rem 0.8rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	flex-shrink: 0;
+}
+
+.pia-btn-reanalizar {
+	background: rgba(83, 185, 219, 0.08);
+	border: 1px solid rgba(83, 185, 219, 0.2);
+	border-radius: 6px;
+	color: #53B9DB;
+	font-family: inherit;
+	font-size: 0.72rem;
+	padding: 0.45rem;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s;
+	letter-spacing: 0.03em;
+}
+
+.pia-btn-reanalizar:hover {
+	background: rgba(83, 185, 219, 0.15);
+	border-color: rgba(83, 185, 219, 0.4);
+}
+
+.pia-disclaimer {
+	font-size: 0.58rem;
+	color: rgba(255, 255, 255, 0.2);
+	line-height: 1.5;
+	text-align: center;
+	margin: 0;
+}
+
+/* ── Switch (vive en VisorDicom.css pero lo dejamos aquí por si acaso) ── */
+.pia-switch-wrap {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.55rem 0.85rem;
+	border-top: 1px solid rgba(83, 185, 219, 0.07);
+	flex-shrink: 0;
+}
+
+.pia-switch-label {
+	font-size: 0.6rem;
+	color: rgba(255, 255, 255, 0.4);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	flex: 1;
+}
+
+.pia-switch {
+	position: relative;
+	width: 36px;
+	height: 20px;
+	background: rgba(83, 185, 219, 0.12);
+	border: 1px solid rgba(83, 185, 219, 0.25);
+	border-radius: 10px;
+	cursor: pointer;
+	padding: 0;
+	transition: background 0.2s, border-color 0.2s;
+	flex-shrink: 0;
+}
+
+.pia-switch.on {
+	background: rgba(83, 185, 219, 0.3);
+	border-color: #53B9DB;
+	box-shadow: 0 0 8px rgba(83, 185, 219, 0.25);
+}
+
+.pia-switch-thumb {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 14px;
+	height: 14px;
+	background: rgba(255, 255, 255, 0.4);
+	border-radius: 50%;
+	transition: transform 0.2s cubic-bezier(.4, 0, .2, 1), background 0.2s;
+	display: block;
+}
+
+.pia-switch.on .pia-switch-thumb {
+	transform: translateX(16px);
+	background: #53B9DB;
+}
+
+/* ── Badge API status ────────────────────────────────────────────── */
+.pia-api-badge {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.3rem 1rem;
+	font-size: 0.6rem;
+	color: rgba(255, 255, 255, 0.25);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+	letter-spacing: 0.05em;
+	flex-shrink: 0;
+}
+
+.pia-api-badge.connected {
+	color: rgba(77, 217, 172, 0.7);
+}
+
+.pia-api-dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.2);
+	flex-shrink: 0;
+}
+
+.pia-api-badge.connected .pia-api-dot {
+	background: #4dd9ac;
+	box-shadow: 0 0 4px #4dd9ac;
+}
+
+/* ── Botón toggle MOCK/EVA-02 ────────────────────────────────────── */
+.pia-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-shrink: 0;
+}
+
+.pia-mode-btn {
+	font-size: 0.55rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	padding: 0.2rem 0.45rem;
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	background: rgba(255, 255, 255, 0.05);
+	color: rgba(255, 255, 255, 0.35);
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.pia-mode-btn.active {
+	border-color: rgba(83, 185, 219, 0.5);
+	background: rgba(83, 185, 219, 0.12);
+	color: #53B9DB;
+}
+
+/* ── Error ───────────────────────────────────────────────────────── */
+.pia-error {
+	margin: 1rem;
+	padding: 0.75rem;
+	background: rgba(248, 124, 124, 0.08);
+	border: 1px solid rgba(248, 124, 124, 0.25);
+	border-radius: 8px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4rem;
+	text-align: center;
+}
+
+.pia-error span {
+	font-size: 1.2rem;
+}
+
+.pia-error p {
+	font-size: 0.65rem;
+	color: rgba(255, 255, 255, 0.5);
+	margin: 0;
+	line-height: 1.5;
+}
+
+.pia-error button {
+	font-size: 0.65rem;
+	padding: 0.3rem 0.8rem;
+	border-radius: 5px;
+	border: 1px solid rgba(248, 124, 124, 0.3);
+	background: rgba(248, 124, 124, 0.1);
+	color: #f87c7c;
+	cursor: pointer;
+}
+
+/* ── Grad-CAM selector ───────────────────────────────────────────── */
+.pia-cam-selector {
+	padding: 0.5rem 1rem 0.4rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	flex-shrink: 0;
+}
+
+.pia-cam-label {
+	font-size: 0.58rem;
+	color: rgba(255, 255, 255, 0.3);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	display: block;
+	margin-bottom: 0.35rem;
+}
+
+.pia-cam-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.pia-cam-chip {
+	font-size: 0.6rem;
+	padding: 0.2rem 0.5rem;
+	border-radius: 20px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.04);
+	color: rgba(255, 255, 255, 0.45);
+	cursor: pointer;
+	transition: all 0.15s;
+	white-space: nowrap;
+}
+
+.pia-cam-chip:hover {
+	border-color: rgba(255, 180, 50, 0.4);
+	color: rgba(255, 200, 80, 0.9);
+	background: rgba(255, 180, 50, 0.08);
+}
+
+.pia-cam-chip.active {
+	border-color: #f7c27b;
+	background: rgba(247, 194, 123, 0.15);
+	color: #f7c27b;
+	font-weight: 600;
+}
+
+.pia-cam-hint {
+	font-size: 0.6rem;
+	color: rgba(247, 194, 123, 0.7);
+	margin: 0.35rem 0 0;
+	line-height: 1.4;
+}
+
+.pia-cam-hint strong {
+	color: #f7c27b;
+}
+
+/* Fila con CAM activo */
+.pia-row--cam {
+	background: rgba(247, 194, 123, 0.06) !important;
+	border-left: 2px solid rgba(247, 194, 123, 0.4);
+}
+
+/* Dot de fuego en la fila */
+.pia-cam-dot {
+	font-size: 0.65rem;
+	opacity: 0.4;
+	transition: opacity 0.15s;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.pia-cam-dot.on {
+	opacity: 1;
+}
+
+.pia-api-badge {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.45rem 1rem;
+	font-size: 0.62rem;
+	color: rgba(255, 255, 255, 0.45);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	flex-shrink: 0;
+}
+
+.pia-api-dot {
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.2);
+	flex-shrink: 0;
+}
+
+.pia-api-badge.connected .pia-api-dot {
+	background: #4dd9ac;
+	box-shadow: 0 0 4px #4dd9ac;
+}
+
+.pia-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-shrink: 0;
+}
+
+.pia-mode-btn {
+	font-size: 0.55rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	padding: 0.2rem 0.45rem;
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	background: rgba(255, 255, 255, 0.05);
+	color: rgba(255, 255, 255, 0.35);
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.pia-mode-btn.active {
+	border-color: rgba(83, 185, 219, 0.5);
+	background: rgba(83, 185, 219, 0.12);
+	color: #53B9DB;
+}
+
+.pia-error {
+	margin: 1rem;
+	padding: 0.75rem;
+	background: rgba(248, 124, 124, 0.08);
+	border: 1px solid rgba(248, 124, 124, 0.25);
+	border-radius: 8px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4rem;
+	text-align: center;
+}
+
+.pia-error span {
+	font-size: 1.2rem;
+}
+
+.pia-error p {
+	font-size: 0.65rem;
+	color: rgba(255, 255, 255, 0.5);
+	margin: 0;
+	line-height: 1.5;
+}
+
+.pia-error button {
+	font-size: 0.65rem;
+	padding: 0.3rem 0.8rem;
+	border-radius: 5px;
+	border: 1px solid rgba(248, 124, 124, 0.3);
+	background: rgba(248, 124, 124, 0.1);
+	color: #f87c7c;
+	cursor: pointer;
+}
+
+.pia-cam-selector {
+	padding: 0.5rem 1rem 0.4rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	flex-shrink: 0;
+}
+
+.pia-cam-label {
+	font-size: 0.58rem;
+	color: rgba(255, 255, 255, 0.3);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	display: block;
+	margin-bottom: 0.35rem;
+}
+
+.pia-cam-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+}
+
+.pia-cam-chip {
+	font-size: 0.6rem;
+	padding: 0.2rem 0.5rem;
+	border-radius: 20px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.04);
+	color: rgba(255, 255, 255, 0.45);
+	cursor: pointer;
+	transition: all 0.15s;
+	white-space: nowrap;
+}
+
+.pia-cam-chip:hover {
+	border-color: rgba(255, 180, 50, 0.4);
+	color: rgba(255, 200, 80, 0.9);
+	background: rgba(255, 180, 50, 0.08);
+}
+
+.pia-cam-chip.active {
+	border-color: #f7c27b;
+	background: rgba(247, 194, 123, 0.15);
+	color: #f7c27b;
+	font-weight: 600;
+}
+
+.pia-cam-hint {
+	font-size: 0.6rem;
+	color: rgba(247, 194, 123, 0.7);
+	margin: 0.35rem 0 0;
+	line-height: 1.4;
+}
+
+.pia-cam-hint strong {
+	color: #f7c27b;
+}
+
+.pia-row--cam {
+	background: rgba(247, 194, 123, 0.06) !important;
+	border-left: 2px solid rgba(247, 194, 123, 0.4);
+}
+
+.pia-cam-dot {
+	font-size: 0.65rem;
+	opacity: 0.95;
+}
+
+.pia-btn-reanalizar {
+	background: rgba(83, 185, 219, 0.1);
+	border: 1px solid rgba(83, 185, 219, 0.25);
+	color: #53B9DB;
+	font-size: 0.7rem;
+	border-radius: 6px;
+	padding: 0.55rem 0.75rem;
+	cursor: pointer;
+}
