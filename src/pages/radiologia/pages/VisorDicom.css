@@ -11,7 +11,7 @@
 .vd-root {
 	width: 100vw;
 	height: 100vh;
-	background: #040b16;
+	background: #0a0e1a;
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
@@ -21,7 +21,23 @@
 }
 
 .vd-toolbar {
-	display: none;
+	height: 56px;
+	background: #0d1526;
+	border-bottom: 1px solid rgba(73, 178, 212, 0.15);
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0 0.75rem;
+	flex-shrink: 0;
+	overflow-x: auto;
+}
+
+.vd-toolbar::-webkit-scrollbar {
+	height: 3px;
+}
+
+.vd-toolbar::-webkit-scrollbar-thumb {
+	background: rgba(73, 178, 212, 0.2);
 }
 
 .vd-btn-back {
@@ -40,180 +56,6 @@
 
 .vd-btn-back:hover {
 	background: rgba(73, 178, 212, 0.25);
-}
-
-.vd-btn-back-panel {
-	background: transparent;
-	border: none;
-	color: rgba(83, 185, 219, 0.55);
-	font-family: 'Codec Pro', sans-serif;
-	font-size: 0.72rem;
-	cursor: pointer;
-	padding: 0.5rem 0.75rem;
-	text-align: left;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	transition: color 0.15s;
-	width: 100%;
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
-.vd-btn-back-panel:hover {
-	color: #53B9DB;
-}
-
-.vd-panel-tools {
-	width: 190px;
-	flex-shrink: 0;
-	background: #07101f;
-	border-right: 1px solid rgba(83, 185, 219, 0.08);
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-	overflow-y: auto;
-	overflow-x: hidden;
-	padding: 0.6rem 0 1.5rem;
-	scrollbar-width: thin;
-	scrollbar-color: rgba(83, 185, 219, 0.15) transparent;
-	position: relative;
-}
-
-.vd-panel-tools::-webkit-scrollbar {
-	width: 2px;
-}
-
-.vd-panel-tools::-webkit-scrollbar-thumb {
-	background: rgba(83, 185, 219, 0.15);
-}
-
-.vd-panel-section-label {
-	font-size: 0.56rem;
-	font-weight: 700;
-	letter-spacing: 0.18em;
-	color: rgba(83, 185, 219, 0.3);
-	padding: 0.9rem 0.85rem 0.35rem;
-	text-transform: uppercase;
-}
-
-.vd-panel-divider {
-	height: 1px;
-	background: rgba(83, 185, 219, 0.07);
-	margin: 0.6rem 0.85rem;
-}
-
-.vd-panel-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 4px;
-	padding: 0 8px;
-}
-
-.vd-panel-grid--single {
-	grid-template-columns: 1fr;
-}
-
-.vd-panel-btn {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 0.3rem;
-	background: rgba(255, 255, 255, 0.02);
-	border: 1px solid rgba(83, 185, 219, 0.06);
-	border-radius: 10px;
-	padding: 0.7rem 0.25rem 0.55rem;
-	cursor: pointer;
-	font-family: 'Codec Pro', sans-serif;
-	color: rgba(255, 255, 255, 0.45);
-	transition: all 0.18s ease;
-	min-height: 62px;
-	position: relative;
-	overflow: hidden;
-}
-
-.vd-panel-btn::before {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background: radial-gradient(ellipse at 50% 0%, rgba(83, 185, 219, 0.08) 0%, transparent 70%);
-	opacity: 0;
-	transition: opacity 0.2s;
-}
-
-.vd-panel-btn:hover::before {
-	opacity: 1;
-}
-
-.vd-panel-btn:hover {
-	background: rgba(16, 109, 160, 0.18);
-	border-color: rgba(83, 185, 219, 0.25);
-	color: #e2f4fc;
-	transform: translateY(-1px);
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-}
-
-.vd-panel-btn:active {
-	transform: translateY(0);
-}
-
-.vd-panel-btn.activo {
-	background: rgba(16, 109, 160, 0.35);
-	border-color: rgba(83, 185, 219, 0.55);
-	color: #53B9DB;
-	box-shadow: 0 0 12px rgba(83, 185, 219, 0.12), inset 0 1px 0 rgba(83, 185, 219, 0.15);
-}
-
-.vd-panel-btn.activo::before {
-	opacity: 1;
-}
-
-.vd-panel-btn.activo .vd-panel-icon {
-	opacity: 1;
-	filter: brightness(0) saturate(100%) invert(61%) sepia(60%) saturate(400%) hue-rotate(165deg) brightness(110%);
-}
-
-.vd-panel-btn.cine-on {
-	background: rgba(76, 175, 80, 0.15);
-	border-color: rgba(76, 175, 80, 0.4);
-	color: #81C784;
-	animation: pulse-cine 1.2s ease-in-out infinite;
-}
-
-.vd-panel-icon {
-	width: 26px;
-	height: 26px;
-	object-fit: contain;
-	opacity: 0.6;
-	filter: brightness(0) invert(1);
-	transition: opacity 0.18s, filter 0.18s;
-}
-
-.vd-panel-btn:hover .vd-panel-icon {
-	opacity: 0.95;
-}
-
-.vd-panel-emoji {
-	font-size: 1.25rem;
-	line-height: 1;
-}
-
-.vd-panel-label {
-	font-size: 0.58rem;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	max-width: 100%;
-	font-weight: 500;
-}
-
-.vd-submenu-panel {
-	border-top: 1px solid rgba(83, 185, 219, 0.07);
-	padding-top: 0.3rem;
-	margin-top: 0.3rem;
 }
 
 .vd-paciente-chip {
@@ -256,15 +98,70 @@
 
 .vd-tools-group,
 .vd-actions-group {
-	display: none;
+	display: flex;
+	gap: 0.1rem;
 }
 
 .vd-separator {
-	display: none;
+	width: 1px;
+	height: 32px;
+	background: rgba(73, 178, 212, 0.2);
+	flex-shrink: 0;
+	margin: 0 0.25rem;
 }
 
 .vd-tool-btn {
-	display: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.1rem;
+	background: transparent;
+	border: 1px solid transparent;
+	color: rgba(255, 255, 255, 0.6);
+	padding: 0.28rem 0.55rem;
+	border-radius: 5px;
+	cursor: pointer;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.65rem;
+	min-width: 44px;
+	white-space: nowrap;
+	transition: all 0.12s;
+	flex-shrink: 0;
+}
+
+.vd-tool-btn img {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	opacity: 0.75;
+}
+
+.vd-tool-btn span:first-child {
+	font-size: 0.95rem;
+	line-height: 1;
+}
+
+.vd-tool-btn:hover {
+	background: rgba(73, 178, 212, 0.12);
+	color: #fff;
+	border-color: rgba(73, 178, 212, 0.2);
+}
+
+.vd-tool-btn.activo {
+	background: rgba(16, 109, 160, 0.4);
+	color: #53B9DB;
+	border-color: rgba(83, 185, 219, 0.45);
+}
+
+.vd-tool-btn.activo img {
+	opacity: 1;
+}
+
+.vd-tool-btn.cine-on {
+	background: rgba(76, 175, 80, 0.25);
+	color: #81C784;
+	border-color: rgba(76, 175, 80, 0.4);
+	animation: pulse-cine 1s ease-in-out infinite;
 }
 
 @keyframes pulse-cine {
@@ -283,13 +180,12 @@
 	flex: 1;
 	display: flex;
 	overflow: hidden;
-	background: #040b16;
 }
 
 .vd-sidebar {
-	width: 100px;
-	background: #060e1c;
-	border-right: 1px solid rgba(83, 185, 219, 0.07);
+	width: 220px;
+	background: #0b1220;
+	border-right: 1px solid rgba(73, 178, 212, 0.12);
 	display: flex;
 	flex-direction: column;
 	flex-shrink: 0;
@@ -299,58 +195,56 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 0.5rem 0.6rem;
-	border-bottom: 1px solid rgba(83, 185, 219, 0.07);
-	font-size: 0.6rem;
-	color: rgba(255, 255, 255, 0.3);
+	padding: 0.55rem 0.75rem;
+	border-bottom: 1px solid rgba(73, 178, 212, 0.12);
+	font-size: 0.75rem;
+	color: rgba(255, 255, 255, 0.45);
 	text-transform: uppercase;
-	letter-spacing: 0.1em;
+	letter-spacing: 0.06em;
 }
 
 .vd-serie-count {
-	background: rgba(83, 185, 219, 0.15);
-	color: rgba(83, 185, 219, 0.8);
-	font-size: 0.6rem;
-	padding: 0.1rem 0.4rem;
+	background: rgba(73, 178, 212, 0.25);
+	color: #53B9DB;
+	font-size: 0.68rem;
+	padding: 0.1rem 0.45rem;
 	border-radius: 10px;
-	border: 1px solid rgba(83, 185, 219, 0.2);
 }
 
 .vd-miniaturas {
 	flex: 1;
 	overflow-y: auto;
-	padding: 0.4rem;
+	padding: 0.5rem;
 	display: flex;
 	flex-direction: column;
-	gap: 0.35rem;
+	gap: 0.5rem;
 }
 
 .vd-miniaturas::-webkit-scrollbar {
-	width: 2px;
+	width: 4px;
 }
 
 .vd-miniaturas::-webkit-scrollbar-thumb {
-	background: rgba(73, 178, 212, 0.15);
+	background: rgba(73, 178, 212, 0.2);
 	border-radius: 2px;
 }
 
 .vd-miniatura {
-	border: 1px solid rgba(83, 185, 219, 0.1);
-	border-radius: 6px;
+	border: 2px solid rgba(73, 178, 212, 0.12);
+	border-radius: 8px;
 	cursor: pointer;
 	overflow: hidden;
-	transition: all 0.15s;
-	background: rgba(13, 67, 105, 0.1);
+	transition: all 0.12s;
+	background: rgba(13, 67, 105, 0.15);
 }
 
 .vd-miniatura:hover {
-	border-color: rgba(83, 185, 219, 0.4);
+	border-color: rgba(73, 178, 212, 0.45);
 }
 
 .vd-miniatura.activa {
 	border-color: #53B9DB;
-	background: rgba(83, 185, 219, 0.08);
-	box-shadow: 0 0 8px rgba(83, 185, 219, 0.15);
+	background: rgba(83, 185, 219, 0.12);
 }
 
 .vd-mini-img {
@@ -574,22 +468,21 @@
 .vd-grid {
 	flex: 1;
 	display: grid;
-	gap: 1px;
-	background: #050c18;
+	gap: 2px;
+	background: #111;
 }
 
 .panel-imagen {
 	position: relative;
 	background: #000;
 	overflow: hidden;
-	border: 1px solid rgba(83, 185, 219, 0.05);
+	border: 1px solid rgba(73, 178, 212, 0.08);
 	cursor: crosshair;
-	transition: border-color 0.15s;
+	transition: border-color 0.12s;
 }
 
 .panel-imagen.activo {
-	border-color: rgba(83, 185, 219, 0.4);
-	box-shadow: inset 0 0 0 1px rgba(83, 185, 219, 0.15);
+	border-color: rgba(73, 178, 212, 0.5);
 }
 
 .cornerstone-element {
@@ -775,6 +668,25 @@
 	background: rgba(73, 178, 212, 0.25);
 }
 
+@media (max-width: 900px) {
+	.vd-sidebar {
+		width: 100px;
+	}
+
+	.vd-paciente-chip {
+		display: none;
+	}
+
+	.vd-tool-btn span:last-child {
+		display: none;
+	}
+
+	.vd-tool-btn {
+		min-width: 36px;
+		padding: 0.3rem;
+	}
+}
+
 .overlay-canvas {
 	position: absolute;
 	top: 0;
@@ -868,9 +780,11 @@
 	z-index: 199;
 }
 
+/* ── Barra secundaria Más ────────────────────────────────────────── */
 .vd-mas-bar {
 	position: fixed;
-	top: var(--toolbar-bottom, 56px);
+	top: var(--toolbar-bottom, 112px);
+	/* header ~56px + toolbar 56px */
 	left: 50%;
 	transform: translateX(-50%);
 	display: flex;
@@ -939,6 +853,7 @@
 	opacity: 1;
 }
 
+/* ── Toast notificación ──────────────────────────────────────────── */
 .vd-toast {
 	position: fixed;
 	bottom: 32px;
@@ -969,6 +884,7 @@
 	}
 }
 
+/* ── Modal genérico (Referente, etc.) ───────────────────────────────────── */
 .vd-modal-backdrop {
 	position: fixed;
 	inset: 0;
@@ -1092,6 +1008,7 @@
 	cursor: not-allowed;
 }
 
+/* ── Modal — chip radiólogo actual ─────────────────────────────────────── */
 .vd-modal-chip {
 	display: inline-block;
 	background: rgba(16, 109, 160, 0.35);
@@ -1103,6 +1020,7 @@
 	margin-bottom: 1rem;
 }
 
+/* ── Modal — lista de items ─────────────────────────────────────────────── */
 .vd-modal-list {
 	max-height: 320px;
 	overflow-y: auto;
@@ -1137,6 +1055,7 @@
 	font-weight: 600;
 }
 
+/* ── Modal Prioridad — overlay/box/toggle ───────────────────────────────── */
 .vd-modal-overlay {
 	position: fixed;
 	inset: 0;
@@ -1167,6 +1086,7 @@
 	font-size: 0.9rem;
 }
 
+/* "Aceptar" azul — alias de btn-primary */
 .vd-modal-btn-ok {
 	background: #106DA0;
 	border: none;
@@ -1189,6 +1109,7 @@
 	cursor: not-allowed;
 }
 
+/* ── Toggle switch prioridad ────────────────────────────────────────────── */
 .vd-prioridad-row {
 	display: flex;
 	align-items: center;
@@ -1237,6 +1158,7 @@
 	transform: translateX(20px);
 }
 
+/* ── Modal Comentarios ───────────────────────────────────────────────────── */
 .vd-modal-comentarios {
 	width: min(560px, 94vw);
 	max-height: 80vh;
@@ -1274,9 +1196,11 @@
 }
 
 .vd-coment-textarea--edit {
+	rows: 2;
 	margin-bottom: 0.5rem;
 }
 
+/* Lista */
 .vd-coment-lista {
 	overflow-y: auto;
 	scrollbar-width: thin;
@@ -1288,12 +1212,14 @@
 	gap: 0.85rem;
 }
 
+/* Item individual */
 .vd-coment-item {
 	display: flex;
 	align-items: flex-start;
 	gap: 0.75rem;
 }
 
+/* Avatar circular con iniciales */
 .vd-coment-avatar {
 	flex-shrink: 0;
 	width: 36px;
@@ -1327,6 +1253,7 @@
 	color: rgba(150, 185, 210, 0.65);
 }
 
+/* Botones editar / eliminar */
 .vd-coment-actions {
 	display: flex;
 	gap: 0.35rem;
@@ -1355,6 +1282,7 @@
 	background: rgba(220, 60, 60, 0.15);
 }
 
+/* Acciones dentro del modo edición */
 .vd-coment-edit-actions {
 	display: flex;
 	gap: 0.5rem;
@@ -1367,29 +1295,30 @@
 	font-size: 0.82rem !important;
 }
 
+/* Iconos imagen en botones de comentarios */
 .vd-coment-icon {
 	width: 15px;
 	height: 15px;
 	object-fit: contain;
 	display: block;
-	opacity: 0.85 !important;
+	opacity: 0.65;
 	transition: opacity 0.15s;
-	filter: brightness(0) invert(1) !important;
+	filter: brightness(0) invert(1);
 }
 
 .vd-coment-action-btn:hover .vd-coment-icon {
-	opacity: 1 !important;
+	opacity: 1;
 }
 
 .vd-coment-icon--del {
-	filter: brightness(0) saturate(100%) invert(40%) sepia(90%) saturate(700%) hue-rotate(320deg) !important;
-	opacity: 0.85 !important;
+	filter: brightness(0) saturate(100%) invert(30%) sepia(80%) saturate(600%) hue-rotate(330deg);
 }
 
 .vd-coment-action-btn--del:hover .vd-coment-icon--del {
-	opacity: 1 !important;
+	opacity: 1;
 }
 
+/* ── MODAL ETIQUETAS ──────────────────────────────────────────── */
 .vd-modal-etiquetas {
 	width: min(620px, 94vw);
 	min-height: unset;
@@ -1403,6 +1332,39 @@
 .vd-modal-etiquetas .vd-etiq-row {
 	padding: 0 1.6rem;
 	gap: 20px;
+}
+
+.vd-etiq-label {
+	font-size: 13.5px;
+}
+
+.vd-etiq-input-wrap {
+	padding: 10px 14px;
+	gap: 8px;
+	min-height: 48px;
+}
+
+.vd-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 20px;
+}
+
+.vd-modal-close {
+	background: none;
+	border: none;
+	color: var(--color-accent, #49B2D4);
+	font-size: 16px;
+	cursor: pointer;
+	padding: 2px 6px;
+	line-height: 1;
+	opacity: 0.8;
+	transition: opacity 0.15s;
+}
+
+.vd-modal-close:hover {
+	opacity: 1;
 }
 
 .vd-etiq-row {
@@ -1446,7 +1408,7 @@
 	background: rgba(73, 178, 212, 0.18);
 	border: 1px solid rgba(83, 185, 219, 0.4);
 	border-radius: 20px;
-	padding: 2px 10px;
+	padding: 2px 10px 2px 10px;
 	font-size: 12.5px;
 	color: #d6f3fc;
 	white-space: nowrap;
@@ -1513,6 +1475,26 @@
 	color: #49B2D4;
 }
 
+/* ── BRILLO ICONOS COMENTARIOS (fix) ────────────────────────────── */
+.vd-coment-icon {
+	opacity: 0.85 !important;
+	filter: brightness(0) invert(1) !important;
+}
+
+.vd-coment-action-btn:hover .vd-coment-icon {
+	opacity: 1 !important;
+}
+
+.vd-coment-icon--del {
+	filter: brightness(0) saturate(100%) invert(40%) sepia(90%) saturate(700%) hue-rotate(320deg) !important;
+	opacity: 0.85 !important;
+}
+
+.vd-coment-action-btn--del:hover .vd-coment-icon--del {
+	opacity: 1 !important;
+}
+
+/* ── MODAL MÉTRICAS ────────────────────────────────────────────── */
 .vd-modal-metricas {
 	width: min(560px, 94vw);
 }
@@ -1560,6 +1542,7 @@
 	text-overflow: ellipsis;
 }
 
+/* ── MODAL FICHA CLÍNICA ───────────────────────────────────────── */
 .vd-modal-ficha {
 	width: min(640px, 96vw);
 	max-height: 88vh;
@@ -1585,6 +1568,7 @@
 	font-weight: 400;
 }
 
+/* ── Scroll body ── */
 .vd-ficha-body {
 	flex: 1;
 	overflow-y: auto;
@@ -1602,6 +1586,7 @@
 	border-radius: 4px;
 }
 
+/* ── Sección colapsable ── */
 .vd-ficha-seccion {
 	border-bottom: 1px solid rgba(83, 185, 219, 0.08);
 }
@@ -1639,6 +1624,7 @@
 	transition: transform 0.2s;
 }
 
+/* ── Grid de campos ── */
 .vd-ficha-grid {
 	padding: 1rem 1.6rem 1.1rem;
 	display: flex;
@@ -1702,6 +1688,7 @@ select.vd-ficha-input option {
 	color: #fff;
 }
 
+/* ── Footer botones (Reiniciar / Guardar) ── */
 .vd-ficha-footer {
 	display: flex;
 	gap: 0.6rem;
@@ -1712,6 +1699,7 @@ select.vd-ficha-input option {
 	justify-content: flex-end;
 }
 
+/* ── Tabla historial ── */
 .vd-ficha-tabla-wrap {
 	padding: 0.6rem 1.6rem 1rem;
 	overflow-x: auto;
@@ -1753,6 +1741,7 @@ select.vd-ficha-input option {
 	padding: 1.2rem 1.6rem;
 }
 
+/* ── Sección solicitud ── */
 .vd-ficha-solicitud {
 	padding: 0.75rem 1.6rem 1.1rem;
 }
@@ -1802,6 +1791,7 @@ select.vd-ficha-input option {
 	margin-top: 0.3rem;
 }
 
+/* ── Sección comentarios (dentro de ficha) ── */
 .vd-ficha-coment-item {
 	display: flex;
 	align-items: flex-start;
