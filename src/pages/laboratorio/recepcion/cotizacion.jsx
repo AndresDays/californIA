@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import empresaIcono from "../../../assets/empresaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
-import Header from '../../../components/header-principal.jsx';
-import Layout from "../../../components/layout.jsx";
-import SidebarHome from '../../../components/sidebar-home.jsx';
+import ModalNotificacion from "../../../components/ModalNotificacion";
+import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
@@ -12,65 +10,57 @@ import "./cotizacion.css";
 
 const Cotizacion = () => {
 	const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [nombrePaciente, setNombrePaciente] = useState("");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [condicionesPaciente, setCondicionesPaciente] = useState("");
-
 	const [buscarCotizacion, setBuscarCotizacion] = useState("");
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [empresas, setEmpresas] = useState([]);
-
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
-
 	const [total, setTotal] = useState(0);
 	const [descuento, setDescuento] = useState(0);
 	const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
-
 	const [empleadoData, setEmpleadoData] = useState(null);
+	const [notificacion, setNotificacion] = useState({
+		isOpen: false,
+		mensaje: "",
+		tipo: "exito",
+	});
 
-    useEffect(() => {
-        const fetchEmpleadoData = async () => {
-          if (!user?.id) return;
-
-          try {
-            const { data: empleado, error } = await supabase
-              .from('empleados')
-              .select('nombre, rol')
-              .eq('auth_uuid', user.id)
-              .maybeSingle();
-
-            if (error) {
-              console.error('Error al obtener empleado:', error);
-              return;
-            }
-
-            if (empleado) {
-              setEmpleadoData(empleado);
-            }
-          } catch (error) {
-            console.error('Error al obtener datos del empleado:', error);
-          }
-        };
-
-        fetchEmpleadoData();
-      }, [user]);
+	useEffect(() => {
+		const fetchEmpleadoData = async () => {
+			if (!user?.id) return;
+			try {
+				const { data: empleado, error } = await supabase
+					.from("empleados")
+					.select("nombre, rol")
+					.eq("auth_uuid", user.id)
+					.maybeSingle();
+				if (!error && empleado) setEmpleadoData(empleado);
+			} catch (error) {
+				console.error("Error:", error);
+			}
+		};
+		fetchEmpleadoData();
+	}, [user]);
 
 	useEffect(() => {
 		cargarCotizaciones();
 		cargarEmpresas();
 		cargarEstudiosDisponibles();
 	}, []);
-
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
+
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
+		setNotificacion({ isOpen: true, mensaje, tipo });
+	const cerrarNotificacion = () =>
+		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
 
 	const cargarEmpresas = async () => {
 		try {
@@ -78,7 +68,6 @@ const Cotizacion = () => {
 				.from("clientes")
 				.select("id_cliente, nombre")
 				.order("nombre");
-
 			if (error) throw error;
 			setEmpresas(data || []);
 		} catch (error) {
@@ -92,7 +81,6 @@ const Cotizacion = () => {
 				.from("estudios_lab_catalogo")
 				.select("id, clave, descripcion, area")
 				.order("clave");
-
 			if (error) throw error;
 			setEstudiosDisponibles(data || []);
 		} catch (error) {
@@ -106,21 +94,12 @@ const Cotizacion = () => {
 				.from("cotizaciones")
 				.select(
 					`
-          id_cotizacion,
-          numero_cotizacion,
-          nombre_paciente,
-          estudios,
-          total,
-          descuento,
-          descuento_porcentaje,
-          fecha_cotizacion,
-          clientes (
-            nombre
-          )
-        `
+				id_cotizacion, numero_cotizacion, nombre_paciente, estudios,
+				total, descuento, descuento_porcentaje, fecha_cotizacion,
+				clientes (nombre)
+			`,
 				)
 				.order("fecha_cotizacion", { ascending: false });
-
 			if (error) throw error;
 			setCotizaciones(data || []);
 		} catch (error) {
@@ -130,69 +109,56 @@ const Cotizacion = () => {
 
 	const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
 		try {
-			if (!nombreEmpresa) {
-				return 150;
-			}
-
+			if (!nombreEmpresa) return 150;
 			const { data, error } = await supabase
 				.from("precios_estudios")
 				.select("precio")
 				.eq("clave", claveEstudio)
 				.eq("cliente", nombreEmpresa)
 				.single();
-
-			if (error) {
-				return 150;
-			}
-
+			if (error) return 150;
 			return parseFloat(data.precio);
 		} catch (error) {
-			console.error("Error al obtener precio:", error);
 			return 150;
 		}
 	};
 
 	const agregarEstudio = async (estudio) => {
 		if (estudiosSeleccionados.find((e) => e.id === estudio.id)) {
-			alert("Este estudio ya fue agregado");
+			mostrarNotificacion("Este estudio ya fue agregado", "advertencia");
 			return;
 		}
-
 		const empresaObj = empresas.find(
-			(emp) => emp.id_cliente.toString() === empresaSeleccionada.toString()
+			(emp) => emp.id_cliente.toString() === empresaSeleccionada.toString(),
 		);
-		const nombreEmpresa = empresaObj ? empresaObj.nombre : "";
-
-		const precioEstudio = await obtenerPrecioEstudio(estudio.clave, nombreEmpresa);
-
-		const estudioConPrecio = {
-			...estudio,
-			precio: precioEstudio,
-			tipo: estudio.area || "Laboratorio",
-			diasProceso: 1,
-		};
-
-		setEstudiosSeleccionados([...estudiosSeleccionados, estudioConPrecio]);
+		const precioEstudio = await obtenerPrecioEstudio(
+			estudio.clave,
+			empresaObj?.nombre || "",
+		);
+		setEstudiosSeleccionados([
+			...estudiosSeleccionados,
+			{
+				...estudio,
+				precio: precioEstudio,
+				tipo: estudio.area || "Laboratorio",
+				diasProceso: 1,
+			},
+		]);
 		setBuscarEstudio("");
 		setShowBusquedaEstudios(false);
 	};
 
-	const eliminarEstudio = (id) => {
+	const eliminarEstudio = (id) =>
 		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.id !== id));
-	};
 
 	const calcularTotales = () => {
 		const subtotal = estudiosSeleccionados.reduce(
 			(sum, est) => sum + (parseFloat(est.precio) || 0),
-			0
+			0,
 		);
 		setTotal(subtotal);
-
-		let descuentoCalc = 0;
-		if (descuentoPorcentaje > 0) {
-			descuentoCalc = subtotal * (descuentoPorcentaje / 100);
-			setDescuento(descuentoCalc);
-		}
+		if (descuentoPorcentaje > 0)
+			setDescuento(subtotal * (descuentoPorcentaje / 100));
 	};
 
 	const generarNumeroCotizacion = async () => {
@@ -200,14 +166,13 @@ const Cotizacion = () => {
 		const dia = String(ahora.getDate()).padStart(2, "0");
 		const mes = String(ahora.getMonth() + 1).padStart(2, "0");
 		const anio = String(ahora.getFullYear()).slice(-2);
-
 		const inicioDia = new Date(
 			ahora.getFullYear(),
 			ahora.getMonth(),
 			ahora.getDate(),
 			0,
 			0,
-			0
+			0,
 		);
 		const finDia = new Date(
 			ahora.getFullYear(),
@@ -215,22 +180,15 @@ const Cotizacion = () => {
 			ahora.getDate(),
 			23,
 			59,
-			59
+			59,
 		);
-
 		const { count, error } = await supabase
 			.from("cotizaciones")
 			.select("*", { count: "exact", head: true })
 			.gte("fecha_cotizacion", inicioDia.toISOString())
 			.lte("fecha_cotizacion", finDia.toISOString());
-
-		if (error) {
-			console.error("Error al contar cotizaciones:", error);
-		}
-
-		const numeroSecuencial = String((count || 0) + 1).padStart(4, "0");
-
-		return `COT-${dia}${mes}${anio}${numeroSecuencial}`;
+		if (error) console.error("Error al contar cotizaciones:", error);
+		return `COT-${dia}${mes}${anio}${String((count || 0) + 1).padStart(4, "0")}`;
 	};
 
 	const abrirPDFCotizacion = async (cotizacion) => {
@@ -251,31 +209,21 @@ const Cotizacion = () => {
 			total: parseFloat(cotizacion.total),
 			descuentoPercent: parseFloat(cotizacion.descuento_porcentaje || 0),
 		};
-
 		await generarPDFCotizacion(datosTicket);
 	};
 
 	const handleGuardarGenerar = async () => {
 		if (!nombrePaciente.trim()) {
-			alert("Por favor ingrese el nombre del paciente");
+			mostrarNotificacion("Por favor ingrese el nombre del paciente", "advertencia");
 			return;
 		}
-
 		if (estudiosSeleccionados.length === 0) {
-			alert("Por favor agregue al menos un estudio");
+			mostrarNotificacion("Por favor agregue al menos un estudio", "advertencia");
 			return;
 		}
-
 		try {
 			const numeroCotizacion = await generarNumeroCotizacion();
 			const totalFinal = total - descuento;
-
-			const estudiosParaGuardar = estudiosSeleccionados.map((est) => ({
-				clave: est.clave,
-				descripcion: est.descripcion,
-				precio: est.precio,
-			}));
-
 			const { data, error } = await supabase
 				.from("cotizaciones")
 				.insert([
@@ -284,31 +232,33 @@ const Cotizacion = () => {
 						nombre_paciente: nombrePaciente,
 						id_cliente: empresaSeleccionada || null,
 						condiciones_paciente: condicionesPaciente || null,
-						estudios: estudiosParaGuardar,
+						estudios: estudiosSeleccionados.map((est) => ({
+							clave: est.clave,
+							descripcion: est.descripcion,
+							precio: est.precio,
+						})),
 						subtotal: total,
-						descuento: descuento,
+						descuento,
 						descuento_porcentaje: descuentoPorcentaje,
 						total: totalFinal,
 					},
 				])
 				.select()
 				.single();
-
 			if (error) throw error;
-
-			alert("¡Cotización guardada exitosamente!");
-
+			mostrarNotificacion("¡Cotización guardada exitosamente!", "exito");
 			await abrirPDFCotizacion({
 				...data,
 				fecha_cotizacion: new Date().toISOString(),
 			});
-
 			await cargarCotizaciones();
-
 			limpiarFormulario();
 		} catch (error) {
 			console.error("Error al guardar cotización:", error);
-			alert("Error al guardar la cotización: " + error.message);
+			mostrarNotificacion(
+				"Error al guardar la cotización: " + error.message,
+				"error",
+			);
 		}
 	};
 
@@ -326,108 +276,61 @@ const Cotizacion = () => {
 	};
 
 	const handleEnviarWhatsAppCotizacion = (cotizacion) => {
-		const mensaje = `
-Cotización ${cotizacion.numero_cotizacion}
-Paciente: ${cotizacion.nombre_paciente}
-Total: $${cotizacion.total}
-
-Descarga de resultados:
-sistema.centraldiagnosticacalifornia.com/resultados/
-    `.trim();
-
-		const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-		window.open(url, "_blank");
+		const mensaje = `Cotización ${cotizacion.numero_cotizacion}\nPaciente: ${cotizacion.nombre_paciente}\nTotal: $${cotizacion.total}`;
+		window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, "_blank");
 	};
 
 	const handleEnviarCorreoCotizacion = (cotizacion) => {
-		alert(
-			`Función de envío por correo en desarrollo para: ${cotizacion.nombre_paciente}`
+		mostrarNotificacion(
+			`Función de envío por correo en desarrollo para: ${cotizacion.nombre_paciente}`,
+			"info",
 		);
 	};
 
-	const handleEnviarWhatsApp = () => {
-		if (!nombrePaciente) {
-			alert("Primero guarde la cotización");
-			return;
-		}
-		alert("Primero debe guardar la cotización");
-	};
-
-	const handleEnviarCorreo = () => {
-		if (!nombrePaciente) {
-			alert("Primero guarde la cotización");
-			return;
-		}
-		alert("Primero debe guardar la cotización");
-	};
-
 	const filtrarEstudios = (termino) => {
-		if (termino.length < 2) {
-			setShowBusquedaEstudios(false);
-			return;
-		}
-		setShowBusquedaEstudios(true);
+		setShowBusquedaEstudios(termino.length >= 2);
 	};
 
 	const estudiosFiltrados = estudiosDisponibles.filter(
 		(est) =>
 			est.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-			est.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
+			est.clave.toLowerCase().includes(buscarEstudio.toLowerCase()),
 	);
 
 	const cotizacionesFiltradas = cotizaciones.filter(
 		(cot) =>
 			cot.nombre_paciente.toLowerCase().includes(buscarCotizacion.toLowerCase()) ||
-			cot.numero_cotizacion.toLowerCase().includes(buscarCotizacion.toLowerCase())
+			cot.numero_cotizacion.toLowerCase().includes(buscarCotizacion.toLowerCase()),
 	);
 
-    const getPrimerNombre = (nombreCompleto) => {
-                 if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-                 return nombreCompleto;
-               };
+	const getPrimerNombre = (nombreCompleto) => {
+		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
+		return nombreCompleto;
+	};
 
-     const formatRol = (rol) => {
-         if (!rol) return 'Usuario';
-
-         const roles = {
-           'admin': 'Administrador',
-           'administrador': 'Administrador',
-           'radiologo': 'Radiólogo - Director',
-           'doctor': 'Médico',
-           'medico': 'Médico',
-           'tecnico_radiologia': 'Técnico en Radiología',
-           'tecnico': 'Técnico',
-           'quimico': 'Químico',
-           'recepcionista': 'Recepcionista',
-           'desarrollador': 'Desarrollador'
-         };
-
-         return roles[rol] || rol;
-       };
-
-   const handleLogout = async () => {
-     const { signOut } = useAuth();
-     await signOut();
-     navigate('/login');
-   };
+	const formatRol = (rol) => {
+		if (!rol) return "Usuario";
+		const roles = {
+			admin: "Administrador",
+			administrador: "Administrador",
+			radiologo: "Radiólogo - Director",
+			doctor: "Médico",
+			medico: "Médico",
+			tecnico_radiologia: "Técnico en Radiología",
+			tecnico: "Técnico",
+			quimico: "Químico",
+			recepcionista: "Recepcionista",
+			desarrollador: "Desarrollador",
+		};
+		return roles[rol] || rol;
+	};
 
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="cotizacion-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="editar-solicitud"
-				/>
-
-				<SidebarHome />
-
 				<div className="cotizacion-header">
 					<h1 className="cotizacion-title">Cotización</h1>
 				</div>
@@ -436,7 +339,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 					<div className="panel-datos-cotizacion">
 						<div className="datos-cotizacion-section">
 							<h2 className="section-title turquesa">Datos para Cotización</h2>
-
 							<div className="campo-icon-grupo">
 								<img src={pacienteIcono} alt="Paciente" className="icon-img" />
 								<input
@@ -447,7 +349,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 									className="input-nombre-paciente"
 								/>
 							</div>
-
 							<div className="campo-icon-grupo">
 								<img src={empresaIcono} alt="Cliente" className="icon-img" />
 								<select
@@ -462,7 +363,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 									))}
 								</select>
 							</div>
-
 							<div className="condiciones-grupo">
 								<label>Condiciones del paciente</label>
 								<textarea
@@ -477,7 +377,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 
 						<div className="historial-cotizaciones-section">
 							<h2 className="section-title amarillo">Historial Cotizaciones</h2>
-
 							<div className="buscar-cotizacion-grupo">
 								<input
 									type="text"
@@ -487,7 +386,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 									className="input-buscar-cotizacion"
 								/>
 							</div>
-
 							<div className="tabla-cotizaciones-container">
 								<table className="tabla-cotizaciones">
 									<thead>
@@ -542,7 +440,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 									</tbody>
 								</table>
 							</div>
-
 							<div className="cotizaciones-footer">
 								Mostrando {cotizacionesFiltradas.length} de {cotizaciones.length}{" "}
 								cotizaciones
@@ -553,10 +450,7 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 					<div className="panel-estudios-cotizacion">
 						<div className="agrega-estudios-section">
 							<h2 className="section-title amarillo">Agrega Estudios</h2>
-
-							<div
-								className="buscar-estudios-grupo-cot"
-								style={{ position: "relative" }}>
+							<div className="buscar-estudios-grupo-cot">
 								<input
 									type="text"
 									placeholder="Busca Estudios Aqui..."
@@ -567,7 +461,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 									}}
 									className="input-buscar-estudios-cot"
 								/>
-
 								{showBusquedaEstudios && buscarEstudio.length >= 2 && (
 									<div className="search-results-estudios-cot">
 										{estudiosFiltrados.slice(0, 10).map((est) => (
@@ -590,8 +483,8 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 											<th>Descripcion</th>
 											<th>Tipo</th>
 											<th>Precio</th>
-											<th>Días Proceso</th>
-											<th>Acciones</th>
+											<th>Días</th>
+											<th>✖</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -608,7 +501,7 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 													<td>{estudio.descripcion}</td>
 													<td>{estudio.tipo}</td>
 													<td>${estudio.precio.toFixed(2)}</td>
-													<td>{estudio.diasProceso} días</td>
+													<td>{estudio.diasProceso}</td>
 													<td>
 														<button
 															className="btn-borrar-estudio-cot"
@@ -633,7 +526,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 										className="input-total-cot"
 									/>
 								</div>
-
 								<div className="campo-total-cot">
 									<label>Descuento $</label>
 									<input
@@ -643,7 +535,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 										className="input-descuento-cot"
 									/>
 								</div>
-
 								<div className="campo-total-cot">
 									<label>Descuento %</label>
 									<input
@@ -655,7 +546,6 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 										className="input-descuento-pct-cot"
 									/>
 								</div>
-
 								<div className="campo-total-cot">
 									<label>Total Final</label>
 									<input
@@ -668,21 +558,36 @@ sistema.centraldiagnosticacalifornia.com/resultados/
 							</div>
 
 							<div className="botones-cotizacion">
-								<button className="btn-whatsapp-cot" onClick={handleEnviarWhatsApp}>
-									💬 ENVIAR POR WHATSAPP
+								<button
+									className="btn-whatsapp-cot"
+									onClick={() =>
+										mostrarNotificacion("Primero debe guardar la cotización", "info")
+									}>
+									💬 WHATSAPP
 								</button>
 								<button className="btn-guardar-cot" onClick={handleGuardarGenerar}>
-									GUARDAR / GENERAR TICKET
+									GUARDAR / GENERAR
 								</button>
-								<button className="btn-correo-cot" onClick={handleEnviarCorreo}>
-									✉️ ENVIAR POR CORREO
+								<button
+									className="btn-correo-cot"
+									onClick={() =>
+										mostrarNotificacion("Primero debe guardar la cotización", "info")
+									}>
+									✉️ CORREO
 								</button>
 							</div>
 						</div>
 					</div>
 				</div>
+
+				<ModalNotificacion
+					isOpen={notificacion.isOpen}
+					onClose={cerrarNotificacion}
+					mensaje={notificacion.mensaje}
+					tipo={notificacion.tipo}
+				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 

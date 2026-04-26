@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/header-principal.jsx";
-import Layout from "../../components/layout.jsx";
-import SidebarHome from "../../components/sidebar-home";
+import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { generarTicketVenta } from "../../utils/generarTicketVenta";
@@ -730,21 +728,11 @@ const NuevoPaciente = () => {
 	};
 
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="nuevo-paciente-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="nuevo-paciente"
-				/>
-
-				<SidebarHome />
 
 				<main className="page-main">
 					<div className="content-grid">
@@ -1223,7 +1211,7 @@ const NuevoPaciente = () => {
 					onSeleccionar={handleSeleccionarCotizacion}
 				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 

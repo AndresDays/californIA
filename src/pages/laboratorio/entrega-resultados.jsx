@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
@@ -7,10 +7,8 @@ import imprimirBtn from "../../assets/imprimirBtn.png";
 import imprimirIcono from "../../assets/imprimirIcono.png";
 import lupaIcono from "../../assets/lupaIcono.png";
 import relojIcono from "../../assets/relojIcono.png";
-import Header from "../../components/header-principal.jsx";
-import Layout from "../../components/layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
-import SidebarHome from "../../components/sidebar-home.jsx";
+import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import "./entrega-resultados.css";
@@ -18,8 +16,6 @@ import "./entrega-resultados.css";
 const EntregaResultados = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [fechaInicial, setFechaInicial] = useState(
 		new Date().toISOString().split("T")[0],
@@ -27,21 +23,16 @@ const EntregaResultados = () => {
 	const [fechaFinal, setFechaFinal] = useState(
 		new Date().toISOString().split("T")[0],
 	);
-
 	const [buscarFolio, setBuscarFolio] = useState("");
 	const [buscarNombre, setBuscarNombre] = useState("");
-
 	const [ventas, setVentas] = useState([]);
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [estudiosVenta, setEstudiosVenta] = useState([]);
-
 	const [idioma, setIdioma] = useState("español");
 	const [mediaPagina, setMediaPagina] = useState(false);
 	const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
 	const [observacionesEntrega, setObservacionesEntrega] = useState("");
-
 	const [empleadoData, setEmpleadoData] = useState(null);
-
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
@@ -61,11 +52,9 @@ const EntregaResultados = () => {
 					console.error("Error al obtener empleado:", error);
 					return;
 				}
-				if (empleado) {
-					setEmpleadoData(empleado);
-				}
+				if (empleado) setEmpleadoData(empleado);
 			} catch (error) {
-				console.error("Error al obtener datos del empleado:", error);
+				console.error("Error:", error);
 			}
 		};
 		fetchEmpleadoData();
@@ -75,13 +64,10 @@ const EntregaResultados = () => {
 		cargarVentas();
 	}, [fechaInicial, fechaFinal]);
 
-	const mostrarNotificacion = (mensaje, tipo = "exito") => {
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
-	};
-
-	const cerrarNotificacion = () => {
+	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
-	};
 
 	const cargarVentas = async () => {
 		try {
@@ -89,10 +75,10 @@ const EntregaResultados = () => {
 				.from("ventas")
 				.select(
 					`
-          id_venta, folio, fecha_venta, estado, total, pago_recibido,
-          pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
-          estudios_venta ( id_estudio_venta, estado_validacion, entregado )
-        `,
+				id_venta, folio, fecha_venta, estado, total, pago_recibido,
+				pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
+				estudios_venta ( id_estudio_venta, estado_validacion, entregado )
+			`,
 				)
 				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
 				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
@@ -139,12 +125,10 @@ const EntregaResultados = () => {
 				.eq("id_estudio_venta", idEstudioVenta);
 			if (error) throw error;
 			mostrarNotificacion("Estudio marcado como entregado", "exito");
-			if (ventaSeleccionada) {
-				await cargarEstudiosVenta(ventaSeleccionada.id_venta);
-			}
+			if (ventaSeleccionada) await cargarEstudiosVenta(ventaSeleccionada.id_venta);
 			await cargarVentas();
 		} catch (error) {
-			console.error("Error al marcar como entregado:", error);
+			console.error("Error:", error);
 			mostrarNotificacion("Error al marcar como entregado", "error");
 		}
 	};
@@ -156,7 +140,6 @@ const EntregaResultados = () => {
 		}
 		window.print();
 	};
-
 	const enviarEmail = () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
@@ -164,7 +147,6 @@ const EntregaResultados = () => {
 		}
 		mostrarNotificacion("Función de envío por email en desarrollo", "info");
 	};
-
 	const enviarWhatsApp = () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
@@ -179,9 +161,7 @@ const EntregaResultados = () => {
 		const nacimiento = new Date(fechaNacimiento);
 		let edad = hoy.getFullYear() - nacimiento.getFullYear();
 		const mes = hoy.getMonth() - nacimiento.getMonth();
-		if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-			edad--;
-		}
+		if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
 		return `${edad} años`;
 	};
 
@@ -192,29 +172,12 @@ const EntregaResultados = () => {
 	};
 
 	const calcularSaldo = (total, pagoRecibido) => {
-		const totalNum = parseFloat(total) || 0;
-		const pagoNum = parseFloat(pagoRecibido) || 0;
-		const saldo = totalNum - pagoNum;
+		const saldo = (parseFloat(total) || 0) - (parseFloat(pagoRecibido) || 0);
 		return saldo > 0 ? saldo.toFixed(2) : "0.00";
-	};
-
-	const formatFechaHora = (fecha) => {
-		if (!fecha) return "N/A";
-		return new Date(fecha).toLocaleString("es-MX", {
-			day: "2-digit",
-			month: "2-digit",
-			year: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-		});
 	};
 
 	const obtenerIconoEstado = (estadoValidacion) => {
 		switch (estadoValidacion) {
-			case "captura":
-				return (
-					<img src={relojIcono} alt="En Captura" className="icono-estado-img" />
-				);
 			case "guardado":
 				return (
 					<img src={imprimirIcono} alt="Guardado" className="icono-estado-img" />
@@ -230,8 +193,6 @@ const EntregaResultados = () => {
 
 	const obtenerTextoEstado = (estadoValidacion) => {
 		switch (estadoValidacion) {
-			case "captura":
-				return "En Captura";
 			case "guardado":
 				return "Guardado";
 			case "validado":
@@ -273,29 +234,12 @@ const EntregaResultados = () => {
 		return roles[rol] || rol;
 	};
 
-	const handleLogout = async () => {
-		const { signOut } = useAuth();
-		await signOut();
-		navigate("/login");
-	};
-
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="entrega-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="entrega"
-				/>
-
-				<SidebarHome />
-
 				<div className="entrega-header-section">
 					<h1 className="entrega-titulo">Entrega de Resultados</h1>
 				</div>
@@ -316,7 +260,6 @@ const EntregaResultados = () => {
 								className="input-fecha"
 							/>
 						</div>
-
 						<div className="filtro-fecha">
 							<img
 								src={calendarioIcono}
@@ -332,14 +275,15 @@ const EntregaResultados = () => {
 							/>
 						</div>
 
-						<div className="filtro-busqueda">
-							<img src={lupaIcono} alt="Lupa" className="icono-lupa" />
+						{/* Buscador con lupa integrada */}
+						<div className="filtro-busqueda-lupa">
+							<img src={lupaIcono} alt="Lupa" className="icono-lupa-inline" />
 							<input
 								type="text"
 								placeholder="Buscar por Folio..."
 								value={buscarFolio}
 								onChange={(e) => setBuscarFolio(e.target.value)}
-								className="input-busqueda"
+								className="input-busqueda-con-lupa"
 							/>
 						</div>
 
@@ -351,7 +295,6 @@ const EntregaResultados = () => {
 							/>
 							Media Página
 						</label>
-
 						<label className="checkbox-inline">
 							<input
 								type="checkbox"
@@ -360,7 +303,6 @@ const EntregaResultados = () => {
 							/>
 							Imprimir Encabezado y Pie de Página
 						</label>
-
 						<select
 							value={idioma}
 							onChange={(e) => setIdioma(e.target.value)}
@@ -368,7 +310,6 @@ const EntregaResultados = () => {
 							<option value="español">Español</option>
 							<option value="english">English</option>
 						</select>
-
 						<button className="btn-imprimir-img" onClick={imprimir}>
 							<img src={imprimirBtn} alt="Imprimir" className="icono-btn-imprimir" />
 						</button>
@@ -391,7 +332,6 @@ const EntregaResultados = () => {
 							onChange={(e) => setBuscarNombre(e.target.value)}
 							className="input-buscar-nombre"
 						/>
-
 						<div className="tabla-pacientes-container">
 							<table className="tabla-pacientes-entrega">
 								<thead>
@@ -438,7 +378,6 @@ const EntregaResultados = () => {
 								</tbody>
 							</table>
 						</div>
-
 						<div className="info-registros">
 							Mostrando registros del 1 al 6 de un total de {ventasFiltradas.length}
 						</div>
@@ -458,7 +397,6 @@ const EntregaResultados = () => {
 								<img src={guardarIcono} alt="Guardar" className="icono-guardar" />
 							</button>
 						</div>
-
 						<div className="historial-impresiones">
 							<h3>Historial de Impresiones</h3>
 							<p className="texto-descargado">
@@ -469,7 +407,6 @@ const EntregaResultados = () => {
 								})}
 							</p>
 						</div>
-
 						<div className="tabla-estudios-container">
 							<table className="tabla-estudios-entrega">
 								<thead>
@@ -551,7 +488,7 @@ const EntregaResultados = () => {
 					tipo={notificacion.tipo}
 				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 

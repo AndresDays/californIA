@@ -6,16 +6,18 @@
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
 	color: white;
-	background-image: url('../assets/FONDO.jpg');
-	background-size: cover;
-	background-position: center;
-	background-attachment: fixed;
+	background-image: none !important;
+	background: transparent !important;
+	overflow-x: hidden;
+	box-sizing: border-box;
 }
 
 .cierre-caja-header {
-	padding: 1.5rem 2rem;
+	padding: 1rem 2rem 1rem 120px;
 	background: rgba(10, 25, 41, 0.8);
 	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .cierre-caja-title {
@@ -24,19 +26,16 @@
 	font-weight: 400;
 	color: white;
 	letter-spacing: 1px;
-	padding-left: 90px;
-	transition: padding-left 0.3s ease;
 }
 
 .cierre-caja-content {
 	flex: 1;
-	padding: 1.5rem;
+	padding: 1.5rem 1.5rem 1.5rem 120px;
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
-	overflow: auto;
-	padding-left: 120px;
-	transition: padding-left 0.3s ease;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .controles-cierre {
@@ -50,7 +49,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.4rem;
-	min-width: 200px;
+	min-width: 180px;
 }
 
 .fecha-actual-grupo label {
@@ -59,7 +58,7 @@
 	font-weight: 500;
 	display: flex;
 	align-items: center;
-	gap: 0.3rem;
+	gap: 0.4rem;
 }
 
 .input-fecha-cierre {
@@ -71,17 +70,18 @@
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	font-weight: 500;
+	box-sizing: border-box;
 }
 
 .input-fecha-cierre:focus {
 	outline: none;
 	border-color: rgba(212, 160, 23, 0.8);
-	background: rgba(212, 160, 23, 0.5);
 }
 
 .sucursal-grupo,
 .usuario-grupo {
 	flex: 1;
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
@@ -89,12 +89,17 @@
 	border: 1px solid rgba(111, 179, 210, 0.3);
 	border-radius: 6px;
 	padding: 0 0.85rem;
-	min-width: 250px;
+}
+
+.sucursal-grupo:focus-within,
+.usuario-grupo:focus-within {
+	border-color: #6FB3D2;
 }
 
 .select-sucursal-cierre,
 .select-usuario-cierre {
 	flex: 1;
+	min-width: 0;
 	padding: 0.65rem 0;
 	background: transparent;
 	border: none;
@@ -117,7 +122,7 @@
 
 .botones-accion-cierre {
 	display: flex;
-	gap: 1rem;
+	gap: 0.75rem;
 	flex-wrap: wrap;
 }
 
@@ -125,46 +130,46 @@
 .btn-nuevo-movimiento,
 .btn-imprimir-detalle,
 .btn-imprimir-sucursal {
-	padding: 0.7rem 1.5rem;
+	padding: 0.7rem 1.25rem;
 	border: none;
 	border-radius: 6px;
 	color: white;
 	font-family: 'Codec Pro', sans-serif;
-	font-size: 0.9rem;
+	font-size: 0.88rem;
 	font-weight: 600;
 	cursor: pointer;
-	transition: all 0.3s;
-	text-transform: capitalize;
+	transition: all 0.2s;
+	white-space: nowrap;
 }
 
 .btn-apertura-caja {
-	background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+	background: linear-gradient(135deg, #007bff, #0056b3);
 }
 
 .btn-apertura-caja:hover {
-	background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+	background: linear-gradient(135deg, #0056b3, #004085);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
 .btn-nuevo-movimiento {
-	background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+	background: linear-gradient(135deg, #17a2b8, #138496);
 }
 
 .btn-nuevo-movimiento:hover {
-	background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+	background: linear-gradient(135deg, #138496, #117a8b);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
 }
 
 .btn-imprimir-detalle,
 .btn-imprimir-sucursal {
-	background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+	background: linear-gradient(135deg, #28a745, #218838);
 }
 
 .btn-imprimir-detalle:hover,
 .btn-imprimir-sucursal:hover {
-	background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+	background: linear-gradient(135deg, #218838, #1e7e34);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
 }
@@ -192,6 +197,8 @@
 	font-size: 1.1rem;
 	font-weight: 600;
 	text-align: center;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .input-monto-apertura:focus {
@@ -208,18 +215,23 @@
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
 	gap: 1.25rem;
+	animation: fadeIn 0.5s ease;
 }
 
 .campo-cierre {
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+	min-width: 0;
 }
 
 .campo-cierre label {
-	font-size: 0.85rem;
+	font-size: 0.82rem;
 	color: rgba(255, 255, 255, 0.9);
 	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .input-campo-cierre {
@@ -232,11 +244,17 @@
 	font-size: 0.95rem;
 	font-weight: 500;
 	text-align: right;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .input-campo-cierre:focus {
 	outline: none;
-	box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.input-campo-cierre:read-only {
+	cursor: not-allowed;
+	opacity: 0.9;
 }
 
 .campo-cierre.verde .input-campo-cierre {
@@ -272,16 +290,29 @@
 	display: grid;
 	grid-template-columns: 1fr 1fr 1fr 1fr;
 	gap: 1.25rem;
-	padding: 1rem 0;
+	animation: fadeIn 0.5s ease;
 }
 
 .espacio-vacio {
 	grid-column: span 1;
 }
 
-.input-campo-cierre:read-only {
-	cursor: not-allowed;
-	opacity: 0.9;
+.icono-label-cierre {
+	width: 16px;
+	height: 16px;
+	object-fit: contain;
+	opacity: 0.85;
+	flex-shrink: 0;
+	filter: brightness(0) invert(1);
+}
+
+.icono-campo-cierre {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	flex-shrink: 0;
+	opacity: 0.8;
+	filter: brightness(0) invert(1);
 }
 
 @keyframes fadeIn {
@@ -296,28 +327,6 @@
 	}
 }
 
-.campos-cierre-grid,
-.totales-finales-cierre {
-	animation: fadeIn 0.5s ease;
-}
-
-/* ── Iconos PNG ── */
-.icono-label-cierre {
-	width: 16px;
-	height: 16px;
-	object-fit: contain;
-	opacity: 0.85;
-	flex-shrink: 0;
-}
-
-.icono-campo-cierre {
-	width: 18px;
-	height: 18px;
-	object-fit: contain;
-	flex-shrink: 0;
-	opacity: 0.8;
-}
-
 @media (max-width: 1400px) {
 	.campos-cierre-grid {
 		grid-template-columns: repeat(2, 1fr);
@@ -328,16 +337,18 @@
 	}
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
 	.cierre-caja-header {
-		padding: 1rem;
+		padding: 1rem !important;
 	}
 
 	.cierre-caja-content {
-		padding: 1rem;
+		padding: 1rem !important;
 		gap: 1rem;
 	}
+}
 
+@media (max-width: 768px) {
 	.controles-cierre {
 		flex-direction: column;
 		align-items: stretch;
@@ -347,6 +358,7 @@
 	.sucursal-grupo,
 	.usuario-grupo {
 		min-width: 100%;
+		width: 100%;
 	}
 
 	.botones-accion-cierre {

@@ -1013,10 +1013,6 @@ body, html {
 .stat-card:nth-child(3) { animation-delay: 0.3s; }
 .stat-card:nth-child(4) { animation-delay: 0.4s; }
 
-/* ========================================
-   CONTENT HEADER - AJUSTE DE SPACING
-   ======================================== */
-
 .content-header {
   display: flex;
   justify-content: space-between;
@@ -1024,10 +1020,6 @@ body, html {
   margin-bottom: 2rem;
   gap: 2rem;
 }
-
-/* ========================================
-   BOTÓN NUEVA CITA - IMAGEN
-   ======================================== */
 
 .btn-new-appointment {
   background: transparent !important;
@@ -1062,7 +1054,6 @@ body, html {
   transform-origin: right center;
 }
 
-/* Responsive ajuste */
 @media (max-width: 768px) {
   .btn-new-appointment-img {
     height: 60px;
@@ -1145,4 +1136,17 @@ body, html {
 
 .module-card:hover .module-btn-img {
   transform: scale(1.05);
+}
+
+@media (max-width: 1023px) {
+	.content-header {
+		flex-direction: column !important;
+		align-items: flex-start !important;
+		gap: 1rem !important;
+	}
+
+	.btn-new-appointment {
+		width: auto !important;
+		align-self: flex-end !important;
+	}
 }

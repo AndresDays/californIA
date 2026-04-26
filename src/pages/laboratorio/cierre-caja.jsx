@@ -1,20 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import empresaIcono from "../../assets/empresaIcono.png";
 import pacienteIcono from "../../assets/pacientesIcono.png";
-import Header from "../../components/header-principal.jsx";
-import Layout from "../../components/layout.jsx";
-import SidebarHome from "../../components/sidebar-home.jsx";
+import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import "./cierre-caja.css";
 
 const CierreCaja = () => {
 	const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [fechaActual, setFechaActual] = useState(
 		new Date().toISOString().split("T")[0],
@@ -24,33 +18,26 @@ const CierreCaja = () => {
 	const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(
 		"JUAN ANDRES DIAZ RODRIGUEZ",
 	);
-
 	const [montoApertura, setMontoApertura] = useState(0);
-
 	const [ventasEfectivo, setVentasEfectivo] = useState(0);
 	const [ingresosEfectivo, setIngresosEfectivo] = useState(0);
 	const [egresosEfectivo, setEgresosEfectivo] = useState(0);
 	const [totalEfectivo, setTotalEfectivo] = useState(0);
-
 	const [ventasTarjeta, setVentasTarjeta] = useState(0);
 	const [ingresosTarjeta, setIngresosTarjeta] = useState(0);
 	const [egresosTarjeta, setEgresosTarjeta] = useState(0);
 	const [totalTarjeta, setTotalTarjeta] = useState(0);
-
 	const [transferencias, setTransferencias] = useState(0);
 	const [ingresosTransferencias, setIngresosTransferencias] = useState(0);
 	const [egresosTransferencias, setEgresosTransferencias] = useState(0);
 	const [totalTransferencias, setTotalTransferencias] = useState(0);
-
 	const [credito, setCredito] = useState(0);
 	const [ingresosCredito, setIngresosCredito] = useState(0);
 	const [egresosCredito, setEgresosCredito] = useState(0);
 	const [totalCredito, setTotalCredito] = useState(0);
-
 	const [montoCancelados, setMontoCancelados] = useState(0);
 	const [totalEnCaja, setTotalEnCaja] = useState(0);
 	const [totalAdeudos, setTotalAdeudos] = useState(0);
-
 	const [empleadoData, setEmpleadoData] = useState(null);
 
 	useEffect(() => {
@@ -62,21 +49,14 @@ const CierreCaja = () => {
 					.select("nombre, rol")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
-				if (error) {
-					console.error("Error al obtener empleado:", error);
-					return;
-				}
-				if (empleado) setEmpleadoData(empleado);
+				if (!error && empleado) setEmpleadoData(empleado);
 			} catch (error) {
-				console.error("Error al obtener datos del empleado:", error);
+				console.error("Error:", error);
 			}
 		};
 		fetchEmpleadoData();
-	}, [user]);
-
-	useEffect(() => {
 		cargarSucursales();
-	}, []);
+	}, [user]);
 
 	useEffect(() => {
 		calcularTotales();
@@ -121,34 +101,20 @@ const CierreCaja = () => {
 		setTotalTarjeta(totTarjeta);
 		setTotalTransferencias(totTransferencias);
 		setTotalCredito(totCredito);
-		const totCaja =
+		setTotalEnCaja(
 			montoApertura +
-			totEfectivo +
-			totTarjeta +
-			totTransferencias +
-			totCredito -
-			montoCancelados;
-		setTotalEnCaja(totCaja);
-	};
-
-	const handleAperturaCaja = () => {
-		alert("Apertura de caja realizada");
-	};
-	const handleNuevoMovimiento = () => {
-		alert("Registrar nuevo movimiento");
-	};
-	const handleImprimirDetalle = () => {
-		window.print();
-	};
-	const handleImprimirDetalleSucursal = () => {
-		alert("Imprimir detalle de sucursal");
+				totEfectivo +
+				totTarjeta +
+				totTransferencias +
+				totCredito -
+				montoCancelados,
+		);
 	};
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
 		return nombreCompleto;
 	};
-
 	const formatRol = (rol) => {
 		if (!rol) return "Usuario";
 		const roles = {
@@ -166,29 +132,12 @@ const CierreCaja = () => {
 		return roles[rol] || rol;
 	};
 
-	const handleLogout = async () => {
-		const { signOut } = useAuth();
-		await signOut();
-		navigate("/login");
-	};
-
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="cierre-caja-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="cierre-caja"
-				/>
-
-				<SidebarHome />
-
 				<div className="cierre-caja-header">
 					<h1 className="cierre-caja-title">Cierre Caja</h1>
 				</div>
@@ -211,7 +160,6 @@ const CierreCaja = () => {
 								className="input-fecha-cierre"
 							/>
 						</div>
-
 						<div className="sucursal-grupo">
 							<img src={empresaIcono} alt="Empresa" className="icono-campo-cierre" />
 							<select
@@ -219,14 +167,13 @@ const CierreCaja = () => {
 								onChange={(e) => setSucursalSeleccionada(e.target.value)}
 								className="select-sucursal-cierre">
 								<option value="">Selecciona una Sucursal</option>
-								{sucursales.map((sucursal) => (
-									<option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
-										{sucursal.nombre}
+								{sucursales.map((s) => (
+									<option key={s.id_sucursal} value={s.id_sucursal}>
+										{s.nombre}
 									</option>
 								))}
 							</select>
 						</div>
-
 						<div className="usuario-grupo">
 							<img
 								src={pacienteIcono}
@@ -246,18 +193,22 @@ const CierreCaja = () => {
 					</div>
 
 					<div className="botones-accion-cierre">
-						<button className="btn-apertura-caja" onClick={handleAperturaCaja}>
+						<button
+							className="btn-apertura-caja"
+							onClick={() => alert("Apertura de caja realizada")}>
 							Apertura Caja
 						</button>
-						<button className="btn-nuevo-movimiento" onClick={handleNuevoMovimiento}>
+						<button
+							className="btn-nuevo-movimiento"
+							onClick={() => alert("Registrar nuevo movimiento")}>
 							Nuevo movimiento
 						</button>
-						<button className="btn-imprimir-detalle" onClick={handleImprimirDetalle}>
+						<button className="btn-imprimir-detalle" onClick={() => window.print()}>
 							Imprimir Detalle Caja
 						</button>
 						<button
 							className="btn-imprimir-sucursal"
-							onClick={handleImprimirDetalleSucursal}>
+							onClick={() => alert("Imprimir detalle de sucursal")}>
 							Imprimir Detalle Caja Sucursal
 						</button>
 					</div>
@@ -460,7 +411,7 @@ const CierreCaja = () => {
 					</div>
 				</div>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 

@@ -18,7 +18,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 	const [expandedMenus, setExpandedMenus] = useState({});
 
 	const menuItems = [
-		{ id: "dashboard", label: "Inicio", icon: inicioIcono, path: "/laboratorio" },
+		{ id: "dashboard", label: "Inicio", icon: inicioIcono, path: "/dashboard" },
 		{
 			id: "nuevo-paciente",
 			label: "Nuevo Paciente",

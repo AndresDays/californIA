@@ -6,18 +6,18 @@
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
 	color: white;
-	background-image: url('../assets/FONDO.jpg');
-	background-size: cover;
-	background-position: center;
-	background-attachment: fixed;
+	background-image: none !important;
+	background: transparent !important;
+	overflow-x: hidden;
+	box-sizing: border-box;
 }
 
 .cotizacion-header {
-	padding: 1.5rem 2rem;
+	padding: 1rem 2rem 1rem 120px;
 	background: rgba(10, 25, 41, 0.8);
 	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
-	padding-left: 120px;
-    transition: padding-left 0.3s ease;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .cotizacion-title {
@@ -33,16 +33,16 @@
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 1.5rem;
-	padding: 1.5rem;
-	overflow: auto;
-	padding-left: 120px;
-    transition: padding-left 0.3s ease;
+	padding: 1.5rem 1.5rem 1.5rem 120px;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .panel-datos-cotizacion {
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
+	min-width: 0;
 }
 
 .datos-cotizacion-section {
@@ -57,21 +57,20 @@
 }
 
 .section-title {
-	margin: 0 0 1rem 0;
+	margin: 0 0 0.5rem 0;
 	font-size: 1.1rem;
 	font-weight: 500;
 	padding-bottom: 0.75rem;
 	letter-spacing: 0.5px;
+	color: white;
 }
 
 .section-title.turquesa {
 	border-bottom: 2px solid #53B9DB;
-	color: white;
 }
 
 .section-title.amarillo {
 	border-bottom: 2px solid #53B9DB;
-	color: white;
 }
 
 .campo-icon-grupo {
@@ -82,22 +81,25 @@
 	border: 1px solid rgba(111, 179, 210, 0.3);
 	border-radius: 6px;
 	padding: 0 0.75rem;
+	min-width: 0;
 }
 
-.campo-icon-grupo .icon {
-	font-size: 1.2rem;
-	color: rgba(255, 255, 255, 0.6);
+.campo-icon-grupo:focus-within {
+	border-color: #6FB3D2;
 }
 
 .icon-img {
-	width: 24px;
-	height: 24px;
-	filter: invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+	width: 22px;
+	height: 22px;
+	filter: brightness(0) invert(1);
+	opacity: 0.7;
+	flex-shrink: 0;
 }
 
 .input-nombre-paciente,
 .select-empresa-cot {
 	flex: 1;
+	min-width: 0;
 	padding: 0.75rem 0;
 	background: transparent;
 	border: none;
@@ -146,7 +148,8 @@
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	resize: vertical;
-	min-height: 80px;
+	min-height: 70px;
+	box-sizing: border-box;
 }
 
 .textarea-condiciones:focus {
@@ -168,6 +171,7 @@
 	flex-direction: column;
 	gap: 1rem;
 	flex: 1;
+	min-width: 0;
 }
 
 .buscar-cotizacion-grupo {
@@ -183,6 +187,8 @@
 	color: white;
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .input-buscar-cotizacion:focus {
@@ -196,14 +202,17 @@
 
 .tabla-cotizaciones-container {
 	flex: 1;
+	overflow-x: auto;
 	overflow-y: auto;
 	border: 1px solid rgba(111, 179, 210, 0.2);
 	border-radius: 8px;
+	max-height: 220px;
 }
 
 .tabla-cotizaciones {
 	width: 100%;
 	border-collapse: collapse;
+	min-width: 360px;
 }
 
 .tabla-cotizaciones thead {
@@ -214,11 +223,11 @@
 }
 
 .tabla-cotizaciones th {
-	padding: 0.8rem 0.6rem;
+	padding: 0.7rem 0.6rem;
 	text-align: left;
 	font-weight: 500;
 	color: white;
-	font-size: 0.85rem;
+	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
@@ -233,70 +242,40 @@
 	background: rgba(111, 179, 210, 0.1);
 }
 
-.tabla-cotizaciones tbody tr.highlighted {
-	background: rgba(40, 167, 69, 0.2);
-	border-left: 3px solid #28a745;
-}
-
 .tabla-cotizaciones td {
-	padding: 0.8rem 0.6rem;
+	padding: 0.7rem 0.6rem;
 	color: rgba(255, 255, 255, 0.9);
-	font-size: 0.9rem;
+	font-size: 0.875rem;
 }
 
 .btn-accion-tabla {
-	padding: 0.4rem 0.9rem;
+	padding: 0.35rem 0.75rem;
 	border: none;
 	border-radius: 4px;
 	color: white;
 	font-family: 'Codec Pro', sans-serif;
-	font-size: 0.85rem;
+	font-size: 0.82rem;
 	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s;
 }
 
-.btn-accion-tabla.azul {
-	background: #6FB3D2;
-}
-
-.btn-accion-tabla.azul:hover {
-	background: #5A9DBE;
-	transform: scale(1.05);
-}
-
-.btn-accion-tabla.verde-whatsapp {
-	background: #6FB3D2;
-}
-
-.btn-accion-tabla.verde-whatsapp:hover {
-	background: #5A9DBE;
-	transform: scale(1.05);
-}
-
+.btn-accion-tabla.azul,
+.btn-accion-tabla.verde-whatsapp,
 .btn-accion-tabla.azul-correo {
 	background: #6FB3D2;
 }
 
-.btn-accion-tabla.azul-correo:hover {
-	background: #5A9DBE;
-	transform: scale(1.05);
-}
-
-.btn-accion-tabla.turquesa {
-	background: #6FB3D2;
-}
-
-.btn-accion-tabla.turquesa:hover {
+.btn-accion-tabla:hover {
 	background: #5A9DBE;
 	transform: scale(1.05);
 }
 
 .cotizaciones-footer {
-	padding: 0.75rem;
+	padding: 0.6rem;
 	background: rgba(10, 25, 41, 0.5);
 	border-radius: 6px;
-	font-size: 0.85rem;
+	font-size: 0.82rem;
 	color: rgba(255, 255, 255, 0.7);
 	text-align: center;
 }
@@ -304,6 +283,7 @@
 .panel-estudios-cotizacion {
 	display: flex;
 	flex-direction: column;
+	min-width: 0;
 }
 
 .agrega-estudios-section {
@@ -316,16 +296,16 @@
 	flex-direction: column;
 	gap: 1rem;
 	height: 100%;
+	min-width: 0;
 }
 
 .buscar-estudios-grupo-cot {
-	display: flex;
 	position: relative;
-	z-index: 1;
+	z-index: 10;
 }
 
 .input-buscar-estudios-cot {
-	flex: 1;
+	width: 100%;
 	padding: 0.7rem 0.9rem;
 	background: rgba(10, 25, 41, 0.6);
 	border: 1px solid rgba(111, 179, 210, 0.3);
@@ -333,6 +313,7 @@
 	color: white;
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
+	box-sizing: border-box;
 }
 
 .input-buscar-estudios-cot:focus {
@@ -353,19 +334,19 @@
 	backdrop-filter: blur(10px);
 	border: 1px solid rgba(111, 179, 210, 0.3);
 	border-radius: 8px;
-	margin-top: 0.5rem;
-	max-height: 300px;
+	margin-top: 0.4rem;
+	max-height: 280px;
 	overflow-y: auto;
 	z-index: 101;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .search-result-item-cot {
-	padding: 0.9rem 1rem;
+	padding: 0.8rem 1rem;
 	cursor: pointer;
 	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
 	transition: all 0.2s;
-	font-size: 0.9rem;
+	font-size: 0.88rem;
 	color: rgba(255, 255, 255, 0.9);
 }
 
@@ -381,37 +362,22 @@
 
 .search-result-item-cot strong {
 	color: #6FB3D2;
-	margin-right: 0.5rem;
-}
-
-.search-results-estudios-cot::-webkit-scrollbar {
-	width: 6px;
-}
-
-.search-results-estudios-cot::-webkit-scrollbar-track {
-	background: rgba(40, 50, 60, 0.3);
-	border-radius: 3px;
-}
-
-.search-results-estudios-cot::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
-	border-radius: 3px;
-}
-
-.search-results-estudios-cot::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
+	margin-right: 0.4rem;
 }
 
 .tabla-estudios-cot-container {
 	flex: 1;
+	overflow-x: auto;
 	overflow-y: auto;
 	border: 1px solid rgba(111, 179, 210, 0.2);
 	border-radius: 8px;
+	max-height: 240px;
 }
 
 .tabla-estudios-cot {
 	width: 100%;
 	border-collapse: collapse;
+	min-width: 400px;
 }
 
 .tabla-estudios-cot thead {
@@ -422,11 +388,11 @@
 }
 
 .tabla-estudios-cot th {
-	padding: 0.8rem 0.6rem;
+	padding: 0.7rem 0.6rem;
 	text-align: left;
 	font-weight: 500;
 	color: white;
-	font-size: 0.85rem;
+	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
@@ -442,14 +408,14 @@
 }
 
 .tabla-estudios-cot td {
-	padding: 0.8rem 0.6rem;
+	padding: 0.7rem 0.6rem;
 	color: rgba(255, 255, 255, 0.9);
-	font-size: 0.88rem;
+	font-size: 0.875rem;
 }
 
 .sin-estudios-cot {
 	text-align: center;
-	padding: 3rem !important;
+	padding: 2.5rem !important;
 	color: rgba(255, 255, 255, 0.5);
 	font-style: italic;
 }
@@ -473,8 +439,8 @@
 .totales-cotizacion {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 1rem;
-	padding-top: 1rem;
+	gap: 0.75rem;
+	padding-top: 0.75rem;
 	border-top: 1px solid rgba(111, 179, 210, 0.2);
 }
 
@@ -482,22 +448,26 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.4rem;
+	min-width: 0;
 }
 
 .campo-total-cot label {
-	font-size: 0.85rem;
+	font-size: 0.82rem;
 	color: rgba(255, 255, 255, 0.8);
 	font-weight: 500;
+	white-space: nowrap;
 }
 
 .campo-total-cot input {
-	padding: 0.65rem;
+	padding: 0.6rem;
 	background: rgba(10, 25, 41, 0.6);
 	border: 1px solid rgba(111, 179, 210, 0.3);
 	border-radius: 6px;
 	color: white;
 	font-family: 'Codec Pro', sans-serif;
-	font-size: 0.9rem;
+	font-size: 0.875rem;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .campo-total-cot input:focus {
@@ -509,13 +479,12 @@
 	background: rgba(111, 179, 210, 0.2) !important;
 	border-color: #6FB3D2 !important;
 	font-weight: 600 !important;
-	font-size: 1rem !important;
 }
 
 .botones-cotizacion {
 	display: flex;
-	gap: 1rem;
-	padding-top: 1rem;
+	gap: 0.75rem;
+	padding-top: 0.75rem;
 	border-top: 1px solid rgba(111, 179, 210, 0.2);
 	flex-wrap: wrap;
 }
@@ -524,44 +493,24 @@
 .btn-guardar-cot,
 .btn-correo-cot {
 	flex: 1;
-	padding: 0.8rem 1.5rem;
+	padding: 0.75rem 1rem;
 	border: none;
 	border-radius: 6px;
 	color: white;
 	font-family: 'Codec Pro', sans-serif;
-	font-size: 0.9rem;
+	font-size: 0.85rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.3s;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-	min-width: 180px;
-}
-
-.btn-whatsapp-cot {
 	background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+	min-width: 0;
+	white-space: nowrap;
 }
 
-.btn-whatsapp-cot:hover {
-	background: linear-gradient(135deg, #5A9DBE 0%, #4A8DAE 100%);
-	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
-}
-
-.btn-guardar-cot {
-	background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
-}
-
-.btn-guardar-cot:hover {
-	background: linear-gradient(135deg, #5A9DBE 0%, #4A8DAE 100%);
-	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
-}
-
-.btn-correo-cot {
-	background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
-}
-
+.btn-whatsapp-cot:hover,
+.btn-guardar-cot:hover,
 .btn-correo-cot:hover {
 	background: linear-gradient(135deg, #5A9DBE 0%, #4A8DAE 100%);
 	transform: translateY(-2px);
@@ -569,34 +518,34 @@
 }
 
 .tabla-cotizaciones-container::-webkit-scrollbar,
-.tabla-estudios-cot-container::-webkit-scrollbar {
-	width: 8px;
+.tabla-estudios-cot-container::-webkit-scrollbar,
+.search-results-estudios-cot::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
 }
 
 .tabla-cotizaciones-container::-webkit-scrollbar-track,
-.tabla-estudios-cot-container::-webkit-scrollbar-track {
+.tabla-estudios-cot-container::-webkit-scrollbar-track,
+.search-results-estudios-cot::-webkit-scrollbar-track {
 	background: rgba(10, 25, 41, 0.3);
 }
 
 .tabla-cotizaciones-container::-webkit-scrollbar-thumb,
-.tabla-estudios-cot-container::-webkit-scrollbar-thumb {
+.tabla-estudios-cot-container::-webkit-scrollbar-thumb,
+.search-results-estudios-cot::-webkit-scrollbar-thumb {
 	background: rgba(111, 179, 210, 0.5);
 	border-radius: 4px;
 }
 
-.tabla-cotizaciones-container::-webkit-scrollbar-thumb:hover,
-.tabla-estudios-cot-container::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
-}
-
-@media (max-width: 1200px) {
-	.cotizacion-content {
-		grid-template-columns: 1fr;
+@media (max-width: 1023px) {
+	.cotizacion-header {
+		padding: 1rem !important;
 	}
 
-	.panel-datos-cotizacion {
-		max-height: 60vh;
-		overflow-y: auto;
+	.cotizacion-content {
+		grid-template-columns: 1fr !important;
+		padding: 1rem !important;
+		gap: 1rem;
 	}
 
 	.totales-cotizacion {
@@ -604,27 +553,12 @@
 	}
 }
 
-@media (max-width: 768px) {
-	.cotizacion-header {
-		padding: 1rem;
-	}
-
-	.cotizacion-content {
-		padding: 1rem;
+@media (max-width: 480px) {
+	.totales-cotizacion {
+		grid-template-columns: 1fr;
 	}
 
 	.botones-cotizacion {
 		flex-direction: column;
-	}
-
-	.btn-whatsapp-cot,
-	.btn-guardar-cot,
-	.btn-correo-cot {
-		width: 100%;
-		min-width: 100%;
-	}
-
-	.totales-cotizacion {
-		grid-template-columns: 1fr;
 	}
 }

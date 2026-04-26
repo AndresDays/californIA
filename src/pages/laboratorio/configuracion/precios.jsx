@@ -1,266 +1,163 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Header from '../../../components/header-principal.jsx';
-import Layout from '../../../components/layout.jsx';
-import SidebarHome from '../../../components/sidebar-home.jsx';
-import { useAuth } from '../../../context/auth-context';
-import { supabase } from '../../../lib/supabase-client';
-import ModalAgregarPrecio from '../componentes/modal-agregar-precio';
-import './precios.css';
+import { useEffect, useState } from "react";
+import PageLayout from "../../../components/page-layout.jsx";
+import { useAuth } from "../../../context/auth-context";
+import { supabase } from "../../../lib/supabase-client";
+import ModalAgregarPrecio from "../componentes/modal-agregar-precio";
+import "./precios.css";
 
 const Precios = () => {
-  const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
+	const { user } = useAuth();
 
-  const [empresaFiltro, setEmpresaFiltro] = useState('');
-  const [buscarPrecio, setBuscarPrecio] = useState('');
-  const [precios, setPrecios] = useState([]);
-  const [registrosPorPagina, setRegistrosPorPagina] = useState(100);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [totalPrecios, setTotalPrecios] = useState(0);
-  const [seleccionados, setSeleccionados] = useState([]);
+	const [empresaFiltro, setEmpresaFiltro] = useState("");
+	const [buscarPrecio, setBuscarPrecio] = useState("");
+	const [precios, setPrecios] = useState([]);
+	const [registrosPorPagina, setRegistrosPorPagina] = useState(100);
+	const [paginaActual, setPaginaActual] = useState(1);
+	const [totalPrecios, setTotalPrecios] = useState(0);
+	const [seleccionados, setSeleccionados] = useState([]);
+	const [modalAbierto, setModalAbierto] = useState(false);
+	const [precioEditar, setPrecioEditar] = useState(null);
+	const [empleadoData, setEmpleadoData] = useState(null);
 
-  const [modalAbierto, setModalAbierto] = useState(false);
-  const [precioEditar, setPrecioEditar] = useState(null);
+	useEffect(() => {
+		const fetchEmpleadoData = async () => {
+			if (!user?.id) return;
+			try {
+				const { data: empleado, error } = await supabase
+					.from("empleados")
+					.select("nombre, rol")
+					.eq("auth_uuid", user.id)
+					.maybeSingle();
+				if (!error && empleado) setEmpleadoData(empleado);
+			} catch (error) {
+				console.error("Error:", error);
+			}
+		};
+		fetchEmpleadoData();
+	}, [user]);
 
-  const [empleadoData, setEmpleadoData] = useState(null);
+	useEffect(() => {
+		cargarPrecios();
+	}, [paginaActual, registrosPorPagina, buscarPrecio, empresaFiltro]);
 
-      useEffect(() => {
-          const fetchEmpleadoData = async () => {
-            if (!user?.id) return;
+	const cargarPrecios = async () => {
+		try {
+			let query = supabase.from("precios_estudios").select("*", { count: "exact" });
+			if (buscarPrecio.trim())
+				query = query.or(
+					`clave.ilike.%${buscarPrecio}%,descripcion.ilike.%${buscarPrecio}%,empresa.ilike.%${buscarPrecio}%`,
+				);
+			if (empresaFiltro) query = query.eq("empresa", empresaFiltro);
+			const desde = (paginaActual - 1) * registrosPorPagina;
+			const { data, error, count } = await query
+				.range(desde, desde + registrosPorPagina - 1)
+				.order("id", { ascending: true });
+			if (error) throw error;
+			setTotalPrecios(count || 0);
+			setPrecios(data || []);
+		} catch (error) {
+			console.error("Error al cargar precios:", error);
+		}
+	};
 
-            try {
-              const { data: empleado, error } = await supabase
-                .from('empleados')
-                .select('nombre, rol')
-                .eq('auth_uuid', user.id)
-                .maybeSingle();
+	const handleGuardarPrecio = async (precioData, isEditMode) => {
+		try {
+			if (isEditMode) {
+				const { error } = await supabase
+					.from("precios_estudios")
+					.update({
+						tipo: precioData.tipo,
+						clave: precioData.clave,
+						descripcion: precioData.descripcion,
+						empresa: precioData.empresa,
+						precio: precioData.precio,
+						fecha: precioData.fecha,
+					})
+					.eq("id", precioData.id);
+				if (error) throw error;
+				alert("Precio actualizado correctamente");
+			} else {
+				const { error } = await supabase
+					.from("precios_estudios")
+					.insert([precioData]);
+				if (error) throw error;
+				alert("Precio agregado correctamente");
+			}
+			cargarPrecios();
+			setModalAbierto(false);
+		} catch (error) {
+			console.error("Error al guardar precio:", error);
+			throw error;
+		}
+	};
 
-              if (error) {
-                console.error('Error al obtener empleado:', error);
-                return;
-              }
+	const handleEliminarPrecio = async (id) => {
+		if (window.confirm("¿Está seguro de eliminar este precio?")) {
+			try {
+				const { error } = await supabase
+					.from("precios_estudios")
+					.delete()
+					.eq("id", id);
+				if (error) throw error;
+				alert("Precio eliminado correctamente");
+				cargarPrecios();
+			} catch (error) {
+				console.error("Error:", error);
+				alert("Error al eliminar precio");
+			}
+		}
+	};
 
-              if (empleado) {
-                setEmpleadoData(empleado);
-              }
-            } catch (error) {
-              console.error('Error al obtener datos del empleado:', error);
-            }
-          };
+	const toggleSeleccion = (id) =>
+		setSeleccionados((prev) =>
+			prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+		);
+	const toggleTodos = () =>
+		setSeleccionados(
+			seleccionados.length === precios.length ? [] : precios.map((p) => p.id),
+		);
 
-          fetchEmpleadoData();
-        }, [user]);
+	const precioInicio = (paginaActual - 1) * registrosPorPagina + 1;
+	const precioFin = Math.min(paginaActual * registrosPorPagina, totalPrecios);
+	const totalPaginas = Math.ceil(totalPrecios / registrosPorPagina);
+	const getPaginasVisibles = () => {
+		const paginas = [];
+		for (
+			let i = Math.max(1, paginaActual - 2);
+			i <= Math.min(totalPaginas, paginaActual + 2);
+			i++
+		)
+			paginas.push(i);
+		return paginas;
+	};
 
-  useEffect(() => {
-    cargarPrecios();
-  }, [paginaActual, registrosPorPagina, buscarPrecio, empresaFiltro]);
+	const getPrimerNombre = (nombreCompleto) => {
+		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
+		return nombreCompleto;
+	};
+	const formatRol = (rol) => {
+		if (!rol) return "Usuario";
+		const roles = {
+			admin: "Administrador",
+			administrador: "Administrador",
+			radiologo: "Radiólogo - Director",
+			doctor: "Médico",
+			medico: "Médico",
+			tecnico_radiologia: "Técnico en Radiología",
+			tecnico: "Técnico",
+			quimico: "Químico",
+			recepcionista: "Recepcionista",
+			desarrollador: "Desarrollador",
+		};
+		return roles[rol] || rol;
+	};
 
-  const cargarPrecios = async () => {
-    try {
-      let query = supabase
-        .from('precios_estudios')
-        .select('*', { count: 'exact' });
-
-      if (buscarPrecio.trim()) {
-        query = query.or(
-          `clave.ilike.%${buscarPrecio}%,` +
-          `descripcion.ilike.%${buscarPrecio}%,` +
-          `empresa.ilike.%${buscarPrecio}%`
-        );
-      }
-
-      if (empresaFiltro && empresaFiltro !== '') {
-        query = query.eq('empresa', empresaFiltro);
-      }
-
-      const desde = (paginaActual - 1) * registrosPorPagina;
-      const hasta = desde + registrosPorPagina - 1;
-
-      const { data, error, count } = await query
-        .range(desde, hasta)
-        .order('id', { ascending: true });
-
-      if (error) throw error;
-
-      setTotalPrecios(count || 0);
-      setPrecios(data || []);
-    } catch (error) {
-      console.error('Error al cargar precios:', error);
-    }
-  };
-
-  const handleAltaPrecios = () => {
-    setPrecioEditar(null);
-    setModalAbierto(true);
-  };
-
-  const handleEditarPrecio = (precio) => {
-    setPrecioEditar(precio);
-    setModalAbierto(true);
-  };
-
-  const handleGuardarPrecio = async (precioData, isEditMode) => {
-    try {
-      if (isEditMode) {
-        const { error } = await supabase
-          .from('precios_estudios')
-          .update({
-            tipo: precioData.tipo,
-            clave: precioData.clave,
-            descripcion: precioData.descripcion,
-            empresa: precioData.empresa,
-            precio: precioData.precio,
-            fecha: precioData.fecha
-          })
-          .eq('id', precioData.id);
-
-        if (error) throw error;
-        alert('Precio actualizado correctamente');
-      } else {
-        const { error } = await supabase
-          .from('precios_estudios')
-          .insert([precioData]);
-
-        if (error) throw error;
-        alert('Precio agregado correctamente');
-      }
-
-      cargarPrecios();
-      setModalAbierto(false);
-    } catch (error) {
-      console.error('Error al guardar precio:', error);
-      throw error;
-    }
-  };
-
-  const handleDuplicarLista = () => {
-    alert('Duplicar lista de precios');
-  };
-
-  const handleExportarExcel = () => {
-    alert('Exportar a Excel');
-  };
-
-  const handleExportarPDF = () => {
-    alert('Exportar a PDF');
-  };
-
-  const handleEliminarPrecio = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este precio?')) {
-      try {
-        const { error } = await supabase
-          .from('precios_estudios')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-
-        alert('Precio eliminado correctamente');
-        cargarPrecios();
-      } catch (error) {
-        console.error('Error al eliminar precio:', error);
-        alert('Error al eliminar precio');
-      }
-    }
-  };
-
-  const toggleSeleccion = (id) => {
-    setSeleccionados(prev =>
-      prev.includes(id)
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
-  };
-
-  const toggleTodos = () => {
-    if (seleccionados.length === precios.length) {
-      setSeleccionados([]);
-    } else {
-      setSeleccionados(precios.map(p => p.id));
-    }
-  };
-
-  const paginaSiguiente = () => {
-    if (paginaActual * registrosPorPagina < totalPrecios) {
-      setPaginaActual(paginaActual + 1);
-    }
-  };
-
-  const paginaAnterior = () => {
-    if (paginaActual > 1) {
-      setPaginaActual(paginaActual - 1);
-    }
-  };
-
-  const irAPagina = (pagina) => {
-    setPaginaActual(pagina);
-  };
-
-  const precioInicio = (paginaActual - 1) * registrosPorPagina + 1;
-  const precioFin = Math.min(paginaActual * registrosPorPagina, totalPrecios);
-  const totalPaginas = Math.ceil(totalPrecios / registrosPorPagina);
-
-  const getPaginasVisibles = () => {
-    const paginas = [];
-    const rango = 2;
-
-    for (let i = Math.max(1, paginaActual - rango); i <= Math.min(totalPaginas, paginaActual + rango); i++) {
-      paginas.push(i);
-    }
-
-    return paginas;
-  };
-
-  const getPrimerNombre = (nombreCompleto) => {
-       if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-       return nombreCompleto;
-     };
-
-   const formatRol = (rol) => {
-       if (!rol) return 'Usuario';
-
-       const roles = {
-         'admin': 'Administrador',
-         'administrador': 'Administrador',
-         'radiologo': 'Radiólogo - Director',
-         'doctor': 'Médico',
-         'medico': 'Médico',
-         'tecnico_radiologia': 'Técnico en Radiología',
-         'tecnico': 'Técnico',
-         'quimico': 'Químico',
-         'recepcionista': 'Recepcionista',
-         'desarrollador': 'Desarrollador'
-       };
-
-       return roles[rol] || rol;
-     };
-
-     const handleLogout = async () => {
-       const { signOut } = useAuth();
-       await signOut();
-       navigate('/login');
-     };
-
-  return (
-		<Layout>
+	return (
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="admin-precios-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="precios"
-				/>
-
-				<SidebarHome />
-
 				<div className="admin-precios-header">
 					<h1 className="admin-precios-title">Administrar Precios</h1>
 				</div>
@@ -284,12 +181,18 @@ const Precios = () => {
 								<option value="CENTRO MEDICO ANAMAYA">CENTRO MEDICO ANAMAYA</option>
 							</select>
 						</div>
-
 						<div className="botones-accion-precios">
-							<button className="btn-alta-precios" onClick={handleAltaPrecios}>
+							<button
+								className="btn-alta-precios"
+								onClick={() => {
+									setPrecioEditar(null);
+									setModalAbierto(true);
+								}}>
 								Alta de Precios
 							</button>
-							<button className="btn-duplicar-lista" onClick={handleDuplicarLista}>
+							<button
+								className="btn-duplicar-lista"
+								onClick={() => alert("Duplicar lista de precios")}>
 								Duplicar Lista
 							</button>
 						</div>
@@ -306,12 +209,15 @@ const Precios = () => {
 							}}
 							className="input-buscar-precios"
 						/>
-
 						<div className="botones-exportar-precios">
-							<button className="btn-exportar-precio" onClick={handleExportarExcel}>
+							<button
+								className="btn-exportar-precio"
+								onClick={() => alert("Exportar a Excel")}>
 								Excel
 							</button>
-							<button className="btn-exportar-precio" onClick={handleExportarPDF}>
+							<button
+								className="btn-exportar-precio"
+								onClick={() => alert("Exportar a PDF")}>
 								PDF
 							</button>
 						</div>
@@ -395,7 +301,10 @@ const Precios = () => {
 												<div className="acciones-precios">
 													<button
 														className="btn-editar-precio"
-														onClick={() => handleEditarPrecio(precio)}
+														onClick={() => {
+															setPrecioEditar(precio);
+															setModalAbierto(true);
+														}}
 														title="Editar precio">
 														✏️
 													</button>
@@ -419,38 +328,34 @@ const Precios = () => {
 							Mostrando registros del {precioInicio} al {precioFin} de un total de{" "}
 							{totalPrecios.toLocaleString()}
 						</div>
-
 						<div className="botones-paginacion-precios">
 							<button
 								className="btn-pag-precios"
-								onClick={paginaAnterior}
+								onClick={() => setPaginaActual((p) => p - 1)}
 								disabled={paginaActual === 1}>
 								Anterior
 							</button>
-
 							{getPaginasVisibles().map((pagina) => (
 								<button
 									key={pagina}
 									className={`btn-pag-numero-precios ${paginaActual === pagina ? "activo" : ""}`}
-									onClick={() => irAPagina(pagina)}>
+									onClick={() => setPaginaActual(pagina)}>
 									{pagina}
 								</button>
 							))}
-
 							{totalPaginas > 5 && paginaActual < totalPaginas - 2 && (
 								<>
 									<span className="paginacion-ellipsis">...</span>
 									<button
 										className="btn-pag-numero-precios"
-										onClick={() => irAPagina(totalPaginas)}>
+										onClick={() => setPaginaActual(totalPaginas)}>
 										{totalPaginas}
 									</button>
 								</>
 							)}
-
 							<button
 								className="btn-pag-precios"
-								onClick={paginaSiguiente}
+								onClick={() => setPaginaActual((p) => p + 1)}
 								disabled={paginaActual >= totalPaginas}>
 								Siguiente
 							</button>
@@ -465,7 +370,7 @@ const Precios = () => {
 					precioEditar={precioEditar}
 				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 
