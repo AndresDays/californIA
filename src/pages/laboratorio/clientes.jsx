@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase-client';
-import { useAuth } from '../../context/auth-context';
-import Layout from '../../components/layout.jsx';
 import Header from '../../components/header-laboratorio.jsx';
+import Layout from '../../components/layout.jsx';
+import { useAuth } from '../../context/auth-context';
+import { supabase } from '../../lib/supabase-client';
+import './clientes.css';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente.jsx';
-import './Clientes.css';
 
 const Clientes = () => {
   const { user } = useAuth();
@@ -48,7 +48,7 @@ const Clientes = () => {
       if (error) throw error;
 
       setTotalClientes(count || 0);
-      
+
       const clientesFormateados = data?.map(cliente => ({
         id: cliente.id_paciente,
         apellidoPaterno: cliente.apellido_paterno || '',
@@ -197,7 +197,7 @@ const Clientes = () => {
           </div>
 
           <div className="paginacion-superior">
-            <button 
+            <button
               className="btn-paginacion"
               onClick={paginaAnterior}
               disabled={paginaActual === 1}
@@ -207,7 +207,7 @@ const Clientes = () => {
             <span className="info-paginacion">
               Mostrando: {clienteInicio}-{clienteFin} de {totalClientes}
             </span>
-            <button 
+            <button
               className="btn-paginacion"
               onClick={paginaSiguiente}
               disabled={paginaActual * clientesPorPagina >= totalClientes}

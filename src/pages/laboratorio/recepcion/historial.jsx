@@ -4,7 +4,7 @@ import pacienteIcono from "../../../assets/pacienteIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
-import "./Historial.css";
+import "./historial.css";
 
 const Historial = () => {
 	const { user } = useAuth();

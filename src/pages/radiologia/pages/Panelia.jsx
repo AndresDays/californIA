@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import "./PanelIA.css";
+import "./Panelia.css";
 
 const PATOLOGIAS = [
 	{ id: "atelectasis", label: "Atelectasis" },
