@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
 import guardarIcono from "../../assets/guardarIcono.png";
-import imprimirBtn from "../../assets/imprimirBtn.png";
+import imprimirBtn from "../../assets/ImprimirBtn.png";
 import imprimirIcono from "../../assets/imprimirIcono.png";
 import lupaIcono from "../../assets/lupaIcono.png";
 import relojIcono from "../../assets/relojIcono.png";
