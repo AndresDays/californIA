@@ -10,7 +10,7 @@ import inicioIcono from "../assets/inicioIcono.png";
 import pacienteIcono from "../assets/pacienteIcono.png";
 import recepcionIcono from "../assets/recepcionIcono.png";
 import ventasIcono from "../assets/ventasIcono.png";
-import "./Sidebar.css";
+import "./sidebar.css";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
 	const navigate = useNavigate();
