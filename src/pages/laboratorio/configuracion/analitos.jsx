@@ -7,7 +7,7 @@ import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import ModalAgregarAnalitoEstudio from "../componentes/modal-agregar-analito-estudio";
 import ModalAnalito from "../componentes/modal-analito";
-import "./Analitos.css";
+import "./analitos.css";
 
 const Analitos = () => {
 	const { user } = useAuth();
