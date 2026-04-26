@@ -22,10 +22,10 @@
 	flex-direction: column;
 	font-family: var(--font);
 	color: var(--color-white);
-	background-image: url('../assets/FONDO.jpg');
-	background-size: cover;
-	background-position: center;
-	background-attachment: fixed;
+	background-image: none !important;
+	background: transparent !important;
+	overflow-x: hidden;
+	box-sizing: border-box;
 }
 
 .editar-solicitud-header {
@@ -35,7 +35,8 @@
 	padding: 0.85rem 2rem 0.85rem 120px;
 	background: rgba(2, 15, 35, 0.5);
 	border-bottom: 1px solid var(--color-border);
-	transition: padding-left 0.3s ease;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .editar-solicitud-title {
@@ -59,6 +60,7 @@
 	transition: all 0.25s;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
+	white-space: nowrap;
 }
 
 .btn-cancelar-orden:hover {
@@ -72,8 +74,8 @@
 	grid-template-columns: 1fr 1fr;
 	gap: 1.5rem;
 	padding: 1.5rem 1.5rem 1.5rem 120px;
-	overflow: auto;
-	transition: padding-left 0.3s ease;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .panel-ordenes {
@@ -85,16 +87,19 @@
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 	border: 1px solid var(--color-border);
 	gap: 1rem;
+	min-width: 0;
 }
 
 .ordenes-controles {
 	display: flex;
 	gap: 0.75rem;
+	flex-wrap: wrap;
 }
 
 .buscar-paciente-grupo,
 .rango-fecha-grupo {
 	flex: 1;
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -110,14 +115,9 @@
 	border-color: var(--color-accent);
 }
 
-.search-icon,
-.calendar-icon {
-	font-size: 0.95rem;
-	opacity: 0.6;
-}
-
 .input-buscar-paciente-edit {
 	flex: 1;
+	min-width: 0;
 	padding: 0.65rem 0;
 	background: transparent;
 	border: none;
@@ -136,6 +136,7 @@
 
 .select-rango-fecha {
 	flex: 1;
+	min-width: 0;
 	padding: 0.65rem 0;
 	background: transparent;
 	border: none;
@@ -152,6 +153,7 @@
 
 .tabla-ordenes-container {
 	flex: 1;
+	overflow-x: auto;
 	overflow-y: auto;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
@@ -159,6 +161,7 @@
 
 .tabla-ordenes-container::-webkit-scrollbar {
 	width: 6px;
+	height: 6px;
 }
 
 .tabla-ordenes-container::-webkit-scrollbar-track {
@@ -177,6 +180,7 @@
 .tabla-ordenes {
 	width: 100%;
 	border-collapse: collapse;
+	min-width: 480px;
 }
 
 .tabla-ordenes thead {
@@ -236,7 +240,6 @@
 	padding: 0.3rem 0.4rem;
 	border-radius: 4px;
 	cursor: pointer;
-	font-size: 1rem;
 	transition: transform 0.2s;
 }
 
@@ -263,6 +266,7 @@
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 	border: 1px solid var(--color-border);
 	overflow-y: auto;
+	min-width: 0;
 }
 
 .panel-detalles-orden::-webkit-scrollbar {
@@ -286,6 +290,7 @@
 
 .motivo-modificacion {
 	flex: 1;
+	min-width: 0;
 }
 
 .textarea-motivo {
@@ -315,6 +320,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.4rem;
+	flex-shrink: 0;
 }
 
 .folio-grupo label {
@@ -332,6 +338,7 @@
 	font-family: var(--font);
 	font-size: 0.9rem;
 	width: 140px;
+	box-sizing: border-box;
 }
 
 .input-folio-edit.folio-highlight {
@@ -361,15 +368,11 @@
 	border-color: var(--color-accent);
 }
 
-.campo-icon-grupo .icon {
-	font-size: 1.1rem;
-	opacity: 0.7;
-}
-
 .select-empresa,
 .input-medico,
 .select-urgencia {
 	flex: 1;
+	min-width: 0;
 	padding: 0.7rem 0;
 	background: transparent;
 	border: none;
@@ -446,10 +449,12 @@
 	display: flex;
 	gap: 0.75rem;
 	align-items: center;
+	flex-wrap: wrap;
 }
 
 .buscar-estudios-grupo {
 	flex: 1;
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -466,6 +471,7 @@
 
 .input-buscar-estudios {
 	flex: 1;
+	min-width: 0;
 	padding: 0.65rem 0;
 	background: transparent;
 	border: none;
@@ -547,11 +553,13 @@
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
 	max-height: 220px;
+	overflow-x: auto;
 	overflow-y: auto;
 }
 
 .tabla-estudios-container::-webkit-scrollbar {
 	width: 6px;
+	height: 6px;
 }
 
 .tabla-estudios-container::-webkit-scrollbar-track {
@@ -566,6 +574,7 @@
 .tabla-estudios-edit {
 	width: 100%;
 	border-collapse: collapse;
+	min-width: 360px;
 }
 
 .tabla-estudios-edit thead {
@@ -623,7 +632,8 @@
 	transform: scale(1.1);
 }
 
-.btn-borrar-estudio .icono-eliminar {
+.btn-borrar-estudio .icono-eliminar,
+.icono-eliminar {
 	width: 20px;
 	height: 20px;
 	object-fit: contain;
@@ -651,7 +661,7 @@
 	flex-direction: column;
 	gap: 0.3rem;
 	flex: 1;
-	min-width: 100px;
+	min-width: 90px;
 }
 
 .campo-total label {
@@ -670,6 +680,8 @@
 	font-family: var(--font);
 	font-size: 0.875rem;
 	transition: border-color 0.2s;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .campo-total input:focus,
@@ -707,41 +719,6 @@
 	border-top: 1px solid var(--color-border);
 }
 
-.btn-guardar-imprimir {
-	padding: 0.8rem 2rem;
-	border: none;
-	border-radius: 6px;
-	color: var(--color-white);
-	font-family: var(--font);
-	font-size: 0.95rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition: all 0.25s;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-}
-
-.btn-guardar-imprimir:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 14px rgba(83, 185, 219, 0.4);
-	background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-light) 100%);
-}
-
-
-.icono-campo {
-	width: 18px;
-	height: 18px;
-	object-fit: contain;
-	opacity: 0.8;
-	flex-shrink: 0;
-}
-
-.icono-accion-tabla {
-	width: 20px;
-	height: 20px;
-	object-fit: contain;
-	display: block;
-}
-
 .btn-guardar-imprimir-img {
 	background: transparent;
 	border: none;
@@ -764,49 +741,76 @@
 	display: block;
 }
 
-@media (max-width: 1200px) {
+.icono-campo {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	opacity: 0.8;
+	flex-shrink: 0;
+	filter: brightness(0) invert(1);
+}
+
+.icono-accion-tabla {
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
+	display: block;
+}
+
+@media (max-width: 1023px) {
+	.editar-solicitud-header {
+		padding: 0.85rem 1rem !important;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.btn-cancelar-orden {
+		width: 100%;
+		text-align: center;
+	}
+
 	.editar-solicitud-content {
-		grid-template-columns: 1fr;
-		padding-left: 120px;
+		grid-template-columns: 1fr !important;
+		padding: 1rem !important;
+		gap: 1rem;
 	}
 
 	.panel-ordenes {
-		max-height: 50vh;
+		max-height: unset;
+	}
+
+	.seccion-superior {
+		flex-direction: column;
+	}
+
+	.input-folio-edit {
+		width: 100% !important;
+	}
+
+	.campo-total {
+		min-width: calc(50% - 0.3rem);
+		flex: unset;
+	}
+
+	.buscar-estudios-row {
+		flex-direction: column;
+	}
+
+	.btn-muestras-pendientes {
+		width: 100%;
+	}
+
+	.botones-finales {
+		justify-content: center;
 	}
 }
 
-@media (max-width: 768px) {
-
-	.editar-solicitud-header,
-	.editar-solicitud-content {
-		padding-left: 1rem;
-	}
-
-	.editar-solicitud-header {
-		flex-direction: column;
-		gap: 0.75rem;
-		align-items: stretch;
-	}
-
-	.ordenes-controles {
-		flex-direction: column;
-	}
-
-	.totales-row-1,
-	.totales-row-2 {
-		flex-direction: column;
-	}
-
+@media (max-width: 480px) {
 	.campo-total {
 		min-width: 100%;
 	}
 
-	.botones-finales {
-		justify-content: stretch;
-	}
-
-	.btn-guardar-imprimir {
-		width: 100%;
-		text-align: center;
+	.ordenes-controles {
+		flex-direction: column;
 	}
 }

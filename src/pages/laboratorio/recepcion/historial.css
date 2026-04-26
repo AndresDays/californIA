@@ -2,7 +2,6 @@
 
 :root {
 	--color-bg-deep: #020F23;
-	--color-bg-mid: #0D4369;
 	--color-primary: #106DA0;
 	--color-accent: #49B2D4;
 	--color-light: #53B9DB;
@@ -22,17 +21,18 @@
 	flex-direction: column;
 	font-family: var(--font);
 	color: var(--color-white);
-	background-image: url('../assets/FONDO.jpg');
-	background-size: cover;
-	background-position: center;
-	background-attachment: fixed;
+	background-image: none !important;
+	background: transparent !important;
+	overflow-x: hidden;
+	box-sizing: border-box;
 }
 
 .historial-header {
-	padding: 1.5rem 2rem 1.5rem 120px;
+	padding: 1rem 2rem 1rem 120px;
 	border-bottom: 1px solid var(--color-border);
 	background: rgba(2, 15, 35, 0.5);
-	transition: padding-left 0.3s ease;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .historial-title {
@@ -49,11 +49,18 @@
 	grid-template-columns: 1fr 1.6fr;
 	gap: 1.5rem;
 	padding: 1.5rem 1.5rem 1.5rem 120px;
-	overflow: auto;
-	transition: padding-left 0.3s ease;
+	box-sizing: border-box;
+	width: 100%;
 }
 
 .panel-izquierdo {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-width: 0;
+}
+
+.panel-derecho {
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -75,13 +82,18 @@
 	border-color: var(--color-accent);
 }
 
-.icon-user {
-	font-size: 1.2rem;
-	opacity: 0.7;
+.icono-buscar-hist {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	opacity: 0.8;
+	flex-shrink: 0;
+	filter: brightness(0) invert(1);
 }
 
 .input-buscar-cliente {
 	flex: 1;
+	min-width: 0;
 	padding: 0.85rem 0;
 	background: transparent;
 	border: none;
@@ -199,13 +211,16 @@
 
 .tabla-historial-container {
 	flex: 1;
+	overflow-x: auto;
 	overflow-y: auto;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
+	max-height: 280px;
 }
 
 .tabla-historial-container::-webkit-scrollbar {
 	width: 6px;
+	height: 6px;
 }
 
 .tabla-historial-container::-webkit-scrollbar-track {
@@ -224,6 +239,7 @@
 .tabla-historial {
 	width: 100%;
 	border-collapse: collapse;
+	min-width: 260px;
 }
 
 .tabla-historial thead {
@@ -272,17 +288,10 @@
 	font-style: italic;
 }
 
-.panel-derecho {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	min-width: 0;
-}
-
 .visita-info-bar {
 	display: flex;
 	align-items: center;
-	gap: 2rem;
+	gap: 1.5rem;
 	background: rgba(2, 15, 35, 0.8);
 	border: 1px solid var(--color-border-strong);
 	border-radius: 10px;
@@ -315,13 +324,16 @@
 
 .tabla-estudios-hist-container {
 	flex: 1;
+	overflow-x: auto;
 	overflow-y: auto;
 	border: 1px solid var(--color-border);
 	border-radius: 8px;
+	max-height: 450px;
 }
 
 .tabla-estudios-hist-container::-webkit-scrollbar {
 	width: 6px;
+	height: 6px;
 }
 
 .tabla-estudios-hist-container::-webkit-scrollbar-track {
@@ -340,6 +352,7 @@
 .tabla-estudios-hist {
 	width: 100%;
 	border-collapse: collapse;
+	min-width: 480px;
 }
 
 .tabla-estudios-hist thead {
@@ -507,11 +520,6 @@
 	min-height: 300px;
 }
 
-.empty-icon {
-	font-size: 3rem;
-	opacity: 0.4;
-}
-
 .empty-state-derecho p {
 	color: var(--color-text-muted);
 	font-size: 0.95rem;
@@ -519,44 +527,32 @@
 	margin: 0;
 }
 
-@media (max-width: 1200px) {
-	.historial-content {
-		grid-template-columns: 1fr;
-		padding-left: 120px;
-	}
-}
-
-@media (max-width: 768px) {
-
-	.historial-header,
-	.historial-content {
-		padding-left: 1rem;
-	}
-
-	.visita-info-bar {
-		gap: 1rem;
-	}
-
-	.tabla-historial th,
-	.tabla-historial td,
-	.tabla-estudios-hist th,
-	.fila-analito-hist td {
-		padding: 0.5rem 0.4rem;
-		font-size: 0.8rem;
-	}
-}
-
-.icono-buscar-hist {
-	width: 18px;
-	height: 18px;
-	object-fit: contain;
-	opacity: 0.8;
-	flex-shrink: 0;
-}
-
 .empty-icon-img {
 	width: 48px;
 	height: 48px;
 	object-fit: contain;
 	opacity: 0.4;
+}
+
+@media (max-width: 1023px) {
+	.historial-header {
+		padding: 1rem !important;
+	}
+
+	.historial-content {
+		grid-template-columns: 1fr !important;
+		padding: 1rem !important;
+		gap: 1rem;
+	}
+
+	.tabla-estudios-hist-container {
+		max-height: 320px;
+	}
+}
+
+@media (max-width: 480px) {
+	.visita-info-bar {
+		gap: 0.75rem;
+		font-size: 0.82rem;
+	}
 }

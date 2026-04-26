@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Header from "../../../components/header-principal.jsx";
-import Layout from "../../../components/layout.jsx";
+import { useEffect, useState } from "react";
+import lupaIcono from "../../../assets/lupaIcono.png";
 import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
-import SidebarHome from "../../../components/sidebar-home.jsx";
+import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import ModalAgregarAnalitoEstudio from "../componentes/modal-agregar-analito-estudio";
@@ -13,36 +11,26 @@ import "./Analitos.css";
 
 const Analitos = () => {
 	const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [buscarAnalito, setBuscarAnalito] = useState("");
 	const [analitos, setAnalitos] = useState([]);
 	const [totalAnalitos, setTotalAnalitos] = useState(0);
-
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosEncontrados, setEstudiosEncontrados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
-
 	const [analitosEstudio, setAnalitosEstudio] = useState([]);
-
 	const [modalOpen, setModalOpen] = useState(false);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [analitoEditando, setAnalitoEditando] = useState(null);
-
 	const [modalAgregarOpen, setModalAgregarOpen] = useState(false);
-
 	const [empleadoData, setEmpleadoData] = useState(null);
-
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
 		tipo: "exito",
 	});
-
 	const [confirmarEliminacion, setConfirmarEliminacion] = useState({
 		isOpen: false,
 		onConfirm: null,
@@ -53,82 +41,43 @@ const Analitos = () => {
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
 			if (!user?.id) return;
-
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
 					.select("nombre, rol")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
-
-				if (error) {
-					console.error("Error al obtener empleado:", error);
-					return;
-				}
-
-				if (empleado) {
-					setEmpleadoData(empleado);
-				}
+				if (!error && empleado) setEmpleadoData(empleado);
 			} catch (error) {
-				console.error("Error al obtener datos del empleado:", error);
+				console.error("Error:", error);
 			}
 		};
-
 		fetchEmpleadoData();
+		cargarAnalitos();
+		cargarEstudiosDisponibles();
 	}, [user]);
 
 	useEffect(() => {
-		cargarAnalitos();
-		cargarEstudiosDisponibles();
-	}, []);
-
-	useEffect(() => {
-		if (buscarAnalito.trim()) {
-			cargarAnalitos();
-		}
+		if (buscarAnalito.trim()) cargarAnalitos();
 	}, [buscarAnalito]);
-
 	useEffect(() => {
-		if (estudioSeleccionado) {
-			cargarAnalitosDelEstudio();
-		} else {
-			setAnalitosEstudio([]);
-		}
+		if (estudioSeleccionado) cargarAnalitosDelEstudio();
+		else setAnalitosEstudio([]);
 	}, [estudioSeleccionado]);
 
-	const mostrarNotificacion = (mensaje, tipo = "exito") => {
-		setNotificacion({
-			isOpen: true,
-			mensaje,
-			tipo,
-		});
-	};
-
-	const cerrarNotificacion = () => {
-		setNotificacion({
-			isOpen: false,
-			mensaje: "",
-			tipo: "exito",
-		});
-	};
-
-	const mostrarConfirmacion = (titulo, mensaje, onConfirm) => {
-		setConfirmarEliminacion({
-			isOpen: true,
-			titulo,
-			mensaje,
-			onConfirm,
-		});
-	};
-
-	const cerrarConfirmacion = () => {
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
+		setNotificacion({ isOpen: true, mensaje, tipo });
+	const cerrarNotificacion = () =>
+		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
+	const mostrarConfirmacion = (titulo, mensaje, onConfirm) =>
+		setConfirmarEliminacion({ isOpen: true, titulo, mensaje, onConfirm });
+	const cerrarConfirmacion = () =>
 		setConfirmarEliminacion({
 			isOpen: false,
 			onConfirm: null,
 			titulo: "",
 			mensaje: "",
 		});
-	};
 
 	const cargarEstudiosDisponibles = async () => {
 		try {
@@ -136,11 +85,10 @@ const Analitos = () => {
 				.from("estudios_lab_catalogo")
 				.select("id, clave, descripcion")
 				.order("clave");
-
 			if (error) throw error;
 			setEstudiosDisponibles(data || []);
 		} catch (error) {
-			console.error("Error al cargar estudios:", error);
+			console.error("Error:", error);
 			mostrarNotificacion("Error al cargar estudios", "error");
 		}
 	};
@@ -151,13 +99,11 @@ const Analitos = () => {
 			setShowBusquedaEstudios(false);
 			return;
 		}
-
 		const encontrados = estudiosDisponibles.filter(
 			(est) =>
 				est.clave.toLowerCase().includes(termino.toLowerCase()) ||
 				est.descripcion.toLowerCase().includes(termino.toLowerCase()),
 		);
-
 		setEstudiosEncontrados(encontrados);
 		setShowBusquedaEstudios(encontrados.length > 0);
 	};
@@ -170,39 +116,27 @@ const Analitos = () => {
 
 	const cargarAnalitosDelEstudio = async () => {
 		if (!estudioSeleccionado) return;
-
 		try {
 			const { data, error } = await supabase
 				.from("estudio_analitos")
 				.select(
-					`
-          id_estudio_analito,
-          orden,
-          analitos (
-            id_analito,
-            clave,
-            descripcion,
-            tipo_resultado
-          )
-        `,
+					`id_estudio_analito, orden, analitos (id_analito, clave, descripcion, tipo_resultado)`,
 				)
 				.eq("clave_estudio", estudioSeleccionado.clave)
 				.order("orden", { ascending: true });
-
 			if (error) throw error;
-
-			const analitosFormateados = data.map((item) => ({
-				id_estudio_analito: item.id_estudio_analito,
-				id_analito: item.analitos.id_analito,
-				clave: item.analitos.clave,
-				descripcion: item.analitos.descripcion,
-				tipo_resultado: item.analitos.tipo_resultado || "Numerico",
-				orden: item.orden,
-			}));
-
-			setAnalitosEstudio(analitosFormateados);
+			setAnalitosEstudio(
+				data.map((item) => ({
+					id_estudio_analito: item.id_estudio_analito,
+					id_analito: item.analitos.id_analito,
+					clave: item.analitos.clave,
+					descripcion: item.analitos.descripcion,
+					tipo_resultado: item.analitos.tipo_resultado || "Numerico",
+					orden: item.orden,
+				})),
+			);
 		} catch (error) {
-			console.error("Error al cargar analitos del estudio:", error);
+			console.error("Error:", error);
 			setAnalitosEstudio([]);
 			mostrarNotificacion("Error al cargar analitos del estudio", "error");
 		}
@@ -211,38 +145,24 @@ const Analitos = () => {
 	const cargarAnalitos = async () => {
 		try {
 			let query = supabase.from("analitos").select("*", { count: "exact" });
-
-			if (buscarAnalito.trim()) {
+			if (buscarAnalito.trim())
 				query = query.or(
 					`clave.ilike.%${buscarAnalito}%,descripcion.ilike.%${buscarAnalito}%`,
 				);
-			}
-
 			const { data, error, count } = await query.order("id_analito", {
 				ascending: true,
 			});
-
 			if (error) throw error;
-
 			setTotalAnalitos(count || 0);
 			setAnalitos(data || []);
 		} catch (error) {
-			console.error("Error al cargar analitos:", error);
+			console.error("Error:", error);
 			mostrarNotificacion("Error al cargar analitos", "error");
 		}
 	};
 
-	const handleAgregarAnalitoAEstudio = () => {
-		if (!estudioSeleccionado) {
-			mostrarNotificacion("Por favor selecciona un estudio primero", "advertencia");
-			return;
-		}
-		setModalAgregarOpen(true);
-	};
-
 	const handleGuardarAnalitoEstudio = async (analitosSeleccionados) => {
 		if (!estudioSeleccionado) return;
-
 		try {
 			const { data: maxOrden } = await supabase
 				.from("estudio_analitos")
@@ -251,44 +171,38 @@ const Analitos = () => {
 				.order("orden", { ascending: false })
 				.limit(1)
 				.maybeSingle();
-
 			let ordenActual = maxOrden ? maxOrden.orden : 0;
-
-			const insertPromises = analitosSeleccionados.map((analito, index) => {
-				return supabase.from("estudio_analitos").insert([
-					{
-						clave_estudio: estudioSeleccionado.clave,
-						id_analito: analito.id_analito,
-						orden: ordenActual + index + 1,
-					},
-				]);
-			});
-
-			const results = await Promise.all(insertPromises);
-
+			const results = await Promise.all(
+				analitosSeleccionados.map((analito, index) =>
+					supabase
+						.from("estudio_analitos")
+						.insert([
+							{
+								clave_estudio: estudioSeleccionado.clave,
+								id_analito: analito.id_analito,
+								orden: ordenActual + index + 1,
+							},
+						]),
+				),
+			);
 			const errores = results.filter((r) => r.error);
-
 			if (errores.length > 0) {
 				const duplicados = errores.filter((e) => e.error.code === "23505");
-				if (duplicados.length > 0) {
+				if (duplicados.length > 0)
 					mostrarNotificacion(
 						`${duplicados.length} analito(s) ya estaban agregados. Se agregaron los demás.`,
 						"advertencia",
 					);
-				} else {
-					throw errores[0].error;
-				}
-			} else {
+				else throw errores[0].error;
+			} else
 				mostrarNotificacion(
 					`${analitosSeleccionados.length} analito(s) agregados correctamente`,
 					"exito",
 				);
-			}
-
 			await cargarAnalitosDelEstudio();
 			setModalAgregarOpen(false);
 		} catch (error) {
-			console.error("Error al agregar analitos al estudio:", error);
+			console.error("Error:", error);
 			mostrarNotificacion("Error al agregar analitos al estudio", "error");
 		}
 	};
@@ -303,13 +217,11 @@ const Analitos = () => {
 						.from("estudio_analitos")
 						.delete()
 						.eq("id_estudio_analito", idEstudioAnalito);
-
 					if (error) throw error;
-
 					mostrarNotificacion("Analito eliminado del estudio", "exito");
 					await cargarAnalitosDelEstudio();
 				} catch (error) {
-					console.error("Error al eliminar analito del estudio:", error);
+					console.error("Error:", error);
 					mostrarNotificacion("Error al eliminar analito del estudio", "error");
 				}
 				cerrarConfirmacion();
@@ -323,44 +235,12 @@ const Analitos = () => {
 				.from("estudio_analitos")
 				.update({ orden: nuevoOrden })
 				.eq("id_estudio_analito", idEstudioAnalito);
-
 			if (error) throw error;
 			await cargarAnalitosDelEstudio();
 		} catch (error) {
-			console.error("Error al actualizar orden:", error);
+			console.error("Error:", error);
 			mostrarNotificacion("Error al actualizar orden", "error");
 		}
-	};
-
-	const handleVistaPrevia = () => {
-		if (!estudioSeleccionado) {
-			mostrarNotificacion("Selecciona un estudio primero", "advertencia");
-			return;
-		}
-		mostrarNotificacion("Vista previa del estudio", "info");
-	};
-
-	const handleGuardar = async () => {
-		if (!estudioSeleccionado) {
-			mostrarNotificacion(
-				"Por favor, busca y selecciona un estudio primero",
-				"advertencia",
-			);
-			return;
-		}
-		mostrarNotificacion("Configuración guardada correctamente", "exito");
-	};
-
-	const handleNuevo = () => {
-		setBuscarEstudio("");
-		setEstudioSeleccionado(null);
-		setAnalitosEstudio([]);
-	};
-
-	const handleCrearAnalitos = () => {
-		setModoEdicion(false);
-		setAnalitoEditando(null);
-		setModalOpen(true);
 	};
 
 	const handleEditarAnalito = async (idAnalito) => {
@@ -370,14 +250,12 @@ const Analitos = () => {
 				.select("*")
 				.eq("id_analito", idAnalito)
 				.single();
-
 			if (error) throw error;
-
 			setModoEdicion(true);
 			setAnalitoEditando(data);
 			setModalOpen(true);
 		} catch (error) {
-			console.error("Error al cargar analito para editar:", error);
+			console.error("Error:", error);
 			mostrarNotificacion("Error al cargar el analito", "error");
 		}
 	};
@@ -392,13 +270,11 @@ const Analitos = () => {
 						.from("analitos")
 						.delete()
 						.eq("id_analito", idAnalito);
-
 					if (error) throw error;
-
 					mostrarNotificacion("Analito eliminado correctamente", "exito");
 					await cargarAnalitos();
 				} catch (error) {
-					console.error("Error al eliminar analito:", error);
+					console.error("Error:", error);
 					mostrarNotificacion("Error al eliminar analito", "error");
 				}
 				cerrarConfirmacion();
@@ -406,21 +282,12 @@ const Analitos = () => {
 		);
 	};
 
-	const handleCloseModal = async () => {
-		setModalOpen(false);
-		setModoEdicion(false);
-		setAnalitoEditando(null);
-		await cargarAnalitos();
-	};
-
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
 		return nombreCompleto;
 	};
-
 	const formatRol = (rol) => {
 		if (!rol) return "Usuario";
-
 		const roles = {
 			admin: "Administrador",
 			administrador: "Administrador",
@@ -433,33 +300,15 @@ const Analitos = () => {
 			recepcionista: "Recepcionista",
 			desarrollador: "Desarrollador",
 		};
-
 		return roles[rol] || rol;
 	};
 
-	const handleLogout = async () => {
-		const { signOut } = useAuth();
-		await signOut();
-		navigate("/login");
-	};
-
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="agregar-analitos-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="analitos"
-				/>
-
-				<SidebarHome />
-
 				<div className="agregar-analitos-header">
 					<h1 className="agregar-analitos-title">Agregar Analitos a un Estudio</h1>
 				</div>
@@ -467,7 +316,7 @@ const Analitos = () => {
 				<div className="agregar-analitos-content">
 					<div className="panel-buscar-estudio">
 						<div className="buscar-estudio-grupo" style={{ position: "relative" }}>
-							<span className="icon-buscar">🔍</span>
+							<img src={lupaIcono} alt="Buscar" className="icono-lupa-analito" />
 							<input
 								type="text"
 								placeholder="Buscar Estudio..."
@@ -478,7 +327,6 @@ const Analitos = () => {
 								}}
 								className="input-buscar-estudio-analito"
 							/>
-
 							{showBusquedaEstudios && estudiosEncontrados.length > 0 && (
 								<div className="search-results-estudios">
 									{estudiosEncontrados.map((est) => (
@@ -509,11 +357,19 @@ const Analitos = () => {
 									<h3>Analitos del Estudio ({analitosEstudio.length})</h3>
 									<button
 										className="btn-agregar-analito-estudio"
-										onClick={handleAgregarAnalitoAEstudio}>
+										onClick={() => {
+											if (!estudioSeleccionado) {
+												mostrarNotificacion(
+													"Por favor selecciona un estudio primero",
+													"advertencia",
+												);
+												return;
+											}
+											setModalAgregarOpen(true);
+										}}>
 										+ Agregar Analito
 									</button>
 								</div>
-
 								<div className="lista-analitos-estudio">
 									<table className="tabla-mini-analitos">
 										<thead>
@@ -577,15 +433,46 @@ const Analitos = () => {
 							</div>
 						)}
 
-						<button className="btn-vista-previa" onClick={handleVistaPrevia}>
+						<button
+							className="btn-vista-previa"
+							onClick={() => {
+								if (!estudioSeleccionado) {
+									mostrarNotificacion(
+										"Selecciona un estudio primero",
+										"advertencia",
+									);
+									return;
+								}
+								mostrarNotificacion("Vista previa del estudio", "info");
+							}}>
 							Vista Previa
 						</button>
 
 						<div className="botones-accion-analitos">
-							<button className="btn-guardar-analitos" onClick={handleGuardar}>
+							<button
+								className="btn-guardar-analitos"
+								onClick={() => {
+									if (!estudioSeleccionado) {
+										mostrarNotificacion(
+											"Por favor, busca y selecciona un estudio primero",
+											"advertencia",
+										);
+										return;
+									}
+									mostrarNotificacion(
+										"Configuración guardada correctamente",
+										"exito",
+									);
+								}}>
 								Guardar
 							</button>
-							<button className="btn-nuevo-analitos" onClick={handleNuevo}>
+							<button
+								className="btn-nuevo-analitos"
+								onClick={() => {
+									setBuscarEstudio("");
+									setEstudioSeleccionado(null);
+									setAnalitosEstudio([]);
+								}}>
 								Nuevo
 							</button>
 						</div>
@@ -654,8 +541,13 @@ const Analitos = () => {
 							Mostrando registros del 1 al {analitos.length} de un total de{" "}
 							{totalAnalitos}
 						</div>
-
-						<button className="btn-crear-analitos" onClick={handleCrearAnalitos}>
+						<button
+							className="btn-crear-analitos"
+							onClick={() => {
+								setModoEdicion(false);
+								setAnalitoEditando(null);
+								setModalOpen(true);
+							}}>
 							Crear Analitos
 						</button>
 					</div>
@@ -663,25 +555,27 @@ const Analitos = () => {
 
 				<ModalAnalito
 					isOpen={modalOpen}
-					onClose={handleCloseModal}
+					onClose={async () => {
+						setModalOpen(false);
+						setModoEdicion(false);
+						setAnalitoEditando(null);
+						await cargarAnalitos();
+					}}
 					analitoInicial={modoEdicion ? analitoEditando : null}
 					modoEdicion={modoEdicion}
 				/>
-
 				<ModalAgregarAnalitoEstudio
 					isOpen={modalAgregarOpen}
 					onClose={() => setModalAgregarOpen(false)}
 					onGuardar={handleGuardarAnalitoEstudio}
 					analitosDisponibles={analitos}
 				/>
-
 				<ModalNotificacion
 					isOpen={notificacion.isOpen}
 					onClose={cerrarNotificacion}
 					mensaje={notificacion.mensaje}
 					tipo={notificacion.tipo}
 				/>
-
 				<ModalConfirmarEliminacion
 					isOpen={confirmarEliminacion.isOpen}
 					onClose={cerrarConfirmacion}
@@ -690,7 +584,7 @@ const Analitos = () => {
 					mensaje={confirmarEliminacion.mensaje}
 				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 
