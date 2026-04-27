@@ -1,29 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import notaIcono from "../../../assets/notaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
-import Header from "../../../components/header-principal.jsx";
-import Layout from "../../../components/layout.jsx";
-import SidebarHome from "../../../components/sidebar-home.jsx";
+import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
-import "./Historial.css";
+import "./historial.css";
 
 const Historial = () => {
 	const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [buscarCliente, setBuscarCliente] = useState("");
 	const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
 	const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-
 	const [historialVisitas, setHistorialVisitas] = useState([]);
 	const [visitaSeleccionada, setVisitaSeleccionada] = useState(null);
-
 	const [estudiosVisita, setEstudiosVisita] = useState([]);
-
 	const [empleadoData, setEmpleadoData] = useState(null);
 
 	useEffect(() => {
@@ -50,20 +41,15 @@ const Historial = () => {
 				.from("pacientes")
 				.select("id_paciente, nombre, sexo, fecha_nacimiento, telefono, email")
 				.limit(10);
-
 			const isNumeric = !isNaN(buscarCliente.trim());
 			const { data, error } = isNumeric
 				? await query.or(
 						`nombre.ilike.%${buscarCliente}%,id_paciente.eq.${buscarCliente}`,
 					)
 				: await query.ilike("nombre", `%${buscarCliente}%`);
-
 			if (error) throw error;
 			setResultadosBusqueda(data || []);
-
-			if (data && data.length === 1) {
-				seleccionarPaciente(data[0]);
-			}
+			if (data && data.length === 1) seleccionarPaciente(data[0]);
 		} catch (err) {
 			console.error("Error al buscar paciente:", err);
 		}
@@ -84,22 +70,13 @@ const Historial = () => {
 				.from("ventas")
 				.select(
 					`
-          id_venta,
-          folio,
-          fecha_venta,
-          total,
-          pago_recibido,
-          estudios_venta (
-            id_estudio_venta,
-            descripcion_estudio,
-            estado_validacion
-          )
-        `,
+				id_venta, folio, fecha_venta, total, pago_recibido,
+				estudios_venta (id_estudio_venta, descripcion_estudio, estado_validacion)
+			`,
 				)
 				.eq("id_paciente", idPaciente)
 				.eq("estado", "activo")
 				.order("fecha_venta", { ascending: false });
-
 			if (error) throw error;
 			setHistorialVisitas(data || []);
 		} catch (err) {
@@ -120,9 +97,7 @@ const Historial = () => {
 				.select("*")
 				.eq("id_venta", idVenta)
 				.order("id_estudio_venta");
-
 			if (errorEstudios) throw errorEstudios;
-
 			const estudiosConAnalitos = await Promise.all(
 				estudiosVenta.map(async (estudio) => {
 					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
@@ -130,11 +105,8 @@ const Historial = () => {
 						.select("*")
 						.eq("clave_estudio", estudio.clave_estudio)
 						.order("orden", { ascending: true });
-
-					if (errorRelaciones || !relacionesAnalitos?.length) {
+					if (errorRelaciones || !relacionesAnalitos?.length)
 						return { ...estudio, analitos: [] };
-					}
-
 					const analitosConDetalles = await Promise.all(
 						relacionesAnalitos.map(async (relacion) => {
 							const { data: analitoDetalle, error: errorDetalle } = await supabase
@@ -142,17 +114,14 @@ const Historial = () => {
 								.select("*")
 								.eq("id_analito", relacion.id_analito)
 								.single();
-
 							if (errorDetalle || !analitoDetalle) return null;
-
 							let resultadoGuardado = "";
 							if (estudio.resultados) {
 								try {
-									const resultadosJSON = JSON.parse(estudio.resultados);
-									resultadoGuardado = resultadosJSON[analitoDetalle.clave] || "";
+									const r = JSON.parse(estudio.resultados);
+									resultadoGuardado = r[analitoDetalle.clave] || "";
 								} catch (e) {}
 							}
-
 							return {
 								id_analito: analitoDetalle.id_analito,
 								clave: analitoDetalle.clave,
@@ -165,17 +134,15 @@ const Historial = () => {
 							};
 						}),
 					);
-
 					return {
 						...estudio,
 						analitos: analitosConDetalles.filter((a) => a !== null),
 					};
 				}),
 			);
-
 			setEstudiosVisita(estudiosConAnalitos);
 		} catch (err) {
-			console.error("Error al cargar estudios con analitos:", err);
+			console.error("Error al cargar estudios:", err);
 			setEstudiosVisita([]);
 		}
 	};
@@ -198,7 +165,6 @@ const Historial = () => {
 			year: "2-digit",
 		});
 	};
-
 	const formatHora = (fecha) => {
 		if (!fecha) return "N/A";
 		return new Date(fecha).toLocaleTimeString("es-MX", {
@@ -206,7 +172,6 @@ const Historial = () => {
 			minute: "2-digit",
 		});
 	};
-
 	const formatFechaLarga = (fecha) => {
 		if (!fecha) return "N/A";
 		return new Date(fecha).toLocaleDateString("es-MX", {
@@ -220,7 +185,6 @@ const Historial = () => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
 		return nombreCompleto;
 	};
-
 	const formatRol = (rol) => {
 		if (!rol) return "Usuario";
 		const roles = {
@@ -238,10 +202,6 @@ const Historial = () => {
 		return roles[rol] || rol;
 	};
 
-	const handleKeyPress = (e) => {
-		if (e.key === "Enter") buscarPaciente();
-	};
-
 	const obtenerIconoEstado = (estado) => {
 		switch (estado) {
 			case "guardado":
@@ -254,21 +214,11 @@ const Historial = () => {
 	};
 
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="historial-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					currentPage="historial"
-				/>
-
-				<SidebarHome />
-
 				<div className="historial-header">
 					<h1 className="historial-title">Historial</h1>
 				</div>
@@ -286,7 +236,7 @@ const Historial = () => {
 								placeholder="Buscar Cliente..."
 								value={buscarCliente}
 								onChange={(e) => setBuscarCliente(e.target.value)}
-								onKeyPress={handleKeyPress}
+								onKeyPress={(e) => e.key === "Enter" && buscarPaciente()}
 								className="input-buscar-cliente"
 							/>
 							<button className="btn-buscar" onClick={buscarPaciente}>
@@ -401,12 +351,10 @@ const Historial = () => {
 										{formatHora(visitaSeleccionada.fecha_venta)}
 									</span>
 								</div>
-
 								<div className="estudios-paciente-section">
 									<h2 className="section-title-hist amarillo">
 										Estudios del Paciente
 									</h2>
-
 									<div className="tabla-estudios-hist-container">
 										<table className="tabla-estudios-hist">
 											<thead>
@@ -504,7 +452,7 @@ const Historial = () => {
 					</div>
 				</div>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 

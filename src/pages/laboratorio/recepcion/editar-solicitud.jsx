@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import calendarioIcono from "../../../assets/calendarioIcono.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import empresaIcono from "../../../assets/empresaIcono.png";
@@ -7,10 +7,8 @@ import guardarImpBtn from "../../../assets/guardarImpBtn.png";
 import imprimirIcono from "../../../assets/imprimirIcono.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
-import Header from "../../../components/header-principal.jsx";
-import Layout from "../../../components/layout.jsx";
 import ModalNotificacion from "../../../components/ModalNotificacion";
-import SidebarHome from "../../../components/sidebar-home.jsx";
+import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { generarTicketVenta } from "../../../utils/generarTicketVenta";
@@ -18,37 +16,26 @@ import "./editar-solicitud.css";
 
 const EditarSolicitud = () => {
 	const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [empleadoData, setEmpleadoData] = useState(null);
-
 	const [rangoFecha, setRangoFecha] = useState("hoy");
 	const [buscarPaciente, setBuscarPaciente] = useState("");
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
-
 	const [motivoModificacion, setMotivoModificacion] = useState("");
 	const [folio, setFolio] = useState("");
-
 	const [clientes, setClientes] = useState([]);
 	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
-
 	const [medicoBusqueda, setMedicoBusqueda] = useState("");
 	const [medicosEncontrados, setMedicosEncontrados] = useState([]);
 	const [medicoSeleccionado, setMedicoSeleccionado] = useState(null);
 	const [showBusquedaMedicos, setShowBusquedaMedicos] = useState(false);
-
-	// Recepcionistas
 	const [recepcionistas, setRecepcionistas] = useState([]);
 	const [recepcionistaSeleccionado, setRecepcionistaSeleccionado] = useState("");
-
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
-
 	const [formaPago, setFormaPago] = useState("efectivo");
 	const [ivaPercent, setIvaPercent] = useState(0);
 	const [descuentoPercent, setDescuentoPercent] = useState(0);
@@ -60,9 +47,7 @@ const EditarSolicitud = () => {
 	const [abono, setAbono] = useState(0);
 	const [adeudo, setAdeudo] = useState(0);
 	const [pago, setPago] = useState("");
-
 	const [vendedor, setVendedor] = useState("");
-
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
@@ -81,10 +66,8 @@ const EditarSolicitud = () => {
 				if (!error && empleado) {
 					setEmpleadoData(empleado);
 					setVendedor(empleado.nombre || "");
-					// Si el usuario logueado es recepcionista, preseleccionarlo
-					if (empleado.rol === "recepcionista") {
+					if (empleado.rol === "recepcionista")
 						setRecepcionistaSeleccionado(empleado.nombre);
-					}
 				}
 			} catch (err) {
 				console.error("Error al obtener empleado:", err);
@@ -97,23 +80,18 @@ const EditarSolicitud = () => {
 	useEffect(() => {
 		cargarOrdenes();
 	}, [rangoFecha]);
-
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, abono, pago]);
-
 	useEffect(() => {
 		cargarClientes();
 		cargarEstudiosDisponibles();
 	}, []);
 
-	const mostrarNotificacion = (mensaje, tipo = "exito") => {
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
-	};
-
-	const cerrarNotificacion = () => {
+	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
-	};
 
 	const cargarRecepcionistas = async () => {
 		try {
@@ -132,7 +110,6 @@ const EditarSolicitud = () => {
 		const hoy = new Date();
 		const inicio = new Date(hoy);
 		const fin = new Date(hoy);
-
 		if (rangoFecha === "hoy") {
 			inicio.setHours(0, 0, 0, 0);
 			fin.setHours(23, 59, 59, 999);
@@ -149,10 +126,7 @@ const EditarSolicitud = () => {
 			inicio.setMonth(0, 1);
 			inicio.setHours(0, 0, 0, 0);
 			fin.setHours(23, 59, 59, 999);
-		} else {
-			return null;
-		}
-
+		} else return null;
 		return { inicio: inicio.toISOString(), fin: fin.toISOString() };
 	};
 
@@ -162,46 +136,17 @@ const EditarSolicitud = () => {
 				.from("ventas")
 				.select(
 					`
-          id_venta,
-          folio,
-          fecha_venta,
-          total,
-          pago_recibido,
-          subtotal,
-          iva,
-          descuento,
-          forma_pago,
-          observaciones,
-          estado,
-          id_cliente,
-          id_doctor,
-          pacientes (
-            id_paciente,
-            nombre,
-            fecha_nacimiento,
-            sexo,
-            telefono,
-            email,
-            rfc
-          ),
-          estudios_venta (
-            id_estudio_venta,
-            clave_estudio,
-            descripcion_estudio,
-            precio,
-            area
-          )
-        `,
+				id_venta, folio, fecha_venta, total, pago_recibido, subtotal, iva, descuento, forma_pago, observaciones, estado, id_cliente, id_doctor,
+				pacientes (id_paciente, nombre, fecha_nacimiento, sexo, telefono, email, rfc),
+				estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, precio, area)
+			`,
 				)
 				.eq("estado", "activo")
 				.order("fecha_venta", { ascending: false })
 				.limit(50);
-
 			const rango = obtenerRangoFechas();
-			if (rango) {
+			if (rango)
 				query = query.gte("fecha_venta", rango.inicio).lte("fecha_venta", rango.fin);
-			}
-
 			const { data, error } = await query;
 			if (error) throw error;
 			setOrdenes(data || []);
@@ -266,7 +211,6 @@ const EditarSolicitud = () => {
 		setFolio(orden.folio);
 		setMotivoModificacion("");
 		setPago("");
-
 		setClienteSeleccionado(orden.id_cliente?.toString() || "");
 		setIvaPercent(orden.iva ? (orden.iva / orden.subtotal) * 100 : 0);
 		setDescuentoPercent(
@@ -276,7 +220,6 @@ const EditarSolicitud = () => {
 		);
 		setFormaPago(orden.forma_pago || "efectivo");
 		setAbono(parseFloat(orden.pago_recibido) || 0);
-
 		if (orden.id_doctor) {
 			try {
 				const { data } = await supabase
@@ -293,18 +236,17 @@ const EditarSolicitud = () => {
 			setMedicoSeleccionado(null);
 			setMedicoBusqueda("");
 		}
-
-		const estudiosFormateados = (orden.estudios_venta || []).map((ev) => ({
-			id: ev.id_estudio_venta,
-			id_estudio_venta: ev.id_estudio_venta,
-			clave: ev.clave_estudio,
-			descripcion: ev.descripcion_estudio,
-			precio: parseFloat(ev.precio) || 0,
-			area: ev.area || "",
-			cantidad: 1,
-		}));
-
-		setEstudiosSeleccionados(estudiosFormateados);
+		setEstudiosSeleccionados(
+			(orden.estudios_venta || []).map((ev) => ({
+				id: ev.id_estudio_venta,
+				id_estudio_venta: ev.id_estudio_venta,
+				clave: ev.clave_estudio,
+				descripcion: ev.descripcion_estudio,
+				precio: parseFloat(ev.precio) || 0,
+				area: ev.area || "",
+				cantidad: 1,
+			})),
+		);
 	};
 
 	const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
@@ -331,9 +273,10 @@ const EditarSolicitud = () => {
 		const clienteObj = clientes.find(
 			(c) => c.id_cliente.toString() === clienteSeleccionado,
 		);
-		const nombreCliente = clienteObj ? clienteObj.nombre : "";
-		const precio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
-
+		const precio = await obtenerPrecioEstudio(
+			estudio.clave,
+			clienteObj?.nombre || "",
+		);
 		setEstudiosSeleccionados([
 			...estudiosSeleccionados,
 			{
@@ -349,9 +292,8 @@ const EditarSolicitud = () => {
 		setShowBusquedaEstudios(false);
 	};
 
-	const eliminarEstudio = (clave) => {
+	const eliminarEstudio = (clave) =>
 		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.clave !== clave));
-	};
 
 	const calcularTotales = () => {
 		const sub = estudiosSeleccionados.reduce(
@@ -367,8 +309,7 @@ const EditarSolicitud = () => {
 		setDescuento(desc);
 		const gran = totalIva - desc;
 		setGranTotal(gran);
-		const pagoNum = parseFloat(pago) || 0;
-		const adeudoCalc = gran - abono - pagoNum;
+		const adeudoCalc = gran - abono - (parseFloat(pago) || 0);
 		setAdeudo(adeudoCalc > 0 ? adeudoCalc : 0);
 	};
 
@@ -381,11 +322,8 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Ingrese el motivo de modificación", "advertencia");
 			return;
 		}
-
 		try {
-			const pagoNuevo = parseFloat(pago) || 0;
-			const totalPagado = abono + pagoNuevo;
-
+			const totalPagado = abono + (parseFloat(pago) || 0);
 			const { error: errorVenta } = await supabase
 				.from("ventas")
 				.update({
@@ -401,33 +339,27 @@ const EditarSolicitud = () => {
 					updated_at: new Date().toISOString(),
 				})
 				.eq("id_venta", ordenSeleccionada.id_venta);
-
 			if (errorVenta) throw errorVenta;
-
 			await supabase
 				.from("estudios_venta")
 				.delete()
 				.eq("id_venta", ordenSeleccionada.id_venta);
-
-			const nuevosEstudios = estudiosSeleccionados.map((est) => ({
-				id_venta: ordenSeleccionada.id_venta,
-				clave_estudio: est.clave,
-				descripcion_estudio: est.descripcion,
-				precio: est.precio,
-				area: est.area,
-				dias_proceso: 1,
-				estado_captura: "pendiente",
-			}));
-
 			const { error: errorEstudios } = await supabase
 				.from("estudios_venta")
-				.insert(nuevosEstudios);
-
+				.insert(
+					estudiosSeleccionados.map((est) => ({
+						id_venta: ordenSeleccionada.id_venta,
+						clave_estudio: est.clave,
+						descripcion_estudio: est.descripcion,
+						precio: est.precio,
+						area: est.area,
+						dias_proceso: 1,
+						estado_captura: "pendiente",
+					})),
+				);
 			if (errorEstudios) throw errorEstudios;
-
 			mostrarNotificacion("Orden actualizada exitosamente", "exito");
 			await cargarOrdenes();
-
 			setTimeout(() => window.print(), 800);
 		} catch (err) {
 			console.error("Error al guardar:", err);
@@ -440,15 +372,12 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Seleccione una orden primero", "advertencia");
 			return;
 		}
-
 		try {
 			const { error } = await supabase
 				.from("ventas")
 				.update({ estado: "cancelado", updated_at: new Date().toISOString() })
 				.eq("id_venta", ordenSeleccionada.id_venta);
-
 			if (error) throw error;
-
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
 			setOrdenSeleccionada(null);
 			setEstudiosSeleccionados([]);
@@ -520,7 +449,6 @@ const EditarSolicitud = () => {
 		e.stopPropagation();
 		if (!orden) return;
 		try {
-			// Cargar nombre del doctor si hay id_doctor
 			let nombreDoctor = "";
 			if (orden.id_doctor) {
 				const { data: doc } = await supabase
@@ -530,14 +458,11 @@ const EditarSolicitud = () => {
 					.single();
 				if (doc) nombreDoctor = doc.nombre;
 			}
-
-			// Cargar nombre del cliente/empresa
 			let nombreEmpresa = "PARTICULAR";
 			if (orden.id_cliente) {
 				const clienteObj = clientes.find((c) => c.id_cliente === orden.id_cliente);
 				if (clienteObj) nombreEmpresa = clienteObj.nombre;
 			}
-
 			const paciente = orden.pacientes;
 			const hoy = new Date();
 			const nac = paciente?.fecha_nacimiento
@@ -550,11 +475,8 @@ const EditarSolicitud = () => {
 				if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
 				edadStr = `${edad} años`;
 			}
-
 			const totalNum = parseFloat(orden.total) || 0;
 			const pagoNum = parseFloat(orden.pago_recibido) || 0;
-			const adeudoNum = Math.max(totalNum - pagoNum, 0);
-
 			await generarTicketVenta({
 				folio: orden.folio,
 				fecha: new Date(orden.fecha_venta),
@@ -574,11 +496,11 @@ const EditarSolicitud = () => {
 				total: totalNum,
 				abono1: pagoNum,
 				abono2: 0,
-				adeudo: adeudoNum,
+				adeudo: Math.max(totalNum - pagoNum, 0),
 				pagoRecibido: pagoNum,
 				cambio: 0,
 				formaPago: orden.forma_pago || "efectivo",
-				vendedor: vendedor,
+				vendedor,
 			});
 		} catch (err) {
 			console.error("Error al generar ticket:", err);
@@ -587,21 +509,11 @@ const EditarSolicitud = () => {
 	};
 
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="editar-solicitud-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					currentPage="editar-solicitud"
-				/>
-
-				<SidebarHome />
-
 				<div className="editar-solicitud-header">
 					<h1 className="editar-solicitud-title">Editar Orden</h1>
 					<button className="btn-cancelar-orden" onClick={cancelarOrden}>
@@ -622,9 +534,12 @@ const EditarSolicitud = () => {
 									className="input-buscar-paciente-edit"
 								/>
 							</div>
-
 							<div className="rango-fecha-grupo">
-								<span className="calendar-icon">📅</span>
+								<img
+									src={calendarioIcono}
+									alt="Calendario"
+									className="icono-campo"
+								/>
 								<select
 									value={rangoFecha}
 									onChange={(e) => setRangoFecha(e.target.value)}
@@ -699,7 +614,6 @@ const EditarSolicitud = () => {
 								</tbody>
 							</table>
 						</div>
-
 						<div className="ordenes-footer">
 							<span>Vendedor: {vendedor || "—"}</span>
 						</div>
@@ -728,7 +642,6 @@ const EditarSolicitud = () => {
 						</div>
 
 						<div className="campos-orden">
-							{/* Empresa / Cliente */}
 							<div className="campo-icon-grupo">
 								<img src={empresaIcono} alt="Empresa" className="icono-campo" />
 								<select
@@ -743,8 +656,6 @@ const EditarSolicitud = () => {
 									))}
 								</select>
 							</div>
-
-							{/* Médico */}
 							<div className="campo-icon-grupo" style={{ position: "relative" }}>
 								<img src={doctorIcono} alt="Médico" className="icono-campo" />
 								<input
@@ -770,8 +681,6 @@ const EditarSolicitud = () => {
 									</div>
 								)}
 							</div>
-
-							{/* Recepcionista */}
 							<div className="campo-icon-grupo">
 								<img
 									src={pacienteIcono}
@@ -794,7 +703,6 @@ const EditarSolicitud = () => {
 
 						<div className="lista-precios-section">
 							<label className="lista-precios-label">Lista de precios</label>
-
 							<div className="buscar-estudios-row">
 								<div
 									className="buscar-estudios-grupo"
@@ -921,7 +829,6 @@ const EditarSolicitud = () => {
 									/>
 								</div>
 							</div>
-
 							<div className="totales-row-2">
 								<div className="campo-total">
 									<label>Desc %</label>
@@ -1004,7 +911,7 @@ const EditarSolicitud = () => {
 					tipo={notificacion.tipo}
 				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 

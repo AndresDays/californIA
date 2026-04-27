@@ -1,14 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIconoVerde.png";
 import guardarIcono from "../../assets/guardarIcono.png";
-import imprimirBtn from "../../assets/imprimirBtn.png";
+import imprimirBtn from "../../assets/ImprimirBtn.png";
 import relojIcono from "../../assets/relojIconoAmarillo.png";
-import Header from "../../components/header-principal.jsx";
-import Layout from "../../components/layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
-import SidebarHome from "../../components/sidebar-home.jsx";
+import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import "./captura.css";
@@ -16,8 +14,6 @@ import "./captura.css";
 const Captura = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
 
 	const [fechaInicial, setFechaInicial] = useState(
 		new Date().toISOString().split("T")[0],
@@ -164,7 +160,6 @@ const Captura = () => {
 				.select("*")
 				.eq("id_venta", idVenta);
 			if (errorEstudios) throw errorEstudios;
-
 			const estudiosConAnalitos = await Promise.all(
 				estudiosVenta.map(async (estudio) => {
 					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
@@ -174,7 +169,6 @@ const Captura = () => {
 						.order("orden", { ascending: true });
 					if (errorRelaciones || !relacionesAnalitos?.length)
 						return { ...estudio, analitos: [] };
-
 					const analitosConDetalles = await Promise.all(
 						relacionesAnalitos.map(async (relacion) => {
 							const { data: analitoDetalle, error: errorDetalle } = await supabase
@@ -363,15 +357,6 @@ const Captura = () => {
 		});
 	};
 
-	const formatFecha = (fecha) => {
-		if (!fecha) return "N/A";
-		return new Date(fecha).toLocaleDateString("es-MX", {
-			day: "2-digit",
-			month: "2-digit",
-			year: "numeric",
-		});
-	};
-
 	const obtenerIconoEstado = (estadoValidacion) => {
 		switch (estadoValidacion) {
 			case "guardado":
@@ -419,29 +404,12 @@ const Captura = () => {
 		return roles[rol] || rol;
 	};
 
-	const handleLogout = async () => {
-		const { signOut } = useAuth();
-		await signOut();
-		navigate("/login");
-	};
-
 	return (
-		<Layout>
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
 			<div className="captura-wrapper">
-				<Header
-					menuOpen={menuOpen}
-					setMenuOpen={setMenuOpen}
-					menuRef={menuRef}
-					empleadoData={empleadoData}
-					formatRol={formatRol}
-					getPrimerNombre={getPrimerNombre}
-					user={user}
-					handleLogout={handleLogout}
-					currentPage="captura"
-				/>
-
-				<SidebarHome />
-
 				<div className="filtros-section">
 					<div className="filtros-row">
 						<div className="filtro-fecha">
@@ -568,13 +536,10 @@ const Captura = () => {
 										const todosCompletados = venta.estudios_venta?.every(
 											(e) => e.estado_captura === "completado",
 										);
-										const rowClass = todosCompletados
-											? "row-completado"
-											: "row-pendiente";
 										return (
 											<tr
 												key={venta.id_venta}
-												className={`${rowClass} ${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""}`}
+												className={`${todosCompletados ? "row-completado" : "row-pendiente"} ${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""}`}
 												onClick={() => seleccionarVenta(venta)}>
 												<td>{venta.folio}</td>
 												<td>{venta.pacientes?.nombre || "N/A"}</td>
@@ -812,7 +777,7 @@ const Captura = () => {
 					tipo={notificacion.tipo}
 				/>
 			</div>
-		</Layout>
+		</PageLayout>
 	);
 };
 
