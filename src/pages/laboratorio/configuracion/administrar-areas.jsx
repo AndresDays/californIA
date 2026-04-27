@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import editarIconoV2 from "../../../assets/editarIconoV2.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
@@ -179,9 +180,9 @@ const AdministrarAreas = () => {
 						<table className="tabla-areas">
 							<thead>
 								<tr>
-									<th># ⬍</th>
-									<th>Area ⬍</th>
-									<th>Acciones ⬍</th>
+									<th>#</th>
+									<th>Area</th>
+									<th>Acciones</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -198,10 +199,14 @@ const AdministrarAreas = () => {
 											<td>{area.nombre}</td>
 											<td>
 												<button
-													className="btn-editar-area"
+													className="btn-editar-estudio-tabla"
 													onClick={() => handleEditarArea(area.id_area)}
 													title="Editar area">
-													✏️
+													<img
+														src={editarIconoV2}
+														alt="Editar"
+														className="icono-accion"
+													/>
 												</button>
 											</td>
 										</tr>

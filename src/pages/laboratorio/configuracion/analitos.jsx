@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import editarIconoV2 from "../../../assets/editarIconoV2.png";
+import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
@@ -494,9 +496,9 @@ const Analitos = () => {
 								<thead>
 									<tr>
 										<th>#</th>
-										<th>Clave ⬍</th>
-										<th>Descripcion ⬍</th>
-										<th>Acciones ⬍</th>
+										<th>Clave</th>
+										<th>Descripcion</th>
+										<th>Acciones</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -514,20 +516,32 @@ const Analitos = () => {
 												<td>{analito.descripcion}</td>
 												<td>
 													<div className="acciones-analitos">
-														<button
-															className="btn-editar-analito"
-															onClick={() => handleEditarAnalito(analito.id_analito)}
-															title="Editar analito">
-															✏️
-														</button>
-														<button
-															className="btn-eliminar-analito"
-															onClick={() =>
-																handleEliminarAnalito(analito.id_analito)
-															}
-															title="Eliminar analito">
-															✖
-														</button>
+														<div className="acciones-analitos">
+															<button
+																className="btn-editar-estudio-tabla"
+																onClick={() =>
+																	handleEditarAnalito(analito.id_analito)
+																}
+																title="Editar analito">
+																<img
+																	src={editarIconoV2}
+																	alt="Editar"
+																	className="icono-accion"
+																/>
+															</button>
+															<button
+																className="btn-eliminar-estudio-tabla"
+																onClick={() =>
+																	handleEliminarAnalito(analito.id_analito)
+																}
+																title="Eliminar analito">
+																<img
+																	src={eliminarIconoV2}
+																	alt="Eliminar"
+																	className="icono-accion"
+																/>
+															</button>
+														</div>
 													</div>
 												</td>
 											</tr>

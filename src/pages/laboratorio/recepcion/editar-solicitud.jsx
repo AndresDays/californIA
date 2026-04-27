@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
+import cancelarBtn from "../../../assets/cancelarBtn.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import empresaIcono from "../../../assets/empresaIcono.png";
 import guardarImpBtn from "../../../assets/guardarImpBtn.png";
 import imprimirIcono from "../../../assets/imprimirIcono.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
+import muestrasBtn from "../../../assets/muestrasBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
@@ -517,7 +519,11 @@ const EditarSolicitud = () => {
 				<div className="editar-solicitud-header">
 					<h1 className="editar-solicitud-title">Editar Orden</h1>
 					<button className="btn-cancelar-orden" onClick={cancelarOrden}>
-						CANCELAR ORDEN ✖
+						<img
+							src={cancelarBtn}
+							alt="Cancelar Orden"
+							className="icono-cancelar-btn"
+						/>
 					</button>
 				</div>
 
@@ -737,7 +743,11 @@ const EditarSolicitud = () => {
 									)}
 								</div>
 								<button className="btn-muestras-pendientes">
-									Muestras Pendientes
+									<img
+										src={muestrasBtn}
+										alt="Muestras Pendientes"
+										className="icono-muestras-btn"
+									/>
 								</button>
 							</div>
 

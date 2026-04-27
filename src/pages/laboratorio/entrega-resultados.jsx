@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
+import enviarEmailBtn from "../../assets/enviarEmailBtn.png";
+import enviarWppBtn from "../../assets/enviarWppBtn.png";
 import guardarIcono from "../../assets/guardarIcono.png";
 import imprimirBtn from "../../assets/ImprimirBtn.png";
 import imprimirIcono from "../../assets/imprimirIcono.png";
@@ -313,11 +315,19 @@ const EntregaResultados = () => {
 						<button className="btn-imprimir-img" onClick={imprimir}>
 							<img src={imprimirBtn} alt="Imprimir" className="icono-btn-imprimir" />
 						</button>
-						<button className="btn-action-entrega" onClick={enviarEmail}>
-							Enviar por e-mail
+						<button className="btn-imprimir-img" onClick={enviarEmail}>
+							<img
+								src={enviarEmailBtn}
+								alt="Enviar por Email"
+								className="icono-btn-imprimir"
+							/>
 						</button>
-						<button className="btn-action-entrega" onClick={enviarWhatsApp}>
-							Enviar por WhatsApp
+						<button className="btn-imprimir-img" onClick={enviarWhatsApp}>
+							<img
+								src={enviarWppBtn}
+								alt="Enviar por WhatsApp"
+								className="icono-btn-imprimir"
+							/>
 						</button>
 					</div>
 				</div>

@@ -432,3 +432,29 @@
 		justify-content: center;
 	}
 }
+
+.btn-editar-estudio-tabla,
+.btn-eliminar-estudio-tabla {
+	padding: 0.25rem;
+	border: none;
+	background: transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.btn-editar-estudio-tabla:hover,
+.btn-eliminar-estudio-tabla:hover {
+	transform: scale(1.15);
+	background: rgba(111, 179, 210, 0.1);
+}
+
+.icono-accion {
+	width: 28px;
+	height: 22px;
+	display: block;
+	object-fit: contain;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
+import editarIconoV2 from "../../../assets/editarIconoV2.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import solicitudIcono from "../../../assets/solicitudIcono.png";
@@ -414,10 +415,10 @@ const Paquetes = () => {
 							<table className="tabla-paquetes">
 								<thead>
 									<tr>
-										<th>Clave ⬍</th>
-										<th>Descripcion ⬍</th>
-										<th>Condiciones ⬍</th>
-										<th>Acciones ⬍</th>
+										<th>Clave</th>
+										<th>Descripcion</th>
+										<th>Condiciones</th>
+										<th>Acciones</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -435,10 +436,14 @@ const Paquetes = () => {
 												<td>{paquete.condiciones}</td>
 												<td>
 													<button
-														className="btn-editar-paquete"
+														className="btn-editar-estudio-tabla"
 														onClick={() => cargarPaqueteParaEditar(paquete)}
 														title="Editar paquete">
-														✏️
+														<img
+															src={editarIconoV2}
+															alt="Editar"
+															className="icono-accion"
+														/>
 													</button>
 												</td>
 											</tr>

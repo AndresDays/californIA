@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import lupaIcono from "../../../assets/lupaIcono.png";
 import notaIcono from "../../../assets/notaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
@@ -240,7 +241,7 @@ const Historial = () => {
 								className="input-buscar-cliente"
 							/>
 							<button className="btn-buscar" onClick={buscarPaciente}>
-								🔍
+								<img src={lupaIcono} alt="Buscar" className="icono-buscar-hist" />
 							</button>
 						</div>
 
