@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import empresaIcono from "../../../assets/empresaIcono.png";
+import enviarEmailBtn from "../../../assets/enviarEmailBtn.png";
+import enviarWppBtn from "../../../assets/enviarWppBtn.png";
+import guardarBtn from "../../../assets/guardarBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
@@ -559,21 +562,21 @@ const Cotizacion = () => {
 
 							<div className="botones-cotizacion">
 								<button
-									className="btn-whatsapp-cot"
+									className="btn-img-cot"
 									onClick={() =>
 										mostrarNotificacion("Primero debe guardar la cotización", "info")
 									}>
-									💬 WHATSAPP
+									<img src={enviarWppBtn} alt="WhatsApp" className="icono-btn-cot" />
 								</button>
-								<button className="btn-guardar-cot" onClick={handleGuardarGenerar}>
-									GUARDAR / GENERAR
+								<button className="btn-img-cot" onClick={handleGuardarGenerar}>
+									<img src={guardarBtn} alt="Guardar" className="icono-btn-cot" />
 								</button>
 								<button
-									className="btn-correo-cot"
+									className="btn-img-cot"
 									onClick={() =>
 										mostrarNotificacion("Primero debe guardar la cotización", "info")
 									}>
-									✉️ CORREO
+									<img src={enviarEmailBtn} alt="Correo" className="icono-btn-cot" />
 								</button>
 							</div>
 						</div>
