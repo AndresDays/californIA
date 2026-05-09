@@ -1,0 +1,54 @@
+import {
+	calcularPendientesEntrega,
+	calcularSaldoEntrega,
+	filtrarVentasEntrega,
+	tieneSaldoPendiente,
+} from "./entrega-resultados";
+
+describe("entrega-resultados helpers", () => {
+	const ventas = [
+		{
+			id_venta: 1,
+			folio: "LAB-001",
+			total: 500,
+			pago_recibido: 500,
+			pacientes: { nombre: "Ana Lopez" },
+			clientes: { nombre: "Empresa Norte" },
+			estudios_venta: [
+				{ estado_validacion: "validado", entregado: false },
+				{ estado_validacion: "validado", entregado: true },
+			],
+		},
+		{
+			id_venta: 2,
+			folio: "LAB-002",
+			total: 800,
+			pago_recibido: 300,
+			pacientes: { nombre: "Carlos Ruiz" },
+			clientes: null,
+			estudios_venta: [
+				{ estado_validacion: "guardado", entregado: false },
+				{ estado_validacion: "validado", entregado: false },
+			],
+		},
+	];
+
+	test("cuenta solo estudios validados pendientes de entrega", () => {
+		expect(calcularPendientesEntrega(ventas[0].estudios_venta)).toBe(1);
+		expect(calcularPendientesEntrega(ventas[1].estudios_venta)).toBe(1);
+	});
+
+	test("filtra por folio, paciente o cliente en una busqueda general", () => {
+		expect(filtrarVentasEntrega(ventas, "ana")).toEqual([ventas[0]]);
+		expect(filtrarVentasEntrega(ventas, "LAB-002")).toEqual([ventas[1]]);
+		expect(filtrarVentasEntrega(ventas, "empresa")).toEqual([ventas[0]]);
+		expect(filtrarVentasEntrega(ventas, "")).toEqual(ventas);
+	});
+
+	test("calcula saldo pendiente para alertar antes de entregar", () => {
+		expect(calcularSaldoEntrega(ventas[0])).toBe(0);
+		expect(calcularSaldoEntrega(ventas[1])).toBe(500);
+		expect(tieneSaldoPendiente(ventas[0])).toBe(false);
+		expect(tieneSaldoPendiente(ventas[1])).toBe(true);
+	});
+});

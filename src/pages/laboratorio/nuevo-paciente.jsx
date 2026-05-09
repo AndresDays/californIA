@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import {
+	construirEstudioSeleccionado,
+	dividirEstudiosCita,
+	encontrarEstudioCatalogo,
+} from "../../utils/cita-nuevo-paciente";
+import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import { generarTicketVenta } from "../../utils/generarTicketVenta";
+import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
@@ -11,6 +19,7 @@ import "./nuevo-paciente.css";
 
 import cotizacionesBtn from "../../assets/cotizacionesBtn.png";
 import doctorIcono from "../../assets/doctorIcono.png";
+import eliminarIcono from "../../assets/eliminarIconoV2.png";
 import guardarImpBtn from "../../assets/guardarImpBtn.png";
 import muestrasBtn from "../../assets/muestrasBtn.png";
 import pacientesIcono from "../../assets/pacientesIcono.png";
@@ -19,12 +28,20 @@ import warningV1 from "../../assets/warningV1.png";
 const NuevoPaciente = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const menuRef = useRef(null);
+	const citaPrecargadaRef = useRef(null);
+	const tipoEstudioPendienteRef = useRef("");
 
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
 	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
+	const [notificacion, setNotificacion] = useState({
+		isOpen: false,
+		mensaje: "",
+		tipo: "exito",
+	});
 
 	const [buscarPaciente, setBuscarPaciente] = useState("");
 	const [pacientesEncontrados, setPacientesEncontrados] = useState([]);
@@ -72,6 +89,18 @@ const NuevoPaciente = () => {
 	const [formaPago, setFormaPago] = useState("efectivo");
 
 	const [empleadoData, setEmpleadoData] = useState(null);
+	const citaIdDesdeDashboard =
+		location.state?.citaId ||
+		new URLSearchParams(location.search).get("citaId");
+	const idCitaPrecargada = citaIdDesdeDashboard
+		? parseInt(citaIdDesdeDashboard, 10)
+		: null;
+
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
+		setNotificacion({ isOpen: true, mensaje, tipo });
+
+	const cerrarNotificacion = () =>
+		setNotificacion((prev) => ({ ...prev, isOpen: false }));
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -117,8 +146,17 @@ const NuevoPaciente = () => {
 		} else {
 			setTiposEstudio([]);
 		}
-		setTipoEstudioSeleccionado("");
+		setTipoEstudioSeleccionado(tipoEstudioPendienteRef.current || "");
+		tipoEstudioPendienteRef.current = "";
 	}, [empresaSeleccionada]);
+
+	useEffect(() => {
+		if (!citaIdDesdeDashboard || estudiosDisponibles.length === 0) return;
+		if (citaPrecargadaRef.current === citaIdDesdeDashboard) return;
+
+		citaPrecargadaRef.current = citaIdDesdeDashboard;
+		cargarCitaDesdeDashboard(citaIdDesdeDashboard);
+	}, [citaIdDesdeDashboard, estudiosDisponibles]);
 
 	const generarFolio = async () => {
 		const hoy = new Date();
@@ -165,12 +203,9 @@ const NuevoPaciente = () => {
 			return;
 		}
 
-		if (parseFloat(pagoRecibido) < granTotal) {
-			alert("El pago recibido es menor al total");
-			return;
-		}
-
 		try {
+			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
+			const cambioVenta = Math.max(pagoNormalizado - granTotal, 0);
 			let idPaciente = pacienteSeleccionado?.id_paciente;
 
 			if (!idPaciente) {
@@ -223,8 +258,8 @@ const NuevoPaciente = () => {
 						descuento: descuento,
 						total: granTotal,
 						forma_pago: formaPago,
-						pago_recibido: parseFloat(pagoRecibido),
-						cambio: cambio,
+						pago_recibido: pagoNormalizado,
+						cambio: cambioVenta,
 						observaciones: observaciones,
 						estado: "activo",
 					},
@@ -250,6 +285,17 @@ const NuevoPaciente = () => {
 
 			if (errorEstudios) throw errorEstudios;
 
+			if (idCitaPrecargada) {
+				const { error: errorCita } = await supabase
+					.from("citas")
+					.update({
+						estado: CITA_ESTADOS.EN_PROCESO,
+					})
+					.eq("id_cita", idCitaPrecargada);
+
+				if (errorCita) throw errorCita;
+			}
+
 			await generarTicketVenta({
 				folio,
 				fecha: new Date(),
@@ -259,14 +305,15 @@ const NuevoPaciente = () => {
 				iva,
 				descuento,
 				total: granTotal,
-				pagoRecibido: parseFloat(pagoRecibido),
-				cambio,
+				pagoRecibido: pagoNormalizado,
+				cambio: cambioVenta,
 				formaPago,
 				observaciones,
 			});
 
 			alert(`¡Venta registrada exitosamente!\nFolio: ${folio}`);
 			limpiarFormulario();
+			navigate("/captura");
 		} catch (error) {
 			console.error("Error al guardar:", error);
 			alert("Error al guardar la venta: " + error.message);
@@ -616,7 +663,7 @@ const NuevoPaciente = () => {
 		const gran = totalIva - desc;
 		setGranTotal(gran);
 
-		const camb = (parseFloat(pagoRecibido) || 0) - gran;
+		const camb = normalizarPagoRecibido(pagoRecibido) - gran;
 		setCambio(camb > 0 ? camb : 0);
 	};
 
@@ -663,10 +710,105 @@ const NuevoPaciente = () => {
 				setDescuentoPercent(parseFloat(cotizacion.descuento_porcentaje));
 			}
 
-			alert("Datos de cotización cargados exitosamente");
+			mostrarNotificacion("Datos de cotización cargados exitosamente", "exito");
 		} catch (error) {
 			console.error("Error al cargar cotización:", error);
-			alert("Error al cargar los datos de la cotización");
+			mostrarNotificacion("Error al cargar los datos de la cotización", "error");
+		}
+	};
+
+	const cargarCitaDesdeDashboard = async (idCita) => {
+		try {
+			const { data: cita, error } = await supabase
+				.from("citas")
+				.select(
+					`
+					id_cita,
+					id_paciente,
+					id_cliente,
+					id_empresa,
+					id_tipo_estudio,
+					nombre_paciente,
+					telefono_paciente,
+					tipo_estudio,
+					monto,
+					pacientes (*),
+					clientes (id_cliente, nombre),
+					empresas (id_empresa, nombre),
+					tipos_estudio (id_tipo_estudio, nombre)
+				`,
+				)
+				.eq("id_cita", idCita)
+				.single();
+
+			if (error) throw error;
+
+			if (cita.pacientes) {
+				seleccionarPaciente(cita.pacientes);
+			} else {
+				const nombrePaciente = cita.nombre_paciente || "";
+				setPacienteSeleccionado(null);
+				setNombreCompleto(nombrePaciente);
+				setTelefono(cita.telefono_paciente || "");
+				setBuscarPaciente(nombrePaciente);
+			}
+
+			const clienteId = cita.id_cliente ? cita.id_cliente.toString() : "";
+			const empresaId = cita.id_empresa ? cita.id_empresa.toString() : "";
+			const tipoEstudioId = cita.id_tipo_estudio
+				? cita.id_tipo_estudio.toString()
+				: "";
+
+			tipoEstudioPendienteRef.current = tipoEstudioId;
+			setClienteSeleccionado(clienteId);
+			setEmpresaSeleccionada(empresaId);
+			if (!empresaId) setTipoEstudioSeleccionado(tipoEstudioId);
+
+			const nombreCliente =
+				cita.clientes?.nombre ||
+				clientes.find((cli) => cli.id_cliente?.toString() === clienteId)?.nombre ||
+				"";
+
+			const estudiosCita = dividirEstudiosCita(cita.tipo_estudio);
+			const estudiosNoEncontrados = [];
+			const estudiosDesdeCita = await Promise.all(
+				estudiosCita.map(async (estudioCita) => {
+					const estudioCatalogo = encontrarEstudioCatalogo(
+						estudioCita,
+						estudiosDisponibles,
+					);
+
+					if (!estudioCatalogo) {
+						estudiosNoEncontrados.push(estudioCita);
+						return null;
+					}
+
+					const precio = await obtenerPrecioEstudio(estudioCatalogo.clave, nombreCliente);
+					return construirEstudioSeleccionado({
+						estudioCatalogo,
+						precio,
+						nombreCliente,
+					});
+				}),
+			);
+
+			setEstudiosSeleccionados(estudiosDesdeCita.filter(Boolean));
+			setBuscarEstudio("");
+			setShowBusquedaEstudios(false);
+
+			if (estudiosNoEncontrados.length > 0) {
+				mostrarNotificacion(
+					`Cita cargada, pero no se encontraron estos estudios: ${estudiosNoEncontrados.join(", ")}`,
+					"advertencia",
+				);
+				return;
+			}
+
+			mostrarNotificacion("Cita cargada en nuevo paciente", "exito");
+		} catch (error) {
+			console.error("Error al cargar cita:", error);
+			mostrarNotificacion("Error al cargar la cita en nuevo paciente", "error");
+			citaPrecargadaRef.current = null;
 		}
 	};
 
@@ -1057,8 +1199,13 @@ const NuevoPaciente = () => {
 													<td>
 														<button
 															className="btn-delete"
+															aria-label={`Eliminar estudio ${est.clave}`}
 															onClick={() => eliminarEstudio(est.id)}>
-															🗑️
+															<img
+																src={eliminarIcono}
+																alt=""
+																className="btn-delete-icon"
+															/>
 														</button>
 													</td>
 												</tr>
@@ -1209,6 +1356,14 @@ const NuevoPaciente = () => {
 					isOpen={modalBuscarCotizacionOpen}
 					onClose={() => setModalBuscarCotizacionOpen(false)}
 					onSeleccionar={handleSeleccionarCotizacion}
+					onNotificar={mostrarNotificacion}
+				/>
+
+				<ModalNotificacion
+					isOpen={notificacion.isOpen}
+					onClose={cerrarNotificacion}
+					mensaje={notificacion.mensaje}
+					tipo={notificacion.tipo}
 				/>
 			</div>
 		</PageLayout>

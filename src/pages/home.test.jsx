@@ -30,6 +30,7 @@ jest.mock('../lib/supabase-client', () => ({
         gte: () => builder,
         lt: () => builder,
         not: () => builder,
+        in: () => builder,
         order: () => builder,
         limit: () => builder,
         single: () => Promise.resolve({ data: null }),
