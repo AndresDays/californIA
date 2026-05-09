@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import editarIconoV2 from "../../../assets/editarIconoV2.png";
+import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
@@ -299,21 +301,31 @@ const Precios = () => {
 											</td>
 											<td>
 												<div className="acciones-precios">
-													<button
-														className="btn-editar-precio"
-														onClick={() => {
-															setPrecioEditar(precio);
-															setModalAbierto(true);
-														}}
-														title="Editar precio">
-														✏️
-													</button>
-													<button
-														className="btn-eliminar-precio"
-														onClick={() => handleEliminarPrecio(precio.id)}
-														title="Eliminar precio">
-														✖
-													</button>
+													<div className="acciones-precios">
+														<button
+															className="btn-editar-estudio-tabla"
+															onClick={() => {
+																setPrecioEditar(precio);
+																setModalAbierto(true);
+															}}
+															title="Editar precio">
+															<img
+																src={editarIconoV2}
+																alt="Editar"
+																className="icono-accion"
+															/>
+														</button>
+														<button
+															className="btn-eliminar-estudio-tabla"
+															onClick={() => handleEliminarPrecio(precio.id)}
+															title="Eliminar precio">
+															<img
+																src={eliminarIconoV2}
+																alt="Eliminar"
+																className="icono-accion"
+															/>
+														</button>
+													</div>
 												</div>
 											</td>
 										</tr>

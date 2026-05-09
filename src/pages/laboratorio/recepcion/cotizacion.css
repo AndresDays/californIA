@@ -489,7 +489,7 @@
 	flex-wrap: wrap;
 }
 
-.btn-whatsapp-cot,
+/* .btn-whatsapp-cot,
 .btn-guardar-cot,
 .btn-correo-cot {
 	flex: 1;
@@ -515,7 +515,7 @@
 	background: linear-gradient(135deg, #5A9DBE 0%, #4A8DAE 100%);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
-}
+} */
 
 .tabla-cotizaciones-container::-webkit-scrollbar,
 .tabla-estudios-cot-container::-webkit-scrollbar,
@@ -561,4 +561,27 @@
 	.botones-cotizacion {
 		flex-direction: column;
 	}
+}
+
+.btn-img-cot {
+	background: transparent;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	transition: transform 0.2s, opacity 0.2s;
+	flex-shrink: 0;
+}
+
+.btn-img-cot:hover {
+	transform: translateY(-2px);
+	opacity: 0.85;
+}
+
+.icono-btn-cot {
+	height: 55px;
+	width: auto;
+	object-fit: contain;
+	display: block;
 }

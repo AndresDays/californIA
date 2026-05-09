@@ -7,10 +7,10 @@
   border-radius: 12px;
   border: 1px solid rgba(111, 179, 210, 0.3);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  
+
   max-height: 600px;
-  overflow-y: auto;  
-  overflow-x: auto; 
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .tabla-generica {
@@ -138,4 +138,30 @@
 
 .tabla-generica-container {
   animation: fadeIn 0.5s ease;
+}
+
+.btn-editar-estudio-tabla,
+.btn-eliminar-estudio-tabla {
+	padding: 0.25rem;
+	border: none;
+	background: transparent;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.btn-editar-estudio-tabla:hover,
+.btn-eliminar-estudio-tabla:hover {
+	transform: scale(1.15);
+	background: rgba(111, 179, 210, 0.1);
+}
+
+.icono-accion {
+	width: 28px;
+	height: 22px;
+	display: block;
+	object-fit: contain;
 }

@@ -48,24 +48,25 @@
 }
 
 .btn-cancelar-orden {
-	padding: 0.65rem 1.4rem;
-	background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+	background: transparent;
 	border: none;
-	border-radius: 6px;
-	color: var(--color-white);
-	font-family: var(--font);
-	font-size: 0.88rem;
-	font-weight: 600;
+	padding: 0;
 	cursor: pointer;
-	transition: all 0.25s;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	transition: transform 0.2s, opacity 0.2s;
 }
 
 .btn-cancelar-orden:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 4px 14px rgba(192, 57, 43, 0.45);
+	opacity: 0.85;
+}
+
+.icono-cancelar-btn {
+	height: 38px;
+	width: auto;
+	object-fit: contain;
+	display: block;
 }
 
 .editar-solicitud-content {
@@ -531,22 +532,26 @@
 }
 
 .btn-muestras-pendientes {
-	padding: 0.65rem 1.1rem;
-	background: linear-gradient(135deg, #b8860b 0%, #d4a017 100%);
+	background: transparent;
 	border: none;
-	border-radius: 6px;
-	color: var(--color-white);
-	font-family: var(--font);
-	font-size: 0.85rem;
-	font-weight: 500;
+	padding: 0;
 	cursor: pointer;
-	transition: all 0.25s;
-	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	transition: transform 0.2s, opacity 0.2s;
+	flex-shrink: 0;
 }
 
 .btn-muestras-pendientes:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(212, 160, 23, 0.4);
+	opacity: 0.85;
+}
+
+.icono-muestras-btn {
+	height: 38px;
+	width: auto;
+	object-fit: contain;
+	display: block;
 }
 
 .tabla-estudios-container {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import agregarDoctorBtn from "../../assets/agregarDoctorBtn.png";
 import editarIcono from "../../assets/editarIcono.png";
 import eliminarIconoV2 from "../../assets/eliminarIconoV2.png";
+import imprimirTablaBtn from "../../assets/imprimirTablaBtn.png";
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
@@ -195,12 +197,20 @@ const Doctores = () => {
 									setDoctorEditar(null);
 									setModalAbierto(true);
 								}}>
-								Agregar Doctor
+								<img
+									src={agregarDoctorBtn}
+									alt="Agregar Doctor"
+									className="icono-btn-doctor"
+								/>
 							</button>
 							<button
 								className="btn-imprimir-tabla-doc"
 								onClick={() => window.print()}>
-								Imprimir tabla
+								<img
+									src={imprimirTablaBtn}
+									alt="Imprimir Tabla"
+									className="icono-btn-doctor"
+								/>
 							</button>
 						</div>
 					</div>

@@ -52,26 +52,27 @@
 
 .btn-agregar-doctor,
 .btn-imprimir-tabla-doc {
-	padding: 0.7rem 1.5rem;
+	background: transparent;
 	border: none;
-	border-radius: 6px;
-	color: white;
-	font-family: 'Codec Pro', sans-serif;
-	font-size: 0.9rem;
-	font-weight: 600;
+	padding: 0;
 	cursor: pointer;
-	transition: all 0.2s;
-	background: linear-gradient(135deg, #007bff, #0056b3);
-	white-space: nowrap;
+	display: flex;
+	align-items: center;
+	transition: transform 0.2s, opacity 0.2s;
 }
 
 .btn-agregar-doctor:hover,
 .btn-imprimir-tabla-doc:hover {
-	background: linear-gradient(135deg, #0056b3, #004085);
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+	opacity: 0.85;
 }
 
+.icono-btn-doctor {
+	height: 38px;
+	width: auto;
+	object-fit: contain;
+	display: block;
+}
 .exportacion-busqueda {
 	display: flex;
 	justify-content: space-between;

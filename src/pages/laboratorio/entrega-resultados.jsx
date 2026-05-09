@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
+import enviarEmailBtn from "../../assets/enviarEmailBtn.png";
+import enviarWppBtn from "../../assets/enviarWppBtn.png";
 import guardarIcono from "../../assets/guardarIcono.png";
 import imprimirBtn from "../../assets/ImprimirBtn.png";
 import imprimirIcono from "../../assets/imprimirIcono.png";
