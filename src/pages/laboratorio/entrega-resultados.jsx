@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
 import guardarIcono from "../../assets/guardarIcono.png";
@@ -11,20 +10,43 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import {
+	calcularPendientesEntrega,
+	calcularSaldoEntrega,
+	filtrarVentasEntrega,
+	tieneSaldoPendiente,
+} from "../../utils/entrega-resultados";
+import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
 import "./entrega-resultados.css";
+
+const SELECT_VENTAS = `
+	id_venta, folio, fecha_venta, estado, total, pago_recibido,
+	pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
+	clientes ( id_cliente, nombre ),
+	estudios_venta ( id_estudio_venta, estado_validacion, entregado )
+`;
+
+const formatearFechaMexico = (fecha = new Date()) => {
+	const partes = new Intl.DateTimeFormat("es-MX", {
+		timeZone: "America/Mexico_City",
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).formatToParts(fecha);
+	const valores = Object.fromEntries(partes.map((parte) => [parte.type, parte.value]));
+	return `${valores.year}-${valores.month}-${valores.day}`;
+};
 
 const EntregaResultados = () => {
 	const { user } = useAuth();
-	const navigate = useNavigate();
 
 	const [fechaInicial, setFechaInicial] = useState(
-		new Date().toISOString().split("T")[0],
+		formatearFechaMexico(),
 	);
 	const [fechaFinal, setFechaFinal] = useState(
-		new Date().toISOString().split("T")[0],
+		formatearFechaMexico(),
 	);
-	const [buscarFolio, setBuscarFolio] = useState("");
-	const [buscarNombre, setBuscarNombre] = useState("");
+	const [busquedaEntrega, setBusquedaEntrega] = useState("");
 	const [ventas, setVentas] = useState([]);
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [estudiosVenta, setEstudiosVenta] = useState([]);
@@ -71,21 +93,43 @@ const EntregaResultados = () => {
 
 	const cargarVentas = async () => {
 		try {
+			const { data: estudiosValidados, error: errorEstudios } = await supabase
+				.from("estudios_venta")
+				.select("id_estudio_venta, id_venta, estado_validacion, entregado")
+				.eq("estado_validacion", "validado");
+
+			if (errorEstudios) throw errorEstudios;
+
+			const idsVentasListas = [
+				...new Set(
+					(estudiosValidados || [])
+						.filter((estudio) => estudio.id_venta && !estudio.entregado)
+						.map((estudio) => estudio.id_venta),
+				),
+			];
+
+			if (idsVentasListas.length === 0) {
+				setVentas([]);
+				return;
+			}
+
 			const { data, error } = await supabase
 				.from("ventas")
-				.select(
-					`
-				id_venta, folio, fecha_venta, estado, total, pago_recibido,
-				pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
-				estudios_venta ( id_estudio_venta, estado_validacion, entregado )
-			`,
-				)
-				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
-				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
+				.select(SELECT_VENTAS)
+				.in("id_venta", idsVentasListas)
 				.eq("estado", "activo")
 				.order("fecha_venta", { ascending: false });
+
 			if (error) throw error;
-			setVentas(data || []);
+			const ventasListasEntrega = (data || []).filter((venta) =>
+				formatearFechaMexico(new Date(venta.fecha_venta)) >= fechaInicial &&
+				formatearFechaMexico(new Date(venta.fecha_venta)) <= fechaFinal &&
+				venta.estudios_venta?.some(
+					(estudio) =>
+						estudio.estado_validacion === "validado" && !estudio.entregado,
+				),
+			);
+			setVentas(ventasListasEntrega);
 		} catch (error) {
 			console.error("Error al cargar ventas:", error);
 			setVentas([]);
@@ -104,16 +148,50 @@ const EntregaResultados = () => {
 				.from("estudios_venta")
 				.select("*")
 				.eq("id_venta", idVenta)
+				.eq("estado_validacion", "validado")
 				.order("id_estudio_venta");
 			if (error) throw error;
-			setEstudiosVenta(data || []);
+			const estudiosPendientesEntrega = (data || []).filter(
+				(estudio) => !estudio.entregado,
+			);
+			setEstudiosVenta(estudiosPendientesEntrega);
+			return estudiosPendientesEntrega;
 		} catch (error) {
 			console.error("Error al cargar estudios:", error);
 			setEstudiosVenta([]);
+			return [];
 		}
 	};
 
+	const actualizarDespuesDeEntrega = async () => {
+		if (ventaSeleccionada) {
+			const estudiosRestantes = await cargarEstudiosVenta(
+				ventaSeleccionada.id_venta,
+			);
+			if (estudiosRestantes.length === 0) {
+				setVentaSeleccionada(null);
+				setEstudiosVenta([]);
+			}
+		}
+		await cargarVentas();
+	};
+
+	const bloquearSiTieneAdeudo = (accion) => {
+		if (!ventaSeleccionada || !tieneSaldoPendiente(ventaSeleccionada)) {
+			return false;
+		}
+		mostrarNotificacion(
+			`No se puede ${accion} con adeudo de $${calcularSaldoEntrega(ventaSeleccionada).toFixed(2)}. Edita la solicitud y liquida el monto completo.`,
+			"advertencia",
+		);
+		return true;
+	};
+
 	const marcarComoEntregado = async (idEstudioVenta) => {
+		if (bloquearSiTieneAdeudo("entregar resultados")) {
+			return;
+		}
+
 		try {
 			const { error } = await supabase
 				.from("estudios_venta")
@@ -125,17 +203,47 @@ const EntregaResultados = () => {
 				.eq("id_estudio_venta", idEstudioVenta);
 			if (error) throw error;
 			mostrarNotificacion("Estudio marcado como entregado", "exito");
-			if (ventaSeleccionada) await cargarEstudiosVenta(ventaSeleccionada.id_venta);
-			await cargarVentas();
+			await actualizarDespuesDeEntrega();
 		} catch (error) {
 			console.error("Error:", error);
 			mostrarNotificacion("Error al marcar como entregado", "error");
 		}
 	};
 
+	const marcarTodosComoEntregados = async () => {
+		if (!ventaSeleccionada || estudiosVenta.length === 0) {
+			mostrarNotificacion("Seleccione un paciente con estudios pendientes", "advertencia");
+			return;
+		}
+		if (bloquearSiTieneAdeudo("entregar resultados")) {
+			return;
+		}
+
+		try {
+			const idsEstudios = estudiosVenta.map((estudio) => estudio.id_estudio_venta);
+			const { error } = await supabase
+				.from("estudios_venta")
+				.update({
+					entregado: true,
+					fecha_entrega: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				})
+				.in("id_estudio_venta", idsEstudios);
+			if (error) throw error;
+			mostrarNotificacion("Todos los estudios fueron marcados como entregados", "exito");
+			await actualizarDespuesDeEntrega();
+		} catch (error) {
+			console.error("Error:", error);
+			mostrarNotificacion("Error al entregar todos los estudios", "error");
+		}
+	};
+
 	const imprimir = () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		if (bloquearSiTieneAdeudo("imprimir resultados")) {
 			return;
 		}
 		window.print();
@@ -145,11 +253,17 @@ const EntregaResultados = () => {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
 			return;
 		}
+		if (bloquearSiTieneAdeudo("enviar resultados por email")) {
+			return;
+		}
 		mostrarNotificacion("Función de envío por email en desarrollo", "info");
 	};
 	const enviarWhatsApp = () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		if (bloquearSiTieneAdeudo("enviar resultados por WhatsApp")) {
 			return;
 		}
 		mostrarNotificacion("Función de envío por WhatsApp en desarrollo", "info");
@@ -163,17 +277,6 @@ const EntregaResultados = () => {
 		const mes = hoy.getMonth() - nacimiento.getMonth();
 		if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
 		return `${edad} años`;
-	};
-
-	const calcularEstadoPago = (total, pagoRecibido) => {
-		const totalNum = parseFloat(total) || 0;
-		const pagoNum = parseFloat(pagoRecibido) || 0;
-		return pagoNum >= totalNum ? "Pagado" : "Saldo Pendiente";
-	};
-
-	const calcularSaldo = (total, pagoRecibido) => {
-		const saldo = (parseFloat(total) || 0) - (parseFloat(pagoRecibido) || 0);
-		return saldo > 0 ? saldo.toFixed(2) : "0.00";
 	};
 
 	const obtenerIconoEstado = (estadoValidacion) => {
@@ -202,15 +305,19 @@ const EntregaResultados = () => {
 		}
 	};
 
-	const ventasFiltradas = ventas.filter((venta) => {
-		const matchNombre =
-			buscarNombre === "" ||
-			venta.pacientes?.nombre.toLowerCase().includes(buscarNombre.toLowerCase());
-		const matchFolio =
-			buscarFolio === "" ||
-			venta.folio.toLowerCase().includes(buscarFolio.toLowerCase());
-		return matchNombre && matchFolio;
-	});
+	const limpiarFiltros = () => {
+		const hoy = formatearFechaMexico();
+		setFechaInicial(hoy);
+		setFechaFinal(hoy);
+		setBusquedaEntrega("");
+	};
+
+	const ventasFiltradas = filtrarVentasEntrega(ventas, busquedaEntrega);
+	const totalEstudiosPendientes = ventasFiltradas.reduce(
+		(total, venta) => total + calcularPendientesEntrega(venta.estudios_venta),
+		0,
+	);
+	const saldoVentaSeleccionada = calcularSaldoEntrega(ventaSeleccionada || {});
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -241,137 +348,124 @@ const EntregaResultados = () => {
 			getPrimerNombre={getPrimerNombre}>
 			<div className="entrega-wrapper">
 				<div className="entrega-header-section">
-					<h1 className="entrega-titulo">Entrega de Resultados</h1>
+					<h1 className="entrega-titulo">Resultados listos para entregar</h1>
 				</div>
 
-				<div className="filtros-section">
-					<div className="filtros-row">
-						<div className="filtro-fecha">
-							<img
-								src={calendarioIcono}
-								alt="Calendario"
-								className="icono-calendario"
-							/>
-							<label>Fecha Inicial:</label>
-							<input
-								type="date"
-								value={fechaInicial}
-								onChange={(e) => setFechaInicial(e.target.value)}
-								className="input-fecha"
-							/>
+				<div className="entrega-filtros-section">
+					<div className="entrega-filtros-card">
+						<div className="entrega-filtros-header">
+							<div>
+								<span>Filtros de entrega</span>
+								<p>Fecha, folio, paciente o cliente</p>
+							</div>
+							<button
+								type="button"
+								className="btn-limpiar-entrega"
+								onClick={limpiarFiltros}>
+								Limpiar
+							</button>
 						</div>
-						<div className="filtro-fecha">
-							<img
-								src={calendarioIcono}
-								alt="Calendario"
-								className="icono-calendario"
-							/>
-							<label>Fecha Final:</label>
-							<input
-								type="date"
-								value={fechaFinal}
-								onChange={(e) => setFechaFinal(e.target.value)}
-								className="input-fecha"
-							/>
+						<div className="entrega-filtros-grid">
+							<div className="entrega-filtro-grupo entrega-filtro-fechas">
+								<div className="entrega-filtro-label">
+									<img src={calendarioIcono} alt="" className="icono-calendario" />
+									<span>Rango</span>
+								</div>
+								<label className="entrega-filtro-control">
+									<span>Inicio</span>
+									<input
+										type="date"
+										value={fechaInicial}
+										onChange={(e) => setFechaInicial(e.target.value)}
+										className="input-fecha"
+									/>
+								</label>
+								<label className="entrega-filtro-control">
+									<span>Fin</span>
+									<input
+										type="date"
+										value={fechaFinal}
+										onChange={(e) => setFechaFinal(e.target.value)}
+										className="input-fecha"
+									/>
+								</label>
+							</div>
+							<div className="entrega-filtro-grupo entrega-filtro-busqueda">
+								<span className="entrega-filtro-label">Búsqueda rápida</span>
+								<div className="filtro-busqueda-lupa">
+									<img src={lupaIcono} alt="" className="icono-lupa-inline" />
+									<input
+										type="text"
+										placeholder="Folio, paciente o cliente"
+										value={busquedaEntrega}
+										onChange={(e) => setBusquedaEntrega(e.target.value)}
+										className="input-busqueda-con-lupa"
+									/>
+								</div>
+							</div>
 						</div>
-
-						{/* Buscador con lupa integrada */}
-						<div className="filtro-busqueda-lupa">
-							<img src={lupaIcono} alt="Lupa" className="icono-lupa-inline" />
-							<input
-								type="text"
-								placeholder="Buscar por Folio..."
-								value={buscarFolio}
-								onChange={(e) => setBuscarFolio(e.target.value)}
-								className="input-busqueda-con-lupa"
-							/>
-						</div>
-
-						<label className="checkbox-inline">
-							<input
-								type="checkbox"
-								checked={mediaPagina}
-								onChange={(e) => setMediaPagina(e.target.checked)}
-							/>
-							Media Página
-						</label>
-						<label className="checkbox-inline">
-							<input
-								type="checkbox"
-								checked={imprimirEncabezado}
-								onChange={(e) => setImprimirEncabezado(e.target.checked)}
-							/>
-							Imprimir Encabezado y Pie de Página
-						</label>
-						<select
-							value={idioma}
-							onChange={(e) => setIdioma(e.target.value)}
-							className="select-idioma">
-							<option value="español">Español</option>
-							<option value="english">English</option>
-						</select>
-						<button className="btn-imprimir-img" onClick={imprimir}>
-							<img src={imprimirBtn} alt="Imprimir" className="icono-btn-imprimir" />
-						</button>
-						<button className="btn-action-entrega" onClick={enviarEmail}>
-							Enviar por e-mail
-						</button>
-						<button className="btn-action-entrega" onClick={enviarWhatsApp}>
-							Enviar por WhatsApp
-						</button>
 					</div>
 				</div>
 
 				<div className="entrega-content">
 					<div className="panel-busqueda-nombre">
-						<label>Buscar Por Nombre</label>
-						<input
-							type="text"
-							placeholder="Nombre del paciente..."
-							value={buscarNombre}
-							onChange={(e) => setBuscarNombre(e.target.value)}
-							className="input-buscar-nombre"
-						/>
+						<div className="entrega-status-summary">
+							<span className="status-dot-entrega" />
+							<strong>{ventasFiltradas.length}</strong>
+							<span>pacientes listos</span>
+							<strong>{totalEstudiosPendientes}</strong>
+							<span>estudios pendientes</span>
+						</div>
 						<div className="tabla-pacientes-container">
 							<table className="tabla-pacientes-entrega">
 								<thead>
 									<tr>
 										<th>Folio</th>
 										<th>Nombre</th>
-										<th>Edad</th>
-										<th>Sexo</th>
-										<th>Empresa</th>
-										<th>Lote</th>
+										<th>Cliente</th>
+										<th>Estudios</th>
+										<th>Saldo</th>
 									</tr>
 								</thead>
 								<tbody>
-									{ventasFiltradas.map((venta) => (
-										<tr
-											key={venta.id_venta}
-											className={
-												ventaSeleccionada?.id_venta === venta.id_venta
-													? "selected"
-													: ""
-											}
-											onClick={() => seleccionarVenta(venta)}>
-											<td>{venta.folio}</td>
-											<td>{venta.pacientes?.nombre || "N/A"}</td>
-											<td>{calcularEdad(venta.pacientes?.fecha_nacimiento)}</td>
-											<td>{venta.pacientes?.sexo || "N/A"}</td>
-											<td>
-												{venta.pacientes?.tipo === "cliente"
-													? "Cliente"
-													: "Particular"}
-											</td>
-											<td>
-												<input type="checkbox" className="checkbox-lote" />
-											</td>
-										</tr>
-									))}
+									{ventasFiltradas.map((venta) => {
+										const estudiosPendientes = calcularPendientesEntrega(
+											venta.estudios_venta,
+										);
+										const saldo = calcularSaldoEntrega(venta);
+										const claseAdeudo = obtenerClaseAdeudoVenta(venta);
+										return (
+											<tr
+												key={venta.id_venta}
+												className={`${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""} ${claseAdeudo}`}
+												onClick={() => seleccionarVenta(venta)}>
+												<td>{venta.folio}</td>
+												<td>
+													<strong>{venta.pacientes?.nombre || "N/A"}</strong>
+													<span className="paciente-meta-entrega">
+														{calcularEdad(venta.pacientes?.fecha_nacimiento)} ·{" "}
+														{venta.pacientes?.sexo || "N/A"}
+													</span>
+												</td>
+												<td>{venta.clientes?.nombre || "Particular"}</td>
+												<td>
+													<span className="badge-estudios-pendientes">
+														{estudiosPendientes}
+													</span>
+												</td>
+												<td>
+													<span
+														className={`badge-saldo ${saldo > 0 ? "pendiente" : "pagado"}`}>
+														{saldo > 0 ? `$${saldo.toFixed(2)}` : "Pagado"}
+													</span>
+												</td>
+											</tr>
+										);
+									})}
 									{ventasFiltradas.length === 0 && (
 										<tr>
-											<td colSpan="6" className="no-data">
-												No hay pacientes para mostrar
+											<td colSpan="5" className="no-data">
+												No hay resultados validados pendientes de entrega
 											</td>
 										</tr>
 									)}
@@ -379,11 +473,75 @@ const EntregaResultados = () => {
 							</table>
 						</div>
 						<div className="info-registros">
-							Mostrando registros del 1 al 6 de un total de {ventasFiltradas.length}
+							Mostrando {ventasFiltradas.length} pacientes listos para entrega
 						</div>
 					</div>
 
 					<div className="panel-detalles-entrega">
+						<div className="entrega-selected-header">
+							<div>
+								<h2>Resultados listos para entregar</h2>
+								<p>
+									{ventaSeleccionada
+										? `${ventaSeleccionada.pacientes?.nombre || "Paciente sin nombre"} · Folio ${ventaSeleccionada.folio} · ${ventaSeleccionada.clientes?.nombre || "Particular"}`
+										: "Seleccione un paciente para revisar y entregar resultados"}
+								</p>
+							</div>
+							<span className="badge-listo-entrega">
+								{estudiosVenta.length} pendientes
+							</span>
+						</div>
+						{ventaSeleccionada && (
+							<div className="entrega-action-bar">
+								<select
+									value={idioma}
+									onChange={(e) => setIdioma(e.target.value)}
+									className="select-idioma">
+									<option value="español">Español</option>
+									<option value="english">English</option>
+								</select>
+								<label className="checkbox-inline">
+									<input
+										type="checkbox"
+										checked={mediaPagina}
+										onChange={(e) => setMediaPagina(e.target.checked)}
+									/>
+									Media Página
+								</label>
+								<label className="checkbox-inline">
+									<input
+										type="checkbox"
+										checked={imprimirEncabezado}
+										onChange={(e) => setImprimirEncabezado(e.target.checked)}
+									/>
+									Encabezado y pie
+								</label>
+								<button className="btn-imprimir-img" onClick={imprimir}>
+									<img
+										src={imprimirBtn}
+										alt="Imprimir"
+										className="icono-btn-imprimir"
+									/>
+								</button>
+								<button className="btn-action-entrega" onClick={enviarEmail}>
+									E-mail
+								</button>
+								<button className="btn-action-entrega" onClick={enviarWhatsApp}>
+									WhatsApp
+								</button>
+								<button
+									className="btn-entregar-todos"
+									onClick={marcarTodosComoEntregados}>
+									Entregar todos
+								</button>
+								<span
+									className={`badge-saldo ${saldoVentaSeleccionada > 0 ? "pendiente" : "pagado"}`}>
+									{saldoVentaSeleccionada > 0
+										? `Saldo $${saldoVentaSeleccionada.toFixed(2)}`
+										: "Pagado"}
+								</span>
+							</div>
+						)}
 						<div className="observaciones-entrega-section">
 							<label>Observaciones de Entrega</label>
 							<textarea
@@ -397,16 +555,14 @@ const EntregaResultados = () => {
 								<img src={guardarIcono} alt="Guardar" className="icono-guardar" />
 							</button>
 						</div>
-						<div className="historial-impresiones">
-							<h3>Historial de Impresiones</h3>
-							<p className="texto-descargado">
-								Descargados el Día: {new Date().toLocaleDateString("es-MX")} Hora:{" "}
-								{new Date().toLocaleTimeString("es-MX", {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</p>
-						</div>
+						{ventaSeleccionada && (
+							<div className="historial-impresiones">
+								<h3>Estado de entrega</h3>
+								<p className="texto-descargado">
+									{estudiosVenta.length} estudios validados pendientes de entregar.
+								</p>
+							</div>
+						)}
 						<div className="tabla-estudios-container">
 							<table className="tabla-estudios-entrega">
 								<thead>
@@ -423,7 +579,7 @@ const EntregaResultados = () => {
 									{estudiosVenta.length === 0 ? (
 										<tr>
 											<td colSpan="6" className="no-data">
-												Seleccione un paciente para ver sus estudios
+												Seleccione un paciente con resultados listos para entregar
 											</td>
 										</tr>
 									) : (
@@ -447,13 +603,10 @@ const EntregaResultados = () => {
 												<td>
 													{ventaSeleccionada ? (
 														<span
-															className={`badge-saldo ${calcularEstadoPago(ventaSeleccionada.total, ventaSeleccionada.pago_recibido) === "Pagado" ? "pagado" : "pendiente"}`}>
-															{calcularEstadoPago(
-																ventaSeleccionada.total,
-																ventaSeleccionada.pago_recibido,
-															) === "Pagado"
+															className={`badge-saldo ${saldoVentaSeleccionada === 0 ? "pagado" : "pendiente"}`}>
+															{saldoVentaSeleccionada === 0
 																? "Pagado"
-																: `$${calcularSaldo(ventaSeleccionada.total, ventaSeleccionada.pago_recibido)}`}
+																: `$${saldoVentaSeleccionada.toFixed(2)}`}
 														</span>
 													) : (
 														"-"

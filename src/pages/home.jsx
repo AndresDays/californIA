@@ -7,6 +7,7 @@ import estudiosIcono from '../assets/estudiosIcono.png';
 import LabBtn from '../assets/labBtn.png';
 import californIA from '../assets/logoCalifornIA.png';
 import nuevaCitaBtn from '../assets/nuevaCitaBtn.png';
+import nuevoPacienteIcono from '../assets/nuevoPacienteIcono.png';
 import pacientesIcono from '../assets/pacientesIcono.png';
 import RadBtn from '../assets/radBtn.png';
 import EditarCitaModal from '../components/editar-cita-modal';
@@ -15,6 +16,8 @@ import '../components/nueva-cita-modal.css';
 import PageLayout from '../components/page-layout';
 import { useAuth } from '../context/auth-context';
 import { supabase } from '../lib/supabase-client';
+import { CITA_ESTADOS, CITA_ESTADOS_DASHBOARD } from '../utils/cita-lifecycle';
+import { calcularIngresosVentasPagadas } from '../utils/dashboard-stats';
 import './CalifornIA.css';
 
 const Dashboard = () => {
@@ -83,7 +86,7 @@ const Dashboard = () => {
 			const { data: citasCompletadas } = await supabase
 				.from("citas")
 				.select("tipo_estudio, fecha_estudio")
-				.eq("estado", "completada");
+				.in("estado", [CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA]);
 			const ahoraCompleto = new Date();
 			const horaActualStr = `${ahoraCompleto.getFullYear()}-${String(ahoraCompleto.getMonth() + 1).padStart(2, "0")}-${String(ahoraCompleto.getDate()).padStart(2, "0")}T${String(ahoraCompleto.getHours()).padStart(2, "0")}:${String(ahoraCompleto.getMinutes()).padStart(2, "0")}:00`;
 			const totalEstudiosRealizados =
@@ -107,17 +110,17 @@ const Dashboard = () => {
 			finMes.setHours(0, 0, 0, 0);
 			const inicioMesStr = `${inicioMes.getFullYear()}-${String(inicioMes.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
 			const finMesStr = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
-			const { data: citasCompletadasMes } = await supabase
-				.from("citas")
-				.select("monto, fecha_estudio")
-				.eq("estado", "completada")
-				.gte("fecha_estudio", inicioMesStr)
-				.lt("fecha_estudio", finMesStr);
-			const ingresosMes =
-				citasCompletadasMes?.reduce((total, cita) => {
-					if (cita.fecha_estudio > horaActualStr) return total;
-					return total + (parseFloat(cita.monto) || 0);
-				}, 0) || 0;
+			const { data: ventasMes } = await supabase
+				.from("ventas")
+				.select("fecha_venta, estado, total, pago_recibido")
+				.eq("estado", "activo")
+				.gte("fecha_venta", inicioMesStr)
+				.lt("fecha_venta", finMesStr);
+			const ingresosMes = calcularIngresosVentasPagadas(
+				ventasMes || [],
+				inicioMesStr,
+				finMesStr,
+			);
 			setStats({
 				totalPacientes: totalPac || 0,
 				citasHoy: citasHoy || 0,
@@ -147,7 +150,7 @@ const Dashboard = () => {
       `,
 				)
 				.gte("fecha_estudio", horaLocal)
-				.not("estado", "in", "(completada,cancelada)")
+				.in("estado", CITA_ESTADOS_DASHBOARD)
 				.order("fecha_estudio", { ascending: true })
 				.limit(5);
 			if (error) throw error;
@@ -239,11 +242,21 @@ const Dashboard = () => {
 					tipo.includes("rx")
 				) {
 					cR[idx]++;
-					if (est.estado === "completada" && est.fecha_estudio <= horaActualStr)
+					if (
+						[CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA].includes(
+							est.estado,
+						) &&
+						est.fecha_estudio <= horaActualStr
+					)
 						iR[idx] += monto;
 				} else {
 					cL[idx]++;
-					if (est.estado === "completada" && est.fecha_estudio <= horaActualStr)
+					if (
+						[CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA].includes(
+							est.estado,
+						) &&
+						est.fecha_estudio <= horaActualStr
+					)
 						iL[idx] += monto;
 				}
 			});
@@ -276,6 +289,12 @@ const Dashboard = () => {
 		cargarEstadisticas();
 		cargarPacientesProximos();
 		cargarEstadisticasSemanales();
+	};
+
+	const cargarCitaEnNuevoPaciente = (cita) => {
+		navigate(`/nuevo-paciente?citaId=${cita.id_cita}`, {
+			state: { citaId: cita.id_cita },
+		});
 	};
 
 	const getPrimerNombre = (nombreCompleto) => {
@@ -408,7 +427,7 @@ const Dashboard = () => {
 									</h2>
 									<p className="stat-change positive">
 										{tipoGrafica === "pacientes"
-											? "Solo citas completadas"
+											? "Ventas pagadas del mes"
 											: "Click para ver gráfica"}
 									</p>
 								</div>
@@ -736,7 +755,7 @@ const Dashboard = () => {
 											<th>Estudio</th>
 											<th>Hora</th>
 											<th>Precio</th>
-											<th>Editar</th>
+											<th>Acciones</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -777,18 +796,33 @@ const Dashboard = () => {
 														</span>
 													</td>
 													<td>
-														<button
-															className="btn-edit-cita"
-															onClick={() => {
-																setCitaEditando(cita);
-																setModalEditarCitaOpen(true);
-															}}>
-															<img
-																src={editarIcono}
-																alt="Editar"
-																className="btn-edit-icon"
-															/>
-														</button>
+														<div className="cita-actions">
+															<button
+																className="btn-load-cita"
+																onClick={() => cargarCitaEnNuevoPaciente(cita)}
+																title="Cargar en nuevo paciente"
+																aria-label={`Cargar cita de ${getNombrePaciente(cita)} en nuevo paciente`}>
+																<img
+																	src={nuevoPacienteIcono}
+																	alt=""
+																	className="btn-cita-action-icon"
+																/>
+															</button>
+															<button
+																className="btn-edit-cita"
+																onClick={() => {
+																	setCitaEditando(cita);
+																	setModalEditarCitaOpen(true);
+																}}
+																title="Editar cita"
+																aria-label={`Editar cita de ${getNombrePaciente(cita)}`}>
+																<img
+																	src={editarIcono}
+																	alt=""
+																	className="btn-cita-action-icon"
+																/>
+															</button>
+														</div>
 													</td>
 												</tr>
 											))

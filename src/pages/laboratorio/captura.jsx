@@ -9,6 +9,18 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import {
+	CAPTURA_FILTROS_ESTADO,
+	contarVentasPorEstadoCaptura,
+	filtrarVentasPorEstadoCaptura,
+	obtenerClaseEstadoCapturaVenta,
+	obtenerEstadoCapturaVenta,
+} from "../../utils/captura-row-status";
+import {
+	calcularSaldoVenta,
+	obtenerClaseAdeudoVenta,
+	tieneAdeudoVenta,
+} from "../../utils/venta-payment-status";
 import "./captura.css";
 
 const Captura = () => {
@@ -23,13 +35,11 @@ const Captura = () => {
 	);
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [buscarPaciente, setBuscarPaciente] = useState("");
-	const [sucursales, setSucursales] = useState([]);
 	const [clientes, setClientes] = useState([]);
 	const [areas, setAreas] = useState([]);
-	const [sucursalFiltro, setSucursalFiltro] = useState("");
 	const [clienteFiltro, setClienteFiltro] = useState("");
 	const [areaFiltro, setAreaFiltro] = useState("");
-	const [soloPendientes, setSoloPendientes] = useState(false);
+	const [filtroEstadoCaptura, setFiltroEstadoCaptura] = useState("todos");
 	const [ventas, setVentas] = useState([]);
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [idioma, setIdioma] = useState("español");
@@ -66,31 +76,17 @@ const Captura = () => {
 	}, [user]);
 
 	useEffect(() => {
-		cargarSucursales();
 		cargarClientes();
 		cargarAreas();
 	}, []);
 	useEffect(() => {
 		cargarVentas();
-	}, [fechaInicial, fechaFinal, soloPendientes]);
+	}, [fechaInicial, fechaFinal]);
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
 	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
-
-	const cargarSucursales = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("sucursales")
-				.select("id_sucursal, nombre")
-				.order("nombre");
-			if (error) throw error;
-			setSucursales(data || []);
-		} catch (error) {
-			console.error("Error al cargar sucursales:", error);
-		}
-	};
 
 	const cargarClientes = async () => {
 		try {
@@ -123,24 +119,17 @@ const Captura = () => {
 			const { data, error } = await supabase
 				.from("ventas")
 				.select(
-					`id_venta, folio, fecha_venta, estado,
+					`id_venta, folio, fecha_venta, estado, total, pago_recibido,
 					pacientes (id_paciente, nombre, fecha_nacimiento, sexo, tipo),
-					estudios_venta (id_estudio_venta, estado_captura)`,
+					clientes (id_cliente, nombre),
+					estudios_venta (id_estudio_venta, area, estado_captura, estado_validacion)`,
 				)
 				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
 				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
 				.eq("estado", "activo")
 				.order("fecha_venta", { ascending: false });
 			if (error) throw error;
-			let ventasFiltradas = data || [];
-			if (soloPendientes) {
-				ventasFiltradas = ventasFiltradas.filter(
-					(v) =>
-						v.estudios_venta &&
-						v.estudios_venta.some((e) => e.estado_captura === "pendiente"),
-				);
-			}
-			setVentas(ventasFiltradas);
+			setVentas(data || []);
 		} catch (error) {
 			console.error("Error al cargar ventas:", error);
 			setVentas([]);
@@ -282,6 +271,7 @@ const Captura = () => {
 				const { error } = await supabase
 					.from("estudios_venta")
 					.update({
+						estado_captura: "completado",
 						estado_validacion: "validado",
 						updated_at: new Date().toISOString(),
 					})
@@ -327,12 +317,26 @@ const Captura = () => {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
 			return;
 		}
+		if (tieneAdeudoVenta(ventaSeleccionada)) {
+			mostrarNotificacion(
+				`No se pueden enviar resultados con adeudo de $${calcularSaldoVenta(ventaSeleccionada).toFixed(2)}. Edita la solicitud y liquida el monto completo.`,
+				"advertencia",
+			);
+			return;
+		}
 		mostrarNotificacion("Vista previa del estudio", "info");
 	};
 
 	const imprimir = () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		if (tieneAdeudoVenta(ventaSeleccionada)) {
+			mostrarNotificacion(
+				`No se pueden imprimir resultados con adeudo de $${calcularSaldoVenta(ventaSeleccionada).toFixed(2)}. Edita la solicitud y liquida el monto completo.`,
+				"advertencia",
+			);
 			return;
 		}
 		window.print();
@@ -372,15 +376,50 @@ const Captura = () => {
 		}
 	};
 
-	const ventasFiltradas = ventas.filter((venta) => {
+	const obtenerTextoEstadoVenta = (estado) => {
+		const textos = {
+			pendiente: "Pendiente",
+			guardado: "Guardado",
+			validado: "Validado",
+		};
+		return textos[estado] || "Pendiente";
+	};
+
+	const limpiarFiltros = () => {
+		const hoy = new Date().toISOString().split("T")[0];
+		setFechaInicial(hoy);
+		setFechaFinal(hoy);
+		setBuscarEstudio("");
+		setBuscarPaciente("");
+		setClienteFiltro("");
+		setAreaFiltro("");
+		setFiltroEstadoCaptura("todos");
+	};
+
+	const ventasPorBusqueda = ventas.filter((venta) => {
 		const matchPaciente =
 			buscarPaciente === "" ||
 			venta.pacientes?.nombre.toLowerCase().includes(buscarPaciente.toLowerCase());
 		const matchFolio =
 			buscarEstudio === "" ||
 			venta.folio.toLowerCase().includes(buscarEstudio.toLowerCase());
-		return matchPaciente && matchFolio;
+		const matchCliente =
+			clienteFiltro === "" ||
+			venta.clientes?.id_cliente?.toString() === clienteFiltro.toString();
+		const matchArea =
+			areaFiltro === "" ||
+			venta.estudios_venta?.some((estudio) => estudio.area === areaFiltro);
+		return matchPaciente && matchFolio && matchCliente && matchArea;
 	});
+	const conteosEstadoCaptura = contarVentasPorEstadoCaptura(ventasPorBusqueda);
+	const ventasFiltradas = filtrarVentasPorEstadoCaptura(
+		ventasPorBusqueda,
+		filtroEstadoCaptura,
+	);
+	const estadoVentaSeleccionada = ventaSeleccionada
+		? obtenerEstadoCapturaVenta(ventaSeleccionada.estudios_venta)
+		: "pendiente";
+	const saldoVentaSeleccionada = calcularSaldoVenta(ventaSeleccionada || {});
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -411,91 +450,90 @@ const Captura = () => {
 			getPrimerNombre={getPrimerNombre}>
 			<div className="captura-wrapper">
 				<div className="filtros-section">
-					<div className="filtros-row">
-						<div className="filtro-fecha">
-							<img
-								src={calendarioIcono}
-								alt="Calendario"
-								className="icono-calendario"
-							/>
-							<label>Fecha Inicial:</label>
-							<input
-								type="date"
-								value={fechaInicial}
-								onChange={(e) => setFechaInicial(e.target.value)}
-								className="input-fecha"
-							/>
+					<div className="filtros-card">
+						<div className="filtros-card-header">
+							<div>
+								<span>Filtros de captura</span>
+								<p>Fecha, folio, paciente y clasificación</p>
+							</div>
+							<button
+								type="button"
+								className="btn-limpiar-filtros"
+								onClick={limpiarFiltros}>
+								Limpiar
+							</button>
 						</div>
-						<div className="filtro-fecha">
-							<img
-								src={calendarioIcono}
-								alt="Calendario"
-								className="icono-calendario"
-							/>
-							<label>Fecha Final:</label>
-							<input
-								type="date"
-								value={fechaFinal}
-								onChange={(e) => setFechaFinal(e.target.value)}
-								className="input-fecha"
-							/>
-						</div>
-						<div className="filtro-busqueda">
-							<input
-								type="text"
-								placeholder="Buscar por Folio..."
-								value={buscarEstudio}
-								onChange={(e) => setBuscarEstudio(e.target.value)}
-								className="input-busqueda"
-							/>
-						</div>
-						<div className="filtro-busqueda">
-							<input
-								type="text"
-								placeholder="Buscar por Paciente..."
-								value={buscarPaciente}
-								onChange={(e) => setBuscarPaciente(e.target.value)}
-								className="input-busqueda"
-							/>
-						</div>
-						<div className="filtro-select">
-							<select
-								value={sucursalFiltro}
-								onChange={(e) => setSucursalFiltro(e.target.value)}
-								className="select-filtro">
-								<option value="">Todas las Sucursales ({sucursales.length})</option>
-								{sucursales.map((s) => (
-									<option key={s.id_sucursal} value={s.id_sucursal}>
-										{s.nombre}
-									</option>
-								))}
-							</select>
-						</div>
-						<div className="filtro-select">
-							<select
-								value={clienteFiltro}
-								onChange={(e) => setClienteFiltro(e.target.value)}
-								className="select-filtro">
-								<option value="">Todos los Clientes ({clientes.length})</option>
-								{clientes.map((c) => (
-									<option key={c.id_cliente} value={c.id_cliente}>
-										{c.nombre}
-									</option>
-								))}
-							</select>
-						</div>
-						<div className="filtro-select">
-							<select
-								value={areaFiltro}
-								onChange={(e) => setAreaFiltro(e.target.value)}
-								className="select-filtro">
-								<option value="">Todas las Áreas ({areas.length})</option>
-								{areas.map((a) => (
-									<option key={a.id_area} value={a.nombre}>
-										{a.nombre}
-									</option>
-								))}
-							</select>
+						<div className="filtros-grid">
+							<div className="filtro-grupo filtro-grupo-fechas">
+								<div className="filtro-grupo-label">
+									<img
+										src={calendarioIcono}
+										alt=""
+										className="icono-calendario"
+									/>
+									<span>Rango</span>
+								</div>
+								<label className="filtro-control">
+									<span>Inicio</span>
+									<input
+										type="date"
+										value={fechaInicial}
+										onChange={(e) => setFechaInicial(e.target.value)}
+										className="input-fecha"
+									/>
+								</label>
+								<label className="filtro-control">
+									<span>Fin</span>
+									<input
+										type="date"
+										value={fechaFinal}
+										onChange={(e) => setFechaFinal(e.target.value)}
+										className="input-fecha"
+									/>
+								</label>
+							</div>
+							<div className="filtro-grupo filtro-grupo-busqueda">
+								<span className="filtro-grupo-label">Búsqueda rápida</span>
+								<input
+									type="text"
+									placeholder="Folio"
+									value={buscarEstudio}
+									onChange={(e) => setBuscarEstudio(e.target.value)}
+									className="input-busqueda"
+								/>
+								<input
+									type="text"
+									placeholder="Paciente"
+									value={buscarPaciente}
+									onChange={(e) => setBuscarPaciente(e.target.value)}
+									className="input-busqueda"
+								/>
+							</div>
+							<div className="filtro-grupo filtro-grupo-selects">
+								<span className="filtro-grupo-label">Clasificación</span>
+								<select
+									value={clienteFiltro}
+									onChange={(e) => setClienteFiltro(e.target.value)}
+									className="select-filtro">
+									<option value="">Clientes ({clientes.length})</option>
+									{clientes.map((c) => (
+										<option key={c.id_cliente} value={c.id_cliente}>
+											{c.nombre}
+										</option>
+									))}
+								</select>
+								<select
+									value={areaFiltro}
+									onChange={(e) => setAreaFiltro(e.target.value)}
+									className="select-filtro">
+									<option value="">Áreas ({areas.length})</option>
+									{areas.map((a) => (
+										<option key={a.id_area} value={a.nombre}>
+											{a.nombre}
+										</option>
+									))}
+								</select>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -509,20 +547,25 @@ const Captura = () => {
 							<div className="badge-pac">
 								#Pac <span className="badge-numero">{ventasFiltradas.length}</span>
 							</div>
-							<label className="checkbox-label">
-								<input
-									type="checkbox"
-									checked={soloPendientes}
-									onChange={(e) => setSoloPendientes(e.target.checked)}
-								/>
-								Solo Ordenes Pendientes
-							</label>
+							<div className="estado-captura-tabs" aria-label="Filtrar captura">
+								{CAPTURA_FILTROS_ESTADO.map((filtro) => (
+									<button
+										key={filtro.id}
+										type="button"
+										className={`estado-captura-tab estado-${filtro.id} ${filtroEstadoCaptura === filtro.id ? "active" : ""}`}
+										onClick={() => setFiltroEstadoCaptura(filtro.id)}>
+										<span>{filtro.label}</span>
+										<strong>{conteosEstadoCaptura[filtro.id]}</strong>
+									</button>
+								))}
+							</div>
 						</div>
 						<div className="tabla-pacientes-container">
 							<table className="tabla-pacientes">
 								<thead>
 									<tr>
 										<th>Folio</th>
+										<th>Estado</th>
 										<th>Nombre</th>
 										<th>Edad</th>
 										<th>Sexo</th>
@@ -533,31 +576,36 @@ const Captura = () => {
 								</thead>
 								<tbody>
 									{ventasFiltradas.map((venta) => {
-										const todosCompletados = venta.estudios_venta?.every(
-											(e) => e.estado_captura === "completado",
+										const claseEstado = obtenerClaseEstadoCapturaVenta(
+											venta.estudios_venta,
+										);
+										const claseAdeudo = obtenerClaseAdeudoVenta(venta);
+										const estadoVenta = obtenerEstadoCapturaVenta(
+											venta.estudios_venta,
 										);
 										return (
 											<tr
 												key={venta.id_venta}
-												className={`${todosCompletados ? "row-completado" : "row-pendiente"} ${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""}`}
+												className={`${claseEstado} ${claseAdeudo} ${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""}`}
 												onClick={() => seleccionarVenta(venta)}>
 												<td>{venta.folio}</td>
+												<td>
+													<span className={`badge-estado-fila estado-${estadoVenta}`}>
+														{obtenerTextoEstadoVenta(estadoVenta)}
+													</span>
+												</td>
 												<td>{venta.pacientes?.nombre || "N/A"}</td>
 												<td>{calcularEdad(venta.pacientes?.fecha_nacimiento)}</td>
 												<td>{venta.pacientes?.sexo || "N/A"}</td>
 												<td>Principal</td>
-												<td>
-													{venta.pacientes?.tipo === "cliente"
-														? "Cliente"
-														: "Particular"}
-												</td>
+												<td>{venta.clientes?.nombre || "Particular"}</td>
 												<td>{formatHora(venta.fecha_venta)}</td>
 											</tr>
 										);
 									})}
 									{ventasFiltradas.length === 0 && (
 										<tr>
-											<td colSpan="7" className="no-data">
+											<td colSpan="8" className="no-data">
 												No hay pacientes para mostrar
 											</td>
 										</tr>
@@ -569,7 +617,30 @@ const Captura = () => {
 
 					<div className="panel-captura">
 						<div className="panel-header-captura">
-							<h2>Área de Captura</h2>
+							<div>
+								<h2>Área de Captura</h2>
+								{ventaSeleccionada ? (
+									<p>
+										{ventaSeleccionada.pacientes?.nombre || "Paciente sin nombre"} · Folio{" "}
+										{ventaSeleccionada.folio}
+									</p>
+								) : (
+									<p>Seleccione un paciente para trabajar sus resultados</p>
+								)}
+							</div>
+							{ventaSeleccionada && (
+								<div className="captura-header-meta">
+									<span className={`badge-estado-fila estado-${estadoVentaSeleccionada}`}>
+										{obtenerTextoEstadoVenta(estadoVentaSeleccionada)}
+									</span>
+									{saldoVentaSeleccionada > 0 && (
+										<span className="badge-adeudo-captura">
+											Adeudo ${saldoVentaSeleccionada.toFixed(2)}
+										</span>
+									)}
+									<span>{resultados.length} estudios</span>
+								</div>
+							)}
 						</div>
 						<div className="captura-controls">
 							<button className="btn-vista-previa" onClick={vistaPrevia}>

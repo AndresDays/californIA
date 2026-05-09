@@ -436,19 +436,30 @@
 }
 
 .btn-delete {
-	background: rgba(255, 107, 107, 0.2);
-	border: 1px solid rgba(255, 107, 107, 0.3);
-	border-radius: 5px;
-	padding: 0.35rem 0.55rem;
+	width: 32px;
+	height: 32px;
+	background: transparent;
+	border: 1px solid rgba(111, 179, 210, 0.25);
+	border-radius: 6px;
+	padding: 0.35rem;
 	cursor: pointer;
-	font-size: 0.95rem;
 	transition: all 0.2s;
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .btn-delete:hover {
-	background: rgba(255, 107, 107, 0.3);
-	transform: scale(1.1);
+	background: rgba(111, 179, 210, 0.12);
+	border-color: rgba(111, 179, 210, 0.45);
+	transform: scale(1.08);
+}
+
+.btn-delete-icon {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	display: block;
 }
 
 .empty-message {

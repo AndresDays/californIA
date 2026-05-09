@@ -2,13 +2,18 @@ import { useState } from "react";
 import { supabase } from "../../../lib/supabase-client";
 import "./modal-buscar-cotizacion.css";
 
-const ModalBuscarCotizacion = ({ isOpen, onClose, onSeleccionar }) => {
+const ModalBuscarCotizacion = ({
+	isOpen,
+	onClose,
+	onSeleccionar,
+	onNotificar = () => {},
+}) => {
 	const [numeroCotizacion, setNumeroCotizacion] = useState("");
 	const [buscando, setBuscando] = useState(false);
 
 	const buscarYCargar = async () => {
 		if (!numeroCotizacion.trim()) {
-			alert("Por favor ingrese el número de cotización");
+			onNotificar("Por favor ingrese el número de cotización", "advertencia");
 			return;
 		}
 
@@ -37,7 +42,7 @@ const ModalBuscarCotizacion = ({ isOpen, onClose, onSeleccionar }) => {
 				.single();
 
 			if (error) {
-				alert("No se encontró la cotización con ese número");
+				onNotificar("No se encontró la cotización con ese número", "advertencia");
 				return;
 			}
 
@@ -46,7 +51,7 @@ const ModalBuscarCotizacion = ({ isOpen, onClose, onSeleccionar }) => {
 			onClose();
 		} catch (error) {
 			console.error("Error al buscar cotización:", error);
-			alert("Error al buscar la cotización");
+			onNotificar("Error al buscar la cotización", "error");
 		} finally {
 			setBuscando(false);
 		}

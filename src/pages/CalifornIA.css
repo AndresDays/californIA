@@ -827,7 +827,15 @@ body, html {
   transform: translateY(-1px);
 }
 
-.btn-edit-cita {
+.cita-actions {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+}
+
+.btn-edit-cita,
+.btn-load-cita {
   background: transparent;
   border: 1px solid rgba(73, 178, 212, 0.3);
   color: #53B9DB;
@@ -841,7 +849,8 @@ body, html {
   justify-content: center;
 }
 
-.btn-edit-cita:hover {
+.btn-edit-cita:hover,
+.btn-load-cita:hover {
   background: rgba(73, 178, 212, 0.2);
   border-color: #53B9DB;
   transform: scale(1.1);
@@ -1066,7 +1075,15 @@ body, html {
   }
 }
 
-.btn-edit-cita {
+.cita-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-edit-cita,
+.btn-load-cita {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1075,36 +1092,54 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 10px;
+  margin-left: 0;
 }
 
-.btn-edit-cita:hover {
+.btn-load-cita {
+  margin-left: 0;
+}
+
+.btn-edit-cita:hover,
+.btn-load-cita:hover {
   transform: scale(1.1);
   opacity: 0.8;
 }
 
-.btn-edit-cita:active {
+.btn-edit-cita:active,
+.btn-load-cita:active {
   transform: scale(0.95);
 }
 
-.btn-edit-icon {
+.btn-edit-icon,
+.btn-cita-action-icon {
   width: 30px;
   height: 30px;
+  object-fit: contain;
   display: block;
   filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
 }
 
-.btn-edit-cita:hover .btn-edit-icon {
+.btn-edit-cita:hover .btn-edit-icon,
+.btn-edit-cita:hover .btn-cita-action-icon,
+.btn-load-cita:hover .btn-cita-action-icon {
   filter: brightness(0) saturate(100%) invert(85%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(100%) contrast(95%);
 }
 
-.btn-edit-icon {
+.btn-edit-icon,
+.btn-cita-action-icon {
   width: 20px;
   height: 20px;
+  object-fit: contain;
 }
 
 .btn-edit-icon {
   filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
+}
+
+.btn-load-cita .btn-cita-action-icon {
+  width: 24px;
+  height: auto;
+  max-height: 22px;
 }
 
 .module-card {
