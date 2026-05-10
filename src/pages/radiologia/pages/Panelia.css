@@ -1,13 +1,16 @@
-/* ── PanelIA — Pathology Risk panel ─────────────────────────────── */
+/* PanelIA */
 
 .pia-panel {
 	position: absolute;
 	top: 0;
 	right: 0;
 	bottom: 0;
-	width: 320px;
-	background: #111827;
-	border-left: 1px solid rgba(255, 255, 255, 0.07);
+	width: min(370px, 92vw);
+	background:
+		linear-gradient(180deg, rgba(17, 31, 52, 0.98), rgba(8, 14, 27, 0.98)),
+		#111827;
+	border-left: 1px solid rgba(97, 210, 248, 0.18);
+	box-shadow: -18px 0 38px rgba(0, 0, 0, 0.42);
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
@@ -23,95 +26,249 @@
 	pointer-events: all;
 }
 
-/* ── Header ── */
 .pia-header {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
-	padding: 0.9rem 1rem 0.7rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	gap: 0.75rem;
+	padding: 1rem 1rem 0.8rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 	flex-shrink: 0;
 }
 
 .pia-header-left {
 	display: flex;
 	align-items: flex-start;
-	gap: 0.6rem;
+	gap: 0.7rem;
+	min-width: 0;
 }
 
 .pia-dot {
-	width: 8px;
-	height: 8px;
+	width: 10px;
+	height: 10px;
 	border-radius: 50%;
 	background: #53B9DB;
-	box-shadow: 0 0 6px #53B9DB;
-	margin-top: 4px;
+	box-shadow: 0 0 12px rgba(83, 185, 219, 0.9);
+	margin-top: 0.25rem;
 	flex-shrink: 0;
 	animation: pia-pulse 2s ease-in-out infinite;
 }
 
 @keyframes pia-pulse {
-
 	0%,
 	100% {
 		opacity: 1;
-		box-shadow: 0 0 6px #53B9DB;
+		box-shadow: 0 0 12px rgba(83, 185, 219, 0.9);
 	}
 
 	50% {
-		opacity: 0.5;
-		box-shadow: 0 0 2px #53B9DB;
+		opacity: 0.48;
+		box-shadow: 0 0 4px rgba(83, 185, 219, 0.55);
 	}
 }
 
+.pia-eyebrow {
+	margin: 0 0 0.18rem;
+	color: rgba(139, 215, 240, 0.72);
+	font-size: 0.6rem;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
 .pia-titulo {
-	font-size: 0.9rem;
-	font-weight: 700;
+	font-size: 1rem;
+	font-weight: 800;
 	color: #fff;
-	line-height: 1.2;
+	line-height: 1.15;
 	margin: 0;
 }
 
 .pia-subtitle {
-	font-size: 0.65rem;
-	color: rgba(255, 255, 255, 0.35);
-	line-height: 1.4;
-	margin: 0.15rem 0 0;
+	font-size: 0.7rem;
+	color: rgba(255, 255, 255, 0.46);
+	line-height: 1.35;
+	margin: 0.22rem 0 0;
 }
 
-.pia-close {
-	background: none;
-	border: none;
-	color: rgba(255, 255, 255, 0.3);
-	font-size: 1rem;
-	cursor: pointer;
-	padding: 0;
-	line-height: 1;
-	transition: color 0.15s;
+.pia-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.38rem;
 	flex-shrink: 0;
 }
 
-.pia-close:hover {
-	color: rgba(255, 255, 255, 0.7);
+.pia-status {
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.045);
+	color: rgba(255, 255, 255, 0.62);
+	font-size: 0.55rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	padding: 0.22rem 0.42rem;
+	text-transform: uppercase;
+	white-space: nowrap;
 }
 
-/* ── Scanning ── */
+.pia-status--analizando,
+.pia-status--completado {
+	border-color: rgba(83, 185, 219, 0.34);
+	background: rgba(83, 185, 219, 0.12);
+	color: #8BD7F0;
+}
+
+.pia-status--revisar {
+	border-color: rgba(248, 124, 124, 0.35);
+	background: rgba(248, 124, 124, 0.11);
+	color: #f7a0a0;
+}
+
+.pia-close,
+.pia-mode-btn {
+	font-family: inherit;
+	cursor: pointer;
+	transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.pia-close {
+	width: 28px;
+	height: 28px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 7px;
+	background: rgba(255, 255, 255, 0.04);
+	color: rgba(255, 255, 255, 0.46);
+	font-size: 0.9rem;
+	line-height: 1;
+}
+
+.pia-close:hover {
+	color: #fff;
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.16);
+}
+
+.pia-mode-btn {
+	font-size: 0.55rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	padding: 0.34rem 0.5rem;
+	border-radius: 7px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.05);
+	color: rgba(255, 255, 255, 0.48);
+}
+
+.pia-mode-btn.active {
+	border-color: rgba(83, 185, 219, 0.5);
+	background: rgba(83, 185, 219, 0.12);
+	color: #8BD7F0;
+}
+
+.pia-api-badge {
+	display: flex;
+	align-items: center;
+	gap: 0.42rem;
+	padding: 0.55rem 1rem;
+	font-size: 0.64rem;
+	color: rgba(255, 255, 255, 0.48);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+	flex-shrink: 0;
+}
+
+.pia-api-badge.connected {
+	color: rgba(77, 217, 172, 0.78);
+}
+
+.pia-api-dot,
+.pia-api-divider {
+	flex-shrink: 0;
+}
+
+.pia-api-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.22);
+}
+
+.pia-api-badge.connected .pia-api-dot {
+	background: #4dd9ac;
+	box-shadow: 0 0 5px #4dd9ac;
+}
+
+.pia-api-divider {
+	width: 1px;
+	height: 12px;
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.pia-summary {
+	display: grid;
+	grid-template-columns: 1.4fr 0.75fr 0.75fr;
+	gap: 0.5rem;
+	padding: 0.8rem 0.85rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	flex-shrink: 0;
+}
+
+.pia-summary-card {
+	min-width: 0;
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	background: rgba(255, 255, 255, 0.045);
+	border-radius: 8px;
+	padding: 0.55rem 0.58rem;
+}
+
+.pia-summary-card--main {
+	background: rgba(83, 185, 219, 0.08);
+	border-color: rgba(83, 185, 219, 0.15);
+}
+
+.pia-summary-card span {
+	display: block;
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 0.58rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	margin-bottom: 0.28rem;
+}
+
+.pia-summary-card strong {
+	display: block;
+	color: #fff;
+	font-size: 0.94rem;
+	line-height: 1.15;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pia-summary-card small {
+	display: block;
+	color: rgba(255, 255, 255, 0.45);
+	font-size: 0.62rem;
+	line-height: 1.25;
+	margin-top: 0.2rem;
+}
+
 .pia-scanning {
-	padding: 1.2rem 1rem 1rem;
+	padding: 1rem;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 0.75rem;
+	gap: 0.8rem;
 	flex-shrink: 0;
 }
 
 .pia-scan-box {
 	width: 100%;
-	height: 72px;
+	height: 88px;
 	position: relative;
-	background: rgba(83, 185, 219, 0.04);
-	border: 1px solid rgba(83, 185, 219, 0.1);
-	border-radius: 6px;
+	background: rgba(83, 185, 219, 0.05);
+	border: 1px solid rgba(83, 185, 219, 0.14);
+	border-radius: 8px;
 	overflow: hidden;
 }
 
@@ -119,9 +276,9 @@
 	position: absolute;
 	inset: 0;
 	background-image:
-		linear-gradient(rgba(83, 185, 219, 0.06) 1px, transparent 1px),
-		linear-gradient(90deg, rgba(83, 185, 219, 0.06) 1px, transparent 1px);
-	background-size: 16px 16px;
+		linear-gradient(rgba(83, 185, 219, 0.08) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(83, 185, 219, 0.08) 1px, transparent 1px);
+	background-size: 18px 18px;
 }
 
 .pia-scan-beam {
@@ -130,8 +287,8 @@
 	left: 0;
 	right: 0;
 	height: 2px;
-	background: linear-gradient(90deg, transparent, #53B9DB, transparent);
-	box-shadow: 0 0 8px #53B9DB;
+	background: linear-gradient(90deg, transparent, #8BD7F0, transparent);
+	box-shadow: 0 0 10px #53B9DB;
 	animation: pia-beam 1.4s ease-in-out infinite;
 }
 
@@ -141,7 +298,7 @@
 	}
 
 	50% {
-		top: 70px;
+		top: 86px;
 	}
 
 	100% {
@@ -150,9 +307,10 @@
 }
 
 .pia-fase {
-	font-size: 0.68rem;
-	color: rgba(83, 185, 219, 0.7);
+	font-size: 0.72rem;
+	color: rgba(139, 215, 240, 0.8);
 	text-align: center;
+	margin: 0;
 }
 
 .pia-ellipsis::after {
@@ -184,132 +342,281 @@
 
 .pia-prog-track {
 	width: 100%;
-	height: 3px;
-	background: rgba(83, 185, 219, 0.1);
-	border-radius: 2px;
+	height: 4px;
+	background: rgba(83, 185, 219, 0.12);
+	border-radius: 999px;
 	overflow: hidden;
 }
 
 .pia-prog-fill {
 	height: 100%;
-	background: linear-gradient(90deg, #1a6fa0, #53B9DB);
-	border-radius: 2px;
+	background: linear-gradient(90deg, #106DA0, #53B9DB, #4dd9ac);
+	border-radius: inherit;
 	transition: width 0.08s linear;
 }
 
 .pia-prog-num {
-	font-size: 0.62rem;
-	color: rgba(83, 185, 219, 0.5);
+	font-size: 0.64rem;
+	color: rgba(139, 215, 240, 0.62);
 	font-variant-numeric: tabular-nums;
 }
 
-/* ── Vacío ── */
+.pia-error,
+.pia-vacio {
+	margin: 1rem;
+	border-radius: 10px;
+	text-align: center;
+}
+
+.pia-error {
+	padding: 0.9rem;
+	background: rgba(248, 124, 124, 0.09);
+	border: 1px solid rgba(248, 124, 124, 0.25);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.pia-error span {
+	font-size: 1.2rem;
+}
+
+.pia-error p {
+	font-size: 0.68rem;
+	color: rgba(255, 255, 255, 0.62);
+	margin: 0;
+	line-height: 1.5;
+}
+
+.pia-error button {
+	font-size: 0.68rem;
+	padding: 0.36rem 0.8rem;
+	border-radius: 6px;
+	border: 1px solid rgba(248, 124, 124, 0.34);
+	background: rgba(248, 124, 124, 0.11);
+	color: #f7a0a0;
+	cursor: pointer;
+}
+
 .pia-vacio {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 0.6rem;
-	padding: 2rem 1rem;
-	text-align: center;
+	gap: 0.55rem;
+	padding: 2.4rem 1.1rem;
+	background: rgba(255, 255, 255, 0.025);
+	border: 1px dashed rgba(139, 215, 240, 0.18);
 }
 
 .pia-vacio-icon {
-	font-size: 2.2rem;
-	color: rgba(83, 185, 219, 0.12);
+	display: grid;
+	place-items: center;
+	width: 52px;
+	height: 52px;
+	border-radius: 50%;
+	border: 1px solid rgba(83, 185, 219, 0.22);
+	background: rgba(83, 185, 219, 0.08);
+	color: #8BD7F0;
+	font-weight: 900;
+	box-shadow: 0 0 20px rgba(83, 185, 219, 0.18);
+}
+
+.pia-vacio strong {
+	color: #fff;
+	font-size: 0.88rem;
 }
 
 .pia-vacio p {
 	font-size: 0.72rem;
-	color: rgba(255, 255, 255, 0.2);
-	line-height: 1.6;
+	color: rgba(255, 255, 255, 0.48);
+	line-height: 1.55;
 	margin: 0;
 }
 
-/* ── Table header ── */
-.pia-table-header {
+.pia-cam-selector {
+	padding: 0.65rem 0.85rem 0.7rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	flex-shrink: 0;
+}
+
+.pia-cam-head {
 	display: flex;
 	align-items: center;
-	padding: 0.5rem 1rem 0.3rem;
+	justify-content: space-between;
+	gap: 0.55rem;
+	margin-bottom: 0.5rem;
+}
+
+.pia-cam-label {
+	font-size: 0.6rem;
+	color: rgba(255, 255, 255, 0.4);
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	font-weight: 800;
+}
+
+.pia-cam-state {
+	margin-left: auto;
+	font-size: 0.66rem;
+	color: rgba(255, 255, 255, 0.62);
+}
+
+.pia-cam-toggle {
+	position: relative;
+	width: 42px;
+	height: 22px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	background: rgba(255, 255, 255, 0.08);
+	cursor: pointer;
+	padding: 0;
+	flex-shrink: 0;
+}
+
+.pia-cam-toggle.on {
+	background: rgba(83, 185, 219, 0.22);
+	border-color: rgba(83, 185, 219, 0.34);
+}
+
+.pia-cam-toggle span {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.82);
+	transition: left 0.2s ease, background 0.2s ease;
+}
+
+.pia-cam-toggle.on span {
+	left: 21px;
+	background: #53B9DB;
+}
+
+.pia-cam-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+
+.pia-cam-chip {
+	font-size: 0.62rem;
+	padding: 0.26rem 0.55rem;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.04);
+	color: rgba(255, 255, 255, 0.56);
+	cursor: pointer;
+	transition: all 0.15s;
+	white-space: nowrap;
+}
+
+.pia-cam-chip:hover,
+.pia-cam-chip.active {
+	border-color: rgba(247, 194, 123, 0.52);
+	color: #f7c27b;
+	background: rgba(247, 194, 123, 0.12);
+}
+
+.pia-cam-chip.active {
+	font-weight: 800;
+}
+
+.pia-cam-hint {
+	font-size: 0.62rem;
+	color: rgba(247, 194, 123, 0.68);
+	margin: 0.45rem 0 0;
+	line-height: 1.4;
+}
+
+.pia-cam-hint strong {
+	color: #f7c27b;
+}
+
+.pia-table-header {
+	display: grid;
+	grid-template-columns: 112px 1fr 34px;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.55rem 0.85rem 0.35rem;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 	flex-shrink: 0;
 }
 
-.pia-th-name {
-	font-size: 0.62rem;
-	color: rgba(255, 255, 255, 0.5);
-	width: 100px;
-	flex-shrink: 0;
-	cursor: pointer;
-}
-
-.pia-th-healthy {
-	font-size: 0.6rem;
-	color: rgba(255, 255, 255, 0.3);
-	flex: 1;
-	text-align: left;
-	padding-left: 4px;
+.pia-th-name,
+.pia-th-healthy,
+.pia-th-risk {
+	font-size: 0.58rem;
+	color: rgba(255, 255, 255, 0.38);
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
 }
 
 .pia-th-risk {
-	font-size: 0.6rem;
-	color: rgba(255, 255, 255, 0.3);
 	text-align: right;
-	width: 28px;
 }
 
-/* ── Lista ── */
 .pia-lista {
 	flex: 1;
 	overflow-y: auto;
 	scrollbar-width: thin;
-	scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-	padding: 0.1rem 0 0;
+	scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+	padding: 0.18rem 0 0;
 }
 
 .pia-lista::-webkit-scrollbar {
-	width: 3px;
+	width: 4px;
 }
 
 .pia-lista::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.08);
-	border-radius: 2px;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 999px;
 }
 
-/* ── Fila ── */
 .pia-row {
-	display: flex;
+	display: grid;
+	grid-template-columns: 112px 1fr 34px;
 	align-items: center;
-	padding: 0.3rem 1rem;
-	gap: 0.6rem;
+	padding: 0.38rem 0.85rem;
+	gap: 0.55rem;
 	transition: background 0.15s;
-	min-height: 36px;
+	min-height: 40px;
+	border-left: 2px solid transparent;
 }
 
 .pia-row:hover {
-	background: rgba(255, 255, 255, 0.03);
+	background: rgba(255, 255, 255, 0.035);
 }
 
 .pia-row--alert {
-	background: rgba(248, 124, 124, 0.04);
+	background: rgba(248, 124, 124, 0.045);
+	border-left-color: rgba(248, 124, 124, 0.48);
 }
 
 .pia-row--alert:hover {
-	background: rgba(248, 124, 124, 0.07);
+	background: rgba(248, 124, 124, 0.075);
+}
+
+.pia-row--cam {
+	background: rgba(247, 194, 123, 0.065);
+	border-left-color: rgba(247, 194, 123, 0.52);
 }
 
 .pia-row-name {
-	width: 100px;
-	flex-shrink: 0;
+	min-width: 0;
 	display: flex;
 	align-items: center;
-	gap: 0.3rem;
+	gap: 0.32rem;
 }
 
 .pia-row-label {
 	font-size: 0.72rem;
-	color: rgba(255, 255, 255, 0.75);
+	color: rgba(255, 255, 255, 0.78);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -317,21 +624,18 @@
 
 .pia-row--alert .pia-row-label {
 	color: #fff;
-	font-weight: 600;
+	font-weight: 800;
 }
 
-.pia-info-icon {
-	font-size: 0.65rem;
-	color: rgba(83, 185, 219, 0.6);
-	cursor: default;
+.pia-cam-dot {
+	font-size: 0.64rem;
+	color: #f7c27b;
 	flex-shrink: 0;
 }
 
-/* ── Barra gradiente ── */
 .pia-bar-wrap {
-	flex: 1;
 	position: relative;
-	height: 16px;
+	height: 18px;
 	display: flex;
 	align-items: center;
 }
@@ -341,29 +645,28 @@
 	left: 0;
 	right: 0;
 	height: 10px;
-	border-radius: 5px;
-	background: linear-gradient(to right,
-			#4ab3e8 0%,
-			#5bc9e0 15%,
-			#7dd4c0 28%,
-			#f5c842 45%,
-			#f59a42 58%,
-			#e85c3a 72%,
-			#c0281a 85%,
-			#8b1010 100%);
-	opacity: 0.85;
+	border-radius: 999px;
+	background: linear-gradient(
+		to right,
+		#4ab3e8 0%,
+		#7dd4c0 28%,
+		#f5c842 45%,
+		#f59a42 58%,
+		#e85c3a 76%,
+		#8b1010 100%
+	);
+	opacity: 0.86;
 }
 
-/* Marcador de posición (la "aguja" blanca) */
 .pia-bar-marker {
 	position: absolute;
 	top: 50%;
 	transform: translate(-50%, -50%);
 	width: 3px;
-	height: 16px;
-	background: rgba(255, 255, 255, 0.9);
-	border-radius: 2px;
-	box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+	height: 18px;
+	background: rgba(255, 255, 255, 0.92);
+	border-radius: 999px;
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.58);
 	z-index: 2;
 	display: flex;
 	flex-direction: column;
@@ -371,434 +674,84 @@
 }
 
 .pia-bar-marker--alert {
-	background: #fff;
-	box-shadow: 0 0 6px rgba(255, 100, 100, 0.8);
+	box-shadow: 0 0 8px rgba(255, 100, 100, 0.85);
 }
 
-/* Badge rojo encima del marcador cuando supera umbral */
 .pia-marker-badge {
 	position: absolute;
-	top: -18px;
-	font-size: 0.7rem;
+	top: -16px;
+	font-size: 0.66rem;
 	filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
 }
 
-/* ── Footer ── */
+.pia-row-score {
+	text-align: right;
+	font-size: 0.68rem;
+	color: rgba(255, 255, 255, 0.6);
+	font-variant-numeric: tabular-nums;
+}
+
+.pia-row-score--alert {
+	color: #fff;
+	font-weight: 800;
+}
+
 .pia-footer {
-	padding: 0.6rem 1rem 0.8rem;
-	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	padding: 0.7rem 0.85rem 0.85rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.07);
 	display: flex;
 	flex-direction: column;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	flex-shrink: 0;
 }
 
+.pia-footer-note {
+	font-size: 0.7rem;
+	color: rgba(255, 255, 255, 0.7);
+	line-height: 1.45;
+}
+
+.pia-footer-note strong {
+	color: #fff;
+}
+
 .pia-btn-reanalizar {
-	background: rgba(83, 185, 219, 0.08);
-	border: 1px solid rgba(83, 185, 219, 0.2);
-	border-radius: 6px;
-	color: #53B9DB;
+	background: rgba(83, 185, 219, 0.1);
+	border: 1px solid rgba(83, 185, 219, 0.25);
+	border-radius: 7px;
+	color: #8BD7F0;
 	font-family: inherit;
 	font-size: 0.72rem;
-	padding: 0.45rem;
+	font-weight: 800;
+	padding: 0.55rem 0.75rem;
 	cursor: pointer;
 	transition: background 0.15s, border-color 0.15s;
 	letter-spacing: 0.03em;
 }
 
 .pia-btn-reanalizar:hover {
-	background: rgba(83, 185, 219, 0.15);
-	border-color: rgba(83, 185, 219, 0.4);
+	background: rgba(83, 185, 219, 0.16);
+	border-color: rgba(83, 185, 219, 0.42);
 }
 
 .pia-disclaimer {
-	font-size: 0.58rem;
-	color: rgba(255, 255, 255, 0.2);
-	line-height: 1.5;
+	font-size: 0.6rem;
+	color: rgba(255, 255, 255, 0.32);
+	line-height: 1.45;
 	text-align: center;
 	margin: 0;
 }
 
-/* ── Switch (vive en VisorDicom.css pero lo dejamos aquí por si acaso) ── */
-.pia-switch-wrap {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	padding: 0.55rem 0.85rem;
-	border-top: 1px solid rgba(83, 185, 219, 0.07);
-	flex-shrink: 0;
-}
+@media (max-width: 900px) {
+	.pia-panel {
+		width: min(340px, 92vw);
+	}
 
-.pia-switch-label {
-	font-size: 0.6rem;
-	color: rgba(255, 255, 255, 0.4);
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	flex: 1;
-}
+	.pia-summary {
+		grid-template-columns: 1fr 0.72fr;
+	}
 
-.pia-switch {
-	position: relative;
-	width: 36px;
-	height: 20px;
-	background: rgba(83, 185, 219, 0.12);
-	border: 1px solid rgba(83, 185, 219, 0.25);
-	border-radius: 10px;
-	cursor: pointer;
-	padding: 0;
-	transition: background 0.2s, border-color 0.2s;
-	flex-shrink: 0;
-}
-
-.pia-switch.on {
-	background: rgba(83, 185, 219, 0.3);
-	border-color: #53B9DB;
-	box-shadow: 0 0 8px rgba(83, 185, 219, 0.25);
-}
-
-.pia-switch-thumb {
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 14px;
-	height: 14px;
-	background: rgba(255, 255, 255, 0.4);
-	border-radius: 50%;
-	transition: transform 0.2s cubic-bezier(.4, 0, .2, 1), background 0.2s;
-	display: block;
-}
-
-.pia-switch.on .pia-switch-thumb {
-	transform: translateX(16px);
-	background: #53B9DB;
-}
-
-/* ── Badge API status ────────────────────────────────────────────── */
-.pia-api-badge {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	padding: 0.3rem 1rem;
-	font-size: 0.6rem;
-	color: rgba(255, 255, 255, 0.25);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-	letter-spacing: 0.05em;
-	flex-shrink: 0;
-}
-
-.pia-api-badge.connected {
-	color: rgba(77, 217, 172, 0.7);
-}
-
-.pia-api-dot {
-	width: 5px;
-	height: 5px;
-	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.2);
-	flex-shrink: 0;
-}
-
-.pia-api-badge.connected .pia-api-dot {
-	background: #4dd9ac;
-	box-shadow: 0 0 4px #4dd9ac;
-}
-
-/* ── Botón toggle MOCK/EVA-02 ────────────────────────────────────── */
-.pia-header-actions {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	flex-shrink: 0;
-}
-
-.pia-mode-btn {
-	font-size: 0.55rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	padding: 0.2rem 0.45rem;
-	border-radius: 4px;
-	border: 1px solid rgba(255, 255, 255, 0.15);
-	background: rgba(255, 255, 255, 0.05);
-	color: rgba(255, 255, 255, 0.35);
-	cursor: pointer;
-	transition: all 0.15s;
-}
-
-.pia-mode-btn.active {
-	border-color: rgba(83, 185, 219, 0.5);
-	background: rgba(83, 185, 219, 0.12);
-	color: #53B9DB;
-}
-
-/* ── Error ───────────────────────────────────────────────────────── */
-.pia-error {
-	margin: 1rem;
-	padding: 0.75rem;
-	background: rgba(248, 124, 124, 0.08);
-	border: 1px solid rgba(248, 124, 124, 0.25);
-	border-radius: 8px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.4rem;
-	text-align: center;
-}
-
-.pia-error span {
-	font-size: 1.2rem;
-}
-
-.pia-error p {
-	font-size: 0.65rem;
-	color: rgba(255, 255, 255, 0.5);
-	margin: 0;
-	line-height: 1.5;
-}
-
-.pia-error button {
-	font-size: 0.65rem;
-	padding: 0.3rem 0.8rem;
-	border-radius: 5px;
-	border: 1px solid rgba(248, 124, 124, 0.3);
-	background: rgba(248, 124, 124, 0.1);
-	color: #f87c7c;
-	cursor: pointer;
-}
-
-/* ── Grad-CAM selector ───────────────────────────────────────────── */
-.pia-cam-selector {
-	padding: 0.5rem 1rem 0.4rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-	flex-shrink: 0;
-}
-
-.pia-cam-label {
-	font-size: 0.58rem;
-	color: rgba(255, 255, 255, 0.3);
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	display: block;
-	margin-bottom: 0.35rem;
-}
-
-.pia-cam-chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.3rem;
-}
-
-.pia-cam-chip {
-	font-size: 0.6rem;
-	padding: 0.2rem 0.5rem;
-	border-radius: 20px;
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	background: rgba(255, 255, 255, 0.04);
-	color: rgba(255, 255, 255, 0.45);
-	cursor: pointer;
-	transition: all 0.15s;
-	white-space: nowrap;
-}
-
-.pia-cam-chip:hover {
-	border-color: rgba(255, 180, 50, 0.4);
-	color: rgba(255, 200, 80, 0.9);
-	background: rgba(255, 180, 50, 0.08);
-}
-
-.pia-cam-chip.active {
-	border-color: #f7c27b;
-	background: rgba(247, 194, 123, 0.15);
-	color: #f7c27b;
-	font-weight: 600;
-}
-
-.pia-cam-hint {
-	font-size: 0.6rem;
-	color: rgba(247, 194, 123, 0.7);
-	margin: 0.35rem 0 0;
-	line-height: 1.4;
-}
-
-.pia-cam-hint strong {
-	color: #f7c27b;
-}
-
-/* Fila con CAM activo */
-.pia-row--cam {
-	background: rgba(247, 194, 123, 0.06) !important;
-	border-left: 2px solid rgba(247, 194, 123, 0.4);
-}
-
-/* Dot de fuego en la fila */
-.pia-cam-dot {
-	font-size: 0.65rem;
-	opacity: 0.4;
-	transition: opacity 0.15s;
-	cursor: pointer;
-	flex-shrink: 0;
-}
-
-.pia-cam-dot.on {
-	opacity: 1;
-}
-
-.pia-api-badge {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	padding: 0.45rem 1rem;
-	font-size: 0.62rem;
-	color: rgba(255, 255, 255, 0.45);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-	flex-shrink: 0;
-}
-
-.pia-api-dot {
-	width: 5px;
-	height: 5px;
-	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.2);
-	flex-shrink: 0;
-}
-
-.pia-api-badge.connected .pia-api-dot {
-	background: #4dd9ac;
-	box-shadow: 0 0 4px #4dd9ac;
-}
-
-.pia-header-actions {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	flex-shrink: 0;
-}
-
-.pia-mode-btn {
-	font-size: 0.55rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	padding: 0.2rem 0.45rem;
-	border-radius: 4px;
-	border: 1px solid rgba(255, 255, 255, 0.15);
-	background: rgba(255, 255, 255, 0.05);
-	color: rgba(255, 255, 255, 0.35);
-	cursor: pointer;
-	transition: all 0.15s;
-}
-
-.pia-mode-btn.active {
-	border-color: rgba(83, 185, 219, 0.5);
-	background: rgba(83, 185, 219, 0.12);
-	color: #53B9DB;
-}
-
-.pia-error {
-	margin: 1rem;
-	padding: 0.75rem;
-	background: rgba(248, 124, 124, 0.08);
-	border: 1px solid rgba(248, 124, 124, 0.25);
-	border-radius: 8px;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.4rem;
-	text-align: center;
-}
-
-.pia-error span {
-	font-size: 1.2rem;
-}
-
-.pia-error p {
-	font-size: 0.65rem;
-	color: rgba(255, 255, 255, 0.5);
-	margin: 0;
-	line-height: 1.5;
-}
-
-.pia-error button {
-	font-size: 0.65rem;
-	padding: 0.3rem 0.8rem;
-	border-radius: 5px;
-	border: 1px solid rgba(248, 124, 124, 0.3);
-	background: rgba(248, 124, 124, 0.1);
-	color: #f87c7c;
-	cursor: pointer;
-}
-
-.pia-cam-selector {
-	padding: 0.5rem 1rem 0.4rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-	flex-shrink: 0;
-}
-
-.pia-cam-label {
-	font-size: 0.58rem;
-	color: rgba(255, 255, 255, 0.3);
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	display: block;
-	margin-bottom: 0.35rem;
-}
-
-.pia-cam-chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.3rem;
-}
-
-.pia-cam-chip {
-	font-size: 0.6rem;
-	padding: 0.2rem 0.5rem;
-	border-radius: 20px;
-	border: 1px solid rgba(255, 255, 255, 0.12);
-	background: rgba(255, 255, 255, 0.04);
-	color: rgba(255, 255, 255, 0.45);
-	cursor: pointer;
-	transition: all 0.15s;
-	white-space: nowrap;
-}
-
-.pia-cam-chip:hover {
-	border-color: rgba(255, 180, 50, 0.4);
-	color: rgba(255, 200, 80, 0.9);
-	background: rgba(255, 180, 50, 0.08);
-}
-
-.pia-cam-chip.active {
-	border-color: #f7c27b;
-	background: rgba(247, 194, 123, 0.15);
-	color: #f7c27b;
-	font-weight: 600;
-}
-
-.pia-cam-hint {
-	font-size: 0.6rem;
-	color: rgba(247, 194, 123, 0.7);
-	margin: 0.35rem 0 0;
-	line-height: 1.4;
-}
-
-.pia-cam-hint strong {
-	color: #f7c27b;
-}
-
-.pia-row--cam {
-	background: rgba(247, 194, 123, 0.06) !important;
-	border-left: 2px solid rgba(247, 194, 123, 0.4);
-}
-
-.pia-cam-dot {
-	font-size: 0.65rem;
-	opacity: 0.95;
-}
-
-.pia-btn-reanalizar {
-	background: rgba(83, 185, 219, 0.1);
-	border: 1px solid rgba(83, 185, 219, 0.25);
-	color: #53B9DB;
-	font-size: 0.7rem;
-	border-radius: 6px;
-	padding: 0.55rem 0.75rem;
-	cursor: pointer;
+	.pia-summary-card--main {
+		grid-column: 1 / -1;
+	}
 }
