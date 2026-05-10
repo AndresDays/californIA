@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import californiaLogo from "../assets/CalifornIA.png";
 import notiIcon from "../assets/notificaciones.png";
 import "./header.css";
 
@@ -62,6 +63,12 @@ const Header = ({
 }) => {
 	const navigate = useNavigate();
 	const avatarRef = useRef(null);
+	const rolNormalizado = (empleadoData?.rol || "")
+		.toString()
+		.toLowerCase()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "");
+	const puedeVerPlantillas = ["desarrollador", "radiologo"].includes(rolNormalizado);
 
 	const getIniciales = () => {
 		const nombre = empleadoData?.nombre || user?.email || "";
@@ -76,7 +83,7 @@ const Header = ({
 
 	return (
 		<header className="dashboard-header">
-			{/* ── Izquierda: hamburguesa + campana + título ── */}
+			{/* ── Izquierda: hamburguesa + campana ── */}
 			<div className="header-left">
 				<button
 					className={`hamburger-btn${sidebarOpen ? " active" : ""}`}
@@ -87,14 +94,14 @@ const Header = ({
 					<span />
 				</button>
 				<img src={notiIcon} alt="Notificaciones" className="notification-icon" />
-				<h1 className="header-title">{rol || "Cargando..."}</h1>
 			</div>
 
-			{/* ── Derecha: nombre + avatar ── */}
+			<div className="header-center-logo" aria-hidden="true">
+				<img src={californiaLogo} alt="" className="header-california-logo" />
+			</div>
+
+			{/* ── Derecha: avatar ── */}
 			<div className="header-right" ref={menuRef}>
-				<span className="user-name">
-					{empleadoData ? getPrimerNombre(empleadoData.nombre) : "Cargando..."}
-				</span>
 				<button
 					ref={avatarRef}
 					className={`user-avatar-btn${menuOpen ? " open" : ""}`}
@@ -184,28 +191,35 @@ const Header = ({
 							</span>
 							Accesos
 						</button>
-						<button className="menu-item">
-							<span className="menu-item-icon">
-								<svg viewBox="0 0 20 20" fill="none">
-									<rect
-										x="3"
-										y="4"
-										width="14"
-										height="12"
-										rx="2"
-										stroke="currentColor"
-										strokeWidth="1.5"
-									/>
-									<path
-										d="M7 8h6M7 11h4"
-										stroke="currentColor"
-										strokeWidth="1.5"
-										strokeLinecap="round"
-									/>
-								</svg>
-							</span>
-							Plantillas
-						</button>
+						{puedeVerPlantillas && (
+							<button
+								className="menu-item"
+								onClick={() => {
+									setMenuOpen(false);
+									navigate("/plantillas");
+								}}>
+								<span className="menu-item-icon">
+									<svg viewBox="0 0 20 20" fill="none">
+										<rect
+											x="3"
+											y="4"
+											width="14"
+											height="12"
+											rx="2"
+											stroke="currentColor"
+											strokeWidth="1.5"
+										/>
+										<path
+											d="M7 8h6M7 11h4"
+											stroke="currentColor"
+											strokeWidth="1.5"
+											strokeLinecap="round"
+										/>
+									</svg>
+								</span>
+								Plantillas
+							</button>
+						)}
 						<div className="dropdown-divider" />
 						<button
 							className="menu-item menu-item-logout"

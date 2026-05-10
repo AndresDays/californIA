@@ -98,6 +98,12 @@
   box-shadow: 0 4px 16px rgba(73, 178, 212, 0.4);
 }
 
+.sidebar-home-item.active {
+  background: rgba(83, 185, 219, 0.35);
+  border-color: rgba(83, 185, 219, 0.75);
+  box-shadow: 0 4px 16px rgba(73, 178, 212, 0.35);
+}
+
 .sidebar-home-item:active {
   transform: scale(0.95);
 }
@@ -112,6 +118,11 @@
 }
 
 .sidebar-home-item:hover .sidebar-home-icon {
+  opacity: 1;
+  filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(160deg);
+}
+
+.sidebar-home-item.active .sidebar-home-icon {
   opacity: 1;
   filter: brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(160deg);
 }
@@ -194,6 +205,11 @@
   background: rgba(73, 178, 212, 0.2);
   color: #53B9DB;
   transform: translateX(3px);
+}
+
+.submenu-item.active {
+  background: rgba(83, 185, 219, 0.22);
+  color: #53B9DB;
 }
 
 @media (max-width: 968px) {
