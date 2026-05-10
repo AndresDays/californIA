@@ -30,6 +30,7 @@ import Login from './pages/login';
 import Pacientes from './pages/pacientes';
 import Perfil from './pages/perfil';
 import DashboardRadiologia from './pages/radiologia/pages/dashboard-radiologia';
+import PlantillasRadiologia from './pages/radiologia/pages/plantillas-radiologia';
 import ReporteRadiologia from './pages/radiologia/pages/ReporteRadiologia';
 import VisorDicom from './pages/radiologia/pages/visor-dicom';
 import Usuarios from './pages/usuarios';
@@ -77,6 +78,15 @@ function App() {
 						element={
 							<ProtectedRoute>
 								<ReporteRadiologia />
+							</ProtectedRoute>
+						}
+					/>
+
+					<Route
+						path="/plantillas"
+						element={
+							<ProtectedRoute>
+								<PlantillasRadiologia />
 							</ProtectedRoute>
 						}
 					/>

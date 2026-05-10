@@ -97,6 +97,16 @@ jest.mock('./pages/radiologia/pages/visor-dicom', () => ({
   default: () => <div data-testid="visor-dicom-page">Visor DICOM Page</div>
 }));
 
+jest.mock('./pages/radiologia/pages/ReporteRadiologia', () => ({
+  __esModule: true,
+  default: () => <div data-testid="reporte-radiologia-page">Reporte Radiología Page</div>
+}));
+
+jest.mock('./pages/radiologia/pages/plantillas-radiologia', () => ({
+  __esModule: true,
+  default: () => <div data-testid="plantillas-page">Plantillas Page</div>
+}));
+
 jest.mock('./pages/laboratorio/laboratorio', () => ({
   __esModule: true,
   default: () => <div data-testid="laboratorio-page">Laboratorio Page</div>
@@ -292,6 +302,14 @@ describe('App Routing - Protected Routes', () => {
     render(<App />);
     await waitFor(() => {
       expect(screen.getByTestId('visor-dicom-page')).toBeInTheDocument();
+    });
+  });
+
+  test('ruta /plantillas renderiza página de plantillas', async () => {
+    window.history.pushState({}, '', '/plantillas');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('plantillas-page')).toBeInTheDocument();
     });
   });
 });
