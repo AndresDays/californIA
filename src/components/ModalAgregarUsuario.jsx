@@ -19,6 +19,7 @@ const ModalAgregarUsuario = ({ isOpen, onClose, onGuardar, usuarioEditar }) => {
     if (usuarioEditar) {
       setFormData({
         id: usuarioEditar.id,
+        auth_uuid: usuarioEditar.auth_uuid || '',
         nombre: usuarioEditar.nombre || '',
         usuario: usuarioEditar.usuario || '',
         contrasena: '',
@@ -78,8 +79,16 @@ const ModalAgregarUsuario = ({ isOpen, onClose, onGuardar, usuarioEditar }) => {
       newErrors.usuario = 'El usuario es requerido';
     }
 
+    if (!usuarioEditar && !formData.email.trim()) {
+      newErrors.email = 'El email es requerido para crear el acceso';
+    }
+
     if (!usuarioEditar && !formData.contrasena.trim()) {
       newErrors.contrasena = 'La contraseña es requerida';
+    }
+
+    if (formData.contrasena.trim() && formData.contrasena.trim().length < 6) {
+      newErrors.contrasena = 'La contraseña debe tener al menos 6 caracteres';
     }
 
     if (!formData.rol) {
@@ -218,7 +227,7 @@ const ModalAgregarUsuario = ({ isOpen, onClose, onGuardar, usuarioEditar }) => {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Email</label>
+                <label>{usuarioEditar ? 'Email' : 'Email *'}</label>
                 <input
                   type="email"
                   name="email"
