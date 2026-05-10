@@ -1,21 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
 import Header from '../../../components/header-principal';
+import Sidebar from '../../../components/sidebar';
 import SidebarHome from '../../../components/sidebar-home';
+import ModalNotificacion from '../../../components/ModalNotificacion';
+import useSidebar from '../../../utils/use-sidebar';
 import TarjetaEstudio from '../componentes/TarjetaEstudio';
 import lupaIcono from '../../../assets/lupaIcono.png';
 import './DashboardRadiologia.css';
 
+const ESTADOS_FILTRO = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'POR ASIGNAR', label: 'Por asignar' },
+  { id: 'ASIGNADO', label: 'Asignados' },
+  { id: 'EN PROCESO', label: 'En proceso' },
+  { id: 'COMPLETADO', label: 'Completados' }
+];
+
 const DashboardRadiologia = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
+  const menuRef = useRef(null);
 
   const [empleadoData, setEmpleadoData] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [estudios, setEstudios] = useState([]);
   const [busqueda, setBusqueda] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
+  const [notificacion, setNotificacion] = useState({
+    isOpen: false,
+    mensaje: '',
+    tipo: 'exito'
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -107,15 +128,18 @@ const DashboardRadiologia = () => {
       setEstudios(estudiosFormateados);
     } catch (error) {
       console.error('Error al cargar estudios:', error);
-      alert('Error al cargar los estudios');
+      mostrarNotificacion('Error al cargar los estudios', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCrearGrupo = () => {
-    // TODO: Implementar modal para crear grupo
-    alert('Crear nuevo grupo - Por implementar');
+  const mostrarNotificacion = (mensaje, tipo = 'exito') => {
+    setNotificacion({
+      isOpen: true,
+      mensaje,
+      tipo
+    });
   };
 
   const handleVerEstudio = (estudio) => {
@@ -128,12 +152,10 @@ const DashboardRadiologia = () => {
   };
 
   const handleVerDetalles = (estudio) => {
-    console.log('Ver detalles de:', estudio);
-    // TODO: Abrir modal con detalles del estudio
+    setEstudioSeleccionado(estudio);
   };
 
   const handleAsignar = async (estudio) => {
-    // TODO: Implementar lógica de asignación
     try {
       const { error } = await supabase
         .from('estudios_radiologia')
@@ -145,22 +167,35 @@ const DashboardRadiologia = () => {
 
       if (error) throw error;
 
-      alert('Estudio asignado correctamente');
+      mostrarNotificacion('Estudio asignado correctamente', 'exito');
+      setEstudioSeleccionado(null);
       cargarEstudios(); // Recargar lista
     } catch (error) {
       console.error('Error al asignar estudio:', error);
-      alert('Error al asignar el estudio');
+      mostrarNotificacion('Error al asignar el estudio', 'error');
     }
   };
 
-  const estudiosFilrados = estudios.filter(estudio => {
+  const tiposEstudio = Array.from(
+    new Set(estudios.map(estudio => estudio.tipoEstudio).filter(Boolean))
+  );
+
+  const conteosPorEstado = ESTADOS_FILTRO.reduce((conteos, estado) => {
+    conteos[estado.id] = estado.id === 'todos'
+      ? estudios.length
+      : estudios.filter(estudio => estudio.estado === estado.id).length;
+    return conteos;
+  }, {});
+
+  const estudiosFiltrados = estudios.filter(estudio => {
     const cumpleBusqueda = estudio.nombrePaciente.toLowerCase().includes(busqueda.toLowerCase()) ||
                           estudio.tipoEstudio.toLowerCase().includes(busqueda.toLowerCase()) ||
                           estudio.sucursal.toLowerCase().includes(busqueda.toLowerCase());
     
     const cumpleTipo = filtroTipo === 'todos' || estudio.tipoEstudio === filtroTipo;
+    const cumpleEstado = filtroEstado === 'todos' || estudio.estado === filtroEstado;
 
-    return cumpleBusqueda && cumpleTipo;
+    return cumpleBusqueda && cumpleTipo && cumpleEstado;
   });
 
   const getPrimerNombre = (nombreCompleto) => {
@@ -188,7 +223,6 @@ const DashboardRadiologia = () => {
   };
 
   const handleLogout = async () => {
-    const { signOut } = useAuth();
     await signOut();
     navigate('/login');
   };
@@ -196,49 +230,73 @@ const DashboardRadiologia = () => {
   return (
     <div className="dashboard-radiologia-wrapper">
       <Header
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+        menuRef={menuRef}
         empleadoData={empleadoData}
         formatRol={formatRol}
         getPrimerNombre={getPrimerNombre}
         user={user}
         handleLogout={handleLogout}
         currentPage="radiologia"
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
       />
 
-      <SidebarHome />
+      {isMobile ? (
+        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      ) : (
+        <SidebarHome />
+      )}
 
       <div className="dashboard-radiologia-content">
         <div className="radiologia-top-bar">
-          <button className="btn-crear-grupo" onClick={handleCrearGrupo}>
-            <span className="icon-grupo">👥</span>
-            Crear Grupo
-          </button>
-
-          <div className="radiologia-controles">
-            <div className="filtro-tipo">
-              <label>Estudios</label>
-              <select 
-                value={filtroTipo} 
-                onChange={(e) => setFiltroTipo(e.target.value)}
-                className="select-tipo-estudio"
-              >
-                <option value="todos">Todos</option>
-                <option value="DX">DX</option>
-                <option value="US">US</option>
-                <option value="CT">CT</option>
-                <option value="XR">XR</option>
-                <option value="MR">MR</option>
-              </select>
+          <div className="radiologia-filtros-panel">
+            <div className="radiologia-chip-group" aria-label="Filtrar por estado">
+              {ESTADOS_FILTRO.map(estado => (
+                <button
+                  key={estado.id}
+                  type="button"
+                  className={`radiologia-chip ${filtroEstado === estado.id ? 'activo' : ''}`}
+                  onClick={() => setFiltroEstado(estado.id)}
+                >
+                  <span>{estado.label}</span>
+                  <strong>{conteosPorEstado[estado.id] || 0}</strong>
+                </button>
+              ))}
             </div>
 
-            <div className="buscador-radiologia">
-              <img src={lupaIcono} alt="Buscar" className="icono-lupa" />
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder=""
-                className="input-buscar-radiologia"
-              />
+            <div className="radiologia-toolbar">
+              <div className="radiologia-tipo-segmentos" aria-label="Filtrar por estudio">
+                <button
+                  type="button"
+                  className={`radiologia-tipo-chip ${filtroTipo === 'todos' ? 'activo' : ''}`}
+                  onClick={() => setFiltroTipo('todos')}
+                >
+                  Todos tipos
+                </button>
+                {tiposEstudio.map(tipo => (
+                  <button
+                    key={tipo}
+                    type="button"
+                    className={`radiologia-tipo-chip ${filtroTipo === tipo ? 'activo' : ''}`}
+                    onClick={() => setFiltroTipo(tipo)}
+                  >
+                    {tipo}
+                  </button>
+                ))}
+              </div>
+
+              <div className="buscador-radiologia">
+                <img src={lupaIcono} alt="Buscar" className="icono-lupa" />
+                <input
+                  type="text"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar paciente, estudio o sucursal"
+                  className="input-buscar-radiologia"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -248,12 +306,12 @@ const DashboardRadiologia = () => {
             <div className="sin-estudios">
               <p>Cargando estudios...</p>
             </div>
-          ) : estudiosFilrados.length === 0 ? (
+          ) : estudiosFiltrados.length === 0 ? (
             <div className="sin-estudios">
               <p>No hay estudios para mostrar</p>
             </div>
           ) : (
-            estudiosFilrados.map(estudio => (
+            estudiosFiltrados.map(estudio => (
               <TarjetaEstudio
                 key={estudio.id}
                 tipoEstudio={estudio.tipoEstudio}
@@ -269,6 +327,76 @@ const DashboardRadiologia = () => {
           )}
         </div>
       </div>
+
+      {estudioSeleccionado && (
+        <div className="radiologia-detalle-overlay" onClick={() => setEstudioSeleccionado(null)}>
+          <aside className="radiologia-detalle-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="radiologia-detalle-header">
+              <div>
+                <span className="radiologia-detalle-eyebrow">{estudioSeleccionado.tipoEstudio}</span>
+                <h2>Detalle del estudio</h2>
+              </div>
+              <button
+                type="button"
+                className="radiologia-detalle-cerrar"
+                onClick={() => setEstudioSeleccionado(null)}
+                aria-label="Cerrar detalle"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="radiologia-detalle-body">
+              <div className="radiologia-detalle-dato principal">
+                <span>Paciente</span>
+                <strong>{estudioSeleccionado.nombrePaciente}</strong>
+              </div>
+              <div className="radiologia-detalle-grid">
+                <div className="radiologia-detalle-dato">
+                  <span>Estado</span>
+                  <strong>{estudioSeleccionado.estado}</strong>
+                </div>
+                <div className="radiologia-detalle-dato">
+                  <span>Sucursal</span>
+                  <strong>{estudioSeleccionado.sucursal}</strong>
+                </div>
+                <div className="radiologia-detalle-dato">
+                  <span>Fecha / hora</span>
+                  <strong>{estudioSeleccionado.horaFecha}</strong>
+                </div>
+                <div className="radiologia-detalle-dato">
+                  <span>ID estudio</span>
+                  <strong>{estudioSeleccionado.id}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="radiologia-detalle-acciones">
+              <button
+                type="button"
+                className="radiologia-btn-secundario"
+                onClick={() => handleAsignar(estudioSeleccionado)}
+              >
+                Asignar estudio
+              </button>
+              <button
+                type="button"
+                className="radiologia-btn-principal"
+                onClick={() => handleVerEstudio(estudioSeleccionado)}
+              >
+                Ver en visor
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      <ModalNotificacion
+        isOpen={notificacion.isOpen}
+        onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+        mensaje={notificacion.mensaje}
+        tipo={notificacion.tipo}
+      />
     </div>
   );
 };
