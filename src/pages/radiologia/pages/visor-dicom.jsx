@@ -3,10 +3,13 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import Header from "../../../components/header-principal";
+import Sidebar from "../../../components/sidebar";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import PanelIA from "./Panelia";
+import { MEMBRETE_B64 } from "./reporte-radiologia-template";
 import "./VisorDicom.css";
 
 import anguloIcono from "../../../assets/anguloIcono.png";
@@ -15,6 +18,7 @@ import basuraIcon from "../../../assets/basuraIcon.png";
 import capturaIcon from "../../../assets/capturaIcono.png";
 import centrarIcon from "../../../assets/centrarIcono.png";
 import cineIcon from "../../../assets/cineIcono.png";
+import clipIcon from "../../../assets/clipIcon.png";
 import comentarioIcon from "../../../assets/comentarioIcono.png";
 import compartirIcon from "../../../assets/compartirIcono.png";
 import contrasteIcono from "../../../assets/contrasteIcono.png";
@@ -35,6 +39,7 @@ import masIcon from "../../../assets/masIcono.png";
 import metricasIcon from "../../../assets/metricasIcono.png";
 import moverIcon from "../../../assets/moverIcono.png";
 import ojosIcono from "../../../assets/ojosIcono.png";
+import pestanaIcon from "../../../assets/pestanaIcono.png";
 import referenteIcon from "../../../assets/referenteIcono.png";
 import restaurarIcon from "../../../assets/restaurarIcono.png";
 import scrollIcon from "../../../assets/scrollIcono.png";
@@ -43,6 +48,8 @@ import tecnicoIcon from "../../../assets/tecnicoIcono.png";
 
 let csModules = null;
 let csInitPromise = null;
+const BUCKET_ADJUNTOS_REPORTE = "reportes-radiologia-adjuntos";
+const REPORTE_ADJUNTO_MAX_SIZE = 25 * 1024 * 1024;
 
 const initCornerstone = () => {
 	if (csModules) return Promise.resolve(csModules);
@@ -68,15 +75,15 @@ const initCornerstone = () => {
 };
 
 const TOOLS = [
-	{ id: "StackScroll", icon: scrollIcon, label: "Scroll", emoji: "≡" },
-	{ id: "Zoom", icon: ampliarIcon, label: "Ampliar", emoji: "🔍" },
-	{ id: "Wwwc", icon: contrasteIcono, label: "W/L", emoji: "◑" },
-	{ id: "Pan", icon: moverIcon, label: "Mover", emoji: "✥" },
-	{ id: "Datos", icon: ojosIcono, label: "Datos", emoji: "👁" },
-	{ id: "Length", icon: longitudIcono, label: "Longitud", emoji: "⟵⟶" },
-	{ id: "Annotate", icon: anotarIcono, label: "Anotar", emoji: "✎" },
-	{ id: "Angle", icon: anguloIcono, label: "Ángulo", emoji: "∠" },
-	{ id: "centrar", icon: centrarIcon, label: "Centrar", emoji: "⊕" },
+	{ id: "StackScroll", icon: scrollIcon, label: "Scroll" },
+	{ id: "Zoom", icon: ampliarIcon, label: "Ampliar" },
+	{ id: "Wwwc", icon: contrasteIcono, label: "W/L" },
+	{ id: "Pan", icon: moverIcon, label: "Mover" },
+	{ id: "Datos", icon: ojosIcono, label: "Datos" },
+	{ id: "Length", icon: longitudIcono, label: "Longitud" },
+	{ id: "Annotate", icon: anotarIcono, label: "Anotar" },
+	{ id: "Angle", icon: anguloIcono, label: "Ángulo" },
+	{ id: "centrar", icon: centrarIcon, label: "Centrar" },
 ];
 
 const ACTIONS = [
@@ -102,33 +109,42 @@ const FORMATOS = [
 ];
 
 const MAS_ITEMS = [
-	{ id: "lupa", icon: ampliarIcon, emoji: null, label: "Lupa" },
-	{ id: "ventanaROI", icon: null, emoji: "⬛", label: "Ventana ROI" },
-	{ id: "elipse", icon: null, emoji: "⬭", label: "Elipse" },
-	{ id: "rectangulo", icon: null, emoji: "▭", label: "Rectángulo" },
-	{ id: "negativo", icon: contrasteIcono, emoji: null, label: "Negativo" },
-	{ id: "girar", icon: restaurarIcon, emoji: null, label: "Girar →" },
-	{ id: "voltearH", icon: null, emoji: "↔", label: "Voltear H" },
-	{ id: "voltearV", icon: null, emoji: "↕", label: "Voltear V" },
-	{ id: "limpiar", icon: null, emoji: "🗑", label: "Limpiar" },
-	{ id: "bidireccional", icon: null, emoji: "⇄", label: "Bidireccional" },
+	{ id: "lupa", icon: ampliarIcon, label: "Lupa" },
+	{ id: "ventanaROI", icon: contrasteIcono, label: "Ventana ROI" },
+	{ id: "elipse", icon: anotarIcono, label: "Elipse" },
+	{ id: "rectangulo", icon: formatoIcon, label: "Rectángulo" },
+	{ id: "negativo", icon: contrasteIcono, label: "Negativo" },
+	{ id: "girar", icon: restaurarIcon, label: "Girar →" },
+	{ id: "voltearH", icon: restaurarIcon, label: "Voltear H" },
+	{ id: "voltearV", icon: centrarIcon, label: "Voltear V" },
+	{ id: "limpiar", icon: basuraIcon, label: "Limpiar" },
+	{ id: "bidireccional", icon: longitudIcono, label: "Bidireccional" },
 ];
 
 const DETALLE_ITEMS = [
-	{ id: "referente", icon: referenteIcon, emoji: "👤", label: "Referente" },
-	{ id: "radiologo", icon: doctorIcon, emoji: "👨‍⚕️", label: "Radiólogo" },
-	{ id: "tecnico", icon: tecnicoIcon, emoji: "👩‍💻", label: "Técnico" },
-	{ id: "prioridad", icon: exclamacionIcon, emoji: "❗", label: "Prioridad" },
-	{ id: "comentarios", icon: comentarioIcon, emoji: "🗒", label: "Comentarios" },
-	{ id: "etiquetas", icon: etiquetaIcon, emoji: "🏷", label: "Etiquetas" },
-	{ id: "solicitud", icon: solicitudIcon, emoji: "📄", label: "Solicitud" },
-	{ id: "metricas", icon: metricasIcon, emoji: "📊", label: "Métricas" },
+	{ id: "referente", icon: referenteIcon, label: "Referente" },
+	{ id: "radiologo", icon: doctorIcon, label: "Radiólogo" },
+	{ id: "tecnico", icon: tecnicoIcon, label: "Técnico" },
+	{ id: "prioridad", icon: exclamacionIcon, label: "Prioridad" },
+	{ id: "comentarios", icon: comentarioIcon, label: "Comentarios" },
+	{ id: "etiquetas", icon: etiquetaIcon, label: "Etiquetas" },
+	{ id: "solicitud", icon: solicitudIcon, label: "Solicitud" },
+	{ id: "metricas", icon: metricasIcon, label: "Métricas" },
 ];
 
 const REPORTE_ITEMS = [
-	{ id: "nueva-pestana", emoji: "📋", label: "Nueva pestaña" },
-	{ id: "visualizacion-simultanea", emoji: "🖥", label: "Visualización simultánea" },
-	{ id: "adjuntar", emoji: "📎", label: "Adjuntar" },
+	{ id: "nueva-pestana", icon: pestanaIcon, label: "Nueva pestaña" },
+	{ id: "plantillas", icon: formatoIcon, label: "Usar plantilla" },
+	{ id: "adjuntar", icon: clipIcon, label: "Adjuntar" },
+];
+
+const VIEW_ACTION_IDS = ["restaurar", "cine", "formato", "mas"];
+const WORKFLOW_ACTION_IDS = [
+	"reporte",
+	"captura",
+	"descargar",
+	"compartir",
+	"detalle",
 ];
 
 const PanelDicom = ({
@@ -2335,11 +2351,13 @@ const PanelDicom = ({
 const VisorDicom = () => {
 	const { user, signOut } = useAuth();
 	const navigate = useNavigate();
+	const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
 	const { estudioId } = useParams();
 	const location = useLocation();
 	const estudioData = location.state?.estudio;
 
 	const [empleadoData, setEmpleadoData] = useState(null);
+	const [menuOpen, setMenuOpen] = useState(false);
 	const [imageIds, setImageIds] = useState([]);
 	const [panelActivo, setPanelActivo] = useState(0);
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
@@ -2363,12 +2381,21 @@ const VisorDicom = () => {
 	const [etiquetaSugerencia, setEtiquetaSugerencia] = useState(false);
 	const [detalleBarTop, setDetalleBarTop] = useState(112);
 	const [reporteBarTop, setReporteBarTop] = useState(112);
-	const [reporteBarLeft, setReporteBarLeft] = useState("50%");
 	const [mostrarInfo, setMostrarInfo] = useState(true);
 	const [mostrarReporte, setMostrarReporte] = useState(false);
 	const [cineActivo, setCineActivo] = useState(false);
 	const [reporteTexto, setReporteTexto] = useState("");
-	const [mostrarPanelReporte, setMostrarPanelReporte] = useState(false);
+	const [modalPlantillasReporte, setModalPlantillasReporte] = useState(false);
+	const [plantillasReporte, setPlantillasReporte] = useState([]);
+	const [plantillasReporteLoading, setPlantillasReporteLoading] = useState(false);
+	const [plantillaReporteTab, setPlantillaReporteTab] = useState("organizacion");
+	const [plantillaReporteBusqueda, setPlantillaReporteBusqueda] = useState("");
+	const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
+	const [membreteReporteSrc, setMembreteReporteSrc] = useState(
+		`data:image/jpeg;base64,${MEMBRETE_B64}`,
+	);
+	const [panelDerecho, setPanelDerecho] = useState(null);
+	const [seriesContraidas, setSeriesContraidas] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [resetCounter, setResetCounter] = useState(0);
@@ -2401,7 +2428,14 @@ const VisorDicom = () => {
 
 	const cineRef = useRef(null);
 	const cineIdx = useRef(0);
+	const menuRef = useRef(null);
 	const toolbarRef = useRef(null);
+	const reporteButtonRef = useRef(null);
+	const reporteMenuRef = useRef(null);
+	const reporteEditorRef = useRef(null);
+	const reporteAdjuntoInputRef = useRef(null);
+	const detalleButtonRef = useRef(null);
+	const sidePanelRef = useRef(null);
 	const [masBarTop, setMasBarTop] = useState(112);
 
 	const pacienteInfo = {
@@ -2411,6 +2445,17 @@ const VisorDicom = () => {
 		horaFecha: estudioData?.horaFecha || "—",
 		estado: estudioData?.estado || "—",
 	};
+
+	const fechaReporte = (() => {
+		if (!pacienteInfo.horaFecha || pacienteInfo.horaFecha === "—") return "";
+		const fecha = new Date(pacienteInfo.horaFecha);
+		if (Number.isNaN(fecha.getTime())) return pacienteInfo.horaFecha;
+		return fecha.toLocaleDateString("es-MX", {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+		});
+	})();
 
 	const getPrimerNombre = (n) => n || user?.email?.split("@")[0] || "Usuario";
 	const formatRol = (rol) => {
@@ -2449,6 +2494,47 @@ const VisorDicom = () => {
 			if (cineRef.current) clearInterval(cineRef.current);
 		};
 	}, [estudioId]);
+
+	useEffect(() => {
+		if (!mostrarReporte) return;
+
+		const cerrarReporteSiClickFuera = (event) => {
+			const target = event.target;
+			if (
+				reporteMenuRef.current?.contains(target) ||
+				reporteButtonRef.current?.contains(target)
+			) {
+				return;
+			}
+			setMostrarReporte(false);
+		};
+
+		document.addEventListener("mousedown", cerrarReporteSiClickFuera);
+		return () => document.removeEventListener("mousedown", cerrarReporteSiClickFuera);
+	}, [mostrarReporte]);
+
+	useEffect(() => {
+		if (panelDerecho !== "detalles") return;
+
+		const cerrarDetalleSiClickFuera = (event) => {
+			const target = event.target;
+			if (
+				sidePanelRef.current?.contains(target) ||
+				detalleButtonRef.current?.contains(target)
+			) {
+				return;
+			}
+			setPanelDerecho(null);
+		};
+
+		document.addEventListener("mousedown", cerrarDetalleSiClickFuera);
+		return () => document.removeEventListener("mousedown", cerrarDetalleSiClickFuera);
+	}, [panelDerecho]);
+
+	useEffect(() => {
+		if (panelDerecho !== "reporte" || !reporteEditorRef.current) return;
+		reporteEditorRef.current.innerHTML = (reporteTexto || "").replace(/\n/g, "<br>");
+	}, [panelDerecho]);
 
 	const cargarImagenes = async () => {
 		setLoading(true);
@@ -2630,7 +2716,7 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "informacion") {
-			abrirModalInfo();
+			setPanelDerecho("detalles");
 			return;
 		}
 		if (id === "cine") {
@@ -2645,6 +2731,11 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "reporte") {
+			setPanelDerecho((panel) => (panel === "reporte" ? null : "reporte"));
+			setMostrarFormatos(false);
+			setMostrarMas(false);
+			setMostrarDetalle(false);
+			setMostrarReporte(false);
 			return;
 		}
 		if (id === "descargar") {
@@ -2673,18 +2764,25 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "detalle") {
-			setMostrarDetalle((f) => {
-				if (!f && toolbarRef.current) {
-					const r = toolbarRef.current.getBoundingClientRect();
-					setDetalleBarTop(r.bottom);
-				}
-				return !f;
-			});
+			setPanelDerecho("detalles");
 			setMostrarFormatos(false);
 			setMostrarMas(false);
 			setMostrarReporte(false);
 			return;
 		}
+	};
+
+	const toggleMenuReporte = () => {
+		setMostrarReporte((f) => {
+			if (!f && toolbarRef.current) {
+				const toolbarRect = toolbarRef.current.getBoundingClientRect();
+				setReporteBarTop(toolbarRect.bottom);
+			}
+			return !f;
+		});
+		setMostrarFormatos(false);
+		setMostrarMas(false);
+		setMostrarDetalle(false);
 	};
 
 	const MODOS_TOGGLE = ["lupa", "elipse", "rectangulo", "bidireccional"];
@@ -3005,6 +3103,10 @@ const VisorDicom = () => {
 
 	const handleReporteItem = async (id) => {
 		setMostrarReporte(false);
+		if (id === "plantillas") {
+			setPanelDerecho("reporte");
+			return;
+		}
 		if (id === "nueva-pestana") {
 			const idEstudio = estudioId || estudioData?.id;
 			const { data: est } = await supabase
@@ -3026,6 +3128,7 @@ const VisorDicom = () => {
 			window.open(`/reporte?${params.toString()}`, "_blank");
 		}
 		if (id === "adjuntar") {
+			reporteAdjuntoInputRef.current?.click();
 		}
 	};
 
@@ -3085,78 +3188,306 @@ const VisorDicom = () => {
 	};
 
 	const guardarReporte = async () => {
-		await supabase
+		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
+		const { error } = await supabase
 			.from("estudios_radiologia")
-			.update({ reporte: reporteTexto, updated_at: new Date().toISOString() })
+			.update({ reporte: textoReporte, updated_at: new Date().toISOString() })
 			.eq("id_estudio", estudioId || estudioData?.id);
-		alert("Guardado");
+		if (error) showNotif("Error al guardar el reporte", "error");
+		else {
+			setReporteTexto(textoReporte);
+			showNotif("Reporte guardado", "exito");
+		}
+	};
+
+	const limpiarNombreArchivo = (nombre) =>
+		nombre
+			.trim()
+			.toLowerCase()
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.replace(/[^a-z0-9.]+/g, "-")
+			.replace(/(^-|-$)/g, "");
+
+	const handleReporteAdjuntoChange = async (event) => {
+		const archivo = event.target.files?.[0];
+		if (!archivo) return;
+
+		if (archivo.size > REPORTE_ADJUNTO_MAX_SIZE) {
+			showNotif("El archivo debe pesar menos de 25MB", "error");
+			event.target.value = "";
+			return;
+		}
+
+		try {
+			const idEstudio = estudioId || estudioData?.id;
+			const nombreSeguro = limpiarNombreArchivo(archivo.name);
+			const archivoPath = `${idEstudio}/${Date.now()}-${nombreSeguro}`;
+
+			const { error: uploadError } = await supabase.storage
+				.from(BUCKET_ADJUNTOS_REPORTE)
+				.upload(archivoPath, archivo, {
+					cacheControl: "3600",
+					contentType: archivo.type || "application/octet-stream",
+					upsert: false,
+				});
+
+			if (uploadError) throw uploadError;
+
+			const { data: publicData } = supabase.storage
+				.from(BUCKET_ADJUNTOS_REPORTE)
+				.getPublicUrl(archivoPath);
+
+			const { error: insertError } = await supabase
+				.from("reporte_radiologia_adjuntos")
+				.insert([
+					{
+						id_estudio: Number(idEstudio),
+						nombre_archivo: archivo.name,
+						archivo_path: archivoPath,
+						archivo_url: publicData?.publicUrl || null,
+						mime_type: archivo.type || null,
+						size_bytes: archivo.size,
+						creado_por: user?.id || null,
+					},
+				])
+				.select()
+				.single();
+
+			if (insertError) throw insertError;
+
+			showNotif("Archivo adjuntado al reporte", "exito");
+		} catch (error) {
+			console.error("Error al adjuntar archivo:", error);
+			showNotif("Error al adjuntar archivo", "error");
+		} finally {
+			event.target.value = "";
+		}
+	};
+
+	const cargarPlantillasReporte = async () => {
+		setPlantillasReporteLoading(true);
+		try {
+			const { data, error } = await supabase
+				.from("plantillas_radiologia")
+				.select(
+					"id, nombre, descripcion, categoria, visibilidad, archivo_url, mime_type, contenido_html, membrete_base64, created_at",
+				)
+				.order("created_at", { ascending: false });
+
+			if (error) throw error;
+			setPlantillasReporte(data || []);
+		} catch (error) {
+			console.error("Error al cargar plantillas:", error);
+			showNotif("Error al cargar plantillas", "error");
+		} finally {
+			setPlantillasReporteLoading(false);
+		}
+	};
+
+	const abrirSelectorPlantillas = () => {
+		setModalPlantillasReporte(true);
+		if (plantillasReporte.length === 0) cargarPlantillasReporte();
+	};
+
+	const aplicarPlantillaSubida = (plantilla) => {
+		setPlantillaSeleccionada(plantilla);
+
+		if (plantilla.membrete_base64?.startsWith("data:image/")) {
+			setMembreteReporteSrc(plantilla.membrete_base64);
+		} else if (plantilla.archivo_url && plantilla.mime_type?.startsWith("image/")) {
+			setMembreteReporteSrc(plantilla.archivo_url);
+		}
+
+		const contenido = plantilla.contenido_html || "";
+		if (contenido) {
+			setReporteTexto(contenido);
+			if (reporteEditorRef.current) {
+				reporteEditorRef.current.innerHTML = contenido;
+				reporteEditorRef.current.focus();
+			}
+		}
+
+		setModalPlantillasReporte(false);
+		showNotif(`Plantilla "${plantilla.nombre}" seleccionada`, "exito");
+	};
+
+	const aplicarPlantillaReporte = (tipo) => {
+		const plantillas = {
+			normal:
+				"HALLAZGOS:\nSe revisan las imagenes del estudio solicitado. No se identifican alteraciones radiologicas evidentes en las proyecciones obtenidas.\n\nIMPRESION DIAGNOSTICA:\nEstudio sin datos radiologicos agudos evidentes.",
+			hallazgos: "HALLAZGOS:\n\n\nIMPRESION DIAGNOSTICA:\n\n\nRECOMENDACIONES:\n",
+			limpiar: "",
+		};
+
+		const contenido = plantillas[tipo] ?? "";
+		setReporteTexto(contenido);
+		if (reporteEditorRef.current) {
+			reporteEditorRef.current.innerHTML = contenido.replace(/\n/g, "<br>");
+			reporteEditorRef.current.focus();
+		}
 	};
 
 	const totalPaneles = formatoGrid.cols * formatoGrid.rows;
+	const accionesVista = ACTIONS.filter((a) => VIEW_ACTION_IDS.includes(a.id));
+	const accionesFlujo = ACTIONS.filter((a) => WORKFLOW_ACTION_IDS.includes(a.id));
+	const herramientaActiva =
+		TOOLS.find((t) => t.id === herramienta)?.label ||
+		MAS_ITEMS.find(
+			(item) =>
+				(item.id === "lupa" && lupaGlobal) ||
+				(item.id === "elipse" && elipseGlobal) ||
+				(item.id === "rectangulo" && rectanguloGlobal) ||
+				(item.id === "bidireccional" && bidiGlobal),
+		)?.label ||
+		"Sin herramienta";
+	const imagenActivaIndex = imageIds.findIndex((id) => id === panelImageIds[panelActivo]);
+	const imagenActivaTexto =
+		imagenActivaIndex >= 0 ? `${imagenActivaIndex + 1}/${imageIds.length}` : "0/0";
+	const detalleResumen = [
+		{ label: "Radiólogo", value: empleadoData?.nombre || "Sin asignar", action: "radiologo" },
+		{ label: "Técnico", value: "Pendiente", action: "tecnico" },
+		{ label: "Referente", value: "Pendiente", action: "referente" },
+		{ label: "Prioridad", value: estudioData?.altaPrioridad ? "Alta" : "Normal", action: "prioridad" },
+	];
+	const plantillasReporteFiltradas = plantillasReporte.filter((plantilla) => {
+		const coincideTab = plantilla.visibilidad === plantillaReporteTab;
+		const texto = plantillaReporteBusqueda.trim().toLowerCase();
+		const coincideBusqueda =
+			!texto ||
+			[plantilla.nombre, plantilla.descripcion, plantilla.categoria]
+				.filter(Boolean)
+				.some((valor) => valor.toLowerCase().includes(texto));
+
+		return coincideTab && coincideBusqueda;
+	});
+	const cantidadPlantillasOrganizacion = plantillasReporte.filter(
+		(plantilla) => plantilla.visibilidad === "organizacion",
+	).length;
+	const cantidadPlantillasPrivadas = plantillasReporte.filter(
+		(plantilla) => plantilla.visibilidad === "privado",
+	).length;
 
 	return (
 		<div className="vd-root">
 			<Header
+				menuOpen={menuOpen}
+				setMenuOpen={setMenuOpen}
+				menuRef={menuRef}
 				empleadoData={empleadoData}
 				formatRol={formatRol}
 				getPrimerNombre={getPrimerNombre}
 				user={user}
 				handleLogout={handleLogout}
 				currentPage="visor"
+				sidebarOpen={sidebarOpen}
+				setSidebarOpen={setSidebarOpen}
+			/>
+			{isMobile && <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />}
+			<input
+				ref={reporteAdjuntoInputRef}
+				type="file"
+				className="vd-hidden-file-input"
+				aria-label="Adjuntar archivo al reporte"
+				accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+				onChange={handleReporteAdjuntoChange}
 			/>
 
 			<div className="vd-toolbar" ref={toolbarRef}>
-				<button className="vd-btn-back" onClick={() => navigate(-1)}>
-					‹ Atrás
-				</button>
+				<div className="vd-toolbar-context">
+					<button className="vd-btn-back" onClick={() => navigate(-1)}>
+						‹ Atrás
+					</button>
 
-				<div className="vd-paciente-chip">
-					<span className="vd-chip-tipo">{pacienteInfo.tipoEstudio}</span>
-					<span className="vd-chip-nombre">{pacienteInfo.nombre}</span>
-					<span className="vd-chip-fecha">{pacienteInfo.horaFecha}</span>
+					<div className="vd-paciente-chip">
+						<span className="vd-chip-tipo">{pacienteInfo.tipoEstudio}</span>
+						<span className="vd-chip-nombre">{pacienteInfo.nombre}</span>
+						<span className="vd-chip-fecha">{pacienteInfo.horaFecha}</span>
+						<span
+							className={`vd-chip-estado estado-${pacienteInfo.estado?.toLowerCase().replace(/ /g, "-")}`}>
+							{pacienteInfo.estado}
+						</span>
+					</div>
 				</div>
 
-				<div className="vd-tools-group">
-					{TOOLS.map((t) => (
-						<button
-							key={t.id}
-							className={`vd-tool-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
-							onClick={() => handleTool(t.id)}
-							title={t.label}>
-							{t.icon ? <img src={t.icon} alt={t.label} /> : <span>{t.emoji}</span>}
-							<span>{t.label}</span>
-						</button>
-					))}
+				<div className="vd-toolbar-section vd-toolbar-section-tools">
+					<span className="vd-toolbar-label">Herramientas</span>
+					<div className="vd-tools-group">
+						{TOOLS.map((t) => (
+							<button
+								key={t.id}
+								className={`vd-tool-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
+								onClick={() => handleTool(t.id)}
+								title={t.label}>
+								{t.icon ? <img src={t.icon} alt="" /> : <span>{t.label[0]}</span>}
+								<span>{t.label}</span>
+							</button>
+						))}
+					</div>
 				</div>
 
-				<div className="vd-separator" />
+				<div className="vd-toolbar-section">
+					<span className="vd-toolbar-label">Vista</span>
+					<div className="vd-actions-group">
+						{accionesVista.map((a) => (
+							<button
+								key={a.id}
+								className={`vd-tool-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "formato" && mostrarFormatos ? "activo" : ""}`}
+								onClick={() => handleAction(a.id)}
+								title={a.label}>
+								{a.icon ? <img src={a.icon} alt="" /> : <span>⊞</span>}
+								<span>{a.label}</span>
+							</button>
+						))}
+					</div>
+				</div>
 
-				<div className="vd-actions-group">
-					{ACTIONS.map((a) => (
-						<button
-							key={a.id}
-							className={`vd-tool-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "reporte" && mostrarReporte ? "activo" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "detalle" && mostrarDetalle ? "activo" : ""}`}
-							onClick={(e) => {
-								if (a.id === "reporte") {
-									const r = e.currentTarget.getBoundingClientRect();
-									setReporteBarLeft(r.left + r.width / 2);
-									if (toolbarRef.current)
-										setReporteBarTop(
-											toolbarRef.current.getBoundingClientRect().bottom,
-										);
-									setMostrarReporte((f) => !f);
-									setMostrarMas(false);
-									setMostrarDetalle(false);
-									setMostrarFormatos(false);
-								} else {
-									handleAction(a.id);
-								}
-							}}
-							title={a.label}>
-							{a.icon ? <img src={a.icon} alt={a.label} /> : <span>⊞</span>}
-							<span>{a.label}</span>
-						</button>
-					))}
+				<div className="vd-toolbar-section">
+					<span className="vd-toolbar-label">Flujo</span>
+					<div className="vd-actions-group">
+						{accionesFlujo.map((a) =>
+							a.id === "reporte" ? (
+								<div
+									key={a.id}
+									ref={reporteButtonRef}
+									className={`vd-split-action ${
+										panelDerecho === "reporte" || mostrarReporte ? "activo" : ""
+									}`}>
+									<button
+										type="button"
+										className="vd-tool-btn vd-split-main"
+										onClick={() => handleAction(a.id)}
+										title="Abrir reporte">
+										{a.icon ? <img src={a.icon} alt="" /> : <span>⊞</span>}
+										<span>{a.label}</span>
+									</button>
+									<button
+										type="button"
+										className="vd-split-toggle"
+										onClick={toggleMenuReporte}
+										aria-label="Opciones de reporte"
+										title="Opciones de reporte">
+										⌄
+									</button>
+								</div>
+							) : (
+								<button
+									key={a.id}
+									ref={a.id === "detalle" ? detalleButtonRef : null}
+									className={`vd-tool-btn ${
+										a.id === panelDerecho ||
+										(a.id === "detalle" && panelDerecho === "detalles")
+											? "activo"
+											: ""
+									}`}
+									onClick={() => handleAction(a.id)}
+									title={a.label}>
+									{a.icon ? <img src={a.icon} alt="" /> : <span>⊞</span>}
+									<span>{a.label}</span>
+								</button>
+							),
+						)}
+					</div>
 				</div>
 			</div>
 
@@ -3171,7 +3502,7 @@ const VisorDicom = () => {
 							{item.icon ? (
 								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
 							) : (
-								<span className="vd-mas-emoji">{item.emoji}</span>
+								<span className="vd-mas-fallback">{item.label[0]}</span>
 							)}
 							<span>{item.label}</span>
 						</button>
@@ -3190,7 +3521,7 @@ const VisorDicom = () => {
 							{item.icon ? (
 								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
 							) : (
-								<span className="vd-mas-emoji">{item.emoji}</span>
+								<span className="vd-mas-fallback">{item.label[0]}</span>
 							)}
 							<span>{item.label}</span>
 						</button>
@@ -3201,11 +3532,8 @@ const VisorDicom = () => {
 			{mostrarReporte && (
 				<div
 					className="vd-mas-bar"
-					style={{
-						top: reporteBarTop,
-						left: reporteBarLeft,
-						transform: "translateX(-50%)",
-					}}>
+					ref={reporteMenuRef}
+					style={{ top: reporteBarTop }}>
 					{REPORTE_ITEMS.map((item) => (
 						<button
 							key={item.id}
@@ -3215,7 +3543,7 @@ const VisorDicom = () => {
 							{item.icon ? (
 								<img src={item.icon} alt={item.label} className="vd-mas-icon" />
 							) : (
-								<span className="vd-mas-emoji">{item.emoji}</span>
+								<span className="vd-mas-fallback">{item.label[0]}</span>
 							)}
 							<span>{item.label}</span>
 						</button>
@@ -3223,10 +3551,21 @@ const VisorDicom = () => {
 				</div>
 			)}
 
-			<div className="vd-body">
-				<div className="vd-sidebar">
+			<div className={`vd-body ${panelDerecho === "reporte" ? "vd-body-reporte" : ""}`}>
+				<div className={`vd-sidebar ${seriesContraidas ? "contraida" : ""}`}>
 					<div className="vd-sidebar-header">
-						<span>Serie</span>
+						<div>
+							<span>Series</span>
+							<small>DICOM</small>
+						</div>
+						<button
+							type="button"
+							className="vd-sidebar-toggle"
+							onClick={() => setSeriesContraidas((v) => !v)}
+							aria-label={seriesContraidas ? "Expandir series" : "Contraer series"}
+							title={seriesContraidas ? "Expandir series" : "Contraer series"}>
+							{seriesContraidas ? "›" : "‹"}
+						</button>
 						<span className="vd-serie-count">{imageIds.length}</span>
 					</div>
 					<div className="vd-miniaturas">
@@ -3236,7 +3575,7 @@ const VisorDicom = () => {
 								Cargando...
 							</div>
 						) : error ? (
-							<div className="vd-mini-estado error">⚠ {error}</div>
+							<div className="vd-mini-estado error">Error: {error}</div>
 						) : (
 							imageIds.map((id, i) => (
 								<div
@@ -3254,20 +3593,12 @@ const VisorDicom = () => {
 										<span className="vd-mini-num">{i + 1}</span>
 									</div>
 									<div className="vd-mini-footer">
-										{i + 1}/{imageIds.length}
+										<span>Serie {i + 1}</span>
+										<small>{i + 1}/{imageIds.length}</small>
 									</div>
 								</div>
 							))
 						)}
-					</div>
-					<div className="pia-switch-wrap">
-						<span className="pia-switch-label">Activar IA</span>
-						<button
-							className={`pia-switch ${iaActiva ? "on" : ""}`}
-							onClick={() => setIaActiva((v) => !v)}
-							title="Activar análisis de IA">
-							<span className="pia-switch-thumb" />
-						</button>
 					</div>
 				</div>
 
@@ -3297,7 +3628,7 @@ const VisorDicom = () => {
 
 					{error && (
 						<div className="vd-error">
-							<span>⚠</span>
+							<span>!</span>
 							<p>{error}</p>
 							<button onClick={cargarImagenes}>Reintentar</button>
 						</div>
@@ -3361,43 +3692,400 @@ const VisorDicom = () => {
 								/>
 							))}
 					</div>
-					<PanelIA activo={iaActiva} imageId={panelImageIds[panelActivo] || null} />
+					<PanelIA
+						activo={iaActiva}
+						imageId={panelImageIds[panelActivo] || null}
+						onClose={() => setIaActiva(false)}
+					/>
+					<button
+						type="button"
+						className={`vd-ia-float ${iaActiva ? "activo" : ""}`}
+						onClick={() => setIaActiva((v) => !v)}
+						aria-label={iaActiva ? "Desactivar IA" : "Activar IA"}
+						title={iaActiva ? "Desactivar IA" : "Activar IA"}>
+						<span className="vd-ia-float-orb">IA</span>
+						<span className="vd-ia-float-text">{iaActiva ? "IA activa" : "Activar IA"}</span>
+					</button>
+					<div className="vd-status-strip">
+						<span>
+							<b>Herramienta:</b> {herramientaActiva}
+						</span>
+						<span>
+							<b>Formato:</b> {formatoGrid.label}
+						</span>
+						<span>
+							<b>Panel:</b> {panelActivo + 1}/{totalPaneles}
+						</span>
+						<span>
+							<b>Imagen:</b> {imagenActivaTexto}
+						</span>
+					</div>
 				</div>
 
-				{mostrarPanelReporte && (
-					<div className="vd-reporte">
-						<div className="vd-reporte-header">
-							<span>Reporte Radiológico</span>
-							<button onClick={() => setMostrarPanelReporte(false)}>✕</button>
-						</div>
-						<div className="vd-reporte-info">
-							<p>
-								<b>Paciente:</b> {pacienteInfo.nombre}
-							</p>
-							<p>
-								<b>Estudio:</b> {pacienteInfo.tipoEstudio}
-							</p>
-							<p>
-								<b>Fecha:</b> {pacienteInfo.horaFecha}
-							</p>
-						</div>
-						<textarea
-							className="vd-reporte-textarea"
-							value={reporteTexto}
-							onChange={(e) => setReporteTexto(e.target.value)}
-							placeholder="Escribir reporte radiológico..."
-						/>
-						<div className="vd-reporte-footer">
-							<button className="vd-btn-guardar" onClick={guardarReporte}>
-								Guardar
+				{panelDerecho && (
+					<div
+						ref={sidePanelRef}
+						className={`vd-side-panel vd-side-panel-${panelDerecho}`}>
+						<div className="vd-side-tabs">
+							<button
+								type="button"
+								className={panelDerecho === "reporte" ? "activo" : ""}
+								onClick={() => setPanelDerecho("reporte")}>
+								Reporte
 							</button>
-							<button className="vd-btn-imprimir" onClick={() => window.print()}>
-								Imprimir
+							<button
+								type="button"
+								className={panelDerecho === "detalles" ? "activo" : ""}
+								onClick={() => setPanelDerecho("detalles")}>
+								Detalles
+							</button>
+							<button
+								type="button"
+								className="vd-side-close"
+								onClick={() => setPanelDerecho(null)}
+								aria-label="Cerrar panel lateral">
+								×
 							</button>
 						</div>
+
+						{panelDerecho === "reporte" && (
+							<div className="vd-reporte">
+								<h2 className="vd-sr-only">Documento de interpretación</h2>
+								<div className="vd-doc-topbar">
+									<button
+										type="button"
+										className="vd-doc-ghost"
+										onClick={() => setPanelDerecho(null)}>
+										Cambiar editor
+									</button>
+									<button
+										type="button"
+										className="vd-doc-template-button"
+										onClick={abrirSelectorPlantillas}>
+										{plantillaSeleccionada?.nombre || "Buscar Plantilla"}
+									</button>
+									<button
+										type="button"
+										className="vd-doc-ghost"
+										onClick={() => setPanelDerecho(null)}>
+										Cancelar
+									</button>
+									<div className="vd-doc-save-group">
+										<button type="button" onClick={guardarReporte}>
+											Guardar
+										</button>
+										<button type="button" aria-label="Opciones de guardado">
+											⌄
+										</button>
+									</div>
+								</div>
+								<div className="vd-doc-formatbar" aria-label="Herramientas del documento">
+									<button type="button" className="is-strong" title="Negritas">
+										B
+									</button>
+									<button type="button" className="is-italic" title="Cursiva">
+										I
+									</button>
+									<button type="button" className="is-underlined" title="Subrayado">
+										U
+									</button>
+									<button type="button" title="Formato de texto">
+										Aa
+									</button>
+									<button type="button" title="Color de texto">
+										A
+									</button>
+									<button type="button" title="Lista">
+										☰
+									</button>
+									<button type="button" title="Numeración">
+										1.
+									</button>
+									<button type="button" title="Alinear izquierda">
+										≡
+									</button>
+									<button type="button" title="Insertar imagen">
+										▧
+									</button>
+									<button type="button" title="Encabezado">
+										H1
+									</button>
+									<button type="button" title="Deshacer">
+										↶
+									</button>
+									<button type="button" title="Rehacer">
+										↷
+									</button>
+									<button type="button" onClick={() => aplicarPlantillaReporte("limpiar")}>
+										Limpiar
+									</button>
+									<button type="button" onClick={() => handleReporteItem("nueva-pestana")}>
+										Abrir
+									</button>
+								</div>
+								<div className="vd-doc-scroll">
+									<div className="rr-page-wrapper vd-rr-page-wrapper">
+										<div className="rr-page vd-rr-page">
+											<img
+												className="rr-membrete"
+												src={membreteReporteSrc}
+												alt="membrete"
+											/>
+
+											<div className="rr-contenido vd-rr-contenido">
+												<span className="vd-sr-only">Centro Diagnóstico California</span>
+												<div className="rr-datos-paciente">
+													<p>
+														<span className="rr-label">NOMBRE:</span>{" "}
+														{pacienteInfo.nombre}
+													</p>
+													<p>
+														<span className="rr-label">ESTUDIO:</span>{" "}
+														{pacienteInfo.tipoEstudio}
+														<span className="rr-label rr-label-fecha">FECHA:</span>{" "}
+														{fechaReporte}
+													</p>
+													<p>
+														<span className="rr-label">DR.</span>{" "}
+														{empleadoData?.nombre || ""}
+													</p>
+												</div>
+
+												<div
+													ref={reporteEditorRef}
+													className="rr-editor vd-rr-editor"
+													contentEditable
+													suppressContentEditableWarning
+													spellCheck={false}
+													role="textbox"
+													aria-label="Editor de interpretación radiológica"
+													data-placeholder="Escribir reporte aquí..."
+													onInput={(e) => setReporteTexto(e.currentTarget.innerText)}
+												/>
+
+												<div className="rr-firma-bloque">
+													{empleadoData?.firma_url ? (
+														<img
+															className="rr-firma-img"
+															src={empleadoData.firma_url}
+															alt="firma"
+														/>
+													) : (
+														<div className="rr-firma-placeholder" />
+													)}
+													<p className="rr-firma-nombre">
+														{empleadoData?.nombre || "Radiologo responsable"}
+													</p>
+													{empleadoData?.especialidad && (
+														<p className="rr-firma-dato">
+															{empleadoData.especialidad.toUpperCase()}
+														</p>
+													)}
+													{empleadoData?.cedula && (
+														<p className="rr-firma-dato">
+															CED PROF. {empleadoData.cedula}
+														</p>
+													)}
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{panelDerecho === "detalles" && (
+							<div className="vd-detalles-panel">
+								<div className="vd-detalle-resumen">
+									<div>
+										<span className="vd-detalle-label">Paciente</span>
+										<strong>{pacienteInfo.nombre}</strong>
+									</div>
+									<div>
+										<span className="vd-detalle-label">Estudio</span>
+										<strong>{pacienteInfo.tipoEstudio}</strong>
+									</div>
+									<div>
+										<span className="vd-detalle-label">Sucursal</span>
+										<strong>{pacienteInfo.sucursal}</strong>
+									</div>
+									<div>
+										<span className="vd-detalle-label">Estado</span>
+										<strong>{pacienteInfo.estado}</strong>
+									</div>
+								</div>
+
+								<div className="vd-detalle-grid">
+									{detalleResumen.map((item) => (
+										<button
+											key={item.label}
+											type="button"
+											className="vd-detalle-card"
+											onClick={() => handleDetalleItem(item.action)}>
+											<span>{item.label}</span>
+											<strong>{item.value}</strong>
+										</button>
+									))}
+								</div>
+
+								<div className="vd-detalle-actions">
+									{DETALLE_ITEMS.filter(
+										(item) =>
+											!["radiologo", "tecnico", "referente", "prioridad"].includes(
+												item.id,
+											),
+									).map((item) => (
+										<button
+											key={item.id}
+											type="button"
+											className="vd-detalle-action"
+											onClick={() => handleDetalleItem(item.id)}>
+											<img src={item.icon} alt="" />
+											<span>{item.label}</span>
+										</button>
+									))}
+									<button
+										type="button"
+										className="vd-detalle-action"
+										onClick={abrirModalInfo}>
+										<img src={informacionIcon} alt="" />
+										<span>Ficha completa</span>
+									</button>
+								</div>
+							</div>
+						)}
 					</div>
 				)}
 			</div>
+
+			{modalPlantillasReporte && (
+				<div
+					className="vd-template-modal-overlay"
+					onMouseDown={() => setModalPlantillasReporte(false)}>
+					<div
+						className="vd-template-modal"
+						onMouseDown={(event) => event.stopPropagation()}
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="vd-template-modal-title">
+						<div className="vd-template-modal-header">
+							<h2 id="vd-template-modal-title">Elegir plantilla</h2>
+							<button
+								type="button"
+								className="vd-template-close"
+								onClick={() => setModalPlantillasReporte(false)}
+								aria-label="Cerrar selector de plantillas">
+								×
+							</button>
+						</div>
+
+						<div className="vd-template-tabs" role="tablist" aria-label="Tipo de plantilla">
+							<button
+								type="button"
+								className={plantillaReporteTab === "organizacion" ? "activo" : ""}
+								onClick={() => setPlantillaReporteTab("organizacion")}
+								role="tab"
+								aria-selected={plantillaReporteTab === "organizacion"}>
+								<span className="vd-template-tab-icon" aria-hidden="true">
+									▦
+								</span>
+								Organización
+								<strong>{cantidadPlantillasOrganizacion}</strong>
+							</button>
+							<button
+								type="button"
+								className={plantillaReporteTab === "privado" ? "activo" : ""}
+								onClick={() => setPlantillaReporteTab("privado")}
+								role="tab"
+								aria-selected={plantillaReporteTab === "privado"}>
+								<span className="vd-template-tab-icon" aria-hidden="true">
+									▣
+								</span>
+								Privado
+								<strong>{cantidadPlantillasPrivadas}</strong>
+							</button>
+						</div>
+
+						<div className="vd-template-toolbar">
+							<span>Plantillas</span>
+							<label className="vd-template-search">
+								<span className="vd-template-search-icon" aria-hidden="true">
+									⌕
+								</span>
+								<input
+									type="search"
+									value={plantillaReporteBusqueda}
+									onChange={(event) => setPlantillaReporteBusqueda(event.target.value)}
+									placeholder="Buscar"
+									aria-label="Buscar plantilla"
+								/>
+							</label>
+						</div>
+
+						<div className="vd-template-list">
+							{plantillasReporteLoading ? (
+								<div className="vd-template-empty">Cargando plantillas...</div>
+							) : plantillasReporteFiltradas.length === 0 ? (
+								<div className="vd-template-empty">
+									No hay plantillas {plantillaReporteTab === "privado" ? "privadas" : "de organización"}.
+								</div>
+							) : (
+								plantillasReporteFiltradas.map((plantilla) => (
+									<button
+										key={plantilla.id}
+										type="button"
+										className="vd-template-row"
+										onClick={() => aplicarPlantillaSubida(plantilla)}>
+										<span className="vd-template-file-icon" aria-hidden="true">
+											{plantilla.mime_type?.startsWith("image/") ? (
+												<svg viewBox="0 0 24 24" fill="none">
+													<path
+														d="M4 5h16v14H4V5Z"
+														stroke="currentColor"
+														strokeWidth="1.8"
+													/>
+													<path
+														d="m5 17 5-5 3 3 2-2 4 4"
+														stroke="currentColor"
+														strokeWidth="1.8"
+														strokeLinecap="round"
+														strokeLinejoin="round"
+													/>
+													<circle cx="15.5" cy="9" r="1.4" fill="currentColor" />
+												</svg>
+											) : (
+												<svg viewBox="0 0 24 24" fill="none">
+													<path
+														d="M7 3h7l4 4v14H7V3Z"
+														fill="currentColor"
+														opacity="0.95"
+													/>
+													<path d="M14 3v5h5" stroke="#06111d" strokeWidth="1.5" />
+												</svg>
+											)}
+										</span>
+										<span className="vd-template-row-main">
+											<strong>{plantilla.nombre}</strong>
+											<small>{plantilla.descripcion || plantilla.categoria || "Sin descripcion"}</small>
+										</span>
+										<span className="vd-template-date">
+											{plantilla.created_at
+												? new Date(plantilla.created_at).toLocaleString("es-MX", {
+														day: "2-digit",
+														month: "2-digit",
+														year: "numeric",
+														hour: "numeric",
+														minute: "2-digit",
+													})
+												: "Sin fecha"}
+										</span>
+									</button>
+								))
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* ── MODAL FICHA CLÍNICA (botón Info) ────────────────────────────────── */}
 			{modalInfo && (

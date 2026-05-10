@@ -25,7 +25,8 @@ const FASES = [
 	"Generando Grad-CAM",
 ];
 
-const API_URL = import.meta.env.VITE_CALIFORNIA_API || "";
+const API_URL =
+	typeof process !== "undefined" ? process.env.VITE_CALIFORNIA_API || "" : "";
 const THRESHOLD = 0.5;
 
 const genMock = () =>
@@ -34,7 +35,7 @@ const genMock = () =>
 		prob: Math.random(),
 	}));
 
-export default function PanelIA({ activo, imageId }) {
+export default function PanelIA({ activo, imageId, onClose }) {
 	const [fase, setFase] = useState(0);
 	const [analizando, setAnalizando] = useState(false);
 	const [resultados, setResultados] = useState(null);
@@ -141,6 +142,12 @@ export default function PanelIA({ activo, imageId }) {
 	};
 
 	const dibujarCamOverlay = (dataUrl) => {
+		if (!dataUrl) {
+			const overlay = document.getElementById("pia-cam-overlay");
+			if (overlay) overlay.style.opacity = "0";
+			return;
+		}
+
 		const csCanvas = getDicomCanvas();
 
 		if (!csCanvas) {
@@ -153,11 +160,6 @@ export default function PanelIA({ activo, imageId }) {
 
 		const ctx = overlay.getContext("2d");
 		ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-		if (!dataUrl) {
-			overlay.style.opacity = "0";
-			return;
-		}
 
 		const img = new window.Image();
 		img.onload = () => {
@@ -353,6 +355,26 @@ export default function PanelIA({ activo, imageId }) {
 		: [];
 
 	const topPatologia = resultadosOrdenados.length ? resultadosOrdenados[0] : null;
+	const riesgosAltos = resultadosOrdenados.filter((item) => item.prob >= THRESHOLD);
+	const hasImage = Boolean(imageId);
+	const estadoAnalisis = analizando
+		? "Analizando"
+		: errorMsg
+			? "Revisar"
+			: resultadosOrdenados.length
+				? "Completado"
+				: "En espera";
+	const estadoClase = estadoAnalisis.toLowerCase().replace(/\s+/g, "-");
+	const apiStatusText = API_URL && !modoMock ? "Modelo conectado" : "Modo simulado";
+	const camStatusText = camsDisponibles.length
+		? `${camsDisponibles.length} mapas`
+		: "Sin mapa";
+	const topPercent = topPatologia ? `${(topPatologia.prob * 100).toFixed(0)}%` : "--";
+	const handleClose = () => {
+		setVisible(false);
+		limpiarCamOverlay();
+		onClose?.();
+	};
 
 	return (
 		<div className={`pia-panel${visible ? " pia-panel--visible" : ""}`}>
@@ -360,14 +382,16 @@ export default function PanelIA({ activo, imageId }) {
 				<div className="pia-header-left">
 					<span className="pia-dot" />
 					<div>
-						<p className="pia-titulo">Riesgos de Patologías</p>
-						<p className="pia-subtitle">
-							La región blanca del medio indica que el modelo no está seguro.
-						</p>
+						<p className="pia-eyebrow">Asistente IA</p>
+						<p className="pia-titulo">Lectura asistida</p>
+						<p className="pia-subtitle">Prioriza hallazgos y mapas Grad-CAM.</p>
 					</div>
 				</div>
 
 				<div className="pia-header-actions">
+					<span className={`pia-status pia-status--${estadoClase}`}>
+						{estadoAnalisis}
+					</span>
 					{API_URL && (
 						<button
 							className={`pia-mode-btn${modoMock ? "" : " active"}`}
@@ -386,10 +410,8 @@ export default function PanelIA({ activo, imageId }) {
 
 					<button
 						className="pia-close"
-						onClick={() => {
-							setVisible(false);
-							limpiarCamOverlay();
-						}}>
+						onClick={handleClose}
+						aria-label="Cerrar panel de IA">
 						✕
 					</button>
 				</div>
@@ -397,7 +419,33 @@ export default function PanelIA({ activo, imageId }) {
 
 			<div className={`pia-api-badge${API_URL && !modoMock ? " connected" : ""}`}>
 				<span className="pia-api-dot" />
-				{API_URL && !modoMock ? "Conectado · Grad-CAM activo" : "Modo simulado"}
+				<span>{apiStatusText}</span>
+				<span className="pia-api-divider" />
+				<span>Grad-CAM: {camStatusText}</span>
+			</div>
+
+			<div className="pia-summary">
+				<div className="pia-summary-card pia-summary-card--main">
+					<span>Resumen</span>
+					<strong>{topPatologia ? topPatologia.label : "Sin lectura"}</strong>
+					<small>
+						{topPatologia
+							? `${topPercent} de probabilidad`
+							: hasImage
+								? "Listo para analizar"
+								: "Sin imagen seleccionada"}
+					</small>
+				</div>
+				<div className="pia-summary-card">
+					<span>Riesgo</span>
+					<strong>{riesgosAltos.length}</strong>
+					<small>{riesgosAltos.length === 1 ? "alerta" : "alertas"}</small>
+				</div>
+				<div className="pia-summary-card">
+					<span>Grad-CAM</span>
+					<strong>{camsDisponibles.length}</strong>
+					<small>{camEnabled ? "activo" : "apagado"}</small>
+				</div>
 			</div>
 
 			{analizando && (
@@ -430,23 +478,9 @@ export default function PanelIA({ activo, imageId }) {
 
 			{!analizando && !errorMsg && camsDisponibles.length > 0 && (
 				<div className="pia-cam-selector">
-					<span className="pia-cam-label">Grad-CAM</span>
-
-					<div
-						style={{
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "space-between",
-							gap: "0.6rem",
-							marginBottom: "0.45rem",
-						}}>
-						<span
-							style={{
-								fontSize: "0.68rem",
-								color: "rgba(255,255,255,0.75)",
-							}}>
-							{camEnabled ? "On" : "Off"}
-						</span>
+					<div className="pia-cam-head">
+						<span className="pia-cam-label">Grad-CAM</span>
+						<span className="pia-cam-state">{camEnabled ? "On" : "Off"}</span>
 
 						<button
 							type="button"
@@ -456,31 +490,9 @@ export default function PanelIA({ activo, imageId }) {
 								if (!next) limpiarCamOverlay();
 								else dibujarCamOverlay(camActivo ? cams?.[camActivo] : null);
 							}}
-							style={{
-								width: "42px",
-								height: "22px",
-								borderRadius: "999px",
-								border: "1px solid rgba(255,255,255,0.14)",
-								background: camEnabled
-									? "rgba(83,185,219,0.22)"
-									: "rgba(255,255,255,0.08)",
-								position: "relative",
-								cursor: "pointer",
-								padding: 0,
-							}}
+							className={`pia-cam-toggle${camEnabled ? " on" : ""}`}
 							title={camEnabled ? "Desactivar Grad-CAM" : "Activar Grad-CAM"}>
-							<span
-								style={{
-									position: "absolute",
-									top: "2px",
-									left: camEnabled ? "21px" : "2px",
-									width: "16px",
-									height: "16px",
-									borderRadius: "50%",
-									background: camEnabled ? "#53B9DB" : "rgba(255,255,255,0.8)",
-									transition: "left 0.2s ease",
-								}}
-							/>
+							<span />
 						</button>
 					</div>
 
@@ -518,7 +530,7 @@ export default function PanelIA({ activo, imageId }) {
 				<>
 					<div className="pia-table-header">
 						<span className="pia-th-name">Patología</span>
-						<span className="pia-th-healthy">Probabilidad</span>
+						<span className="pia-th-healthy">Escala de riesgo</span>
 						<span className="pia-th-risk">%</span>
 					</div>
 
@@ -549,13 +561,7 @@ export default function PanelIA({ activo, imageId }) {
 									</div>
 
 									<span
-										style={{
-											width: 34,
-											textAlign: "right",
-											fontSize: "0.66rem",
-											color: isAlert ? "#fff" : "rgba(255,255,255,0.55)",
-											fontVariantNumeric: "tabular-nums",
-										}}>
+										className={`pia-row-score${isAlert ? " pia-row-score--alert" : ""}`}>
 										{(item.prob * 100).toFixed(0)}
 									</span>
 								</div>
@@ -565,20 +571,17 @@ export default function PanelIA({ activo, imageId }) {
 
 					{topPatologia && (
 						<div className="pia-footer">
-							<div
-								style={{
-									fontSize: "0.68rem",
-									color: "rgba(255,255,255,0.72)",
-									lineHeight: 1.5,
-								}}>
-								Hallazgo principal:{" "}
-								<strong style={{ color: "#fff" }}>{topPatologia.label}</strong> ·{" "}
+							<div className="pia-footer-note">
+								Hallazgo principal: <strong>{topPatologia.label}</strong> ·{" "}
 								{(topPatologia.prob * 100).toFixed(1)}%
 							</div>
 
 							<button className="pia-btn-reanalizar" onClick={correrAnalisis}>
 								Reanalizar
 							</button>
+							<p className="pia-disclaimer">
+								Apoyo visual, no reemplaza la interpretación del radiólogo.
+							</p>
 						</div>
 					)}
 				</>
@@ -586,8 +589,15 @@ export default function PanelIA({ activo, imageId }) {
 
 			{!analizando && !errorMsg && !resultados && (
 				<div className="pia-vacio">
-					<div className="pia-vacio-icon">🧠</div>
-					<p>Activa la IA para analizar la imagen actual del visor.</p>
+					<div className="pia-vacio-icon">IA</div>
+					<strong>
+						{hasImage ? "Preparando análisis" : "Sin imagen seleccionada"}
+					</strong>
+					<p>
+						{hasImage
+							? "El análisis comenzará automáticamente en cuanto la imagen esté lista."
+							: "Elige una serie del visor para que la IA pueda analizarla."}
+					</p>
 				</div>
 			)}
 		</div>
