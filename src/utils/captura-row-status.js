@@ -5,8 +5,12 @@ export const CAPTURA_FILTROS_ESTADO = [
 	{ id: "validados", label: "Validados" },
 ];
 
+export const tieneMuestrasPendientes = (estudiosVenta = []) =>
+	estudiosVenta.some((estudio) => estudio.muestra_pendiente === true);
+
 export const obtenerEstadoCapturaVenta = (estudiosVenta = []) => {
 	if (!estudiosVenta.length) return "pendiente";
+	if (tieneMuestrasPendientes(estudiosVenta)) return "pendiente";
 
 	const todosValidados = estudiosVenta.every(
 		(estudio) => estudio.estado_validacion === "validado",

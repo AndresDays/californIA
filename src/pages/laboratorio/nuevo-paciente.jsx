@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
@@ -15,7 +15,10 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
-import { esErrorColumnaSchemaCache } from "../../utils/supabase-errors";
+import {
+	esErrorColumnaSchemaCache,
+	obtenerColumnaSchemaCacheFaltante,
+} from "../../utils/supabase-errors";
 import {
 	agregarSucursalEmpleadoPayload,
 	resolverSucursalEmpleado,
@@ -25,6 +28,7 @@ import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
+import ModalMuestrasPendientes from "./componentes/modal-muestras-pendientes";
 import "./nuevo-paciente.css";
 
 import cotizacionesBtn from "../../assets/cotizacionesBtn.png";
@@ -46,6 +50,8 @@ const NuevoPaciente = () => {
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
 	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
+	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
+		useState(false);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
@@ -308,6 +314,7 @@ const NuevoPaciente = () => {
 						area: est.area,
 						dias_proceso: est.diasProceso || 1,
 						estado_captura: "pendiente",
+						muestra_pendiente: Boolean(est.muestra_pendiente),
 					},
 					sucursalEmpleado,
 				),
@@ -318,8 +325,13 @@ const NuevoPaciente = () => {
 			let { error: errorEstudios } = await insertarEstudios(estudiosParaInsertar);
 			let estudiosPayloadFallback = estudiosParaInsertar;
 
-			for (const columna of ["id_sucursal", "sucursal"]) {
-				if (!errorEstudios || !esErrorColumnaSchemaCache(errorEstudios, columna)) break;
+			while (errorEstudios) {
+				const columna = obtenerColumnaSchemaCacheFaltante(errorEstudios);
+				if (
+					!["id_sucursal", "sucursal", "muestra_pendiente"].includes(columna)
+				) {
+					break;
+				}
 				estudiosPayloadFallback = estudiosPayloadFallback.map((estudio) => {
 					const limpio = { ...estudio };
 					delete limpio[columna];
@@ -678,6 +690,7 @@ const NuevoPaciente = () => {
 			cantidad: 1,
 			diasProceso: 1,
 			cliente: nombreCliente || "Sin cliente",
+			muestra_pendiente: false,
 		};
 
 		setEstudiosSeleccionados([...estudiosSeleccionados, estudioConPrecio]);
@@ -687,6 +700,16 @@ const NuevoPaciente = () => {
 
 	const eliminarEstudio = (id) => {
 		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.id !== id));
+	};
+
+	const toggleMuestraPendiente = (idEstudio, muestraPendiente) => {
+		setEstudiosSeleccionados((prev) =>
+			prev.map((estudio) =>
+				(estudio.id_estudio_venta || estudio.id || estudio.clave) === idEstudio
+					? { ...estudio, muestra_pendiente: muestraPendiente }
+					: estudio,
+			),
+		);
 	};
 
 	const calcularTotales = () => {
@@ -743,6 +766,7 @@ const NuevoPaciente = () => {
 							cantidad: 1,
 							diasProceso: 1,
 							cliente: nombreCliente || "Sin cliente",
+							muestra_pendiente: Boolean(est.muestra_pendiente),
 						};
 					}
 					return null;
@@ -837,7 +861,11 @@ const NuevoPaciente = () => {
 				}),
 			);
 
-			setEstudiosSeleccionados(estudiosDesdeCita.filter(Boolean));
+			setEstudiosSeleccionados(
+				estudiosDesdeCita
+					.filter(Boolean)
+					.map((estudio) => ({ ...estudio, muestra_pendiente: false })),
+			);
 			setBuscarEstudio("");
 			setShowBusquedaEstudios(false);
 
@@ -1213,7 +1241,10 @@ const NuevoPaciente = () => {
 								</div>
 
 								<div className="action-buttons">
-									<button className="btn-img-action">
+									<button
+										type="button"
+										className="btn-img-action"
+										onClick={() => setModalMuestrasPendientesOpen(true)}>
 										<img
 											src={muestrasBtn}
 											alt="Muestras Pendientes"
@@ -1337,25 +1368,34 @@ const NuevoPaciente = () => {
 										</thead>
 										<tbody>
 											{estudiosSeleccionados.map((est) => (
-												<tr key={est.id}>
-													<td>{est.clave}</td>
-													<td>{est.descripcion}</td>
-													<td>{est.cliente}</td>
-													<td>${est.precio.toFixed(2)}</td>
-													<td>{est.diasProceso} días</td>
-													<td>
-														<button
-															className="btn-delete"
-															aria-label={`Eliminar estudio ${est.clave}`}
-															onClick={() => eliminarEstudio(est.id)}>
-															<img
-																src={eliminarIcono}
-																alt=""
-																className="btn-delete-icon"
-															/>
-														</button>
-													</td>
-												</tr>
+												<Fragment key={est.id}>
+													<tr>
+														<td>{est.clave}</td>
+														<td>{est.descripcion}</td>
+														<td>{est.cliente}</td>
+														<td>${est.precio.toFixed(2)}</td>
+														<td>{est.diasProceso} días</td>
+														<td>
+															<button
+																className="btn-delete"
+																aria-label={`Eliminar estudio ${est.clave}`}
+																onClick={() => eliminarEstudio(est.id)}>
+																<img
+																	src={eliminarIcono}
+																	alt=""
+																	className="btn-delete-icon"
+																/>
+															</button>
+														</td>
+													</tr>
+													{est.muestra_pendiente && (
+														<tr className="estudio-muestra-pendiente-row">
+															<td colSpan="6">
+																Muestra pendiente para {est.clave}
+															</td>
+														</tr>
+													)}
+												</Fragment>
 											))}
 											{estudiosSeleccionados.length === 0 && (
 												<tr>
@@ -1530,6 +1570,13 @@ const NuevoPaciente = () => {
 					onClose={() => setModalBuscarCotizacionOpen(false)}
 					onSeleccionar={handleSeleccionarCotizacion}
 					onNotificar={mostrarNotificacion}
+				/>
+
+				<ModalMuestrasPendientes
+					isOpen={modalMuestrasPendientesOpen}
+					estudios={estudiosSeleccionados}
+					onClose={() => setModalMuestrasPendientesOpen(false)}
+					onToggleMuestraPendiente={toggleMuestraPendiente}
 				/>
 
 				<ModalNotificacion

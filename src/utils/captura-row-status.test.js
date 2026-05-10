@@ -3,6 +3,7 @@ import {
 	filtrarVentasPorEstadoCaptura,
 	obtenerClaseEstadoCapturaVenta,
 	obtenerEstadoCapturaVenta,
+	tieneMuestrasPendientes,
 } from "./captura-row-status";
 
 describe("captura-row-status helpers", () => {
@@ -18,6 +19,21 @@ describe("captura-row-status helpers", () => {
 				{ estado_captura: "completado", estado_validacion: "guardado" },
 			]),
 		).toBe("row-pendiente");
+	});
+
+	test("mantiene pendiente cuando algun estudio tiene muestra pendiente", () => {
+		const estudios = [
+			{ estado_captura: "completado", estado_validacion: "guardado" },
+			{
+				estado_captura: "completado",
+				estado_validacion: "guardado",
+				muestra_pendiente: true,
+			},
+		];
+
+		expect(tieneMuestrasPendientes(estudios)).toBe(true);
+		expect(obtenerEstadoCapturaVenta(estudios)).toBe("pendiente");
+		expect(obtenerClaseEstadoCapturaVenta(estudios)).toBe("row-pendiente");
 	});
 
 	test("usa azul cuando todos los estudios estan guardados", () => {

@@ -25,7 +25,7 @@ const SELECT_VENTAS = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido,
 	pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
 	clientes ( id_cliente, nombre ),
-	estudios_venta ( id_estudio_venta, estado_validacion, entregado )
+	estudios_venta ( id_estudio_venta, estado_validacion, entregado, muestra_pendiente )
 `;
 
 const formatearFechaMexico = (fecha = new Date()) => {
@@ -97,8 +97,9 @@ const EntregaResultados = () => {
 		try {
 			const { data: estudiosValidados, error: errorEstudios } = await supabase
 				.from("estudios_venta")
-				.select("id_estudio_venta, id_venta, estado_validacion, entregado")
-				.eq("estado_validacion", "validado");
+				.select("id_estudio_venta, id_venta, estado_validacion, entregado, muestra_pendiente")
+				.eq("estado_validacion", "validado")
+				.eq("muestra_pendiente", false);
 
 			if (errorEstudios) throw errorEstudios;
 
@@ -151,6 +152,7 @@ const EntregaResultados = () => {
 				.select("*")
 				.eq("id_venta", idVenta)
 				.eq("estado_validacion", "validado")
+				.eq("muestra_pendiente", false)
 				.order("id_estudio_venta");
 			if (error) throw error;
 			const estudiosPendientesEntrega = (data || []).filter(

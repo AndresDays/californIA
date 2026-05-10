@@ -15,6 +15,7 @@ import {
 	filtrarVentasPorEstadoCaptura,
 	obtenerClaseEstadoCapturaVenta,
 	obtenerEstadoCapturaVenta,
+	tieneMuestrasPendientes,
 } from "../../utils/captura-row-status";
 import {
 	calcularSaldoVenta,
@@ -122,7 +123,7 @@ const Captura = () => {
 					`id_venta, folio, fecha_venta, estado, total, pago_recibido,
 					pacientes (id_paciente, nombre, fecha_nacimiento, sexo, tipo),
 					clientes (id_cliente, nombre),
-					estudios_venta (id_estudio_venta, area, estado_captura, estado_validacion)`,
+					estudios_venta (id_estudio_venta, area, estado_captura, estado_validacion, muestra_pendiente)`,
 				)
 				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
 				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
@@ -232,6 +233,7 @@ const Captura = () => {
 		}
 		try {
 			for (const estudio of resultados) {
+				if (estudio.muestra_pendiente) continue;
 				const hayResultados = estudio.analitos.some(
 					(a) => a.resultado && a.resultado.trim() !== "",
 				);
@@ -264,6 +266,13 @@ const Captura = () => {
 	const validarCaptura = async () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
+			return;
+		}
+		if (tieneMuestrasPendientes(resultados)) {
+			mostrarNotificacion(
+				"Hay estudios con muestra pendiente. Edita la solicitud y quita la marca antes de validar.",
+				"advertencia",
+			);
 			return;
 		}
 		try {
@@ -706,7 +715,12 @@ const Captura = () => {
 									) : (
 										resultados.map((estudio) => (
 											<React.Fragment key={estudio.id_estudio_venta}>
-												<tr className="fila-estudio">
+												<tr
+													className={`fila-estudio ${
+														estudio.muestra_pendiente
+															? "fila-estudio-muestra-pendiente"
+															: ""
+													}`}>
 													<td colSpan="5" className="nombre-estudio">
 														<div className="estudio-header">
 															<span
@@ -728,9 +742,22 @@ const Captura = () => {
 																			? "Validado"
 																			: "En Captura"}
 															</span>
+															{estudio.muestra_pendiente && (
+																<span className="badge-muestra-pendiente">
+																	Muestra pendiente
+																</span>
+															)}
 														</div>
 													</td>
 												</tr>
+												{estudio.muestra_pendiente && (
+													<tr className="fila-aviso-muestra-pendiente">
+														<td colSpan="5">
+															Este estudio espera muestra. Quita la marca en
+															Editar solicitud cuando ya se reciba.
+														</td>
+													</tr>
+												)}
 												{estudio.analitos && estudio.analitos.length > 0 ? (
 													estudio.analitos
 														.filter(
@@ -757,7 +784,8 @@ const Captura = () => {
 																			className="input-resultado"
 																			placeholder="Ingrese resultado"
 																			disabled={
-																				estudio.estado_validacion === "validado"
+																				estudio.estado_validacion === "validado" ||
+																				estudio.muestra_pendiente
 																			}
 																		/>
 																	) : analito.tipo_resultado === "Subtitulo" ? (
@@ -778,7 +806,8 @@ const Captura = () => {
 																			placeholder="Ingrese texto"
 																			rows="2"
 																			disabled={
-																				estudio.estado_validacion === "validado"
+																				estudio.estado_validacion === "validado" ||
+																				estudio.muestra_pendiente
 																			}
 																		/>
 																	)}
