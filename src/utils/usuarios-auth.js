@@ -1,10 +1,48 @@
 const normalizarTexto = (valor) =>
 	typeof valor === "string" ? valor.trim() : valor || "";
 
+const quitarAcentos = (valor) =>
+	String(valor || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "");
+
+export const normalizarRolUsuario = (rol) => {
+	const normalizado = quitarAcentos(rol).trim().toLowerCase();
+	const roles = {
+		admin: "admin",
+		administrador: "admin",
+		radiologo: "radiologo",
+		"radiologo director": "radiologo",
+		doctor: "medico",
+		medico: "medico",
+		"tecnico radiologia": "tecnico_radiologia",
+		"tecnico en radiologia": "tecnico_radiologia",
+		tecnico_radiologia: "tecnico_radiologia",
+		tecnico: "tecnico_radiologia",
+		quimico: "quimico",
+		recepcionista: "recepcionista",
+		desarrollador: "desarrollador",
+	};
+	return roles[normalizado] || normalizado;
+};
+
+export const prepararUsuarioParaFormulario = (usuarioEditar) => ({
+	id: usuarioEditar.id,
+	auth_uuid: usuarioEditar.auth_uuid || "",
+	nombre: usuarioEditar.nombre || "",
+	usuario: usuarioEditar.usuario || "",
+	contrasena: "",
+	rol: normalizarRolUsuario(usuarioEditar.rol),
+	sucursal: usuarioEditar.sucursal || "",
+	email: usuarioEditar.email || "",
+	telefono: usuarioEditar.telefono || "",
+	activo: usuarioEditar.estado === "Activado",
+});
+
 export const buildEmpleadoInsertPayload = (usuarioData, authUuid) => ({
 	nombre: normalizarTexto(usuarioData.nombre),
 	usuario: normalizarTexto(usuarioData.usuario),
-	rol: usuarioData.rol || "",
+	rol: normalizarRolUsuario(usuarioData.rol),
 	sucursal: normalizarTexto(usuarioData.sucursal),
 	email: normalizarTexto(usuarioData.email),
 	telefono: normalizarTexto(usuarioData.telefono),
@@ -15,7 +53,7 @@ export const buildEmpleadoInsertPayload = (usuarioData, authUuid) => ({
 export const buildEmpleadoUpdatePayload = (usuarioData) => ({
 	nombre: normalizarTexto(usuarioData.nombre),
 	usuario: normalizarTexto(usuarioData.usuario),
-	rol: usuarioData.rol || "",
+	rol: normalizarRolUsuario(usuarioData.rol),
 	sucursal: normalizarTexto(usuarioData.sucursal),
 	email: normalizarTexto(usuarioData.email),
 	telefono: normalizarTexto(usuarioData.telefono),
