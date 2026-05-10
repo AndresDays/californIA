@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import dineroIcono from '../assets/dineroIcono.png';
 import editarIcono from '../assets/editarIcono.png';
-import entregaIcono from '../assets/entregaIcono.png';
 import estudiosIcono from '../assets/estudiosIcono.png';
+import LabBtn from '../assets/labBtn.png';
 import californIA from '../assets/logoCalifornIA.png';
 import nuevaCitaBtn from '../assets/nuevaCitaBtn.png';
 import nuevoPacienteIcono from '../assets/nuevoPacienteIcono.png';
@@ -438,50 +438,15 @@ const Dashboard = () => {
 							<div className="quick-access-section">
 								<h3 className="section-title">Módulos Principales</h3>
 								<div className="modules-grid">
-									<button
-										type="button"
-										className="module-card module-card-primary radiology"
-										aria-label="Abrir Radiología"
+									<div
+										className="module-card radiology"
 										onClick={() => navigate("/radiologia")}>
 										<img src={RadBtn} alt="Radiología" className="module-btn-img" />
-									</button>
-								</div>
-								<div
-									className="quick-actions-panel"
-									role="group"
-									aria-labelledby="quick-actions-title">
-									<h4 className="quick-actions-title" id="quick-actions-title">
-										Acciones rápidas
-									</h4>
-									<div className="quick-actions-grid">
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => setModalNuevaCitaOpen(true)}>
-											<img src={calendarioIcono} alt="" className="quick-action-icon" />
-											<span>Nueva cita</span>
-										</button>
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => navigate("/nuevo-paciente")}>
-											<img src={nuevoPacienteIcono} alt="" className="quick-action-icon" />
-											<span>Nuevo paciente</span>
-										</button>
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => navigate("/editar-solicitud")}>
-											<img src={editarIcono} alt="" className="quick-action-icon" />
-											<span>Editar solicitud</span>
-										</button>
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => navigate("/entrega-resultados")}>
-											<img src={entregaIcono} alt="" className="quick-action-icon" />
-											<span>Entrega</span>
-										</button>
+									</div>
+									<div
+										className="module-card laboratory"
+										onClick={() => navigate("/laboratorio")}>
+										<img src={LabBtn} alt="Laboratorio" className="module-btn-img" />
 									</div>
 								</div>
 								<div className="logo-container">
