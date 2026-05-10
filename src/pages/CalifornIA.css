@@ -372,6 +372,8 @@ body, html {
   border: 1px solid rgba(73, 178, 212, 0.2);
   border-radius: 16px;
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-title {
@@ -383,9 +385,9 @@ body, html {
 
 .modules-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .module-card {
@@ -396,6 +398,8 @@ body, html {
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
+  width: 100%;
+  font: inherit;
 }
 
 .module-card:hover {
@@ -431,6 +435,63 @@ body, html {
   font-weight: 600;
 }
 
+.module-card-primary {
+  min-height: clamp(130px, 18vw, 190px);
+}
+
+.quick-actions-panel {
+  border-top: 1px solid rgba(73, 178, 212, 0.22);
+  padding-top: 1rem;
+}
+
+.quick-actions-title {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.quick-action-card {
+  align-items: center;
+  background: rgba(7, 38, 66, 0.38);
+  border: 1px solid rgba(73, 178, 212, 0.24);
+  border-radius: 8px;
+  color: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  gap: 0.65rem;
+  justify-content: flex-start;
+  min-height: 52px;
+  padding: 0.75rem 0.85rem;
+  text-align: left;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.quick-action-card:hover {
+  background: rgba(16, 109, 160, 0.34);
+  border-color: rgba(83, 185, 219, 0.5);
+  transform: translateY(-2px);
+}
+
+.quick-action-icon {
+  flex: 0 0 auto;
+  height: 24px;
+  object-fit: contain;
+  opacity: 0.92;
+  width: 24px;
+}
+
 .logo-container {
   text-align: center;
   padding: 0.5rem 0;
@@ -439,7 +500,7 @@ body, html {
 }
 
 .california-logo {
-  width: 350px;
+  width: min(350px, 100%);
   height: auto;
 }
 
@@ -981,6 +1042,10 @@ body, html {
     padding: 1rem;
   }
 
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
   .stat-card {
     flex-direction: column;
     text-align: center;
@@ -1153,6 +1218,8 @@ body, html {
   align-items: center;
   justify-content: center;
   min-height: 120px;
+  width: 100%;
+  font: inherit;
 }
 
 .module-card:hover {
