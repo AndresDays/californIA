@@ -1,139 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import californIA from "../assets/CalifornIA.png";
-import configuracionIcono from "../assets/configuracionIcono.png";
-import dineroIcono from "../assets/dineroIcono.png";
-import doctorIcono from "../assets/doctorIcono.png";
-import entregaIcono from "../assets/entregaIcono.png";
-import imprimirIcono from "../assets/imprimirIcono.png";
-import inicioIcono from "../assets/inicioIcono.png";
-import pacienteIcono from "../assets/pacienteIcono.png";
-import recepcionIcono from "../assets/recepcionIcono.png";
-import ventasIcono from "../assets/ventasIcono.png";
+import { sidebarItems } from "./sidebar-menu";
 import "./sidebar.css";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [expandedMenus, setExpandedMenus] = useState({});
-
-	const menuItems = [
-		{ id: "dashboard", label: "Inicio", icon: inicioIcono, path: "/dashboard" },
-		{
-			id: "nuevo-paciente",
-			label: "Nuevo Paciente",
-			icon: pacienteIcono,
-			path: "/nuevo-paciente",
-		},
-		{ id: "captura", label: "Captura", icon: imprimirIcono, path: "/captura" },
-		{
-			id: "entrega",
-			label: "Entrega Resultados",
-			icon: entregaIcono,
-			path: "/entrega-resultados",
-		},
-		{
-			id: "recepcion",
-			label: "Recepción",
-			icon: recepcionIcono,
-			path: "/",
-			hasSubmenu: true,
-			submenu: [
-				{
-					id: "editar-solicitud",
-					label: "Editar Solicitud",
-					icon: "○",
-					path: "/editar-solicitud",
-				},
-				{ id: "cotizacion", label: "Cotización", icon: "○", path: "/cotizacion" },
-				{ id: "historial", label: "Historial", icon: "○", path: "/historial" },
-			],
-		},
-		{
-			id: "cierre-caja",
-			label: "Cierre Caja",
-			icon: dineroIcono,
-			path: "/cierre-caja",
-		},
-		{ id: "doctores", label: "Doctores", icon: doctorIcono, path: "/doctores" },
-		{
-			id: "reportes",
-			label: "Reporte de Ventas",
-			icon: ventasIcono,
-			path: "/reporte-ventas",
-		},
-		{
-			id: "configuracion",
-			label: "Configuración",
-			icon: configuracionIcono,
-			path: "/configuracion",
-			hasSubmenu: true,
-			submenu: [
-				{
-					id: "estudios",
-					label: "Estudios",
-					icon: "○",
-					path: "/configuracion/estudios",
-				},
-				{
-					id: "recipientes",
-					label: "Recipientes",
-					icon: "○",
-					path: "/configuracion/recipientes",
-				},
-				{
-					id: "analitos",
-					label: "Analitos",
-					icon: "○",
-					path: "/configuracion/analitos",
-				},
-				{ id: "metodo", label: "Método", icon: "○", path: "/configuracion/metodo" },
-				{
-					id: "paquetes",
-					label: "Paquetes",
-					icon: "○",
-					path: "/configuracion/paquetes",
-				},
-				{
-					id: "tecnica",
-					label: "Técnica",
-					icon: "○",
-					path: "/configuracion/tecnica",
-				},
-				{
-					id: "precios",
-					label: "Precios",
-					icon: "○",
-					path: "/configuracion/precios",
-				},
-				{
-					id: "equipos",
-					label: "Equipos",
-					icon: "○",
-					path: "/configuracion/equipos",
-				},
-				{ id: "areas", label: "Areas", icon: "○", path: "/configuracion/areas" },
-				{
-					id: "nivel-mar",
-					label: "Nivel del Mar",
-					icon: "○",
-					path: "/configuracion/nivel",
-				},
-				{
-					id: "tipo-muestra",
-					label: "Tipo de Muestra",
-					icon: "○",
-					path: "/configuracion/tipo-muestra",
-				},
-				{
-					id: "video-tutoriales",
-					label: "Video Tutoriales",
-					icon: "○",
-					path: "/configuracion/video-tutoriales",
-				},
-			],
-		},
-	];
 
 	const toggleSubmenu = (itemId) =>
 		setExpandedMenus((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
@@ -148,13 +22,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 		submenu?.some((item) => location.pathname.startsWith(item.path));
 
 	useEffect(() => {
-		const recepcionItem = menuItems.find((item) => item.id === "recepcion");
-		if (recepcionItem && isSubmenuActive(recepcionItem.submenu)) {
-			setExpandedMenus((prev) => ({ ...prev, recepcion: true }));
-		}
-		const configItem = menuItems.find((item) => item.id === "configuracion");
-		if (configItem && isSubmenuActive(configItem.submenu)) {
-			setExpandedMenus((prev) => ({ ...prev, configuracion: true }));
+		const activeMenus = sidebarItems
+			.filter((item) => item.hasSubmenu && isSubmenuActive(item.submenu))
+			.reduce((menus, item) => ({ ...menus, [item.id]: true }), {});
+
+		if (Object.keys(activeMenus).length > 0) {
+			setExpandedMenus((prev) => ({ ...prev, ...activeMenus }));
 		}
 	}, [location.pathname]);
 
@@ -169,7 +42,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 					<img src={californIA} alt="CalifornIA" className="sidebar-logo" />
 				</div>
 				<nav className="sidebar-nav">
-					{menuItems.map((item) => (
+					{sidebarItems.map((item) => (
 						<div key={item.id} className="sidebar-item-wrapper">
 							<button
 								className={`sidebar-item ${isActive(item.path) || isSubmenuActive(item.submenu) ? "active" : ""}`}
