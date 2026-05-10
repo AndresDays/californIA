@@ -8,8 +8,6 @@ import ModalNotificacion from "../components/ModalNotificacion";
 import PageLayout from "../components/page-layout.jsx";
 import { useAuth } from "../context/auth-context";
 import { supabase } from "../lib/supabase-client";
-import { buildEmpleadoUpdatePayload } from "../utils/usuarios-auth";
-import { obtenerMensajeErrorFuncion } from "../utils/supabase-functions";
 import "./usuarios.css";
 
 const Usuarios = () => {
@@ -88,13 +86,8 @@ const Usuarios = () => {
 					numero: usuario.id_empleado,
 					nombre: usuario.nombre || "",
 					usuario: usuario.usuario || "-",
-					rol: usuario.rol || "",
-					rolLabel: formatRol(usuario.rol) || "-",
-					sucursal: usuario.sucursal || "",
-					sucursalLabel: usuario.sucursal || "-",
-					email: usuario.email || "",
-					telefono: usuario.telefono || "",
-					auth_uuid: usuario.auth_uuid || "",
+					rol: formatRol(usuario.rol) || "-",
+					sucursal: usuario.sucursal || "-",
 					estado: usuario.activo ? "Activado" : "Desactivado",
 					ultimoLogin: usuario.ultimo_login
 						? new Date(usuario.ultimo_login).toLocaleString("es-MX", {
@@ -118,47 +111,47 @@ const Usuarios = () => {
 	const handleGuardarUsuario = async (usuarioData, isEditMode) => {
 		try {
 			if (isEditMode) {
-				const updateData = buildEmpleadoUpdatePayload(usuarioData);
+				const updateData = {
+					nombre: usuarioData.nombre,
+					usuario: usuarioData.usuario,
+					rol: usuarioData.rol,
+					sucursal: usuarioData.sucursal,
+					email: usuarioData.email,
+					telefono: usuarioData.telefono,
+					activo: usuarioData.activo,
+					updated_at: new Date().toISOString(),
+				};
+				if (usuarioData.contrasena?.trim())
+					updateData.contrasena = usuarioData.contrasena;
 				const { error } = await supabase
 					.from("empleados")
 					.update(updateData)
 					.eq("id_empleado", usuarioData.id);
 				if (error) throw error;
-				if (usuarioData.contrasena?.trim()) {
-					if (!usuarioData.auth_uuid) {
-						throw new Error(
-							"Este empleado no está ligado a Supabase Auth. Crea o vincula su usuario de Authentication primero.",
-						);
-					}
-					const { error: authError } = await supabase.functions.invoke("admin-users", {
-						body: {
-							action: "updatePassword",
-							auth_uuid: usuarioData.auth_uuid,
-							password: usuarioData.contrasena,
-						},
-					});
-					if (authError) throw authError;
-				}
 				mostrarNotificacion("Usuario actualizado correctamente", "exito");
 			} else {
-				const { error } = await supabase.functions.invoke("admin-users", {
-					body: {
-						action: "create",
-						usuario: usuarioData,
-					},
-				});
+				const { error } = await supabase
+					.from("empleados")
+					.insert([
+						{
+							nombre: usuarioData.nombre,
+							usuario: usuarioData.usuario,
+							contrasena: usuarioData.contrasena,
+							rol: usuarioData.rol,
+							sucursal: usuarioData.sucursal,
+							email: usuarioData.email,
+							telefono: usuarioData.telefono,
+							activo: usuarioData.activo,
+						},
+					]);
 				if (error) throw error;
-				mostrarNotificacion(
-					"Usuario agregado correctamente en Authentication y empleados",
-					"exito",
-				);
+				mostrarNotificacion("Usuario agregado correctamente", "exito");
 			}
 			cargarUsuarios();
 			setModalAgregarOpen(false);
 		} catch (error) {
 			console.error("Error:", error);
-			const mensaje = await obtenerMensajeErrorFuncion(error);
-			mostrarNotificacion("Error al guardar usuario: " + mensaje, "error");
+			mostrarNotificacion("Error al guardar usuario: " + error.message, "error");
 		}
 	};
 
@@ -273,8 +266,8 @@ const Usuarios = () => {
 											<td>{usuarioInicio + index}</td>
 											<td>{usuario.nombre}</td>
 											<td>{usuario.usuario}</td>
-											<td>{usuario.rolLabel}</td>
-											<td>{usuario.sucursalLabel}</td>
+											<td>{usuario.rol}</td>
+											<td>{usuario.sucursal}</td>
 											<td>
 												<span
 													className={`estado-badge ${usuario.estado === "Activado" ? "activado" : "desactivado"}`}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import Dashboard from './home';
 
 // Mock useAuth
@@ -66,16 +66,4 @@ test('renders Dashboard with welcome and stats', () => {
   expect(screen.getByText(/Módulos Principales/)).toBeInTheDocument();
   expect(screen.getByText(/Próximas Citas/)).toBeInTheDocument();
   expect(screen.queryByText(/GUARDAR/)).toBeNull(); // No debe aparecer en dashboard, sanity check
-});
-
-test('uses the dashboard module space for radiology and quick actions', () => {
-  render(<Dashboard />);
-
-  expect(screen.getByRole('button', { name: /Abrir Radiología/i })).toBeInTheDocument();
-  expect(screen.queryByAltText(/Laboratorio/i)).not.toBeInTheDocument();
-  const quickActions = screen.getByRole('group', { name: /Acciones rápidas/i });
-  expect(within(quickActions).getByRole('button', { name: /Nueva cita/i })).toBeInTheDocument();
-  expect(within(quickActions).getByRole('button', { name: /Nuevo paciente/i })).toBeInTheDocument();
-  expect(within(quickActions).getByRole('button', { name: /Editar solicitud/i })).toBeInTheDocument();
-  expect(within(quickActions).getByRole('button', { name: /Entrega/i })).toBeInTheDocument();
 });
