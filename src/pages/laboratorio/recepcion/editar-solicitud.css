@@ -762,6 +762,18 @@
 	display: block;
 }
 
+.estudio-muestra-pendiente-row td {
+	padding: 0.55rem 0.85rem !important;
+	background: rgba(244, 67, 54, 0.16);
+	color: #ffdddd;
+	border-top: 1px solid rgba(244, 67, 54, 0.34);
+	border-bottom: 1px solid rgba(244, 67, 54, 0.24);
+	font-size: 0.84rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
 @media (max-width: 1023px) {
 	.editar-solicitud-header {
 		padding: 0.85rem 1rem !important;

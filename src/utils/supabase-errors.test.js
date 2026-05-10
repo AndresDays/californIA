@@ -1,4 +1,7 @@
-import { esErrorColumnaSchemaCache } from "./supabase-errors";
+import {
+	esErrorColumnaSchemaCache,
+	obtenerColumnaSchemaCacheFaltante,
+} from "./supabase-errors";
 
 describe("supabase-errors helpers", () => {
 	test("detecta cuando PostgREST no encuentra una columna en schema cache", () => {
@@ -23,5 +26,14 @@ describe("supabase-errors helpers", () => {
 				"id_cita",
 			),
 		).toBe(false);
+	});
+
+	test("obtiene la columna faltante desde el mensaje de schema cache", () => {
+		expect(
+			obtenerColumnaSchemaCacheFaltante({
+				message:
+					"Could not find the 'muestra_pendiente' column of 'estudios_venta' in the schema cache",
+			}),
+		).toBe("muestra_pendiente");
 	});
 });

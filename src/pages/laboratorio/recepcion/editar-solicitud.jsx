@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
 import cancelarBtn from "../../../assets/cancelarBtn.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
@@ -14,6 +14,8 @@ import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { generarTicketVenta } from "../../../utils/generarTicketVenta";
+import { esErrorColumnaSchemaCache } from "../../../utils/supabase-errors";
+import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
 const EditarSolicitud = () => {
@@ -55,6 +57,8 @@ const EditarSolicitud = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
+		useState(false);
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -140,7 +144,7 @@ const EditarSolicitud = () => {
 					`
 				id_venta, folio, fecha_venta, total, pago_recibido, subtotal, iva, descuento, forma_pago, observaciones, estado, id_cliente, id_doctor,
 				pacientes (id_paciente, nombre, fecha_nacimiento, sexo, telefono, email, rfc),
-				estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, precio, area)
+				estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, muestra_pendiente)
 			`,
 				)
 				.eq("estado", "activo")
@@ -247,6 +251,7 @@ const EditarSolicitud = () => {
 				precio: parseFloat(ev.precio) || 0,
 				area: ev.area || "",
 				cantidad: 1,
+				muestra_pendiente: Boolean(ev.muestra_pendiente),
 			})),
 		);
 	};
@@ -288,6 +293,7 @@ const EditarSolicitud = () => {
 				area: estudio.area || "",
 				precio,
 				cantidad: 1,
+				muestra_pendiente: false,
 			},
 		]);
 		setBuscarEstudio("");
@@ -296,6 +302,16 @@ const EditarSolicitud = () => {
 
 	const eliminarEstudio = (clave) =>
 		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.clave !== clave));
+
+	const toggleMuestraPendiente = (idEstudio, muestraPendiente) => {
+		setEstudiosSeleccionados((prev) =>
+			prev.map((estudio) =>
+				(estudio.id_estudio_venta || estudio.id || estudio.clave) === idEstudio
+					? { ...estudio, muestra_pendiente: muestraPendiente }
+					: estudio,
+			),
+		);
+	};
 
 	const calcularTotales = () => {
 		const sub = estudiosSeleccionados.reduce(
@@ -346,19 +362,31 @@ const EditarSolicitud = () => {
 				.from("estudios_venta")
 				.delete()
 				.eq("id_venta", ordenSeleccionada.id_venta);
-			const { error: errorEstudios } = await supabase
-				.from("estudios_venta")
-				.insert(
-					estudiosSeleccionados.map((est) => ({
-						id_venta: ordenSeleccionada.id_venta,
-						clave_estudio: est.clave,
-						descripcion_estudio: est.descripcion,
-						precio: est.precio,
-						area: est.area,
-						dias_proceso: 1,
-						estado_captura: "pendiente",
-					})),
-				);
+			const estudiosPayload = estudiosSeleccionados.map((est) => ({
+				id_venta: ordenSeleccionada.id_venta,
+				clave_estudio: est.clave,
+				descripcion_estudio: est.descripcion,
+				precio: est.precio,
+				area: est.area,
+				dias_proceso: 1,
+				estado_captura: "pendiente",
+				muestra_pendiente: Boolean(est.muestra_pendiente),
+			}));
+			const insertarEstudios = (payload) =>
+				supabase.from("estudios_venta").insert(payload);
+			let { error: errorEstudios } = await insertarEstudios(estudiosPayload);
+			if (
+				errorEstudios &&
+				esErrorColumnaSchemaCache(errorEstudios, "muestra_pendiente")
+			) {
+				({ error: errorEstudios } = await insertarEstudios(
+					estudiosPayload.map((estudio) => {
+						const limpio = { ...estudio };
+						delete limpio.muestra_pendiente;
+						return limpio;
+					}),
+				));
+			}
 			if (errorEstudios) throw errorEstudios;
 			mostrarNotificacion("Orden actualizada exitosamente", "exito");
 			await cargarOrdenes();
@@ -742,7 +770,10 @@ const EditarSolicitud = () => {
 										</div>
 									)}
 								</div>
-								<button className="btn-muestras-pendientes">
+								<button
+									type="button"
+									className="btn-muestras-pendientes"
+									onClick={() => setModalMuestrasPendientesOpen(true)}>
 									<img
 										src={muestrasBtn}
 										alt="Muestras Pendientes"
@@ -773,23 +804,32 @@ const EditarSolicitud = () => {
 											</tr>
 										) : (
 											estudiosSeleccionados.map((est) => (
-												<tr key={est.clave}>
-													<td>{est.clave}</td>
-													<td>{est.descripcion}</td>
-													<td>{est.area || "Estudio"}</td>
-													<td>$ {est.precio.toFixed(2)}</td>
-													<td>
-														<button
-															className="btn-borrar-estudio"
-															onClick={() => eliminarEstudio(est.clave)}>
-															<img
-																src={eliminarIconoV2}
-																alt="Eliminar"
-																className="icono-eliminar"
-															/>
-														</button>
-													</td>
-												</tr>
+												<Fragment key={est.clave}>
+													<tr>
+														<td>{est.clave}</td>
+														<td>{est.descripcion}</td>
+														<td>{est.area || "Estudio"}</td>
+														<td>$ {est.precio.toFixed(2)}</td>
+														<td>
+															<button
+																className="btn-borrar-estudio"
+																onClick={() => eliminarEstudio(est.clave)}>
+																<img
+																	src={eliminarIconoV2}
+																	alt="Eliminar"
+																	className="icono-eliminar"
+																/>
+															</button>
+														</td>
+													</tr>
+													{est.muestra_pendiente && (
+														<tr className="estudio-muestra-pendiente-row">
+															<td colSpan="5">
+																Muestra pendiente para {est.clave}
+															</td>
+														</tr>
+													)}
+												</Fragment>
 											))
 										)}
 									</tbody>
@@ -919,6 +959,12 @@ const EditarSolicitud = () => {
 					onClose={cerrarNotificacion}
 					mensaje={notificacion.mensaje}
 					tipo={notificacion.tipo}
+				/>
+				<ModalMuestrasPendientes
+					isOpen={modalMuestrasPendientesOpen}
+					estudios={estudiosSeleccionados}
+					onClose={() => setModalMuestrasPendientesOpen(false)}
+					onToggleMuestraPendiente={toggleMuestraPendiente}
 				/>
 			</div>
 		</PageLayout>
