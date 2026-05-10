@@ -1,68 +1,103 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import {
+	agruparEstudiosVendidos,
+	agruparVentasPorDia,
+	agruparVentasPorVendedor,
+	calcularMetricasVentas,
+	calcularSaldoVentaReporte,
+	crearCsvVentas,
+	filtrarVentasReporte,
+	formatoMonedaReporte,
+	obtenerIdSucursalVenta,
+	SIN_SUCURSAL_REPORTE,
+} from "../../utils/reporte-ventas";
+import { esErrorColumnaSchemaCache } from "../../utils/supabase-errors";
 import "./reporte-ventas.css";
 
-const PRODUCTOS_MOCK = [
-	{ name: "Biometría Hemática", pct: 78, color: "#53B9DB" },
-	{ name: "Química Sanguínea", pct: 64, color: "#49B2D4" },
-	{ name: "Uroanálisis", pct: 51, color: "#106DA0" },
-	{ name: "Rx Tórax", pct: 43, color: "#1a7ab8" },
-	{ name: "Perfil Tiroideo", pct: 35, color: "#0d5580" },
-];
+const SELECT_VENTAS_REPORTE_BASE = `
+	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
+	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor,
+	pacientes ( id_paciente, nombre ),
+	clientes ( id_cliente, nombre ),
+	empleados ( id_empleado, nombre ),
+	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area )
+`;
 
-const VENDEDORES_MOCK = [
-	{ name: "Ana García", amount: "$24,180", badge: "94 órdenes" },
-	{ name: "Luis Martínez", amount: "$19,740", badge: "78 órdenes" },
-	{ name: "María López", amount: "$16,320", badge: "63 órdenes" },
-	{ name: "Carlos Ruiz", amount: "$14,080", badge: "52 órdenes" },
-];
+const SELECT_VENTAS_REPORTE_SUCURSAL = `
+	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
+	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, id_sucursal, sucursal,
+	pacientes ( id_paciente, nombre ),
+	clientes ( id_cliente, nombre ),
+	empleados ( id_empleado, nombre ),
+	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
+`;
 
-const BARS_DATA = [
-	3200, 4100, 2800, 5600, 4900, 3700, 6200, 5100, 4400, 7800, 6600, 5300, 4800, 3900,
-	5700, 6400, 5900, 4200, 7100, 8400, 6800, 5500, 4600, 7300, 8900, 6100, 4700,
-];
-const MONTHS_LABELS = [
-	"L",
-	"M",
-	"X",
-	"J",
-	"V",
-	"S",
-	"D",
-	"L",
-	"M",
-	"X",
-	"J",
-	"V",
-	"S",
-	"D",
-	"L",
-	"M",
-	"X",
-	"J",
-	"V",
-	"S",
-	"D",
-	"L",
-	"M",
-	"X",
-	"J",
-	"V",
-	"S",
-];
+const SELECT_VENTAS_REPORTE_ID_CITA = `
+	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
+	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, id_cita, id_sucursal, sucursal,
+	pacientes ( id_paciente, nombre ),
+	clientes ( id_cliente, nombre ),
+	empleados ( id_empleado, nombre ),
+	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
+`;
+
+const SELECT_VENTAS_REPORTE = `
+	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
+	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, id_cita, id_sucursal, sucursal,
+	pacientes ( id_paciente, nombre ),
+	clientes ( id_cliente, nombre ),
+	empleados ( id_empleado, nombre ),
+	citas ( id_cita, id_sucursal, sucursales ( id_sucursal, nombre ) ),
+	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
+`;
+
+const puedeReintentarSinCita = (error) => {
+	const mensaje = error?.message || "";
+	return (
+		esErrorColumnaSchemaCache(error, "id_cita") ||
+		mensaje.includes("relationship") ||
+		mensaje.includes("citas")
+	);
+};
+
+const cargarCitasDeVentas = async (ventas = []) => {
+	const idsCita = [
+		...new Set(ventas.map((venta) => venta.id_cita).filter(Boolean)),
+	];
+	if (idsCita.length === 0) return ventas;
+
+	const { data, error } = await supabase
+		.from("citas")
+		.select("id_cita, id_sucursal, sucursales ( id_sucursal, nombre )")
+		.in("id_cita", idsCita);
+
+	if (error) return ventas;
+
+	const citasPorId = new Map(data.map((cita) => [cita.id_cita, cita]));
+	return ventas.map((venta) => ({
+		...venta,
+		citas: citasPorId.get(venta.id_cita) || venta.citas,
+	}));
+};
+
+const hoyMexico = () =>
+	new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+
+const inicioMesMexico = () => {
+	const fecha = new Date(`${hoyMexico()}T00:00:00`);
+	fecha.setDate(1);
+	return fecha.toISOString().split("T")[0];
+};
 
 const ReporteVentas = () => {
 	const { user } = useAuth();
-	const [fechaInicial, setFechaInicial] = useState(
-		new Date().toISOString().split("T")[0],
-	);
-	const [fechaFinal, setFechaFinal] = useState(
-		new Date().toISOString().split("T")[0],
-	);
+	const [fechaInicial, setFechaInicial] = useState(inicioMesMexico());
+	const [fechaFinal, setFechaFinal] = useState(hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [vendedorSeleccionado, setVendedorSeleccionado] = useState("");
 	const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState("");
@@ -71,7 +106,16 @@ const ReporteVentas = () => {
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [doctorSeleccionado, setDoctorSeleccionado] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
+	const [tipoReporte, setTipoReporte] = useState("general");
 	const [empleadoData, setEmpleadoData] = useState(null);
+	const [ventas, setVentas] = useState([]);
+	const [sucursales, setSucursales] = useState([]);
+	const [vendedores, setVendedores] = useState([]);
+	const [clientes, setClientes] = useState([]);
+	const [doctores, setDoctores] = useState([]);
+	const [areas, setAreas] = useState([]);
+	const [cargando, setCargando] = useState(false);
+	const [errorReporte, setErrorReporte] = useState("");
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -90,7 +134,160 @@ const ReporteVentas = () => {
 		fetchEmpleadoData();
 	}, [user]);
 
-	const maxVal = Math.max(...BARS_DATA);
+	useEffect(() => {
+		cargarCatalogos();
+	}, []);
+
+	useEffect(() => {
+		cargarVentas();
+	}, [fechaInicial, fechaFinal]);
+
+	const cargarCatalogos = async () => {
+		const [
+			sucursalesResp,
+			vendedoresResp,
+			clientesResp,
+			doctoresResp,
+			areasResp,
+		] = await Promise.all([
+			supabase.from("sucursales").select("id_sucursal, nombre").order("nombre"),
+			supabase.from("empleados").select("id_empleado, nombre").order("nombre"),
+			supabase.from("clientes").select("id_cliente, nombre").order("nombre"),
+			supabase.from("doctores").select("*").order("nombre"),
+			supabase.from("areas").select("id_area, nombre").order("nombre"),
+		]);
+
+		if (!sucursalesResp.error) setSucursales(sucursalesResp.data || []);
+		if (!vendedoresResp.error) setVendedores(vendedoresResp.data || []);
+		if (!clientesResp.error) setClientes(clientesResp.data || []);
+		if (!doctoresResp.error) setDoctores(doctoresResp.data || []);
+		if (!areasResp.error) setAreas(areasResp.data || []);
+	};
+
+	const cargarVentas = async () => {
+		setCargando(true);
+		setErrorReporte("");
+		try {
+			const crearQuery = (select) =>
+				supabase
+					.from("ventas")
+					.select(select)
+					.eq("estado", "activo")
+					.gte("fecha_venta", `${fechaInicial}T00:00:00`)
+					.lte("fecha_venta", `${fechaFinal}T23:59:59`)
+					.order("fecha_venta", { ascending: false });
+
+			let { data, error } = await crearQuery(SELECT_VENTAS_REPORTE);
+
+			if (error && puedeReintentarSinCita(error)) {
+				const respuestaConIdCita = await crearQuery(SELECT_VENTAS_REPORTE_ID_CITA);
+				data = respuestaConIdCita.data;
+				error = respuestaConIdCita.error;
+				if (!error) data = await cargarCitasDeVentas(data || []);
+			}
+
+			if (
+				error &&
+				(esErrorColumnaSchemaCache(error, "id_sucursal") ||
+					esErrorColumnaSchemaCache(error, "sucursal"))
+			) {
+				const respuestaSucursal = await crearQuery(SELECT_VENTAS_REPORTE_SUCURSAL);
+				data = respuestaSucursal.data;
+				error = respuestaSucursal.error;
+			}
+
+			if (
+				error &&
+				(esErrorColumnaSchemaCache(error, "id_cita") ||
+					esErrorColumnaSchemaCache(error, "id_sucursal") ||
+					esErrorColumnaSchemaCache(error, "sucursal"))
+			) {
+				const respuestaBase = await crearQuery(SELECT_VENTAS_REPORTE_BASE);
+				data = respuestaBase.data;
+				error = respuestaBase.error;
+			}
+
+			if (error) throw error;
+			setVentas(data || []);
+		} catch (error) {
+			console.error("Error al cargar reporte de ventas:", error);
+			setErrorReporte(error.message || "No se pudo cargar el reporte");
+			setVentas([]);
+		} finally {
+			setCargando(false);
+		}
+	};
+
+	const ventasFiltradas = useMemo(
+		() =>
+			filtrarVentasReporte(ventas, {
+				sucursal: sucursalSeleccionada,
+				vendedor: vendedorSeleccionado,
+				formaPago: formaPagoSeleccionada,
+				area: areaSeleccionada,
+				cliente: empresaSeleccionada,
+				doctor: doctorSeleccionado,
+				estudio: buscarEstudio,
+			}),
+		[
+			ventas,
+			sucursalSeleccionada,
+			vendedorSeleccionado,
+			formaPagoSeleccionada,
+			areaSeleccionada,
+			empresaSeleccionada,
+			doctorSeleccionado,
+			buscarEstudio,
+		],
+	);
+
+	const metricas = useMemo(
+		() => calcularMetricasVentas(ventasFiltradas),
+		[ventasFiltradas],
+	);
+	const ventasPorDia = useMemo(
+		() => agruparVentasPorDia(ventasFiltradas),
+		[ventasFiltradas],
+	);
+	const estudiosTop = useMemo(
+		() => agruparEstudiosVendidos(ventasFiltradas),
+		[ventasFiltradas],
+	);
+	const ventasPorVendedor = useMemo(
+		() => agruparVentasPorVendedor(ventasFiltradas),
+		[ventasFiltradas],
+	);
+	const ventasSinSucursal = useMemo(
+		() => ventas.filter((venta) => !obtenerIdSucursalVenta(venta)).length,
+		[ventas],
+	);
+	const maxVal = Math.max(...ventasPorDia.map((item) => item.total), 1);
+
+	const setPeriodo = (periodo) => {
+		setPeriodoGrafica(periodo);
+		const fin = new Date(`${hoyMexico()}T00:00:00`);
+		const inicio = new Date(fin);
+		if (periodo === "sem") inicio.setDate(fin.getDate() - 6);
+		if (periodo === "mes") inicio.setDate(1);
+		if (periodo === "ano") {
+			inicio.setMonth(0);
+			inicio.setDate(1);
+		}
+		setFechaInicial(inicio.toISOString().split("T")[0]);
+		setFechaFinal(fin.toISOString().split("T")[0]);
+	};
+
+	const descargarCsv = () => {
+		const blob = new Blob([crearCsvVentas(ventasFiltradas)], {
+			type: "text/csv;charset=utf-8;",
+		});
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = `reporte-ventas-${fechaInicial}-${fechaFinal}.csv`;
+		link.click();
+		URL.revokeObjectURL(url);
+	};
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -113,20 +310,114 @@ const ReporteVentas = () => {
 		return roles[rol] || rol;
 	};
 
+	const renderReporte = () => {
+		if (cargando) return <div className="rv-empty-state">Cargando reporte...</div>;
+		if (ventasFiltradas.length === 0) {
+			return <div className="rv-empty-state">No hay ventas para los filtros seleccionados.</div>;
+		}
+
+		if (tipoReporte === "estudio") {
+			return (
+				<div className="rv-table-wrap">
+					<table className="rv-table">
+						<thead>
+							<tr>
+								<th>Estudio</th>
+								<th>Órdenes</th>
+								<th>Total</th>
+							</tr>
+						</thead>
+						<tbody>
+							{estudiosTop.map((estudio) => (
+								<tr key={estudio.name}>
+									<td>{estudio.name}</td>
+									<td>{estudio.count}</td>
+									<td>{formatoMonedaReporte(estudio.total)}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			);
+		}
+
+		if (tipoReporte === "sumatoria") {
+			return (
+				<div className="rv-table-wrap">
+					<table className="rv-table">
+						<thead>
+							<tr>
+								<th>Concepto</th>
+								<th>Órdenes</th>
+								<th>Total</th>
+							</tr>
+						</thead>
+						<tbody>
+							{ventasPorVendedor.map((vendedor) => (
+								<tr key={vendedor.name}>
+									<td>{vendedor.name}</td>
+									<td>{vendedor.orders}</td>
+									<td>{formatoMonedaReporte(vendedor.amount)}</td>
+								</tr>
+							))}
+							<tr>
+								<td>Todos los vendedores</td>
+								<td>{metricas.ordenes}</td>
+								<td>{formatoMonedaReporte(metricas.totalVentas)}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			);
+		}
+
+		return (
+			<div className="rv-table-wrap">
+				<table className="rv-table">
+					<thead>
+						<tr>
+							<th>Folio</th>
+							<th>Fecha</th>
+							<th>Paciente</th>
+							<th>Cliente</th>
+							<th>Sucursal</th>
+							<th>Pago</th>
+							<th>Total</th>
+							<th>Adeudo</th>
+						</tr>
+					</thead>
+					<tbody>
+						{ventasFiltradas.map((venta) => (
+							<tr key={venta.id_venta}>
+								<td>{venta.folio}</td>
+								<td>{new Date(venta.fecha_venta).toLocaleDateString("es-MX")}</td>
+								<td>{venta.pacientes?.nombre || "Sin paciente"}</td>
+								<td>{venta.clientes?.nombre || "Particular"}</td>
+								<td>{venta.sucursal || venta.citas?.sucursales?.nombre || "Sin sucursal"}</td>
+								<td>{venta.forma_pago || "-"}</td>
+								<td>{formatoMonedaReporte(venta.total)}</td>
+								<td>{formatoMonedaReporte(calcularSaldoVentaReporte(venta))}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		);
+	};
+
 	return (
 		<PageLayout
 			empleadoData={empleadoData}
 			formatRol={formatRol}
 			getPrimerNombre={getPrimerNombre}>
 			<div className="rv-wrapper">
-				{/* Header */}
 				<div className="rv-header">
 					<h1 className="rv-title">Reporte de Ventas</h1>
 					<div className="rv-header-actions">
-						<button className="rv-btn-sm" onClick={() => alert("Exportar a Excel")}>
+						<button className="rv-btn-sm" onClick={descargarCsv}>
 							Excel
 						</button>
-						<button className="rv-btn-sm" onClick={() => alert("Exportar a PDF")}>
+						<button className="rv-btn-sm" onClick={() => window.print()}>
 							PDF
 						</button>
 						<button className="rv-btn-sm accent" onClick={() => window.print()}>
@@ -136,39 +427,49 @@ const ReporteVentas = () => {
 				</div>
 
 				<div className="rv-body">
-					{/* Métricas */}
+					{errorReporte && <div className="rv-error">{errorReporte}</div>}
+
 					<div className="rv-metrics">
 						<div className="rv-metric">
 							<div className="rv-metric-label">Ventas del período</div>
-							<div className="rv-metric-value">$84,320</div>
+							<div className="rv-metric-value">
+								{formatoMonedaReporte(metricas.totalVentas)}
+							</div>
 							<div className="rv-metric-sub up">
-								<span className="rv-dot up"></span>+12.4% vs período anterior
+								<span className="rv-dot up"></span>
+								{ventasFiltradas.length} ventas filtradas
 							</div>
 						</div>
 						<div className="rv-metric">
 							<div className="rv-metric-label">Órdenes</div>
-							<div className="rv-metric-value">341</div>
+							<div className="rv-metric-value">{metricas.ordenes}</div>
 							<div className="rv-metric-sub up">
-								<span className="rv-dot up"></span>+8 nuevas hoy
+								<span className="rv-dot up"></span>
+								{ventas.length} ventas cargadas
 							</div>
 						</div>
 						<div className="rv-metric">
 							<div className="rv-metric-label">Ticket promedio</div>
-							<div className="rv-metric-value">$247</div>
-							<div className="rv-metric-sub down">
-								<span className="rv-dot down"></span>-3.1% vs período anterior
+							<div className="rv-metric-value">
+								{formatoMonedaReporte(metricas.ticketPromedio)}
+							</div>
+							<div className="rv-metric-sub up">
+								<span className="rv-dot up"></span>
+								Promedio del filtro actual
 							</div>
 						</div>
 						<div className="rv-metric">
 							<div className="rv-metric-label">Adeudos pendientes</div>
-							<div className="rv-metric-value">$6,180</div>
+							<div className="rv-metric-value">
+								{formatoMonedaReporte(metricas.adeudosPendientes)}
+							</div>
 							<div className="rv-metric-sub down">
-								<span className="rv-dot down"></span>18 pacientes con saldo
+								<span className="rv-dot down"></span>
+								{metricas.pacientesConSaldo} ventas con saldo
 							</div>
 						</div>
 					</div>
 
-					{/* Filtros */}
 					<div className="rv-filters">
 						<div className="rv-filter-title">Filtros de reporte</div>
 						<div className="rv-filter-row">
@@ -204,8 +505,16 @@ const ReporteVentas = () => {
 									onChange={(e) => setSucursalSeleccionada(e.target.value)}
 									className="rv-select">
 									<option value="">Todas</option>
-									<option value="matriz">Matriz</option>
-									<option value="sucursal1">Sucursal 1</option>
+									{sucursales.map((sucursal) => (
+										<option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>
+											{sucursal.nombre}
+										</option>
+									))}
+									{ventasSinSucursal > 0 && (
+										<option value={SIN_SUCURSAL_REPORTE}>
+											Sin sucursal ({ventasSinSucursal})
+										</option>
+									)}
 								</select>
 							</div>
 							<div className="rv-filter-group">
@@ -215,7 +524,11 @@ const ReporteVentas = () => {
 									onChange={(e) => setVendedorSeleccionado(e.target.value)}
 									className="rv-select">
 									<option value="">Todos</option>
-									<option value="vendedor1">Vendedor 1</option>
+									{vendedores.map((vendedor) => (
+										<option key={vendedor.id_empleado} value={vendedor.id_empleado}>
+											{vendedor.nombre}
+										</option>
+									))}
 								</select>
 							</div>
 							<div className="rv-filter-group">
@@ -237,19 +550,25 @@ const ReporteVentas = () => {
 									onChange={(e) => setAreaSeleccionada(e.target.value)}
 									className="rv-select">
 									<option value="">Todas</option>
-									<option value="laboratorio">Laboratorio</option>
-									<option value="radiologia">Radiología</option>
+									{areas.map((area) => (
+										<option key={area.id_area} value={area.nombre}>
+											{area.nombre}
+										</option>
+									))}
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Empresa</label>
+								<label>Cliente</label>
 								<select
 									value={empresaSeleccionada}
 									onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 									className="rv-select">
-									<option value="">Todas</option>
-									<option value="issste">ISSSTE</option>
-									<option value="imss">IMSS</option>
+									<option value="">Todos</option>
+									{clientes.map((cliente) => (
+										<option key={cliente.id_cliente} value={cliente.id_cliente}>
+											{cliente.nombre}
+										</option>
+									))}
 								</select>
 							</div>
 							<div className="rv-filter-group">
@@ -259,7 +578,14 @@ const ReporteVentas = () => {
 									onChange={(e) => setDoctorSeleccionado(e.target.value)}
 									className="rv-select">
 									<option value="">Todos</option>
-									<option value="doctor1">Doctor 1</option>
+									{doctores.map((doctor) => {
+										const idDoctor = doctor.id_doctor || doctor.id_empleado;
+										return (
+											<option key={idDoctor} value={idDoctor}>
+												{doctor.nombre}
+											</option>
+										);
+									})}
 								</select>
 							</div>
 							<div className="rv-filter-group">
@@ -272,39 +598,34 @@ const ReporteVentas = () => {
 									className="rv-text-input"
 								/>
 							</div>
-							<button
-								className="rv-generar-btn"
-								onClick={() => alert("Generando...")}>
+							<button className="rv-generar-btn" onClick={cargarVentas}>
 								Generar
 							</button>
 						</div>
 
-						{/* Botones de reporte */}
 						<div className="rv-report-btns">
 							<button
-								className="rv-report-btn"
-								onClick={() => alert("Reporte General")}>
+								className={`rv-report-btn ${tipoReporte === "general" ? "active" : ""}`}
+								onClick={() => setTipoReporte("general")}>
 								<span className="rv-report-icon">≡</span>
 								Reporte General
 							</button>
 							<button
-								className="rv-report-btn"
-								onClick={() => alert("Reporte por Estudio")}>
+								className={`rv-report-btn ${tipoReporte === "estudio" ? "active" : ""}`}
+								onClick={() => setTipoReporte("estudio")}>
 								<span className="rv-report-icon">▦</span>
 								Por Estudio
 							</button>
 							<button
-								className="rv-report-btn"
-								onClick={() => alert("Reporte Sumatoria")}>
+								className={`rv-report-btn ${tipoReporte === "sumatoria" ? "active" : ""}`}
+								onClick={() => setTipoReporte("sumatoria")}>
 								<span className="rv-report-icon">∑</span>
 								Sumatoria
 							</button>
 						</div>
 					</div>
 
-					{/* Grid principal */}
 					<div className="rv-main-grid">
-						{/* Gráfica */}
 						<div className="rv-chart-card">
 							<div className="rv-chart-header">
 								<div className="rv-chart-title">
@@ -316,7 +637,7 @@ const ReporteVentas = () => {
 										<button
 											key={p}
 											className={`rv-tab ${periodoGrafica === p ? "active" : ""}`}
-											onClick={() => setPeriodoGrafica(p)}>
+											onClick={() => setPeriodo(p)}>
 											{p === "sem" ? "Sem" : p === "mes" ? "Mes" : "Año"}
 										</button>
 									))}
@@ -324,55 +645,64 @@ const ReporteVentas = () => {
 							</div>
 							<div className="rv-chart-body">
 								<div className="rv-y-axis">
-									<span>$12k</span>
-									<span>$8k</span>
-									<span>$4k</span>
+									<span>{formatoMonedaReporte(maxVal)}</span>
+									<span>{formatoMonedaReporte(maxVal / 2)}</span>
 									<span>$0</span>
 								</div>
 								<div className="rv-bars-area">
-									{BARS_DATA.map((v, i) => (
-										<div key={i} className="rv-bar-wrap">
+									{ventasPorDia.map((item) => (
+										<div key={item.label} className="rv-bar-wrap">
 											<div
-												className={`rv-bar ${i === BARS_DATA.length - 5 ? "highlight" : ""}`}
-												style={{ height: `${Math.round((v / maxVal) * 100)}%` }}
+												className="rv-bar highlight"
+												style={{ height: `${Math.max((item.total / maxVal) * 100, 4)}%` }}
+												title={formatoMonedaReporte(item.total)}
 											/>
-											<span className="rv-bar-label">{MONTHS_LABELS[i]}</span>
+											<span className="rv-bar-label">{item.label}</span>
 										</div>
 									))}
+									{ventasPorDia.length === 0 && (
+										<div className="rv-empty-chart">Sin ventas para graficar</div>
+									)}
 								</div>
 							</div>
+							{renderReporte()}
 						</div>
 
-						{/* Panel lateral */}
 						<div className="rv-side-col">
 							<div className="rv-side-card">
 								<div className="rv-side-title">Estudios más vendidos</div>
-								{PRODUCTOS_MOCK.map((p, i) => (
-									<div key={i} className="rv-product-row">
-										<span
-											className="rv-prod-dot"
-											style={{ background: p.color }}></span>
+								{estudiosTop.map((p) => (
+									<div key={p.name} className="rv-product-row">
+										<span className="rv-prod-dot" style={{ background: p.color }}></span>
 										<span className="rv-prod-name">{p.name}</span>
 										<div className="rv-prod-bar-wrap">
 											<div
 												className="rv-prod-bar-fill"
 												style={{ width: `${p.pct}%`, background: p.color }}></div>
 										</div>
-										<span className="rv-prod-pct">{p.pct}%</span>
+										<span className="rv-prod-pct">{p.count}</span>
 									</div>
 								))}
+								{estudiosTop.length === 0 && (
+									<div className="rv-empty-state small">Sin estudios</div>
+								)}
 							</div>
 							<div className="rv-side-card">
 								<div className="rv-side-title">Ventas por vendedor</div>
-								{VENDEDORES_MOCK.map((v, i) => (
-									<div key={i} className="rv-vendedor-row">
+								{ventasPorVendedor.map((v) => (
+									<div key={v.name} className="rv-vendedor-row">
 										<div>
 											<div className="rv-vendedor-name">{v.name}</div>
-											<div className="rv-vendedor-badge">{v.badge}</div>
+											<div className="rv-vendedor-badge">{v.orders} órdenes</div>
 										</div>
-										<div className="rv-vendedor-amount">{v.amount}</div>
+										<div className="rv-vendedor-amount">
+											{formatoMonedaReporte(v.amount)}
+										</div>
 									</div>
 								))}
+								{ventasPorVendedor.length === 0 && (
+									<div className="rv-empty-state small">Sin vendedores</div>
+								)}
 							</div>
 						</div>
 					</div>
