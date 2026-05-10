@@ -64,6 +64,15 @@
 	opacity: 0.85;
 }
 
+.rv-error {
+	padding: 0.65rem 0.9rem;
+	border: 1px solid rgba(239, 83, 80, 0.35);
+	border-radius: 8px;
+	background: rgba(239, 83, 80, 0.12);
+	color: #ffb5b3;
+	font-size: 0.78rem;
+}
+
 /* ── Body ─────────────────────────────────────────────────── */
 .rv-body {
 	flex: 1;
@@ -320,6 +329,12 @@
 	color: #fff;
 }
 
+.rv-report-btn.active {
+	background: rgba(83, 185, 219, 0.18);
+	border-color: rgba(83, 185, 219, 0.65);
+	color: #fff;
+}
+
 .rv-report-icon {
 	font-size: 1rem;
 	color: #53B9DB;
@@ -468,6 +483,78 @@
 	color: rgba(255, 255, 255, 0.25);
 	white-space: nowrap;
 	line-height: 1;
+}
+
+.rv-empty-chart {
+	position: absolute;
+	inset: 0 0 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: rgba(255, 255, 255, 0.38);
+	font-size: 0.78rem;
+}
+
+.rv-table-wrap {
+	margin: 0 1rem 1rem;
+	max-height: 310px;
+	overflow: auto;
+	border: 1px solid rgba(83, 185, 219, 0.12);
+	border-radius: 8px;
+	background: rgba(2, 15, 35, 0.34);
+}
+
+.rv-table {
+	width: 100%;
+	min-width: 760px;
+	border-collapse: collapse;
+	font-size: 0.74rem;
+}
+
+.rv-table th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding: 0.65rem 0.75rem;
+	background: rgba(10, 25, 41, 0.96);
+	color: rgba(83, 185, 219, 0.85);
+	font-weight: 500;
+	text-align: left;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	border-bottom: 1px solid rgba(83, 185, 219, 0.16);
+}
+
+.rv-table td {
+	padding: 0.62rem 0.75rem;
+	color: rgba(255, 255, 255, 0.76);
+	border-bottom: 1px solid rgba(83, 185, 219, 0.07);
+	vertical-align: top;
+}
+
+.rv-table tr:last-child td {
+	border-bottom: none;
+}
+
+.rv-table tbody tr:hover td {
+	background: rgba(83, 185, 219, 0.06);
+}
+
+.rv-empty-state {
+	margin: 1rem;
+	padding: 1rem;
+	border: 1px dashed rgba(83, 185, 219, 0.22);
+	border-radius: 8px;
+	color: rgba(255, 255, 255, 0.45);
+	text-align: center;
+	font-size: 0.78rem;
+}
+
+.rv-empty-state.small {
+	margin: 0;
+	padding: 0.55rem 0;
+	border: none;
+	text-align: left;
 }
 
 /* ── Panel lateral ────────────────────────────────────────── */

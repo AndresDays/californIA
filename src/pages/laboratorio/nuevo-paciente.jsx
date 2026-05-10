@@ -11,6 +11,16 @@ import {
 } from "../../utils/cita-nuevo-paciente";
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import { generarTicketVenta } from "../../utils/generarTicketVenta";
+import {
+	formatearDoctorBusqueda,
+	formatearPacienteBusqueda,
+} from "../../utils/nuevo-paciente-busqueda";
+import { esErrorColumnaSchemaCache } from "../../utils/supabase-errors";
+import {
+	agregarSucursalEmpleadoPayload,
+	resolverSucursalEmpleado,
+} from "../../utils/sucursal-empleado";
+import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
 import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
@@ -20,7 +30,6 @@ import "./nuevo-paciente.css";
 import cotizacionesBtn from "../../assets/cotizacionesBtn.png";
 import doctorIcono from "../../assets/doctorIcono.png";
 import eliminarIcono from "../../assets/eliminarIconoV2.png";
-import guardarImpBtn from "../../assets/guardarImpBtn.png";
 import muestrasBtn from "../../assets/muestrasBtn.png";
 import pacientesIcono from "../../assets/pacientesIcono.png";
 import warningV1 from "../../assets/warningV1.png";
@@ -109,7 +118,7 @@ const NuevoPaciente = () => {
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol")
+					.select("nombre, rol, sucursal")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 
@@ -231,9 +240,16 @@ const NuevoPaciente = () => {
 
 			const { data: empleado } = await supabase
 				.from("empleados")
-				.select("id_empleado")
+				.select("id_empleado, sucursal")
 				.eq("auth_uuid", user.id)
 				.single();
+			const { data: sucursalesCatalogo } = await supabase
+				.from("sucursales")
+				.select("id_sucursal, nombre");
+			const sucursalEmpleado = resolverSucursalEmpleado(
+				empleado,
+				sucursalesCatalogo || [],
+			);
 
 			const folio = await generarFolio();
 
@@ -243,45 +259,74 @@ const NuevoPaciente = () => {
 				ahora.toLocaleString("en-US", { timeZone: "America/Mexico_City" }),
 			);
 
-			const { data: venta, error: errorVenta } = await supabase
-				.from("ventas")
-				.insert([
-					{
-						folio: folio,
-						id_paciente: idPaciente,
-						id_doctor: doctorSeleccionado?.id_doctor || null,
-						id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
-						id_empleado: empleado?.id_empleado || null,
-						fecha_venta: fechaMexico.toISOString(),
-						subtotal: subtotal,
-						iva: iva,
-						descuento: descuento,
-						total: granTotal,
-						forma_pago: formaPago,
-						pago_recibido: pagoNormalizado,
-						cambio: cambioVenta,
-						observaciones: observaciones,
-						estado: "activo",
-					},
-				])
-				.select()
-				.single();
+			const ventaPayload = agregarSucursalEmpleadoPayload(
+				{
+					folio: folio,
+					id_paciente: idPaciente,
+					id_doctor:
+						doctorSeleccionado?.id_doctor || doctorSeleccionado?.id_empleado || null,
+					id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
+					id_empleado: empleado?.id_empleado || null,
+					fecha_venta: fechaMexico.toISOString(),
+					subtotal: subtotal,
+					iva: iva,
+					descuento: descuento,
+					total: granTotal,
+					forma_pago: formaPago,
+					pago_recibido: pagoNormalizado,
+					cambio: cambioVenta,
+					observaciones: observaciones,
+					estado: "activo",
+					...(idCitaPrecargada ? { id_cita: idCitaPrecargada } : {}),
+				},
+				sucursalEmpleado,
+			);
+
+			const insertarVenta = (payload) =>
+				supabase.from("ventas").insert([payload]).select().single();
+
+			let { data: venta, error: errorVenta } = await insertarVenta(ventaPayload);
+			let ventaPayloadFallback = { ...ventaPayload };
+
+			for (const columna of ["id_sucursal", "sucursal", "id_cita"]) {
+				if (!errorVenta || !esErrorColumnaSchemaCache(errorVenta, columna)) break;
+				delete ventaPayloadFallback[columna];
+				({ data: venta, error: errorVenta } = await insertarVenta(
+					ventaPayloadFallback,
+				));
+			}
 
 			if (errorVenta) throw errorVenta;
 
-			const estudiosParaInsertar = estudiosSeleccionados.map((est) => ({
-				id_venta: venta.id_venta,
-				clave_estudio: est.clave,
-				descripcion_estudio: est.descripcion,
-				precio: est.precio,
-				area: est.area,
-				dias_proceso: est.diasProceso || 1,
-				estado_captura: "pendiente",
-			}));
+			const estudiosParaInsertar = estudiosSeleccionados.map((est) =>
+				agregarSucursalEmpleadoPayload(
+					{
+						id_venta: venta.id_venta,
+						clave_estudio: est.clave,
+						descripcion_estudio: est.descripcion,
+						precio: est.precio,
+						area: est.area,
+						dias_proceso: est.diasProceso || 1,
+						estado_captura: "pendiente",
+					},
+					sucursalEmpleado,
+				),
+			);
 
-			const { error: errorEstudios } = await supabase
-				.from("estudios_venta")
-				.insert(estudiosParaInsertar);
+			const insertarEstudios = (payload) =>
+				supabase.from("estudios_venta").insert(payload);
+			let { error: errorEstudios } = await insertarEstudios(estudiosParaInsertar);
+			let estudiosPayloadFallback = estudiosParaInsertar;
+
+			for (const columna of ["id_sucursal", "sucursal"]) {
+				if (!errorEstudios || !esErrorColumnaSchemaCache(errorEstudios, columna)) break;
+				estudiosPayloadFallback = estudiosPayloadFallback.map((estudio) => {
+					const limpio = { ...estudio };
+					delete limpio[columna];
+					return limpio;
+				});
+				({ error: errorEstudios } = await insertarEstudios(estudiosPayloadFallback));
+			}
 
 			if (errorEstudios) throw errorEstudios;
 
@@ -467,7 +512,7 @@ const NuevoPaciente = () => {
 			if (error) throw error;
 
 			setPacientesEncontrados(data || []);
-			setShowBusquedaPacientes(data && data.length > 0);
+			setShowBusquedaPacientes(true);
 		} catch (error) {
 			console.error("Error al buscar pacientes:", error);
 			setPacientesEncontrados([]);
@@ -591,7 +636,7 @@ const NuevoPaciente = () => {
 
 			if (error) throw error;
 			setDoctoresEncontrados(data || []);
-			setShowBusquedaDoctores(data && data.length > 0);
+			setShowBusquedaDoctores(true);
 		} catch (error) {
 			console.error("Error al buscar doctores:", error);
 			setDoctoresEncontrados([]);
@@ -863,6 +908,18 @@ const NuevoPaciente = () => {
 		return roles[rol] || rol;
 	};
 
+	const resumenPago = obtenerResumenPagoNuevoPaciente(granTotal, pagoRecibido);
+	const limpiarPacienteSeleccionado = () => {
+		setPacienteSeleccionado(null);
+		setBuscarPaciente("");
+		setNombreCompleto("");
+		setTelefono("");
+		setCorreo("");
+		setEdad("");
+		setSexo("");
+		setRfc("");
+	};
+
 	const handleLogout = async () => {
 		const { signOut } = useAuth();
 		await signOut();
@@ -877,15 +934,21 @@ const NuevoPaciente = () => {
 			<div className="nuevo-paciente-wrapper">
 
 				<main className="page-main">
+					{idCitaPrecargada && (
+						<div className="source-banner">
+							<span>Cargado desde cita #{idCitaPrecargada}</span>
+						</div>
+					)}
+
 					<div className="content-grid">
-						<div className="left-column">
+						<div className="patient-column">
 							<section className="form-section form-section-cliente">
-								<h2 className="section-title">Agregar Cliente</h2>
+								<h2 className="section-title">Paciente</h2>
 
 								<div className="search-container">
 									<input
 										type="text"
-										placeholder="Buscar paciente existente..."
+										placeholder="Buscar por nombre o teléfono"
 										value={buscarPaciente}
 										onChange={(e) => {
 											setBuscarPaciente(e.target.value);
@@ -902,19 +965,25 @@ const NuevoPaciente = () => {
 
 									{showBusquedaPacientes && pacientesEncontrados.length > 0 && (
 										<div className="search-results">
-											{pacientesEncontrados.map((pac) => (
-												<div
-													key={pac.id_paciente}
-													className="search-result-item"
-													onClick={() => seleccionarPaciente(pac)}>
-													<div className="result-nombre">{pac.nombre}</div>
-													<div className="result-info">
-														{pac.telefono && <span>📞 {pac.telefono}</span>}
-														{pac.edad && <span>👤 {pac.edad} años</span>}
-														{pac.sexo && <span>⚧ {pac.sexo}</span>}
+											{pacientesEncontrados.map((pac) => {
+												const detalles = formatearPacienteBusqueda(pac);
+
+												return (
+													<div
+														key={pac.id_paciente}
+														className="search-result-item"
+														onClick={() => seleccionarPaciente(pac)}>
+														<div className="result-nombre">{pac.nombre}</div>
+														{detalles.length > 0 && (
+															<div className="result-info">
+																{detalles.map((detalle) => (
+																	<span key={detalle}>{detalle}</span>
+																))}
+															</div>
+														)}
 													</div>
-												</div>
-											))}
+												);
+											})}
 										</div>
 									)}
 
@@ -923,11 +992,40 @@ const NuevoPaciente = () => {
 										buscarPaciente.length >= 2 && (
 											<div className="search-results">
 												<div className="search-no-results">
-													No se encontraron pacientes con "{buscarPaciente}"
+													<span>No hay coincidencias</span>
+													<button
+														type="button"
+														onClick={() => setModalAgregarPacienteOpen(true)}>
+														Agregar paciente
+													</button>
 												</div>
 											</div>
 										)}
 								</div>
+
+								{pacienteSeleccionado && (
+									<div className="selected-entity-card">
+										<div>
+											<strong>{pacienteSeleccionado.nombre}</strong>
+											<span>
+												{[
+													pacienteSeleccionado.edad
+														? `${pacienteSeleccionado.edad} años`
+														: "",
+													pacienteSeleccionado.sexo || "",
+													pacienteSeleccionado.telefono || "",
+												]
+													.filter(Boolean)
+													.join(" · ")}
+											</span>
+										</div>
+										<button
+											type="button"
+											onClick={limpiarPacienteSeleccionado}>
+											Cambiar
+										</button>
+									</div>
+								)}
 
 								<div className="form-group">
 									<label>Nombre Completo</label>
@@ -1001,12 +1099,12 @@ const NuevoPaciente = () => {
 							</section>
 
 							<section className="form-section">
-								<h2 className="section-title">Agregar Doctor</h2>
+								<h2 className="section-title">Doctor</h2>
 
 								<div className="search-container">
 									<input
 										type="text"
-										placeholder="A QUIEN CORRESPONDA"
+										placeholder="Buscar doctor"
 										value={doctorBusqueda}
 										onChange={(e) => {
 											setDoctorBusqueda(e.target.value);
@@ -1023,20 +1121,66 @@ const NuevoPaciente = () => {
 
 									{showBusquedaDoctores && doctoresEncontrados.length > 0 && (
 										<div className="search-results">
-											{doctoresEncontrados.map((doc) => (
-												<div
-													key={doc.id_empleado}
-													className="search-result-item"
-													onClick={() => seleccionarDoctor(doc)}>
-													<div className="result-nombre">{doc.nombre}</div>
-													<div className="result-info">
-														{doc.telefono && <span>📞 {doc.telefono}</span>}
+											{doctoresEncontrados.map((doc) => {
+												const doctor = formatearDoctorBusqueda(doc);
+
+												return (
+													<div
+														key={doc.id_empleado}
+														className="search-result-item"
+														onClick={() => seleccionarDoctor(doc)}>
+														<div className="result-nombre">{doctor.nombre}</div>
+														{doctor.detalles.length > 0 && (
+															<div className="result-info">
+																{doctor.detalles.map((detalle) => (
+																	<span key={detalle}>{detalle}</span>
+																))}
+															</div>
+														)}
 													</div>
-												</div>
-											))}
+												);
+											})}
 										</div>
 									)}
+
+									{showBusquedaDoctores &&
+										doctoresEncontrados.length === 0 &&
+										doctorBusqueda.length >= 2 && (
+											<div className="search-results">
+												<div className="search-no-results">
+													<span>No hay coincidencias</span>
+													<button
+														type="button"
+														onClick={() => setModalAgregarDoctorOpen(true)}>
+														Agregar doctor
+													</button>
+												</div>
+											</div>
+										)}
 								</div>
+
+								{doctorSeleccionado && (
+									<div className="selected-entity-card">
+										<div>
+											<strong>
+												{formatearDoctorBusqueda(doctorSeleccionado).nombre}
+											</strong>
+											<span>
+												{formatearDoctorBusqueda(doctorSeleccionado).detalles.join(
+													" · ",
+												)}
+											</span>
+										</div>
+										<button
+											type="button"
+											onClick={() => {
+												setDoctorSeleccionado(null);
+												setDoctorBusqueda("");
+											}}>
+											Cambiar
+										</button>
+									</div>
+								)}
 							</section>
 
 							<section className="form-section">
@@ -1051,7 +1195,7 @@ const NuevoPaciente = () => {
 							</section>
 						</div>
 
-						<div className="right-column">
+						<div className="study-column">
 							<div className="top-controls">
 								<div className="form-group-inline">
 									<label>Clientes</label>
@@ -1128,7 +1272,10 @@ const NuevoPaciente = () => {
 							</div>
 
 							<section className="estudios-section">
-								<h2 className="section-title">Lista de precios</h2>
+								<div className="section-title-row">
+									<h2 className="section-title">Estudios</h2>
+									<span>{estudiosSeleccionados.length} seleccionados</span>
+								</div>
 
 								{!clienteSeleccionado && (
 									<div className="alert-empresa-requerida">
@@ -1219,8 +1366,38 @@ const NuevoPaciente = () => {
 									</table>
 								</div>
 							</section>
+						</div>
 
+						<aside className="summary-column" aria-label="Resumen de solicitud">
 							<section className="totales-section">
+								<div className="summary-header">
+									<h2 className="section-title">Resumen</h2>
+									<span className={`payment-status ${resumenPago.estado}`}>
+										{resumenPago.etiqueta}
+									</span>
+								</div>
+
+								<div className="request-summary-card">
+									<div>
+										<span>Paciente</span>
+										<strong>{nombreCompleto || "Sin paciente"}</strong>
+									</div>
+									<div>
+										<span>Cliente</span>
+										<strong>
+											{clientes.find(
+												(cli) =>
+													cli.id_cliente.toString() ===
+													clienteSeleccionado.toString(),
+											)?.nombre || "Particular"}
+										</strong>
+									</div>
+									<div>
+										<span>Estudios</span>
+										<strong>{estudiosSeleccionados.length}</strong>
+									</div>
+								</div>
+
 								<div className="totales-grid">
 									<div className="total-item">
 										<label>Total</label>
@@ -1329,14 +1506,10 @@ const NuevoPaciente = () => {
 
 							<div className="action-buttons-final">
 								<button className="btn-guardar-img" onClick={guardarYPagar}>
-									<img
-										src={guardarImpBtn}
-										alt="Guardar e Imprimir"
-										className="btn-guardar-icon"
-									/>
+									<span className="btn-guardar-label">{resumenPago.accion}</span>
 								</button>
 							</div>
-						</div>
+						</aside>
 					</div>
 				</main>
 
