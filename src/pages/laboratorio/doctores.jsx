@@ -3,19 +3,25 @@ import agregarDoctorBtn from "../../assets/agregarDoctorBtn.png";
 import editarIcono from "../../assets/editarIcono.png";
 import eliminarIconoV2 from "../../assets/eliminarIconoV2.png";
 import imprimirTablaBtn from "../../assets/imprimirTablaBtn.png";
+import {
+	AdminCatalogIconButton,
+	AdminCatalogPage,
+	AdminCatalogPagination,
+	AdminCatalogTable,
+} from "../../components/admin-catalog.jsx";
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
-import "./doctores.css";
 
 const Doctores = () => {
 	const { user } = useAuth();
 	const [buscarDoctor, setBuscarDoctor] = useState("");
 	const [doctores, setDoctores] = useState([]);
 	const [totalDoctores, setTotalDoctores] = useState(0);
+	const [paginaActual, setPaginaActual] = useState(1);
 	const [modalAbierto, setModalAbierto] = useState(false);
 	const [doctorEditar, setDoctorEditar] = useState(null);
 	const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
@@ -26,6 +32,7 @@ const Doctores = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	const doctoresPorPagina = 500;
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -46,7 +53,7 @@ const Doctores = () => {
 
 	useEffect(() => {
 		cargarDoctores();
-	}, [buscarDoctor]);
+	}, [buscarDoctor, paginaActual]);
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
@@ -69,9 +76,11 @@ const Doctores = () => {
 					`nombre.ilike.%${buscarDoctor}%,apellido_paterno.ilike.%${buscarDoctor}%,apellido_materno.ilike.%${buscarDoctor}%,email.ilike.%${buscarDoctor}%`,
 				);
 			}
+			const desde = (paginaActual - 1) * doctoresPorPagina;
+			const hasta = desde + doctoresPorPagina - 1;
 			const { data, error, count } = await query.order("id_doctor", {
 				ascending: true,
-			});
+			}).range(desde, hasta);
 			if (error) throw error;
 			setTotalDoctores(count || 0);
 			setDoctores(
@@ -178,176 +187,144 @@ const Doctores = () => {
 		return roles[rol] || rol;
 	};
 
+	const doctorInicio = totalDoctores ? (paginaActual - 1) * doctoresPorPagina + 1 : 0;
+	const doctorFin = Math.min(paginaActual * doctoresPorPagina, totalDoctores);
+	const paginaAnterior = () => setPaginaActual((pagina) => Math.max(1, pagina - 1));
+	const paginaSiguiente = () => {
+		if (paginaActual * doctoresPorPagina < totalDoctores) {
+			setPaginaActual((pagina) => pagina + 1);
+		}
+	};
+
+	const doctorRows = doctores.map((doctor) => (
+		<tr key={doctor.id}>
+			<td>{doctor.id}</td>
+			<td>{doctor.apellidoPaterno}</td>
+			<td>{doctor.apellidoMaterno}</td>
+			<td>{doctor.nombre}</td>
+			<td>{doctor.edad} años</td>
+			<td>{doctor.sexo}</td>
+			<td>{doctor.telefono}</td>
+			<td>{doctor.email}</td>
+			<td>{doctor.fechaRegistro}</td>
+			<td>
+				<div className="admin-catalog-row-actions">
+					<button
+						type="button"
+						className="admin-catalog-row-button"
+						onClick={() => {
+							setDoctorEditar(doctor);
+							setModalAbierto(true);
+						}}
+						title="Editar doctor"
+						aria-label="Editar doctor">
+						<img src={editarIcono} alt="Editar" className="admin-catalog-row-icon edit" />
+					</button>
+					<button
+						type="button"
+						className="admin-catalog-row-button"
+						onClick={() => {
+							setDoctorAEliminar(doctor);
+							setModalEliminarOpen(true);
+						}}
+						title="Eliminar doctor"
+						aria-label="Eliminar doctor">
+						<img src={eliminarIconoV2} alt="Eliminar" className="admin-catalog-row-icon" />
+					</button>
+				</div>
+			</td>
+		</tr>
+	));
+
 	return (
 		<PageLayout
 			empleadoData={empleadoData}
 			formatRol={formatRol}
 			getPrimerNombre={getPrimerNombre}>
-			<div className="admin-doctores-wrapper">
-				<div className="admin-doctores-header">
-					<h1 className="admin-doctores-title">Administrar Doctores</h1>
-				</div>
-
-				<div className="admin-doctores-content">
-					<div className="controles-admin-doctores">
-						<div className="botones-accion-doctores">
-							<button
-								className="btn-agregar-doctor"
-								onClick={() => {
-									setDoctorEditar(null);
-									setModalAbierto(true);
-								}}>
-								<img
-									src={agregarDoctorBtn}
-									alt="Agregar Doctor"
-									className="icono-btn-doctor"
-								/>
-							</button>
-							<button
-								className="btn-imprimir-tabla-doc"
-								onClick={() => window.print()}>
-								<img
-									src={imprimirTablaBtn}
-									alt="Imprimir Tabla"
-									className="icono-btn-doctor"
-								/>
-							</button>
-						</div>
-					</div>
-
-					<div className="exportacion-busqueda">
-						<div className="botones-exportacion">
-							<button
-								className="btn-exportar"
-								onClick={() => alert("Exportar a Excel")}>
-								Excel
-							</button>
-							<button
-								className="btn-exportar"
-								onClick={() => alert("Exportar a PDF")}>
-								PDF
-							</button>
-						</div>
-						<div className="busqueda-doctores">
-							<label>Buscar:</label>
-							<input
-								type="text"
-								value={buscarDoctor}
-								onChange={(e) => setBuscarDoctor(e.target.value)}
-								className="input-buscar-doctores"
-							/>
-						</div>
-					</div>
-
-					<div className="tabla-admin-doctores-container">
-						<table className="tabla-admin-doctores">
-							<thead>
-								<tr>
-									<th>Apellido paterno</th>
-									<th>Apellido Materno</th>
-									<th>Nombre</th>
-									<th>Edad</th>
-									<th>Sexo</th>
-									<th>Fecha nacimiento</th>
-									<th>Telefono</th>
-									<th>Email</th>
-									<th>Usuario</th>
-									<th>Contraseña</th>
-									<th>Fecha registro</th>
-									<th>Accion</th>
-								</tr>
-							</thead>
-							<tbody>
-								{doctores.length === 0 ? (
-									<tr>
-										<td colSpan="12" className="sin-doctores">
-											No hay doctores para mostrar
-										</td>
-									</tr>
-								) : (
-									doctores.map((doctor) => (
-										<tr key={doctor.id}>
-											<td>{doctor.apellidoPaterno}</td>
-											<td>{doctor.apellidoMaterno}</td>
-											<td>{doctor.nombre}</td>
-											<td>{doctor.edad}</td>
-											<td>{doctor.sexo}</td>
-											<td>{doctor.fechaNacimiento}</td>
-											<td>{doctor.telefono}</td>
-											<td>{doctor.email}</td>
-											<td>{doctor.usuario}</td>
-											<td>{doctor.contrasena}</td>
-											<td>{doctor.fechaRegistro}</td>
-											<td>
-												<div className="acciones-doctores">
-													<button
-														className="btn-editar-doctor"
-														onClick={() => {
-															setDoctorEditar(doctor);
-															setModalAbierto(true);
-														}}
-														title="Editar doctor">
-														<img
-															src={editarIcono}
-															alt="Editar"
-															className="btn-edit-icon"
-														/>
-													</button>
-													<button
-														className="btn-eliminar-doctor"
-														onClick={() => {
-															setDoctorAEliminar(doctor);
-															setModalEliminarOpen(true);
-														}}
-														title="Eliminar doctor">
-														<img
-															src={eliminarIconoV2}
-															alt="Eliminar"
-															className="icono-eliminar-doctor"
-														/>
-													</button>
-												</div>
-											</td>
-										</tr>
-									))
-								)}
-							</tbody>
-						</table>
-					</div>
-
-					<div className="contador-registros">
-						Mostrando registros del 1 al {doctores.length} de un total de{" "}
-						{totalDoctores}
-					</div>
-				</div>
-
-				<ModalAgregarDoctor
-					isOpen={modalAbierto}
-					onClose={() => setModalAbierto(false)}
-					onSave={handleGuardarDoctor}
-					doctorEditar={doctorEditar}
+			<AdminCatalogPage
+				title="Administrar Doctores"
+				actions={
+					<>
+						<AdminCatalogIconButton
+							label="Agregar Doctor"
+							icon={agregarDoctorBtn}
+							onClick={() => {
+								setDoctorEditar(null);
+								setModalAbierto(true);
+							}}
+						/>
+						<AdminCatalogIconButton
+							label="Imprimir Tabla"
+							icon={imprimirTablaBtn}
+							onClick={() => window.print()}
+						/>
+					</>
+				}
+				searchValue={buscarDoctor}
+				onSearchChange={(value) => {
+					setBuscarDoctor(value);
+					setPaginaActual(1);
+				}}
+				searchPlaceholder="Busca Doctores Aqui..."
+				pagination={
+					<AdminCatalogPagination
+						start={doctorInicio}
+						end={doctorFin}
+						total={totalDoctores}
+						onPrevious={paginaAnterior}
+						onNext={paginaSiguiente}
+						previousDisabled={paginaActual === 1}
+						nextDisabled={paginaActual * doctoresPorPagina >= totalDoctores}
+					/>
+				}
+				afterContent={
+					<>
+						<ModalAgregarDoctor
+							isOpen={modalAbierto}
+							onClose={() => setModalAbierto(false)}
+							onSave={handleGuardarDoctor}
+							doctorEditar={doctorEditar}
+						/>
+						<ModalConfirmarEliminacion
+							isOpen={modalEliminarOpen}
+							onClose={() => {
+								setModalEliminarOpen(false);
+								setDoctorAEliminar(null);
+							}}
+							onConfirm={confirmarEliminarDoctor}
+							tipo="doctor"
+							nombreElemento={
+								doctorAEliminar
+									? `${doctorAEliminar.nombre} ${doctorAEliminar.apellidoPaterno} ${doctorAEliminar.apellidoMaterno}`
+									: ""
+							}
+						/>
+						<ModalNotificacion
+							isOpen={notificacion.isOpen}
+							onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+							mensaje={notificacion.mensaje}
+							tipo={notificacion.tipo}
+						/>
+					</>
+				}>
+				<AdminCatalogTable
+					columns={[
+						"ID",
+						"Apellido paterno",
+						"Apellido Materno",
+						"Nombre",
+						"Edad",
+						"Sexo",
+						"Telefono",
+						"Email",
+						"Fecha Registro",
+						"Accion",
+					]}
+					rows={doctorRows}
+					emptyMessage="No hay doctores para mostrar"
+					emptyColSpan={10}
 				/>
-				<ModalConfirmarEliminacion
-					isOpen={modalEliminarOpen}
-					onClose={() => {
-						setModalEliminarOpen(false);
-						setDoctorAEliminar(null);
-					}}
-					onConfirm={confirmarEliminarDoctor}
-					tipo="doctor"
-					nombreElemento={
-						doctorAEliminar
-							? `${doctorAEliminar.nombre} ${doctorAEliminar.apellidoPaterno} ${doctorAEliminar.apellidoMaterno}`
-							: ""
-					}
-				/>
-				<ModalNotificacion
-					isOpen={notificacion.isOpen}
-					onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
-					mensaje={notificacion.mensaje}
-					tipo={notificacion.tipo}
-				/>
-			</div>
+			</AdminCatalogPage>
 		</PageLayout>
 	);
 };

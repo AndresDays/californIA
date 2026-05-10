@@ -2,6 +2,8 @@ import {
 	buildEmpleadoInsertPayload,
 	buildEmpleadoUpdatePayload,
 	esRolAdministrador,
+	normalizarRolUsuario,
+	prepararUsuarioParaFormulario,
 } from './usuarios-auth';
 
 describe('usuarios auth payloads', () => {
@@ -63,5 +65,39 @@ describe('usuarios auth payloads', () => {
 		expect(esRolAdministrador('administrador')).toBe(true);
 		expect(esRolAdministrador('desarrollador')).toBe(true);
 		expect(esRolAdministrador('recepcionista')).toBe(false);
+	});
+
+	test('normalizes stored role labels to select values', () => {
+		expect(normalizarRolUsuario('Desarrollador')).toBe('desarrollador');
+		expect(normalizarRolUsuario('Radiologo')).toBe('radiologo');
+		expect(normalizarRolUsuario('Médico')).toBe('medico');
+		expect(normalizarRolUsuario('Tecnico Radiologia')).toBe('tecnico_radiologia');
+	});
+
+	test('prepares an existing user for the edit form', () => {
+		expect(
+			prepararUsuarioParaFormulario({
+				id: 2,
+				auth_uuid: 'auth-id',
+				nombre: 'Juan',
+				usuario: 'juan',
+				rol: 'Radiologo',
+				sucursal: 'CENTRAL',
+				email: 'juan@example.com',
+				telefono: '555',
+				estado: 'Activado',
+			}),
+		).toEqual({
+			id: 2,
+			auth_uuid: 'auth-id',
+			nombre: 'Juan',
+			usuario: 'juan',
+			contrasena: '',
+			rol: 'radiologo',
+			sucursal: 'CENTRAL',
+			email: 'juan@example.com',
+			telefono: '555',
+			activo: true,
+		});
 	});
 });

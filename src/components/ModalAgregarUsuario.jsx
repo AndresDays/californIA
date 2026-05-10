@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { prepararUsuarioParaFormulario } from '../utils/usuarios-auth';
 import './ModalAgregarUsuario.css';
 
-const ModalAgregarUsuario = ({ isOpen, onClose, onGuardar, usuarioEditar }) => {
+const ModalAgregarUsuario = ({
+  isOpen,
+  onClose,
+  onGuardar,
+  usuarioEditar,
+  sucursales = [],
+}) => {
   const [formData, setFormData] = useState({
     nombre: '',
     usuario: '',
@@ -14,21 +21,13 @@ const ModalAgregarUsuario = ({ isOpen, onClose, onGuardar, usuarioEditar }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const sucursalActualNoCatalogada =
+    formData.sucursal &&
+    !sucursales.some((sucursal) => sucursal.nombre === formData.sucursal);
 
   useEffect(() => {
     if (usuarioEditar) {
-      setFormData({
-        id: usuarioEditar.id,
-        auth_uuid: usuarioEditar.auth_uuid || '',
-        nombre: usuarioEditar.nombre || '',
-        usuario: usuarioEditar.usuario || '',
-        contrasena: '',
-        rol: usuarioEditar.rol || '',
-        sucursal: usuarioEditar.sucursal || '',
-        email: usuarioEditar.email || '',
-        telefono: usuarioEditar.telefono || '',
-        activo: usuarioEditar.estado === 'Activado'
-      });
+      setFormData(prepararUsuarioParaFormulario(usuarioEditar));
     } else {
       setFormData({
         nombre: '',
@@ -214,14 +213,22 @@ const ModalAgregarUsuario = ({ isOpen, onClose, onGuardar, usuarioEditar }) => {
 
               <div className="form-group">
                 <label>Sucursal</label>
-                <input
-                  type="text"
+                <select
                   name="sucursal"
                   value={formData.sucursal}
                   onChange={handleChange}
-                  className="form-input"
-                  placeholder="Nombre de la sucursal"
-                />
+                  className="form-select"
+                >
+                  <option value="">Seleccionar sucursal</option>
+                  {sucursalActualNoCatalogada && (
+                    <option value={formData.sucursal}>{formData.sucursal}</option>
+                  )}
+                  {sucursales.map((sucursal) => (
+                    <option key={sucursal.id_sucursal} value={sucursal.nombre}>
+                      {sucursal.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

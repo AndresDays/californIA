@@ -2,15 +2,20 @@ import { useEffect, useState } from "react";
 import agregarUsuarioBtn from "../assets/agregarUsuarioBtn.png";
 import editarIcono from "../assets/editarIcono.png";
 import eliminarIconoV2 from "../assets/eliminarIconoV2.png";
+import {
+	AdminCatalogIconButton,
+	AdminCatalogPage,
+	AdminCatalogPagination,
+	AdminCatalogTable,
+} from "../components/admin-catalog.jsx";
 import ModalAgregarUsuario from "../components/ModalAgregarUsuario";
 import ModalConfirmarEliminacion from "../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../components/ModalNotificacion";
 import PageLayout from "../components/page-layout.jsx";
 import { useAuth } from "../context/auth-context";
 import { supabase } from "../lib/supabase-client";
-import { buildEmpleadoUpdatePayload } from "../utils/usuarios-auth";
+import { buildEmpleadoUpdatePayload, normalizarRolUsuario } from "../utils/usuarios-auth";
 import { obtenerMensajeErrorFuncion } from "../utils/supabase-functions";
-import "./usuarios.css";
 
 const Usuarios = () => {
 	const { user } = useAuth();
@@ -18,7 +23,6 @@ const Usuarios = () => {
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [buscarUsuario, setBuscarUsuario] = useState("");
 	const [usuarios, setUsuarios] = useState([]);
-	const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 	const [paginaActual, setPaginaActual] = useState(1);
 	const [totalUsuarios, setTotalUsuarios] = useState(0);
 	const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
@@ -30,6 +34,8 @@ const Usuarios = () => {
 	});
 	const [modalAgregarOpen, setModalAgregarOpen] = useState(false);
 	const [usuarioEditar, setUsuarioEditar] = useState(null);
+	const [sucursales, setSucursales] = useState([]);
+	const usuariosPorPagina = 500;
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -50,7 +56,11 @@ const Usuarios = () => {
 
 	useEffect(() => {
 		cargarUsuarios();
-	}, [paginaActual, registrosPorPagina, buscarUsuario]);
+	}, [paginaActual, buscarUsuario]);
+
+	useEffect(() => {
+		cargarSucursales();
+	}, []);
 
 	const formatRol = (rol) => {
 		if (!rol) return "Usuario";
@@ -66,7 +76,22 @@ const Usuarios = () => {
 			recepcionista: "Recepcionista",
 			desarrollador: "Desarrollador",
 		};
-		return roles[rol] || rol;
+		const rolNormalizado = normalizarRolUsuario(rol);
+		return roles[rolNormalizado] || rol;
+	};
+
+	const cargarSucursales = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("sucursales")
+				.select("id_sucursal, nombre")
+				.order("nombre");
+			if (error) throw error;
+			setSucursales(data || []);
+		} catch (error) {
+			console.error("Error al cargar sucursales:", error);
+			setSucursales([]);
+		}
 	};
 
 	const cargarUsuarios = async () => {
@@ -76,9 +101,9 @@ const Usuarios = () => {
 				query = query.or(
 					`nombre.ilike.%${buscarUsuario}%,usuario.ilike.%${buscarUsuario}%,rol.ilike.%${buscarUsuario}%,sucursal.ilike.%${buscarUsuario}%`,
 				);
-			const desde = (paginaActual - 1) * registrosPorPagina;
+			const desde = (paginaActual - 1) * usuariosPorPagina;
 			const { data, error, count } = await query
-				.range(desde, desde + registrosPorPagina - 1)
+				.range(desde, desde + usuariosPorPagina - 1)
 				.order("id_empleado", { ascending: true });
 			if (error) throw error;
 			setTotalUsuarios(count || 0);
@@ -185,193 +210,137 @@ const Usuarios = () => {
 		return nombreCompleto;
 	};
 
-	const usuarioInicio = (paginaActual - 1) * registrosPorPagina + 1;
-	const usuarioFin = Math.min(paginaActual * registrosPorPagina, totalUsuarios);
-	const totalPaginas = Math.ceil(totalUsuarios / registrosPorPagina);
+	const usuarioInicio = totalUsuarios ? (paginaActual - 1) * usuariosPorPagina + 1 : 0;
+	const usuarioFin = Math.min(paginaActual * usuariosPorPagina, totalUsuarios);
+	const paginaAnterior = () => setPaginaActual((pagina) => Math.max(1, pagina - 1));
+	const paginaSiguiente = () => {
+		if (paginaActual * usuariosPorPagina < totalUsuarios) {
+			setPaginaActual((pagina) => pagina + 1);
+		}
+	};
+
+	const usuarioRows = usuarios.map((usuario, index) => (
+		<tr key={usuario.id}>
+			<td>{usuarioInicio + index}</td>
+			<td>{usuario.nombre}</td>
+			<td>{usuario.usuario}</td>
+			<td>{usuario.rolLabel}</td>
+			<td>{usuario.sucursalLabel}</td>
+			<td>
+				<span
+					className={`admin-catalog-status ${
+						usuario.estado === "Activado" ? "success" : "danger"
+					}`}>
+					{usuario.estado}
+				</span>
+			</td>
+			<td>{usuario.ultimoLogin}</td>
+			<td>
+				<div className="admin-catalog-row-actions">
+					<button
+						type="button"
+						className="admin-catalog-row-button"
+						onClick={() => {
+							setUsuarioEditar(usuario);
+							setModalAgregarOpen(true);
+						}}
+						title="Editar usuario"
+						aria-label="Editar usuario">
+						<img src={editarIcono} alt="Editar" className="admin-catalog-row-icon edit" />
+					</button>
+					<button
+						type="button"
+						className="admin-catalog-row-button"
+						onClick={() => {
+							setUsuarioAEliminar(usuario);
+							setModalEliminarOpen(true);
+						}}
+						title="Eliminar usuario"
+						aria-label="Eliminar usuario">
+						<img src={eliminarIconoV2} alt="Eliminar" className="admin-catalog-row-icon" />
+					</button>
+				</div>
+			</td>
+		</tr>
+	));
 
 	return (
 		<PageLayout
 			empleadoData={empleadoData}
 			formatRol={formatRol}
 			getPrimerNombre={getPrimerNombre}>
-			<div className="admin-usuarios-wrapper">
-				<div className="admin-usuarios-header">
-					<h1 className="admin-usuarios-title">Administrar usuarios</h1>
-				</div>
-
-				<div className="admin-usuarios-content">
-					<div className="controles-usuarios-top">
-						<button
-							className="btn-agregar-usuario"
-							onClick={() => {
-								setUsuarioEditar(null);
-								setModalAgregarOpen(true);
-							}}>
-							<img
-								src={agregarUsuarioBtn}
-								alt="Agregar Usuario"
-								className="icono-btn-usuario"
-							/>
-						</button>
-					</div>
-
-					<div className="controles-mostrar-buscar">
-						<div className="mostrar-registros">
-							<span>Mostrar</span>
-							<select
-								value={registrosPorPagina}
-								onChange={(e) => {
-									setRegistrosPorPagina(parseInt(e.target.value));
-									setPaginaActual(1);
-								}}
-								className="select-registros">
-								<option value="10">10</option>
-								<option value="25">25</option>
-								<option value="50">50</option>
-								<option value="100">100</option>
-							</select>
-							<span>registros</span>
-						</div>
-						<div className="buscar-usuarios-grupo">
-							<span>Buscar:</span>
-							<input
-								type="text"
-								value={buscarUsuario}
-								onChange={(e) => {
-									setBuscarUsuario(e.target.value);
-									setPaginaActual(1);
-								}}
-								className="input-buscar-usuarios"
-							/>
-						</div>
-					</div>
-
-					<div className="tabla-usuarios-container">
-						<table className="tabla-usuarios">
-							<thead>
-								<tr>
-									<th>ID</th>
-									<th>Nombre</th>
-									<th>Usuario</th>
-									<th>Rol</th>
-									<th>Sucursal</th>
-									<th>Estado</th>
-									<th>Ultimo login</th>
-									<th>Acciones</th>
-								</tr>
-							</thead>
-							<tbody>
-								{usuarios.length === 0 ? (
-									<tr>
-										<td colSpan="8" className="sin-usuarios">
-											No hay usuarios para mostrar
-										</td>
-									</tr>
-								) : (
-									usuarios.map((usuario, index) => (
-										<tr key={usuario.id}>
-											<td>{usuarioInicio + index}</td>
-											<td>{usuario.nombre}</td>
-											<td>{usuario.usuario}</td>
-											<td>{usuario.rolLabel}</td>
-											<td>{usuario.sucursalLabel}</td>
-											<td>
-												<span
-													className={`estado-badge ${usuario.estado === "Activado" ? "activado" : "desactivado"}`}>
-													{usuario.estado}
-												</span>
-											</td>
-											<td>{usuario.ultimoLogin}</td>
-											<td>
-												<div className="acciones-usuarios">
-													<button
-														className="btn-editar-usuario"
-														onClick={() => {
-															setUsuarioEditar(usuario);
-															setModalAgregarOpen(true);
-														}}
-														title="Editar usuario">
-														<img
-															src={editarIcono}
-															alt="Editar"
-															className="btn-edit-icon"
-														/>
-													</button>
-													<button
-														className="btn-eliminar-usuario"
-														onClick={() => {
-															setUsuarioAEliminar(usuario);
-															setModalEliminarOpen(true);
-														}}
-														title="Eliminar usuario">
-														<img
-															src={eliminarIconoV2}
-															alt="Eliminar"
-															className="icono-eliminar-usuario"
-														/>
-													</button>
-												</div>
-											</td>
-										</tr>
-									))
-								)}
-							</tbody>
-						</table>
-					</div>
-
-					<div className="paginacion-inferior">
-						<div className="contador-usuarios">
-							Mostrando registros del {usuarioInicio} al {usuarioFin} de un total de{" "}
-							{totalUsuarios}
-						</div>
-						<div className="botones-paginacion">
-							<button
-								className="btn-pag"
-								onClick={() => setPaginaActual((p) => p - 1)}
-								disabled={paginaActual === 1}>
-								Anterior
-							</button>
-							{[...Array(totalPaginas)].map((_, i) => (
-								<button
-									key={i + 1}
-									className={`btn-pag-numero ${paginaActual === i + 1 ? "activo" : ""}`}
-									onClick={() => setPaginaActual(i + 1)}>
-									{i + 1}
-								</button>
-							))}
-							<button
-								className="btn-pag"
-								onClick={() => setPaginaActual((p) => p + 1)}
-								disabled={paginaActual >= totalPaginas}>
-								Siguiente
-							</button>
-						</div>
-					</div>
-				</div>
-
-				<ModalConfirmarEliminacion
-					isOpen={modalEliminarOpen}
-					onClose={() => {
-						setModalEliminarOpen(false);
-						setUsuarioAEliminar(null);
-					}}
-					onConfirm={confirmarEliminarUsuario}
-					tipo="usuario"
-					nombreElemento={usuarioAEliminar?.nombre || ""}
+			<AdminCatalogPage
+				title="Administrar Usuarios"
+				actions={
+					<AdminCatalogIconButton
+						label="Agregar Usuario"
+						icon={agregarUsuarioBtn}
+						onClick={() => {
+							setUsuarioEditar(null);
+							setModalAgregarOpen(true);
+						}}
+					/>
+				}
+				searchValue={buscarUsuario}
+				onSearchChange={(value) => {
+					setBuscarUsuario(value);
+					setPaginaActual(1);
+				}}
+				searchPlaceholder="Busca Usuarios Aqui..."
+				pagination={
+					<AdminCatalogPagination
+						start={usuarioInicio}
+						end={usuarioFin}
+						total={totalUsuarios}
+						onPrevious={paginaAnterior}
+						onNext={paginaSiguiente}
+						previousDisabled={paginaActual === 1}
+						nextDisabled={paginaActual * usuariosPorPagina >= totalUsuarios}
+					/>
+				}
+				afterContent={
+					<>
+						<ModalConfirmarEliminacion
+							isOpen={modalEliminarOpen}
+							onClose={() => {
+								setModalEliminarOpen(false);
+								setUsuarioAEliminar(null);
+							}}
+							onConfirm={confirmarEliminarUsuario}
+							tipo="usuario"
+							nombreElemento={usuarioAEliminar?.nombre || ""}
+						/>
+						<ModalNotificacion
+							isOpen={notificacion.isOpen}
+							onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
+							mensaje={notificacion.mensaje}
+							tipo={notificacion.tipo}
+						/>
+						<ModalAgregarUsuario
+							isOpen={modalAgregarOpen}
+							onClose={() => setModalAgregarOpen(false)}
+							onGuardar={handleGuardarUsuario}
+							usuarioEditar={usuarioEditar}
+							sucursales={sucursales}
+						/>
+					</>
+				}>
+				<AdminCatalogTable
+					columns={[
+						"ID",
+						"Nombre",
+						"Usuario",
+						"Rol",
+						"Sucursal",
+						"Estado",
+						"Ultimo login",
+						"Acciones",
+					]}
+					rows={usuarioRows}
+					emptyMessage="No hay usuarios para mostrar"
+					emptyColSpan={8}
 				/>
-				<ModalNotificacion
-					isOpen={notificacion.isOpen}
-					onClose={() => setNotificacion({ ...notificacion, isOpen: false })}
-					mensaje={notificacion.mensaje}
-					tipo={notificacion.tipo}
-				/>
-				<ModalAgregarUsuario
-					isOpen={modalAgregarOpen}
-					onClose={() => setModalAgregarOpen(false)}
-					onGuardar={handleGuardarUsuario}
-					usuarioEditar={usuarioEditar}
-				/>
-			</div>
+			</AdminCatalogPage>
 		</PageLayout>
 	);
 };
