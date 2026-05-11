@@ -1,9 +1,18 @@
 import { calcularSaldoVenta, tieneAdeudoVenta } from "./venta-payment-status";
 
-export const calcularPendientesEntrega = (estudiosVenta = []) =>
-	estudiosVenta.filter(
+export const calcularPendientesEntrega = (
+	estudiosVenta = [],
+	estudiosRadiologia = [],
+) => {
+	const pendientesLaboratorio = estudiosVenta.filter(
 		(estudio) => estudio.estado_validacion === "validado" && !estudio.entregado,
 	).length;
+	const pendientesRadiologia = estudiosRadiologia.filter(
+		(estudio) => estudio.listo_entrega && !estudio.entregado,
+	).length;
+
+	return pendientesLaboratorio + pendientesRadiologia;
+};
 
 export const calcularSaldoEntrega = calcularSaldoVenta;
 

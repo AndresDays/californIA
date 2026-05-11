@@ -38,6 +38,18 @@ describe("entrega-resultados helpers", () => {
 		expect(calcularPendientesEntrega(ventas[1].estudios_venta)).toBe(1);
 	});
 
+	test("suma reportes de radiologia listos a los pendientes de entrega", () => {
+		const estudiosRadiologia = [
+			{ listo_entrega: true, entregado: false },
+			{ listo_entrega: true, entregado: true },
+			{ listo_entrega: false, entregado: false },
+		];
+
+		expect(
+			calcularPendientesEntrega(ventas[0].estudios_venta, estudiosRadiologia),
+		).toBe(2);
+	});
+
 	test("filtra por folio, paciente o cliente en una busqueda general", () => {
 		expect(filtrarVentasEntrega(ventas, "ana")).toEqual([ventas[0]]);
 		expect(filtrarVentasEntrega(ventas, "LAB-002")).toEqual([ventas[1]]);

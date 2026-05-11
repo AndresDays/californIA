@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import californiaLogo from "../assets/CalifornIA.png";
-import notiIcon from "../assets/notificaciones.png";
+import NotificationBell from "./notification-bell";
 import "./header.css";
 
 const DropdownPortal = ({ anchorRef, onClose, children }) => {
@@ -93,7 +93,7 @@ const Header = ({
 					<span />
 					<span />
 				</button>
-				<img src={notiIcon} alt="Notificaciones" className="notification-icon" />
+				<NotificationBell user={user} navigate={navigate} />
 			</div>
 
 			<div className="header-center-logo" aria-hidden="true">

@@ -170,6 +170,7 @@ body {
 	width: 794px;
 	min-height: 1123px;
 	background: #fff;
+	color: #000;
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
@@ -187,24 +188,60 @@ body {
 .rr-contenido {
 	position: relative;
 	z-index: 1;
-	padding: 135px 64px 64px;
+	padding: 136px 64px 52px;
 	display: flex;
 	flex-direction: column;
-	gap: 1.2rem;
+	gap: 1.05rem;
 	min-height: 1123px;
+}
+
+.rr-fecha-encabezado {
+	margin: 0 0 2.35rem auto;
+	max-width: 470px;
+	color: #000;
+	font-size: 1.02rem;
+	font-weight: 800;
+	line-height: 1.2;
+	text-align: right;
+	text-transform: uppercase;
 }
 
 /* ── Datos del paciente ──────────────────────────────────────── */
 .rr-datos-paciente {
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
-	font-size: 0.88rem;
-	color: #111;
+	gap: 0;
+	width: min(520px, 100%);
+	margin-left: 62px;
+	font-size: 1.03rem;
+	color: #000;
+	text-transform: uppercase;
+}
+
+.rr-dato-row {
+	display: grid;
+	grid-template-columns: 132px minmax(0, 1fr);
+	align-items: center;
+	min-height: 28px;
 }
 
 .rr-label {
+	align-self: stretch;
+	display: flex;
+	align-items: center;
+	padding: 0 8px;
+	background: rgba(228, 228, 228, 0.92);
+	color: #000;
 	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+
+.rr-dato-row strong {
+	padding-left: 10px;
+	color: #000;
+	font-size: 1.08rem;
+	font-weight: 800;
+	line-height: 1.15;
 }
 
 .rr-label-fecha {
@@ -214,10 +251,11 @@ body {
 /* ── Editor ─────────────────────────────────────────────────── */
 .rr-editor {
 	flex: 1;
-	min-height: 400px;
-	font-size: 0.88rem;
-	color: #1a1a1a;
-	line-height: 1.7;
+	min-height: 474px;
+	margin-top: 2.1rem;
+	font-size: 1rem;
+	color: #000;
+	line-height: 1.55;
 	outline: none;
 	padding: 4px 0;
 }
@@ -235,40 +273,61 @@ body {
 }
 
 /* ── Firma ──────────────────────────────────────────────────── */
+.rr-firma-area {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: flex-end;
+	min-height: 230px;
+	padding-bottom: 6.4rem;
+}
+
 .rr-firma-bloque {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4px;
-	padding-top: 1rem;
-	padding-bottom: 3.5rem;
+	gap: 2px;
+	min-width: 330px;
+	padding-top: 0.5rem;
 }
 
 .rr-firma-img {
-	height: 70px;
+	height: 104px;
+	max-width: 285px;
+	filter: brightness(0) contrast(1.2);
 	object-fit: contain;
-	margin-bottom: 4px;
+	margin-bottom: -2px;
 }
 
 .rr-firma-placeholder {
-	width: 120px;
-	height: 60px;
-	border-bottom: 1.5px solid #555;
-	margin-bottom: 4px;
+	width: 170px;
+	height: 66px;
+	border-bottom: 1.5px solid #000;
+	margin-bottom: 5px;
 }
 
 .rr-firma-nombre {
-	font-size: 0.9rem;
+	font-size: 1.06rem;
 	font-weight: 700;
-	color: #111;
+	color: #000 !important;
 	text-align: center;
 }
 
 .rr-firma-dato {
-	font-size: 0.78rem;
-	color: #333;
+	font-size: 0.74rem;
+	font-weight: 700;
+	color: #000 !important;
 	text-align: center;
 	letter-spacing: 0.02em;
+}
+
+.rr-qr {
+	position: absolute;
+	right: 10px;
+	bottom: 5.35rem;
+	width: 86px;
+	height: 86px;
+	object-fit: contain;
 }
 
 /* ── Notificación ───────────────────────────────────────────── */

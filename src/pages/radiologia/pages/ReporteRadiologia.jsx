@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "./ReporteRadiologia.css";
@@ -68,6 +69,7 @@ const ReporteRadiologia = () => {
 	const tipoEstudio = searchParams.get("tipoEstudio") || "";
 	const fechaEstudio = searchParams.get("fechaEstudio") || "";
 	const reporteInicial = searchParams.get("reporte") || "";
+	const doctor = searchParams.get("doctor") || "";
 	const radiologo = searchParams.get("radiologo") || "";
 	const cedula = searchParams.get("cedula") || "";
 	const especialidad = searchParams.get("especialidad") || "";
@@ -77,17 +79,88 @@ const ReporteRadiologia = () => {
 	const [plantillaActual, setPlantillaActual] = useState("Plantillas");
 	const [guardando, setGuardando] = useState(false);
 	const [notif, setNotif] = useState(null);
+	const [qrUrl, setQrUrl] = useState("");
 
 	const fechaFormateada = fechaEstudio
-		? new Date(fechaEstudio).toLocaleDateString("es-MX", {
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-			})
-		: "";
+		? new Date(fechaEstudio)
+				.toLocaleDateString("es-MX", {
+					day: "2-digit",
+					month: "long",
+					year: "numeric",
+				})
+				.toUpperCase()
+		: new Date()
+				.toLocaleDateString("es-MX", {
+					day: "2-digit",
+					month: "long",
+					year: "numeric",
+				})
+				.toUpperCase();
+
+	const fechaEncabezado = `PUERTO VALLARTA JAL. ${fechaFormateada}.`;
 
 	useEffect(() => {
-		document.title = `Reporte — ${nombrePaciente}`;
+		const generarQr = async () => {
+			try {
+				const qrData = `${window.location.origin}/reporte?idEstudio=${idEstudio || ""}`;
+				const dataUrl = await QRCode.toDataURL(qrData, {
+					margin: 1,
+					width: 132,
+					color: {
+						dark: "#111111",
+						light: "#ffffff",
+					},
+				});
+				setQrUrl(dataUrl);
+			} catch {
+				setQrUrl("");
+			}
+		};
+
+		generarQr();
+	}, [idEstudio]);
+
+	const firmaNombre = radiologo || "Radiólogo responsable";
+	const firmaEspecialidad = especialidad || "Radiología e Imagen";
+	const doctorReporte = doctor || "Médico referente";
+
+	const renderDatosPaciente = () => (
+		<div className="rr-datos-paciente">
+			<div className="rr-dato-row">
+				<span className="rr-label">PACIENTE:</span>
+				<strong>{nombrePaciente || "Paciente"}</strong>
+			</div>
+			<div className="rr-dato-row">
+				<span className="rr-label">DOCTOR:</span>
+				<strong>{doctorReporte}</strong>
+			</div>
+			<div className="rr-dato-row">
+				<span className="rr-label">ESTUDIO:</span>
+				<strong>{tipoEstudio || "Estudio"}</strong>
+			</div>
+		</div>
+	);
+
+	const renderFirma = () => (
+		<div className="rr-firma-area">
+			<div className="rr-firma-bloque">
+				{firmaUrl ? (
+					<img className="rr-firma-img" src={firmaUrl} alt="firma" />
+				) : (
+					<div className="rr-firma-placeholder" />
+				)}
+				<p className="rr-firma-nombre">{firmaNombre}</p>
+				{firmaEspecialidad && (
+					<p className="rr-firma-dato">{firmaEspecialidad.toUpperCase()}</p>
+				)}
+				{cedula && <p className="rr-firma-dato">CE {cedula}</p>}
+			</div>
+			{qrUrl && <img className="rr-qr" src={qrUrl} alt="Código QR del reporte" />}
+		</div>
+	);
+
+	useEffect(() => {
+		document.title = `Reporte - ${nombrePaciente}`;
 		if (editorRef.current && reporteInicial) {
 			editorRef.current.innerHTML = reporteInicial.replace(/\n/g, "<br>");
 		}
@@ -151,11 +224,6 @@ const ReporteRadiologia = () => {
 				<div className="rr-topbar-actions">
 					<button className="rr-btn rr-btn-outline" onClick={imprimir}>
 						Cambiar editor
-					</button>
-					<button
-						className="rr-btn rr-btn-outline"
-						onClick={() => aplicarPlantilla(PLANTILLAS[0])}>
-						+ Plantillas
 					</button>
 					<button className="rr-btn rr-btn-cancel" onClick={() => window.close()}>
 						Cancelar
@@ -283,19 +351,8 @@ const ReporteRadiologia = () => {
 					/>
 
 					<div className="rr-contenido">
-						<div className="rr-datos-paciente">
-							<p>
-								<span className="rr-label">NOMBRE:</span> {nombrePaciente}
-							</p>
-							<p>
-								<span className="rr-label">ESTUDIO:</span> {tipoEstudio}
-								<span className="rr-label rr-label-fecha">FECHA:</span>{" "}
-								{fechaFormateada}
-							</p>
-							<p>
-								<span className="rr-label">DR.</span> {radiologo}
-							</p>
-						</div>
+						<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
+						{renderDatosPaciente()}
 
 						<div
 							ref={editorRef}
@@ -306,18 +363,7 @@ const ReporteRadiologia = () => {
 							data-placeholder="Escribir reporte aquí..."
 						/>
 
-						<div className="rr-firma-bloque">
-							{firmaUrl ? (
-								<img className="rr-firma-img" src={firmaUrl} alt="firma" />
-							) : (
-								<div className="rr-firma-placeholder" />
-							)}
-							<p className="rr-firma-nombre">{radiologo}</p>
-							{especialidad && (
-								<p className="rr-firma-dato">{especialidad.toUpperCase()}</p>
-							)}
-							{cedula && <p className="rr-firma-dato">CED PROF. {cedula}</p>}
-						</div>
+						{renderFirma()}
 					</div>
 				</div>
 			</div>

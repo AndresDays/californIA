@@ -22,6 +22,7 @@ import {
 	obtenerClaseAdeudoVenta,
 	tieneAdeudoVenta,
 } from "../../utils/venta-payment-status";
+import { crearNotificacion } from "../../utils/notificaciones";
 import "./captura.css";
 
 const Captura = () => {
@@ -61,7 +62,7 @@ const Captura = () => {
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol")
+					.select("nombre, rol, id_sucursal, sucursal")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 				if (error) {
@@ -287,6 +288,18 @@ const Captura = () => {
 					.eq("id_estudio_venta", estudio.id_estudio_venta);
 				if (error) throw error;
 			}
+			await crearNotificacion(supabase, {
+				titulo: "Resultados de laboratorio listos",
+				mensaje: `${ventaSeleccionada.pacientes?.nombre || "Paciente"} · Folio ${ventaSeleccionada.folio}`,
+				tipo: "entrega",
+				canal_destino: "entrega",
+				entidad_tipo: "venta",
+				entidad_id: ventaSeleccionada.id_venta,
+				id_venta: ventaSeleccionada.id_venta,
+				id_sucursal: empleadoData?.id_sucursal || null,
+				sucursal: empleadoData?.sucursal || "",
+				action_path: "/entrega-resultados",
+			});
 			mostrarNotificacion("Estudios validados exitosamente", "exito");
 			await cargarVentas();
 			if (ventaSeleccionada) await cargarResultados(ventaSeleccionada.id_venta);

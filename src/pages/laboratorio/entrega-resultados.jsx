@@ -28,6 +28,11 @@ const SELECT_VENTAS = `
 	estudios_venta ( id_estudio_venta, estado_validacion, entregado, muestra_pendiente )
 `;
 
+const SELECT_RADIOLOGIA_ENTREGA = `
+	id_estudio, id_venta, id_estudio_venta, tipo_estudio, descripcion, reporte,
+	listo_entrega, entregado, fecha_entrega
+`;
+
 const formatearFechaMexico = (fecha = new Date()) => {
 	const partes = new Intl.DateTimeFormat("es-MX", {
 		timeZone: "America/Mexico_City",
@@ -52,6 +57,7 @@ const EntregaResultados = () => {
 	const [ventas, setVentas] = useState([]);
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [estudiosVenta, setEstudiosVenta] = useState([]);
+	const [estudiosRadiologia, setEstudiosRadiologia] = useState([]);
 	const [idioma, setIdioma] = useState("español");
 	const [mediaPagina, setMediaPagina] = useState(false);
 	const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
@@ -103,9 +109,21 @@ const EntregaResultados = () => {
 
 			if (errorEstudios) throw errorEstudios;
 
+			const { data: estudiosRadiologiaListos, error: errorRadiologia } =
+				await supabase
+					.from("estudios_radiologia")
+					.select(SELECT_RADIOLOGIA_ENTREGA)
+					.eq("listo_entrega", true)
+					.eq("entregado", false);
+
+			if (errorRadiologia) throw errorRadiologia;
+
 			const idsVentasListas = [
 				...new Set(
-					(estudiosValidados || [])
+					[
+						...(estudiosValidados || []),
+						...(estudiosRadiologiaListos || []),
+					]
 						.filter((estudio) => estudio.id_venta && !estudio.entregado)
 						.map((estudio) => estudio.id_venta),
 				),
@@ -124,14 +142,34 @@ const EntregaResultados = () => {
 				.order("fecha_venta", { ascending: false });
 
 			if (error) throw error;
-			const ventasListasEntrega = (data || []).filter((venta) =>
-				formatearFechaMexico(new Date(venta.fecha_venta)) >= fechaInicial &&
-				formatearFechaMexico(new Date(venta.fecha_venta)) <= fechaFinal &&
-				venta.estudios_venta?.some(
-					(estudio) =>
-						estudio.estado_validacion === "validado" && !estudio.entregado,
-				),
+			const radiologiaPorVenta = (estudiosRadiologiaListos || []).reduce(
+				(acc, estudio) => {
+					if (!estudio.id_venta) return acc;
+					acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
+					return acc;
+				},
+				{},
 			);
+			const ventasListasEntrega = (data || [])
+				.map((venta) => ({
+					...venta,
+					estudios_radiologia: radiologiaPorVenta[venta.id_venta] || [],
+				}))
+				.filter((venta) => {
+					const fechaVenta = formatearFechaMexico(new Date(venta.fecha_venta));
+					const tieneLaboratorio = venta.estudios_venta?.some(
+						(estudio) =>
+							estudio.estado_validacion === "validado" && !estudio.entregado,
+					);
+					const tieneRadiologia = venta.estudios_radiologia?.some(
+						(estudio) => estudio.listo_entrega && !estudio.entregado,
+					);
+					return (
+						fechaVenta >= fechaInicial &&
+						fechaVenta <= fechaFinal &&
+						(tieneLaboratorio || tieneRadiologia)
+					);
+				});
 			setVentas(ventasListasEntrega);
 		} catch (error) {
 			console.error("Error al cargar ventas:", error);
@@ -159,11 +197,25 @@ const EntregaResultados = () => {
 				(estudio) => !estudio.entregado,
 			);
 			setEstudiosVenta(estudiosPendientesEntrega);
-			return estudiosPendientesEntrega;
+			const { data: radiologiaData, error: errorRadiologia } = await supabase
+				.from("estudios_radiologia")
+				.select(SELECT_RADIOLOGIA_ENTREGA)
+				.eq("id_venta", idVenta)
+				.eq("listo_entrega", true)
+				.eq("entregado", false)
+				.order("id_estudio");
+			if (errorRadiologia) throw errorRadiologia;
+			const radiologiaPendiente = radiologiaData || [];
+			setEstudiosRadiologia(radiologiaPendiente);
+			return {
+				laboratorio: estudiosPendientesEntrega,
+				radiologia: radiologiaPendiente,
+			};
 		} catch (error) {
 			console.error("Error al cargar estudios:", error);
 			setEstudiosVenta([]);
-			return [];
+			setEstudiosRadiologia([]);
+			return { laboratorio: [], radiologia: [] };
 		}
 	};
 
@@ -172,9 +224,13 @@ const EntregaResultados = () => {
 			const estudiosRestantes = await cargarEstudiosVenta(
 				ventaSeleccionada.id_venta,
 			);
-			if (estudiosRestantes.length === 0) {
+			if (
+				estudiosRestantes.laboratorio.length === 0 &&
+				estudiosRestantes.radiologia.length === 0
+			) {
 				setVentaSeleccionada(null);
 				setEstudiosVenta([]);
+				setEstudiosRadiologia([]);
 			}
 		}
 		await cargarVentas();
@@ -214,8 +270,34 @@ const EntregaResultados = () => {
 		}
 	};
 
+	const marcarRadiologiaComoEntregada = async (idEstudio) => {
+		if (bloquearSiTieneAdeudo("entregar resultados")) {
+			return;
+		}
+
+		try {
+			const { error } = await supabase
+				.from("estudios_radiologia")
+				.update({
+					entregado: true,
+					fecha_entrega: new Date().toISOString(),
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id_estudio", idEstudio);
+			if (error) throw error;
+			mostrarNotificacion("Reporte de imagen marcado como entregado", "exito");
+			await actualizarDespuesDeEntrega();
+		} catch (error) {
+			console.error("Error:", error);
+			mostrarNotificacion("Error al marcar radiología como entregada", "error");
+		}
+	};
+
 	const marcarTodosComoEntregados = async () => {
-		if (!ventaSeleccionada || estudiosVenta.length === 0) {
+		if (
+			!ventaSeleccionada ||
+			(estudiosVenta.length === 0 && estudiosRadiologia.length === 0)
+		) {
 			mostrarNotificacion("Seleccione un paciente con estudios pendientes", "advertencia");
 			return;
 		}
@@ -225,15 +307,30 @@ const EntregaResultados = () => {
 
 		try {
 			const idsEstudios = estudiosVenta.map((estudio) => estudio.id_estudio_venta);
-			const { error } = await supabase
-				.from("estudios_venta")
-				.update({
-					entregado: true,
-					fecha_entrega: new Date().toISOString(),
-					updated_at: new Date().toISOString(),
-				})
-				.in("id_estudio_venta", idsEstudios);
-			if (error) throw error;
+			const idsRadiologia = estudiosRadiologia.map((estudio) => estudio.id_estudio);
+			const fechaEntrega = new Date().toISOString();
+			if (idsEstudios.length > 0) {
+				const { error } = await supabase
+					.from("estudios_venta")
+					.update({
+						entregado: true,
+						fecha_entrega: fechaEntrega,
+						updated_at: fechaEntrega,
+					})
+					.in("id_estudio_venta", idsEstudios);
+				if (error) throw error;
+			}
+			if (idsRadiologia.length > 0) {
+				const { error: errorRadiologia } = await supabase
+					.from("estudios_radiologia")
+					.update({
+						entregado: true,
+						fecha_entrega: fechaEntrega,
+						updated_at: fechaEntrega,
+					})
+					.in("id_estudio", idsRadiologia);
+				if (errorRadiologia) throw errorRadiologia;
+			}
 			mostrarNotificacion("Todos los estudios fueron marcados como entregados", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {
@@ -318,10 +415,17 @@ const EntregaResultados = () => {
 
 	const ventasFiltradas = filtrarVentasEntrega(ventas, busquedaEntrega);
 	const totalEstudiosPendientes = ventasFiltradas.reduce(
-		(total, venta) => total + calcularPendientesEntrega(venta.estudios_venta),
+		(total, venta) =>
+			total +
+			calcularPendientesEntrega(
+				venta.estudios_venta,
+				venta.estudios_radiologia,
+			),
 		0,
 	);
 	const saldoVentaSeleccionada = calcularSaldoEntrega(ventaSeleccionada || {});
+	const totalSeleccionadosPendientes =
+		estudiosVenta.length + estudiosRadiologia.length;
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -435,6 +539,7 @@ const EntregaResultados = () => {
 									{ventasFiltradas.map((venta) => {
 										const estudiosPendientes = calcularPendientesEntrega(
 											venta.estudios_venta,
+											venta.estudios_radiologia,
 										);
 										const saldo = calcularSaldoEntrega(venta);
 										const claseAdeudo = obtenerClaseAdeudoVenta(venta);
@@ -492,7 +597,7 @@ const EntregaResultados = () => {
 								</p>
 							</div>
 							<span className="badge-listo-entrega">
-								{estudiosVenta.length} pendientes
+								{totalSeleccionadosPendientes} pendientes
 							</span>
 						</div>
 						{ventaSeleccionada && (
@@ -563,7 +668,7 @@ const EntregaResultados = () => {
 							<div className="historial-impresiones">
 								<h3>Estado de entrega</h3>
 								<p className="texto-descargado">
-									{estudiosVenta.length} estudios validados pendientes de entregar.
+									{totalSeleccionadosPendientes} resultados pendientes de entregar.
 								</p>
 							</div>
 						)}
@@ -580,28 +685,55 @@ const EntregaResultados = () => {
 									</tr>
 								</thead>
 								<tbody>
-									{estudiosVenta.length === 0 ? (
+									{totalSeleccionadosPendientes === 0 ? (
 										<tr>
 											<td colSpan="6" className="no-data">
 												Seleccione un paciente con resultados listos para entregar
 											</td>
 										</tr>
 									) : (
-										estudiosVenta.map((estudio) => (
-											<tr key={estudio.id_estudio_venta}>
-												<td>{estudio.clave_estudio}</td>
-												<td>{estudio.descripcion_estudio}</td>
+										[
+											...estudiosVenta.map((estudio) => ({
+												...estudio,
+												tipoResultado: "laboratorio",
+											})),
+											...estudiosRadiologia.map((estudio) => ({
+												...estudio,
+												tipoResultado: "radiologia",
+											})),
+										].map((estudio) => (
+											<tr
+												key={`${estudio.tipoResultado}-${estudio.id_estudio_venta || estudio.id_estudio}`}>
 												<td>
-													{obtenerIconoEstado(
-														estudio.estado_validacion || "captura",
-													)}
+													{estudio.tipoResultado === "radiologia"
+														? `IMG-${estudio.id_estudio}`
+														: estudio.clave_estudio}
+												</td>
+												<td>
+													{estudio.tipoResultado === "radiologia"
+														? estudio.descripcion || estudio.tipo_estudio
+														: estudio.descripcion_estudio}
+													<span className={`badge-tipo-resultado ${estudio.tipoResultado}`}>
+														{estudio.tipoResultado === "radiologia"
+															? "Imagen"
+															: "Laboratorio"}
+													</span>
+												</td>
+												<td>
+													{estudio.tipoResultado === "radiologia"
+														? obtenerIconoEstado("validado")
+														: obtenerIconoEstado(
+																estudio.estado_validacion || "captura",
+															)}
 												</td>
 												<td>
 													<span
-														className={`badge-estado-estudio estado-${estudio.estado_validacion || "captura"}`}>
-														{obtenerTextoEstado(
-															estudio.estado_validacion || "captura",
-														)}
+														className={`badge-estado-estudio estado-${estudio.tipoResultado === "radiologia" ? "interpretado" : estudio.estado_validacion || "captura"}`}>
+														{estudio.tipoResultado === "radiologia"
+															? "Interpretado"
+															: obtenerTextoEstado(
+																	estudio.estado_validacion || "captura",
+																)}
 													</span>
 												</td>
 												<td>
@@ -623,7 +755,9 @@ const EntregaResultados = () => {
 														<button
 															className="btn-entregar"
 															onClick={() =>
-																marcarComoEntregado(estudio.id_estudio_venta)
+																estudio.tipoResultado === "radiologia"
+																	? marcarRadiologiaComoEntregada(estudio.id_estudio)
+																	: marcarComoEntregado(estudio.id_estudio_venta)
 															}>
 															Entregar
 														</button>

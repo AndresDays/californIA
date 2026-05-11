@@ -758,6 +758,35 @@
 	border: 1px solid rgba(83, 185, 219, 0.5);
 }
 
+.badge-estado-estudio.estado-interpretado {
+	background: rgba(33, 150, 136, 0.18);
+	color: #4ce0d2;
+	border: 1px solid rgba(76, 224, 210, 0.45);
+}
+
+.badge-tipo-resultado {
+	display: inline-flex;
+	align-items: center;
+	width: fit-content;
+	margin-top: 0.35rem;
+	padding: 0.18rem 0.5rem;
+	border-radius: 999px;
+	font-size: 0.68rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0;
+}
+
+.badge-tipo-resultado.laboratorio {
+	background: rgba(73, 178, 212, 0.14);
+	color: var(--color-accent);
+}
+
+.badge-tipo-resultado.radiologia {
+	background: rgba(33, 150, 136, 0.14);
+	color: #4ce0d2;
+}
+
 .badge-saldo {
 	display: inline-block;
 	padding: 0.3rem 0.7rem;

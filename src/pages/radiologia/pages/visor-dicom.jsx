@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
@@ -6,10 +7,13 @@ import Header from "../../../components/header-principal";
 import Sidebar from "../../../components/sidebar";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { crearNotificacion } from "../../../utils/notificaciones";
+import { obtenerColumnaSchemaCacheFaltante } from "../../../utils/supabase-errors";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import PanelIA from "./Panelia";
 import { MEMBRETE_B64 } from "./reporte-radiologia-template";
+import "./ReporteRadiologia.css";
 import "./VisorDicom.css";
 
 import anguloIcono from "../../../assets/anguloIcono.png";
@@ -2391,6 +2395,7 @@ const VisorDicom = () => {
 	const [plantillaReporteTab, setPlantillaReporteTab] = useState("organizacion");
 	const [plantillaReporteBusqueda, setPlantillaReporteBusqueda] = useState("");
 	const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
+	const [reporteQrUrl, setReporteQrUrl] = useState("");
 	const [membreteReporteSrc, setMembreteReporteSrc] = useState(
 		`data:image/jpeg;base64,${MEMBRETE_B64}`,
 	);
@@ -2444,18 +2449,37 @@ const VisorDicom = () => {
 		sucursal: estudioData?.sucursal || "—",
 		horaFecha: estudioData?.horaFecha || "—",
 		estado: estudioData?.estado || "—",
+		doctor:
+			estudioData?.doctor ||
+			estudioData?.medico ||
+			estudioData?.referente ||
+			"Médico referente",
 	};
 
+	const firmaEmpleadoUrl = empleadoData?.firma_digital || empleadoData?.firma_url || "";
+	const nombreRadiologo = empleadoData?.nombre || "Radiólogo responsable";
+	const especialidadRadiologo = empleadoData?.especialidad || "Radiología e Imagen";
+
 	const fechaReporte = (() => {
-		if (!pacienteInfo.horaFecha || pacienteInfo.horaFecha === "—") return "";
+		if (!pacienteInfo.horaFecha || pacienteInfo.horaFecha === "—") {
+			return new Date()
+				.toLocaleDateString("es-MX", {
+					day: "2-digit",
+					month: "long",
+					year: "numeric",
+				})
+				.toUpperCase();
+		}
 		const fecha = new Date(pacienteInfo.horaFecha);
-		if (Number.isNaN(fecha.getTime())) return pacienteInfo.horaFecha;
+		if (Number.isNaN(fecha.getTime())) return String(pacienteInfo.horaFecha).toUpperCase();
 		return fecha.toLocaleDateString("es-MX", {
 			day: "2-digit",
-			month: "2-digit",
+			month: "long",
 			year: "numeric",
-		});
+		}).toUpperCase();
 	})();
+
+	const fechaReporteEncabezado = `PUERTO VALLARTA JAL. ${fechaReporte}.`;
 
 	const getPrimerNombre = (n) => n || user?.email?.split("@")[0] || "Usuario";
 	const formatRol = (rol) => {
@@ -2480,13 +2504,37 @@ const VisorDicom = () => {
 			if (!user?.id) return;
 			const { data } = await supabase
 				.from("empleados")
-				.select("nombre, rol, cedula, especialidad, firma_url")
+				.select("nombre, rol, cedula, especialidad, firma_url, firma_digital, id_sucursal, sucursal")
 				.eq("auth_uuid", user.id)
 				.maybeSingle();
 			if (data) setEmpleadoData(data);
 		};
 		fetchEmpleado();
 	}, [user]);
+
+	useEffect(() => {
+		const generarQrReporte = async () => {
+			try {
+				const id = estudioId || estudioData?.id || "";
+				const dataUrl = await QRCode.toDataURL(
+					`${window.location.origin}/reporte?idEstudio=${id}`,
+					{
+						margin: 1,
+						width: 132,
+						color: {
+							dark: "#111111",
+							light: "#ffffff",
+						},
+					},
+				);
+				setReporteQrUrl(dataUrl);
+			} catch {
+				setReporteQrUrl("");
+			}
+		};
+
+		generarQrReporte();
+	}, [estudioData?.id, estudioId]);
 
 	useEffect(() => {
 		cargarImagenes();
@@ -3120,10 +3168,11 @@ const VisorDicom = () => {
 				tipoEstudio: pacienteInfo.tipoEstudio,
 				fechaEstudio: est?.fecha_estudio || "",
 				reporte: est?.reporte || "",
-				radiologo: empleadoData?.nombre || "",
+				doctor: pacienteInfo.doctor || "",
+				radiologo: nombreRadiologo || "",
 				cedula: empleadoData?.cedula || "",
-				especialidad: empleadoData?.especialidad || "",
-				firmaUrl: empleadoData?.firma_url || "",
+				especialidad: especialidadRadiologo || "",
+				firmaUrl: firmaEmpleadoUrl,
 			});
 			window.open(`/reporte?${params.toString()}`, "_blank");
 		}
@@ -3189,13 +3238,56 @@ const VisorDicom = () => {
 
 	const guardarReporte = async () => {
 		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
-		const { error } = await supabase
-			.from("estudios_radiologia")
-			.update({ reporte: textoReporte, updated_at: new Date().toISOString() })
-			.eq("id_estudio", estudioId || estudioData?.id);
+		const actualizarReporte = (payload) =>
+			supabase
+				.from("estudios_radiologia")
+				.update(payload)
+				.eq("id_estudio", estudioId || estudioData?.id);
+		const actualizadoEn = new Date().toISOString();
+		let payloadReporte = {
+			reporte: textoReporte,
+			estado: "COMPLETADO",
+			listo_entrega: Boolean(textoReporte.trim()),
+			entregado: false,
+			updated_at: actualizadoEn,
+		};
+		let { error } = await actualizarReporte(payloadReporte);
+		while (error) {
+			const columna = obtenerColumnaSchemaCacheFaltante(error);
+			if (
+				![
+					"listo_entrega",
+					"entregado",
+				].includes(columna)
+			) {
+				break;
+			}
+			payloadReporte = { ...payloadReporte };
+			delete payloadReporte[columna];
+			({ error } = await actualizarReporte(payloadReporte));
+		}
 		if (error) showNotif("Error al guardar el reporte", "error");
 		else {
 			setReporteTexto(textoReporte);
+			const idEstudio = estudioId || estudioData?.id;
+			const { data: estudioEntrega } = await supabase
+				.from("estudios_radiologia")
+				.select("id_estudio, id_venta, id_sucursal, sucursal, tipo_estudio")
+				.eq("id_estudio", idEstudio)
+				.maybeSingle();
+			await crearNotificacion(supabase, {
+				titulo: "Reporte de imagen listo",
+				mensaje: `${pacienteInfo.nombre} · ${estudioEntrega?.tipo_estudio || pacienteInfo.tipoEstudio}`,
+				tipo: "entrega",
+				canal_destino: "entrega",
+				entidad_tipo: "estudio_radiologia",
+				entidad_id: Number(idEstudio),
+				id_venta: estudioEntrega?.id_venta || null,
+				id_sucursal:
+					estudioEntrega?.id_sucursal || empleadoData?.id_sucursal || null,
+				sucursal: estudioEntrega?.sucursal || empleadoData?.sucursal || "",
+				action_path: "/entrega-resultados",
+			});
 			showNotif("Reporte guardado", "exito");
 		}
 	};
@@ -3344,6 +3436,7 @@ const VisorDicom = () => {
 	const imagenActivaIndex = imageIds.findIndex((id) => id === panelImageIds[panelActivo]);
 	const imagenActivaTexto =
 		imagenActivaIndex >= 0 ? `${imagenActivaIndex + 1}/${imageIds.length}` : "0/0";
+	const mostrarMiniaturaReporte = Boolean(reporteTexto.trim()) || panelDerecho === "reporte";
 	const detalleResumen = [
 		{ label: "Radiólogo", value: empleadoData?.nombre || "Sin asignar", action: "radiologo" },
 		{ label: "Técnico", value: "Pendiente", action: "tecnico" },
@@ -3599,6 +3692,22 @@ const VisorDicom = () => {
 								</div>
 							))
 						)}
+						{mostrarMiniaturaReporte && (
+							<button
+								type="button"
+								className={`vd-miniatura vd-miniatura-reporte ${panelDerecho === "reporte" ? "activa" : ""}`}
+								onClick={() => setPanelDerecho("reporte")}
+								aria-label="Abrir reporte">
+								<div className="vd-mini-img vd-mini-reporte-img">
+									<span className="vd-mini-reporte-icon">REP</span>
+									<span className="vd-mini-num">Doc</span>
+								</div>
+								<div className="vd-mini-footer">
+									<span>Reporte</span>
+									<small>{reporteTexto.trim() ? "Guardado" : "Nuevo"}</small>
+								</div>
+							</button>
+						)}
 					</div>
 				</div>
 
@@ -3834,21 +3943,20 @@ const VisorDicom = () => {
 
 											<div className="rr-contenido vd-rr-contenido">
 												<span className="vd-sr-only">Centro Diagnóstico California</span>
+												<p className="rr-fecha-encabezado">{fechaReporteEncabezado}</p>
 												<div className="rr-datos-paciente">
-													<p>
-														<span className="rr-label">NOMBRE:</span>{" "}
-														{pacienteInfo.nombre}
-													</p>
-													<p>
-														<span className="rr-label">ESTUDIO:</span>{" "}
-														{pacienteInfo.tipoEstudio}
-														<span className="rr-label rr-label-fecha">FECHA:</span>{" "}
-														{fechaReporte}
-													</p>
-													<p>
-														<span className="rr-label">DR.</span>{" "}
-														{empleadoData?.nombre || ""}
-													</p>
+													<div className="rr-dato-row">
+														<span className="rr-label">PACIENTE:</span>
+														<strong>{pacienteInfo.nombre}</strong>
+													</div>
+													<div className="rr-dato-row">
+														<span className="rr-label">DOCTOR:</span>
+														<strong>{pacienteInfo.doctor}</strong>
+													</div>
+													<div className="rr-dato-row">
+														<span className="rr-label">ESTUDIO:</span>
+														<strong>{pacienteInfo.tipoEstudio}</strong>
+													</div>
 												</div>
 
 												<div
@@ -3863,28 +3971,33 @@ const VisorDicom = () => {
 													onInput={(e) => setReporteTexto(e.currentTarget.innerText)}
 												/>
 
-												<div className="rr-firma-bloque">
-													{empleadoData?.firma_url ? (
+												<div className="rr-firma-area">
+													<div className="rr-firma-bloque">
+														{firmaEmpleadoUrl ? (
+															<img
+																className="rr-firma-img"
+																src={firmaEmpleadoUrl}
+																alt="firma"
+															/>
+														) : (
+															<div className="rr-firma-placeholder" />
+														)}
+														<p className="rr-firma-nombre">{nombreRadiologo}</p>
+														<p className="rr-firma-dato">
+															{especialidadRadiologo.toUpperCase()}
+														</p>
+														{empleadoData?.cedula && (
+															<p className="rr-firma-dato">
+																CE {empleadoData.cedula}
+															</p>
+														)}
+													</div>
+													{reporteQrUrl && (
 														<img
-															className="rr-firma-img"
-															src={empleadoData.firma_url}
-															alt="firma"
+															className="rr-qr"
+															src={reporteQrUrl}
+															alt="Código QR del reporte"
 														/>
-													) : (
-														<div className="rr-firma-placeholder" />
-													)}
-													<p className="rr-firma-nombre">
-														{empleadoData?.nombre || "Radiologo responsable"}
-													</p>
-													{empleadoData?.especialidad && (
-														<p className="rr-firma-dato">
-															{empleadoData.especialidad.toUpperCase()}
-														</p>
-													)}
-													{empleadoData?.cedula && (
-														<p className="rr-firma-dato">
-															CED PROF. {empleadoData.cedula}
-														</p>
 													)}
 												</div>
 											</div>
