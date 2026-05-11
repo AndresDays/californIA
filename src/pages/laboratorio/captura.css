@@ -393,6 +393,58 @@
 	border: 1px solid rgba(76, 175, 80, 0.38);
 }
 
+.badge-estado-solicitud {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 96px;
+	padding: 0.28rem 0.58rem;
+	border-radius: 999px;
+	font-size: 0.72rem;
+	font-weight: 700;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.estado-solicitud-recibido,
+.estado-solicitud-captura {
+	background: rgba(255, 193, 7, 0.16);
+	color: #FFD54F;
+	border: 1px solid rgba(255, 193, 7, 0.36);
+}
+
+.estado-solicitud-guardado {
+	background: rgba(83, 185, 219, 0.18);
+	color: #53B9DB;
+	border: 1px solid rgba(83, 185, 219, 0.38);
+}
+
+.estado-solicitud-radiologia {
+	background: rgba(76, 224, 210, 0.15);
+	color: #4ce0d2;
+	border: 1px solid rgba(76, 224, 210, 0.38);
+}
+
+.estado-solicitud-listo,
+.estado-solicitud-entregado {
+	background: rgba(76, 175, 80, 0.18);
+	color: #81C784;
+	border: 1px solid rgba(76, 175, 80, 0.38);
+}
+
+.estado-solicitud-muestra,
+.estado-solicitud-adeudo {
+	background: rgba(244, 67, 54, 0.18);
+	color: #FFCDD2;
+	border: 1px solid rgba(244, 67, 54, 0.42);
+}
+
+.estado-solicitud-cancelado {
+	background: rgba(148, 163, 184, 0.14);
+	color: #CBD5E1;
+	border: 1px solid rgba(148, 163, 184, 0.34);
+}
+
 .no-data {
   text-align: center;
   padding: 2rem !important;

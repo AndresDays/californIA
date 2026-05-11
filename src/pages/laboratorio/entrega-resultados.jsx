@@ -18,6 +18,10 @@ import {
 	filtrarVentasEntrega,
 	tieneSaldoPendiente,
 } from "../../utils/entrega-resultados";
+import {
+	obtenerEstadoSolicitud,
+	obtenerMetaEstadoSolicitud,
+} from "../../utils/solicitud-estado";
 import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
 import "./entrega-resultados.css";
 
@@ -426,6 +430,14 @@ const EntregaResultados = () => {
 	const saldoVentaSeleccionada = calcularSaldoEntrega(ventaSeleccionada || {});
 	const totalSeleccionadosPendientes =
 		estudiosVenta.length + estudiosRadiologia.length;
+	const renderEstadoSolicitud = (venta) => {
+		const meta = obtenerMetaEstadoSolicitud(obtenerEstadoSolicitud(venta));
+		return (
+			<span className={`badge-estado-solicitud ${meta.className}`}>
+				{meta.label}
+			</span>
+		);
+	};
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -529,6 +541,7 @@ const EntregaResultados = () => {
 								<thead>
 									<tr>
 										<th>Folio</th>
+										<th>Estado</th>
 										<th>Nombre</th>
 										<th>Cliente</th>
 										<th>Estudios</th>
@@ -549,6 +562,7 @@ const EntregaResultados = () => {
 												className={`${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""} ${claseAdeudo}`}
 												onClick={() => seleccionarVenta(venta)}>
 												<td>{venta.folio}</td>
+												<td>{renderEstadoSolicitud(venta)}</td>
 												<td>
 													<strong>{venta.pacientes?.nombre || "N/A"}</strong>
 													<span className="paciente-meta-entrega">
@@ -573,7 +587,7 @@ const EntregaResultados = () => {
 									})}
 									{ventasFiltradas.length === 0 && (
 										<tr>
-											<td colSpan="5" className="no-data">
+											<td colSpan="6" className="no-data">
 												No hay resultados validados pendientes de entrega
 											</td>
 										</tr>
