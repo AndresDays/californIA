@@ -400,6 +400,10 @@
 	transition: all 0.12s;
 	background: rgba(13, 67, 105, 0.15);
 	flex-shrink: 0;
+	width: 100%;
+	padding: 0;
+	font: inherit;
+	text-align: left;
 }
 
 .vd-miniatura:hover {
@@ -434,6 +438,26 @@
 .vd-mini-num {
 	font-size: 0.72rem;
 	color: rgba(255, 255, 255, 0.35);
+}
+
+.vd-miniatura-reporte {
+	border-color: rgba(83, 185, 219, 0.28);
+	background: rgba(83, 185, 219, 0.08);
+	color: inherit;
+}
+
+.vd-mini-reporte-img {
+	background: linear-gradient(180deg, rgba(11, 30, 45, 0.96), rgba(6, 11, 20, 0.98));
+}
+
+.vd-mini-reporte-icon {
+	border: 1px solid rgba(83, 185, 219, 0.45);
+	border-radius: 4px;
+	color: #53B9DB;
+	font-size: 0.64rem;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	padding: 0.16rem 0.34rem;
 }
 
 .vd-mini-footer {

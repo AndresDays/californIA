@@ -23,6 +23,7 @@ import {
 	agregarSucursalEmpleadoPayload,
 	resolverSucursalEmpleado,
 } from "../../utils/sucursal-empleado";
+import { crearNotificaciones } from "../../utils/notificaciones";
 import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
 import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
@@ -37,6 +38,23 @@ import eliminarIcono from "../../assets/eliminarIconoV2.png";
 import muestrasBtn from "../../assets/muestrasBtn.png";
 import pacientesIcono from "../../assets/pacientesIcono.png";
 import warningV1 from "../../assets/warningV1.png";
+
+const normalizarTextoEstudio = (valor = "") =>
+	String(valor)
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
+
+const esEstudioRadiologia = (estudio = {}) => {
+	const texto = normalizarTextoEstudio(
+		`${estudio.area || ""} ${estudio.descripcion || ""} ${estudio.descripcion_estudio || ""} ${estudio.clave || ""} ${estudio.clave_estudio || ""}`,
+	);
+	return (
+		/radiologia|imagen|rayos|ultrasonido|ultrasonografia|tomografia|resonancia|mastografia/.test(
+			texto,
+		) || /\b(rx|usg|tac|rm)\b/.test(texto)
+	);
+};
 
 const NuevoPaciente = () => {
 	const { user } = useAuth();
@@ -321,8 +339,12 @@ const NuevoPaciente = () => {
 			);
 
 			const insertarEstudios = (payload) =>
-				supabase.from("estudios_venta").insert(payload);
-			let { error: errorEstudios } = await insertarEstudios(estudiosParaInsertar);
+				supabase
+					.from("estudios_venta")
+					.insert(payload)
+					.select("id_estudio_venta, id_venta, clave_estudio, descripcion_estudio, area");
+			let { data: estudiosGuardados, error: errorEstudios } =
+				await insertarEstudios(estudiosParaInsertar);
 			let estudiosPayloadFallback = estudiosParaInsertar;
 
 			while (errorEstudios) {
@@ -337,10 +359,99 @@ const NuevoPaciente = () => {
 					delete limpio[columna];
 					return limpio;
 				});
-				({ error: errorEstudios } = await insertarEstudios(estudiosPayloadFallback));
+				({ data: estudiosGuardados, error: errorEstudios } =
+					await insertarEstudios(estudiosPayloadFallback));
 			}
 
 			if (errorEstudios) throw errorEstudios;
+
+			const estudiosRadiologiaParaInsertar = (estudiosGuardados || [])
+				.filter(esEstudioRadiologia)
+				.map((estudio) =>
+					agregarSucursalEmpleadoPayload(
+						{
+							id_venta: venta.id_venta,
+							id_estudio_venta: estudio.id_estudio_venta,
+							id_paciente: idPaciente,
+							id_tecnico: null,
+							tipo_estudio: estudio.descripcion_estudio || estudio.clave_estudio,
+							descripcion: estudio.descripcion_estudio,
+							fecha_estudio: fechaMexico.toISOString(),
+							estado: "POR ASIGNAR",
+							listo_entrega: false,
+							entregado: false,
+						},
+						sucursalEmpleado,
+					),
+				);
+
+			if (estudiosRadiologiaParaInsertar.length > 0) {
+				const insertarEstudiosRadiologia = (payload) =>
+					supabase.from("estudios_radiologia").insert(payload);
+				let { error: errorRadiologia } = await insertarEstudiosRadiologia(
+					estudiosRadiologiaParaInsertar,
+				);
+				let radiologiaPayloadFallback = estudiosRadiologiaParaInsertar;
+
+				while (errorRadiologia) {
+					const columna = obtenerColumnaSchemaCacheFaltante(errorRadiologia);
+					if (
+						![
+							"id_sucursal",
+							"sucursal",
+							"id_venta",
+							"id_estudio_venta",
+							"listo_entrega",
+							"entregado",
+						].includes(columna)
+					) {
+						break;
+					}
+					radiologiaPayloadFallback = radiologiaPayloadFallback.map((estudio) => {
+						const limpio = { ...estudio };
+						delete limpio[columna];
+						return limpio;
+					});
+					({ error: errorRadiologia } = await insertarEstudiosRadiologia(
+						radiologiaPayloadFallback,
+					));
+				}
+
+				if (errorRadiologia) throw errorRadiologia;
+			}
+
+			const estudiosLaboratorioGuardados = (estudiosGuardados || []).filter(
+				(estudio) => !esEstudioRadiologia(estudio),
+			);
+			await crearNotificaciones(
+				supabase,
+				[
+					estudiosLaboratorioGuardados.length > 0 && {
+						titulo: "Nueva solicitud en captura",
+						mensaje: `${nombreCompleto} · Folio ${folio} · ${estudiosLaboratorioGuardados.length} estudio(s)`,
+						tipo: "captura",
+						canal_destino: "captura",
+						entidad_tipo: "venta",
+						entidad_id: venta.id_venta,
+						id_venta: venta.id_venta,
+						id_sucursal: sucursalEmpleado?.id_sucursal || null,
+						sucursal: sucursalEmpleado?.sucursal || "",
+						action_path: "/captura",
+					},
+					estudiosRadiologiaParaInsertar.length > 0 && {
+						titulo: "Nuevo estudio de imagen",
+						mensaje: `${nombreCompleto} · Folio ${folio} · ${estudiosRadiologiaParaInsertar.length} estudio(s)`,
+						tipo: "radiologia",
+						canal_destino: "radiologia",
+						entidad_tipo: "venta",
+						entidad_id: venta.id_venta,
+						id_venta: venta.id_venta,
+						id_sucursal: sucursalEmpleado?.id_sucursal || null,
+						sucursal: sucursalEmpleado?.sucursal || "",
+						action_path: "/radiologia",
+					},
+				].filter(Boolean),
+			);
 
 			if (idCitaPrecargada) {
 				const { error: errorCita } = await supabase
