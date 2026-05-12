@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
+import { esEmailValido } from '../utils/form-validations'
 import './Login.css'
 
 let logoSrc
@@ -26,6 +27,12 @@ const Login = () => {
 
     if (!email || !password) {
       setErrorMessage('Por favor, completa todos los campos')
+      setLoading(false)
+      return
+    }
+
+    if (!esEmailValido(email)) {
+      setErrorMessage('Por favor, ingresa un correo válido')
       setLoading(false)
       return
     }

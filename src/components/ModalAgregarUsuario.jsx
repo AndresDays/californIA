@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { prepararUsuarioParaFormulario } from '../utils/usuarios-auth';
+import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './ModalAgregarUsuario.css';
 
 const ModalAgregarUsuario = ({
@@ -48,13 +49,10 @@ const ModalAgregarUsuario = ({
     
     // Validación especial para teléfono
     if (name === 'telefono') {
-      const soloNumeros = value.replace(/\D/g, '');
-      if (soloNumeros.length <= 10) {
-        setFormData(prev => ({
-          ...prev,
-          [name]: soloNumeros
-        }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        [name]: normalizarTelefono10(value)
+      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -94,8 +92,12 @@ const ModalAgregarUsuario = ({
       newErrors.rol = 'El rol es requerido';
     }
 
-    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+    if (formData.email && !esEmailValido(formData.email)) {
       newErrors.email = 'Email inválido';
+    }
+
+    if (formData.telefono && !esTelefono10Digitos(formData.telefono)) {
+      newErrors.telefono = 'El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos';
     }
 
     setErrors(newErrors);
@@ -253,10 +255,12 @@ const ModalAgregarUsuario = ({
                   name="telefono"
                   value={formData.telefono}
                   onChange={handleChange}
-                  className="form-input"
+                  className={`form-input ${errors.telefono ? 'error' : ''}`}
                   placeholder="Número de teléfono (10 dígitos)"
                   maxLength="10"
+                  inputMode="numeric"
                 />
+                {errors.telefono && <span className="error-message">{errors.telefono}</span>}
               </div>
             </div>
 

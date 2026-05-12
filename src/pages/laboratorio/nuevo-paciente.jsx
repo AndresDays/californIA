@@ -36,6 +36,12 @@ import {
 import { crearNotificaciones } from "../../utils/notificaciones";
 import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
 import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
+import {
+	esEmailValido,
+	esTelefono10Digitos,
+	normalizarPorcentaje,
+	normalizarTelefono10,
+} from "../../utils/form-validations";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
@@ -148,6 +154,14 @@ const NuevoPaciente = () => {
 	const cerrarNotificacion = () =>
 		setNotificacion((prev) => ({ ...prev, isOpen: false }));
 
+	const handleTelefonoChange = (valor) => {
+		setTelefono(normalizarTelefono10(valor));
+	};
+
+	const handleDescuentoPercentChange = (valor) => {
+		setDescuentoPercent(normalizarPorcentaje(valor));
+	};
+
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
 			if (!user?.id) return;
@@ -241,6 +255,22 @@ const NuevoPaciente = () => {
 	const guardarYPagar = async () => {
 		if (!nombreCompleto.trim()) {
 			alert("Por favor ingrese el nombre del paciente");
+			return;
+		}
+
+		if (telefono && !esTelefono10Digitos(telefono)) {
+			alert("El teléfono debe contener exactamente 10 dígitos numéricos");
+			return;
+		}
+
+		if (correo.trim() && !esEmailValido(correo)) {
+			alert("Por favor ingrese un correo válido");
+			return;
+		}
+
+		if (Number(descuentoPercent) > 100) {
+			alert("El descuento no puede ser mayor al 100%");
+			setDescuentoPercent(100);
 			return;
 		}
 
@@ -770,7 +800,7 @@ const NuevoPaciente = () => {
 	const seleccionarPaciente = (paciente) => {
 		setPacienteSeleccionado(paciente);
 		setNombreCompleto(paciente.nombre);
-		setTelefono(paciente.telefono || "");
+		setTelefono(normalizarTelefono10(paciente.telefono || ""));
 		setCorreo(paciente.email || "");
 		setEdad(paciente.edad?.toString() || "");
 		setSexo(paciente.sexo || "");
@@ -1011,7 +1041,9 @@ const NuevoPaciente = () => {
 			setEstudiosSeleccionados(estudiosCompletos.filter((e) => e !== null));
 
 			if (cotizacion.descuento_porcentaje) {
-				setDescuentoPercent(parseFloat(cotizacion.descuento_porcentaje));
+				setDescuentoPercent(
+					normalizarPorcentaje(parseFloat(cotizacion.descuento_porcentaje)),
+				);
 			}
 
 			mostrarNotificacion("Datos de cotización cargados exitosamente", "exito");
@@ -1053,7 +1085,7 @@ const NuevoPaciente = () => {
 				const nombrePaciente = cita.nombre_paciente || "";
 				setPacienteSeleccionado(null);
 				setNombreCompleto(nombrePaciente);
-				setTelefono(cita.telefono_paciente || "");
+				setTelefono(normalizarTelefono10(cita.telefono_paciente || ""));
 				setBuscarPaciente(nombrePaciente);
 			}
 
@@ -1354,8 +1386,10 @@ const NuevoPaciente = () => {
 									<input
 										type="tel"
 										value={telefono}
-										onChange={(e) => setTelefono(e.target.value)}
+										onChange={(e) => handleTelefonoChange(e.target.value)}
 										className="form-input"
+										maxLength="10"
+										inputMode="numeric"
 										placeholder="Número de teléfono"
 									/>
 								</div>
@@ -1757,10 +1791,10 @@ const NuevoPaciente = () => {
 										<input
 											type="number"
 											value={descuentoPercent}
-											onChange={(e) =>
-												setDescuentoPercent(parseFloat(e.target.value) || 0)
-											}
+											onChange={(e) => handleDescuentoPercentChange(e.target.value)}
 											className="form-input-small"
+											min="0"
+											max="100"
 										/>
 									</div>
 								</div>

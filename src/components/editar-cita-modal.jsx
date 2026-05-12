@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase-client';
+import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './nueva-cita-modal.css';
 import editarIcono from '../assets/editarIcono.png';
 
@@ -288,13 +289,17 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'telefono' ? normalizarTelefono10(value) : value
+    }));
     setError('');
   };
 
   const validar = () => {
     if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
     if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
+    if (!esTelefono10Digitos(formData.telefono)) return setError('El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos'), false;
     if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
     if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
     if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
@@ -391,6 +396,8 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
               value={formData.telefono}
               onChange={handleChange}
               disabled={loading}
+              maxLength="10"
+              inputMode="numeric"
             />
           </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase-client';
+import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 
@@ -137,7 +138,10 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'telefono' ? normalizarTelefono10(value) : value
+    }));
     setError('');
   };
 
@@ -171,6 +175,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
   const validarFormulario = () => {
     if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
     if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
+    if (!esTelefono10Digitos(formData.telefono)) return setError('El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos'), false;
     if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
     if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
     if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
@@ -279,7 +284,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
           <div className="form-group-cita">
             <label className="form-label-cita">Teléfono <span className="required">*</span></label>
             <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
-              className="form-input-cita" disabled={loading} />
+              className="form-input-cita" disabled={loading} maxLength="10" inputMode="numeric" />
           </div>
 
           <div className="form-group-cita">

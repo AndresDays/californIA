@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase-client';
 import { useAuth } from '../context/auth-context';
+import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import Header from '../components/header-principal';
 import Sidebar from '../components/sidebar';
 import SidebarHome from '../components/sidebar-home';
@@ -118,7 +119,7 @@ const Perfil = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'telefono' ? normalizarTelefono10(value) : value
     }));
   };
 
@@ -236,6 +237,18 @@ const Perfil = () => {
   };
 
   const handleGuardar = async () => {
+    if (formData.email && !esEmailValido(formData.email)) {
+      mostrarNotificacion('Ingresa un correo válido', 'error');
+      setTabActiva('personal');
+      return;
+    }
+
+    if (formData.telefono && !esTelefono10Digitos(formData.telefono)) {
+      mostrarNotificacion('El teléfono debe tener 10 dígitos numéricos', 'error');
+      setTabActiva('personal');
+      return;
+    }
+
     if (formData.nuevaContrasena || formData.confirmarContrasena) {
       if (formData.nuevaContrasena !== formData.confirmarContrasena) {
         mostrarNotificacion('Las contraseñas no coinciden', 'error');
@@ -547,6 +560,7 @@ const Perfil = () => {
                     onChange={handleInputChange}
                     className="perfil-input"
                     maxLength="10"
+                    inputMode="numeric"
                   />
                 </div>
 
