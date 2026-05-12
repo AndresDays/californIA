@@ -14,6 +14,11 @@ import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { generarTicketVenta } from "../../../utils/generarTicketVenta";
+import {
+	EVENTOS_SOLICITUD,
+	formatearEventoAuditoria,
+	registrarEventoSolicitud,
+} from "../../../utils/solicitud-auditoria";
 import { esErrorColumnaSchemaCache } from "../../../utils/supabase-errors";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
@@ -57,6 +62,7 @@ const EditarSolicitud = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	const [timelineAuditoria, setTimelineAuditoria] = useState([]);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
 		useState(false);
 
@@ -66,7 +72,7 @@ const EditarSolicitud = () => {
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol")
+					.select("nombre, rol, auth_uuid")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 				if (!error && empleado) {
@@ -212,11 +218,30 @@ const EditarSolicitud = () => {
 		setShowBusquedaMedicos(false);
 	};
 
+	const cargarAuditoriaOrden = async (idVenta) => {
+		if (!idVenta) {
+			setTimelineAuditoria([]);
+			return;
+		}
+		const { data, error } = await supabase
+			.from("solicitudes_auditoria")
+			.select("*")
+			.eq("id_venta", idVenta)
+			.order("created_at", { ascending: false });
+		if (error) {
+			console.warn("No se pudo cargar auditoria de solicitud:", error);
+			setTimelineAuditoria([]);
+			return;
+		}
+		setTimelineAuditoria(data || []);
+	};
+
 	const seleccionarOrden = async (orden) => {
 		setOrdenSeleccionada(orden);
 		setFolio(orden.folio);
 		setMotivoModificacion("");
 		setPago("");
+		cargarAuditoriaOrden(orden.id_venta);
 		setClienteSeleccionado(orden.id_cliente?.toString() || "");
 		setIvaPercent(orden.iva ? (orden.iva / orden.subtotal) * 100 : 0);
 		setDescuentoPercent(
@@ -358,6 +383,22 @@ const EditarSolicitud = () => {
 				})
 				.eq("id_venta", ordenSeleccionada.id_venta);
 			if (errorVenta) throw errorVenta;
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ordenSeleccionada.id_venta,
+				folio,
+				evento: EVENTOS_SOLICITUD.ADEUDO_CAMBIADO,
+				descripcion: `Solicitud modificada. Pago acumulado $${Number(totalPagado || 0).toFixed(2)}, adeudo $${Number(adeudo || 0).toFixed(2)}`,
+				empleado: empleadoData,
+				user,
+				detalles: {
+					motivo: motivoModificacion,
+					total_anterior: ordenSeleccionada.total,
+					pago_anterior: ordenSeleccionada.pago_recibido,
+					total_nuevo: granTotal,
+					pago_nuevo: totalPagado,
+					adeudo_nuevo: adeudo,
+				},
+			});
 			await supabase
 				.from("estudios_venta")
 				.delete()
@@ -389,6 +430,7 @@ const EditarSolicitud = () => {
 			}
 			if (errorEstudios) throw errorEstudios;
 			mostrarNotificacion("Orden actualizada exitosamente", "exito");
+			await cargarAuditoriaOrden(ordenSeleccionada.id_venta);
 			await cargarOrdenes();
 			setTimeout(() => window.print(), 800);
 		} catch (err) {
@@ -408,6 +450,14 @@ const EditarSolicitud = () => {
 				.update({ estado: "cancelado", updated_at: new Date().toISOString() })
 				.eq("id_venta", ordenSeleccionada.id_venta);
 			if (error) throw error;
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ordenSeleccionada.id_venta,
+				folio,
+				evento: EVENTOS_SOLICITUD.CANCELADA,
+				descripcion: "Solicitud cancelada",
+				empleado: empleadoData,
+				user,
+			});
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
 			setOrdenSeleccionada(null);
 			setEstudiosSeleccionados([]);
@@ -950,6 +1000,34 @@ const EditarSolicitud = () => {
 									className="icono-guardar-imp"
 								/>
 							</button>
+						</div>
+
+						<div className="auditoria-section">
+							<div className="auditoria-header">
+								<h3>Lí­nea de tiempo</h3>
+								<span>{timelineAuditoria.length} eventos</span>
+							</div>
+							<div className="auditoria-lista">
+								{!ordenSeleccionada ? (
+									<p className="auditoria-empty">Seleccione una orden</p>
+								) : timelineAuditoria.length === 0 ? (
+									<p className="auditoria-empty">Sin eventos registrados</p>
+								) : (
+									timelineAuditoria.map((evento) => {
+										const item = formatearEventoAuditoria(evento);
+										return (
+											<div className="auditoria-item" key={evento.id_evento}>
+												<div className="auditoria-dot" />
+												<div>
+													<strong>{item.descripcion}</strong>
+													<span>{item.actor}</span>
+													<time>{item.fecha}</time>
+												</div>
+											</div>
+										);
+									})
+								)}
+							</div>
 						</div>
 					</div>
 				</div>

@@ -26,6 +26,10 @@ import {
 	obtenerColumnaSchemaCacheFaltante,
 } from "../../utils/supabase-errors";
 import {
+	EVENTOS_SOLICITUD,
+	registrarEventoSolicitud,
+} from "../../utils/solicitud-auditoria";
+import {
 	agregarSucursalEmpleadoPayload,
 	resolverSucursalEmpleado,
 } from "../../utils/sucursal-empleado";
@@ -330,6 +334,33 @@ const NuevoPaciente = () => {
 			}
 
 			if (errorVenta) throw errorVenta;
+			await registrarEventoSolicitud(supabase, {
+				id_venta: venta.id_venta,
+				folio,
+				evento: EVENTOS_SOLICITUD.CREADA,
+				descripcion: `Solicitud creada con ${estudiosSeleccionados.length} estudio(s)`,
+				empleado,
+				user,
+				detalles: {
+					total: granTotal,
+					pago_recibido: pagoNormalizado,
+					adeudo: Math.max(granTotal - pagoNormalizado, 0),
+				},
+			});
+			await registrarEventoSolicitud(supabase, {
+				id_venta: venta.id_venta,
+				folio,
+				evento: EVENTOS_SOLICITUD.COBRADA,
+				descripcion: `Pago registrado por $${Number(pagoNormalizado || 0).toFixed(2)}`,
+				empleado,
+				user,
+				detalles: {
+					forma_pago: formaPago,
+					total: granTotal,
+					pago_recibido: pagoNormalizado,
+					adeudo: Math.max(granTotal - pagoNormalizado, 0),
+				},
+			});
 
 			const estudiosParaInsertar = estudiosSeleccionados.map((est) =>
 				agregarSucursalEmpleadoPayload(

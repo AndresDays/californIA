@@ -29,6 +29,10 @@ import {
 	obtenerEstadoSolicitud,
 	obtenerMetaEstadoSolicitud,
 } from "../../utils/solicitud-estado";
+import {
+	EVENTOS_SOLICITUD,
+	registrarEventoSolicitud,
+} from "../../utils/solicitud-auditoria";
 import "./captura.css";
 
 const Captura = () => {
@@ -379,6 +383,14 @@ const Captura = () => {
 					.eq("id_estudio_venta", estudio.id_estudio_venta);
 				if (error) throw error;
 			}
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ventaSeleccionada.id_venta,
+				folio: ventaSeleccionada.folio,
+				evento: EVENTOS_SOLICITUD.CAPTURADA,
+				descripcion: "Resultados capturados y guardados",
+				empleado: empleadoData,
+				user,
+			});
 			mostrarNotificacion("Resultados guardados exitosamente", "exito");
 			await cargarVentas();
 			if (ventaSeleccionada) await cargarResultados(ventaSeleccionada.id_venta);
@@ -448,6 +460,19 @@ const Captura = () => {
 					.in("id_estudio", idsRadiologiaParaEntrega);
 				if (errorRadiologia) throw errorRadiologia;
 			}
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ventaSeleccionada.id_venta,
+				folio: ventaSeleccionada.folio,
+				evento: EVENTOS_SOLICITUD.VALIDADA,
+				descripcion: "Estudios validados y liberados para entrega",
+				empleado: empleadoData,
+				user,
+				detalles: {
+					estudios_imagen_liberados: idsRadiologiaParaEntrega.length,
+					estudios_laboratorio_validados:
+						resultados.length - idsEstudiosImagenVenta.length,
+				},
+			});
 			await crearNotificacion(supabase, {
 				titulo: "Resultados de laboratorio listos",
 				mensaje: `${ventaSeleccionada.pacientes?.nombre || "Paciente"} · Folio ${ventaSeleccionada.folio}`,
