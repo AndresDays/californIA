@@ -1,4 +1,5 @@
 import {
+	esErrorColumnaInexistente,
 	esErrorColumnaSchemaCache,
 	obtenerColumnaSchemaCacheFaltante,
 } from "./supabase-errors";
@@ -35,5 +36,17 @@ describe("supabase-errors helpers", () => {
 					"Could not find the 'muestra_pendiente' column of 'estudios_venta' in the schema cache",
 			}),
 		).toBe("muestra_pendiente");
+	});
+
+	test("detecta columnas faltantes reportadas por Postgres", () => {
+		expect(
+			esErrorColumnaInexistente(
+				{
+					code: "42703",
+					message: "column estudios_radiologia.id_venta does not exist",
+				},
+				"id_venta",
+			),
+		).toBe(true);
 	});
 });
