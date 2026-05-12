@@ -7,6 +7,7 @@ import Header from "../../../components/header-principal";
 import Sidebar from "../../../components/sidebar";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
 	EVENTOS_SOLICITUD,
@@ -2467,6 +2468,8 @@ const VisorDicom = () => {
 		sucursal: estudioData?.sucursal || "—",
 		horaFecha: estudioData?.horaFecha || "—",
 		estado: estudioData?.estado || "—",
+		folio: estudioData?.folio || "",
+		telefono: estudioData?.telefonoPaciente || "",
 		doctor:
 			estudioData?.doctor ||
 			estudioData?.medico ||
@@ -2534,8 +2537,15 @@ const VisorDicom = () => {
 		const generarQrReporte = async () => {
 			try {
 				const id = estudioId || estudioData?.id || "";
+				const qrData =
+					estudioData?.folio && estudioData?.telefonoPaciente
+						? crearUrlPortalResultados({
+								folio: estudioData.folio,
+								telefono: estudioData.telefonoPaciente,
+							})
+						: `${window.location.origin}/reporte?idEstudio=${id}`;
 				const dataUrl = await QRCode.toDataURL(
-					`${window.location.origin}/reporte?idEstudio=${id}`,
+					qrData,
 					{
 						margin: 1,
 						width: 132,
@@ -2552,7 +2562,7 @@ const VisorDicom = () => {
 		};
 
 		generarQrReporte();
-	}, [estudioData?.id, estudioId]);
+	}, [estudioData?.folio, estudioData?.id, estudioData?.telefonoPaciente, estudioId]);
 
 	useEffect(() => {
 		cargarImagenes();
@@ -3187,6 +3197,8 @@ const VisorDicom = () => {
 				fechaEstudio: est?.fecha_estudio || "",
 				reporte: est?.reporte || "",
 				doctor: pacienteInfo.doctor || "",
+				folio: pacienteInfo.folio || "",
+				telefono: pacienteInfo.telefono || "",
 				radiologo: nombreRadiologo || "",
 				cedula: empleadoData?.cedula || "",
 				especialidad: especialidadRadiologo || "",

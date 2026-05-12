@@ -104,9 +104,13 @@ const DashboardRadiologia = () => {
           id_estudio_venta,
           sucursal,
           fecha_estudio,
+          ventas:id_venta (
+            folio
+          ),
           pacientes:id_paciente (
             id_paciente,
-            nombre
+            nombre,
+            telefono
           )
         `)
         .order('fecha_estudio', { ascending: false });
@@ -147,6 +151,8 @@ const DashboardRadiologia = () => {
           estado: estudio.estado,
           tieneImagen: Boolean(estudio.storage_path),
           idPaciente: paciente?.id_paciente,
+          telefonoPaciente: paciente?.telefono || '',
+          folio: estudio.ventas?.folio || '',
           idVenta: estudio.id_venta,
           idEstudioVenta: estudio.id_estudio_venta
         };

@@ -1,6 +1,7 @@
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import { crearUrlPortalResultados } from './portal-resultados';
 
 const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
 
@@ -64,6 +65,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		formaPago,
 		vendedor,
 	} = datosTicket;
+	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
 
 	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
 	const W = 80;
@@ -101,7 +103,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	pdf.setFont('helvetica', 'bold');
 	pdf.setFontSize(8);
 	const urlLines = pdf.splitTextToSize(
-		'sistema.centraldiagnosticacalifornia.com/resultados/',
+		urlPortalResultados.replace(/^https?:\/\//, ''),
 		W - mg * 2,
 	);
 	urlLines.forEach((l) => { pdf.text(l, W / 2, y, { align: 'center' }); y += 4; });
@@ -237,7 +239,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	}
 
 	try {
-		const qrImg = await generarQR(`https://sistema.centraldiagnosticacalifornia.com/resultados/?folio=${folio}`);
+		const qrImg = await generarQR(urlPortalResultados);
 		const qrSize = 22;
 		pdf.addImage(qrImg, 'PNG', (W - qrSize) / 2, y, qrSize, qrSize);
 		y += qrSize + 4;

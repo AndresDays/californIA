@@ -29,12 +29,16 @@ import {
 	EVENTOS_SOLICITUD,
 	registrarEventoSolicitud,
 } from "../../utils/solicitud-auditoria";
+import {
+	crearTextoCompartirResultados,
+	crearUrlPortalResultados,
+} from "../../utils/portal-resultados";
 import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
 import "./entrega-resultados.css";
 
 const SELECT_VENTAS = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido,
-	pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
+	pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo, telefono, email ),
 	clientes ( id_cliente, nombre ),
 	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, area, estado_validacion, entregado, muestra_pendiente, updated_at )
 `;
@@ -450,7 +454,17 @@ const EntregaResultados = () => {
 		if (bloquearSiTieneAdeudo("enviar resultados por email")) {
 			return;
 		}
-		mostrarNotificacion("Función de envío por email en desarrollo", "info");
+		const url = crearUrlPortalResultados({
+			folio: ventaSeleccionada.folio,
+			telefono: ventaSeleccionada.pacientes?.telefono,
+		});
+		const subject = `Resultados ${ventaSeleccionada.folio}`;
+		const body = crearTextoCompartirResultados({
+			paciente: ventaSeleccionada.pacientes?.nombre,
+			folio: ventaSeleccionada.folio,
+			url,
+		});
+		window.location.href = `mailto:${ventaSeleccionada.pacientes?.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 	};
 	const enviarWhatsApp = () => {
 		if (!ventaSeleccionada) {
@@ -460,7 +474,23 @@ const EntregaResultados = () => {
 		if (bloquearSiTieneAdeudo("enviar resultados por WhatsApp")) {
 			return;
 		}
-		mostrarNotificacion("Función de envío por WhatsApp en desarrollo", "info");
+		const url = crearUrlPortalResultados({
+			folio: ventaSeleccionada.folio,
+			telefono: ventaSeleccionada.pacientes?.telefono,
+		});
+		const texto = crearTextoCompartirResultados({
+			paciente: ventaSeleccionada.pacientes?.nombre,
+			folio: ventaSeleccionada.folio,
+			url,
+		});
+		const telefonoPaciente = (ventaSeleccionada.pacientes?.telefono || "").replace(
+			/\D/g,
+			"",
+		);
+		window.open(
+			`https://wa.me/${telefonoPaciente ? `52${telefonoPaciente}` : ""}?text=${encodeURIComponent(texto)}`,
+			"_blank",
+		);
 	};
 
 	const calcularEdad = (fechaNacimiento) => {

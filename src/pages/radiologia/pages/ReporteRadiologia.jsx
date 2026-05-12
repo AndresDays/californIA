@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import "./ReporteRadiologia.css";
 
 let _supabase = null;
@@ -75,6 +76,8 @@ const ReporteRadiologia = () => {
 	const especialidad = searchParams.get("especialidad") || "";
 	const firmaUrl = searchParams.get("firmaUrl") || "";
 	const idEstudio = searchParams.get("idEstudio") || "";
+	const folio = searchParams.get("folio") || "";
+	const telefono = searchParams.get("telefono") || "";
 
 	const [plantillaActual, setPlantillaActual] = useState("Plantillas");
 	const [guardando, setGuardando] = useState(false);
@@ -102,7 +105,10 @@ const ReporteRadiologia = () => {
 	useEffect(() => {
 		const generarQr = async () => {
 			try {
-				const qrData = `${window.location.origin}/reporte?idEstudio=${idEstudio || ""}`;
+				const qrData =
+					folio && telefono
+						? crearUrlPortalResultados({ folio, telefono })
+						: `${window.location.origin}/reporte?idEstudio=${idEstudio || ""}`;
 				const dataUrl = await QRCode.toDataURL(qrData, {
 					margin: 1,
 					width: 132,
@@ -118,7 +124,7 @@ const ReporteRadiologia = () => {
 		};
 
 		generarQr();
-	}, [idEstudio]);
+	}, [folio, idEstudio, telefono]);
 
 	const firmaNombre = radiologo || "Radiólogo responsable";
 	const firmaEspecialidad = especialidad || "Radiología e Imagen";

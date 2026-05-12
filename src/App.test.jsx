@@ -162,6 +162,11 @@ jest.mock('./pages/laboratorio/reporte-ventas', () => ({
   default: () => <div data-testid="reporte-ventas-page">Reporte Ventas Page</div>
 }));
 
+jest.mock('./pages/laboratorio/reporte-administrativo', () => ({
+  __esModule: true,
+  default: () => <div data-testid="reporte-administrativo-page">Reporte Administrativo Page</div>
+}));
+
 jest.mock('./pages/laboratorio/configuracion/estudios-laboratorio', () => ({
   __esModule: true,
   default: () => <div data-testid="estudios-lab-page">Estudios Laboratorio Page</div>
@@ -336,6 +341,14 @@ describe('App Routing - Laboratorio', () => {
     render(<App />);
     await waitFor(() => {
       expect(screen.getByTestId('captura-page')).toBeInTheDocument();
+    });
+  });
+
+  test('ruta /reporte-administrativo funciona', async () => {
+    window.history.pushState({}, '', '/reporte-administrativo');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId('reporte-administrativo-page')).toBeInTheDocument();
     });
   });
 });
