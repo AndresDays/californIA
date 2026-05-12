@@ -9,6 +9,10 @@ import ModalNotificacion from '../../../components/ModalNotificacion';
 import useSidebar from '../../../utils/use-sidebar';
 import TarjetaEstudio from '../componentes/TarjetaEstudio';
 import lupaIcono from '../../../assets/lupaIcono.png';
+import {
+  EVENTOS_SOLICITUD,
+  registrarEventoSolicitud,
+} from '../../../utils/solicitud-auditoria';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -96,6 +100,8 @@ const DashboardRadiologia = () => {
           descripcion,
           estado,
           storage_path,
+          id_venta,
+          id_estudio_venta,
           sucursal,
           fecha_estudio,
           pacientes:id_paciente (
@@ -140,7 +146,9 @@ const DashboardRadiologia = () => {
           sucursal: estudio.sucursal || 'Sin sucursal',
           estado: estudio.estado,
           tieneImagen: Boolean(estudio.storage_path),
-          idPaciente: paciente?.id_paciente
+          idPaciente: paciente?.id_paciente,
+          idVenta: estudio.id_venta,
+          idEstudioVenta: estudio.id_estudio_venta
         };
       }) || [];
 
@@ -217,6 +225,19 @@ const DashboardRadiologia = () => {
         .eq('id_estudio', estudio.id);
 
       if (updateError) throw updateError;
+      await registrarEventoSolicitud(supabase, {
+        id_venta: estudio.idVenta,
+        evento: EVENTOS_SOLICITUD.IMAGEN_SUBIDA,
+        descripcion: `Imagen subida para ${estudio.descripcionEstudio || estudio.tipoEstudio}`,
+        empleado: empleadoData,
+        user,
+        entidad_tipo: 'estudio_radiologia',
+        entidad_id: estudio.id,
+        detalles: {
+          storage_path: archivoPath,
+          id_estudio_venta: estudio.idEstudioVenta
+        }
+      });
 
       mostrarNotificacion('Imagen subida al estudio pendiente', 'exito');
       setEstudioSeleccionado(null);

@@ -25,6 +25,10 @@ import {
 	obtenerEstadoSolicitud,
 	obtenerMetaEstadoSolicitud,
 } from "../../utils/solicitud-estado";
+import {
+	EVENTOS_SOLICITUD,
+	registrarEventoSolicitud,
+} from "../../utils/solicitud-auditoria";
 import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
 import "./entrega-resultados.css";
 
@@ -319,6 +323,16 @@ const EntregaResultados = () => {
 				})
 				.eq("id_estudio_venta", idEstudioVenta);
 			if (error) throw error;
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ventaSeleccionada.id_venta,
+				folio: ventaSeleccionada.folio,
+				evento: EVENTOS_SOLICITUD.ENTREGADA,
+				descripcion: "Resultado de laboratorio entregado",
+				empleado: empleadoData,
+				user,
+				entidad_tipo: "estudio_venta",
+				entidad_id: idEstudioVenta,
+			});
 			mostrarNotificacion("Estudio marcado como entregado", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {
@@ -342,6 +356,16 @@ const EntregaResultados = () => {
 				})
 				.eq("id_estudio", idEstudio);
 			if (error) throw error;
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ventaSeleccionada.id_venta,
+				folio: ventaSeleccionada.folio,
+				evento: EVENTOS_SOLICITUD.ENTREGADA,
+				descripcion: "Reporte de imagen entregado",
+				empleado: empleadoData,
+				user,
+				entidad_tipo: "estudio_radiologia",
+				entidad_id: idEstudio,
+			});
 			mostrarNotificacion("Reporte de imagen marcado como entregado", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {
@@ -388,6 +412,18 @@ const EntregaResultados = () => {
 					.in("id_estudio", idsRadiologia);
 				if (errorRadiologia) throw errorRadiologia;
 			}
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ventaSeleccionada.id_venta,
+				folio: ventaSeleccionada.folio,
+				evento: EVENTOS_SOLICITUD.ENTREGADA,
+				descripcion: "Todos los resultados fueron entregados",
+				empleado: empleadoData,
+				user,
+				detalles: {
+					estudios_laboratorio: idsEstudios.length,
+					estudios_imagen: idsRadiologia.length,
+				},
+			});
 			mostrarNotificacion("Todos los estudios fueron marcados como entregados", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {

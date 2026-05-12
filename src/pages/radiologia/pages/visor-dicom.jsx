@@ -8,6 +8,10 @@ import Sidebar from "../../../components/sidebar";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { crearNotificacion } from "../../../utils/notificaciones";
+import {
+	EVENTOS_SOLICITUD,
+	registrarEventoSolicitud,
+} from "../../../utils/solicitud-auditoria";
 import { obtenerColumnaSchemaCacheFaltante } from "../../../utils/supabase-errors";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
@@ -3352,6 +3356,18 @@ const VisorDicom = () => {
 					}
 				}
 			}
+			await registrarEventoSolicitud(supabase, {
+				id_venta: estudioEntrega?.id_venta,
+				evento: EVENTOS_SOLICITUD.INTERPRETADA,
+				descripcion: `Reporte interpretado para ${estudioEntrega?.descripcion || pacienteInfo.tipoEstudio}`,
+				empleado: empleadoData,
+				user,
+				entidad_tipo: "estudio_radiologia",
+				entidad_id: Number(idEstudio),
+				detalles: {
+					tipo_estudio: estudioEntrega?.tipo_estudio || pacienteInfo.tipoEstudio,
+				},
+			});
 			await crearNotificacion(supabase, {
 				titulo: "Reporte de imagen guardado",
 				mensaje: `${pacienteInfo.nombre} · ${estudioEntrega?.tipo_estudio || pacienteInfo.tipoEstudio}`,
