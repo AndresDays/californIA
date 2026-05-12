@@ -25,15 +25,9 @@ const FASES = [
 	"Generando Grad-CAM",
 ];
 
-const API_URL =
-	typeof process !== "undefined" ? process.env.VITE_CALIFORNIA_API || "" : "";
+const DEPLOYED_API_URL = "https://b23824620eb08e.lhr.life";
+const API_URL = process.env.VITE_CALIFORNIA_API || DEPLOYED_API_URL;
 const THRESHOLD = 0.5;
-
-const genMock = () =>
-	PATOLOGIAS.map((p) => ({
-		...p,
-		prob: Math.random(),
-	}));
 
 export default function PanelIA({ activo, imageId, onClose }) {
 	const [fase, setFase] = useState(0);
@@ -42,7 +36,6 @@ export default function PanelIA({ activo, imageId, onClose }) {
 	const [progreso, setProgreso] = useState(0);
 	const [visible, setVisible] = useState(false);
 	const [errorMsg, setErrorMsg] = useState(null);
-	const [modoMock, setModoMock] = useState(!API_URL);
 
 	const [cams, setCams] = useState(null);
 	const [camActivo, setCamActivo] = useState(null);
@@ -254,19 +247,6 @@ export default function PanelIA({ activo, imageId, onClose }) {
 		setErrorMsg(null);
 		limpiarCamOverlay();
 
-		if (modoMock || !API_URL) {
-			const anim = animarProgreso();
-			setTimeout(() => {
-				anim.done();
-				setTimeout(() => {
-					setAnalizando(false);
-					setResultados(genMock());
-					setCams(null);
-				}, 200);
-			}, 2600);
-			return;
-		}
-
 		if (abortRef.current) abortRef.current.abort();
 		abortRef.current = new AbortController();
 
@@ -365,7 +345,6 @@ export default function PanelIA({ activo, imageId, onClose }) {
 				? "Completado"
 				: "En espera";
 	const estadoClase = estadoAnalisis.toLowerCase().replace(/\s+/g, "-");
-	const apiStatusText = API_URL && !modoMock ? "Modelo conectado" : "Modo simulado";
 	const camStatusText = camsDisponibles.length
 		? `${camsDisponibles.length} mapas`
 		: "Sin mapa";
@@ -392,21 +371,6 @@ export default function PanelIA({ activo, imageId, onClose }) {
 					<span className={`pia-status pia-status--${estadoClase}`}>
 						{estadoAnalisis}
 					</span>
-					{API_URL && (
-						<button
-							className={`pia-mode-btn${modoMock ? "" : " active"}`}
-							onClick={() => {
-								setModoMock((m) => !m);
-								setResultados(null);
-								setCams(null);
-								setCamActivo(null);
-								setCamEnabled(true);
-								limpiarCamOverlay();
-							}}
-							title={modoMock ? "Simulado" : "Modelo real"}>
-							{modoMock ? "MOCK" : "SWIN BASE"}
-						</button>
-					)}
 
 					<button
 						className="pia-close"
@@ -417,9 +381,9 @@ export default function PanelIA({ activo, imageId, onClose }) {
 				</div>
 			</div>
 
-			<div className={`pia-api-badge${API_URL && !modoMock ? " connected" : ""}`}>
+			<div className="pia-api-badge connected">
 				<span className="pia-api-dot" />
-				<span>{apiStatusText}</span>
+				<span>Modelo conectado</span>
 				<span className="pia-api-divider" />
 				<span>Grad-CAM: {camStatusText}</span>
 			</div>

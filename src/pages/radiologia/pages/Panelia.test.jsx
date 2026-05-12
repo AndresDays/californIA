@@ -16,3 +16,11 @@ test("shows a clearer IA panel shell and empty state without an image", () => {
 
 	expect(onClose).toHaveBeenCalledTimes(1);
 });
+
+test("uses the deployed IA model by default instead of simulated mode", () => {
+	render(<PanelIA activo imageId={null} onClose={jest.fn()} />);
+
+	expect(screen.getByText("Modelo conectado")).toBeInTheDocument();
+	expect(screen.queryByText("Modo simulado")).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "MOCK" })).not.toBeInTheDocument();
+});
