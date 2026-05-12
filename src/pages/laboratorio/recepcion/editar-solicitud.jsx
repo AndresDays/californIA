@@ -19,7 +19,10 @@ import {
 	formatearEventoAuditoria,
 	registrarEventoSolicitud,
 } from "../../../utils/solicitud-auditoria";
-import { esErrorColumnaSchemaCache } from "../../../utils/supabase-errors";
+import {
+	esErrorColumnaSchemaCache,
+	esErrorTablaInexistente,
+} from "../../../utils/supabase-errors";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
@@ -229,7 +232,9 @@ const EditarSolicitud = () => {
 			.eq("id_venta", idVenta)
 			.order("created_at", { ascending: false });
 		if (error) {
-			console.warn("No se pudo cargar auditoria de solicitud:", error);
+			if (!esErrorTablaInexistente(error, "solicitudes_auditoria")) {
+				console.warn("No se pudo cargar auditoria de solicitud:", error);
+			}
 			setTimelineAuditoria([]);
 			return;
 		}
