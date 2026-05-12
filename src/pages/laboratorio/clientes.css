@@ -2,20 +2,22 @@
 
 .admin-clientes-wrapper {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-family: 'Codec Pro', sans-serif;
-  color: white;
-  background-image: url('../assets/FONDO.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+	display: flex;
+	flex-direction: column;
+	font-family: 'Codec Pro', sans-serif;
+	color: white;
+	background-image: none !important;
+	background: transparent !important;
+	overflow-x: hidden;
+	box-sizing: border-box;
 }
 
 .admin-clientes-header {
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem 1rem 120px;
   background: rgba(10, 25, 41, 0.8);
   border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .admin-clientes-title {
@@ -28,11 +30,12 @@
 
 .admin-clientes-content {
   flex: 1;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem 1.5rem 120px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .controles-admin-clientes {
@@ -129,16 +132,19 @@
 
 .tabla-admin-clientes-container {
   flex: 1;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   background: rgba(10, 25, 41, 0.85);
   border-radius: 12px;
   border: 1px solid rgba(111, 179, 210, 0.3);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.5s ease;
 }
 
 .tabla-admin-clientes {
   width: 100%;
   border-collapse: collapse;
+  min-width: 1200px;
 }
 
 .tabla-admin-clientes thead {
@@ -219,21 +225,28 @@
   background: rgba(10, 25, 41, 0.3);
 }
 
-@media (max-width: 1200px) {
-  .tabla-admin-clientes {
-    min-width: 1400px;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1023px) {
+  .admin-clientes-header {
+    padding: 1rem !important;
+  }
+
+  .admin-clientes-content {
+    padding: 1rem !important;
   }
 }
 
 @media (max-width: 768px) {
-  .admin-clientes-header {
-    padding: 1rem;
-  }
-
-  .admin-clientes-content {
-    padding: 1rem;
-  }
-
   .controles-admin-clientes {
     flex-direction: column;
     align-items: stretch;
@@ -259,21 +272,6 @@
   .info-paginacion {
     font-size: 0.8rem;
   }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.tabla-admin-clientes-container {
-  animation: fadeIn 0.5s ease;
 }
 
 @media print {

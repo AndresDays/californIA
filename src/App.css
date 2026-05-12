@@ -49,3 +49,17 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(94, 179, 214, 0.5) rgba(26, 35, 50, 0.3);
 }
+
+/* Pantallas grandes con baja resolución o escalado Windows */
+@media screen and (min-width: 1280px) and (max-resolution: 120dpi) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Escalado 125% de Windows específicamente */
+@media screen and (-webkit-min-device-pixel-ratio: 1.25) and (min-width: 1024px) {
+  html {
+    font-size: 14px;
+  }
+}

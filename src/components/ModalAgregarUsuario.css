@@ -16,8 +16,7 @@
   position: fixed;
   top: 50%;
   left: 50%;
-  margin-left: -400px;
-  margin-top: -350px;
+  transform: translate(-50%, -50%);
   background: linear-gradient(135deg, rgba(2, 15, 35, 0.98) 0%, rgba(13, 67, 105, 0.98) 100%);
   border: 1px solid rgba(83, 185, 219, 0.3);
   border-radius: 12px;
@@ -40,11 +39,11 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: translate(-50%, -50%) scale(0.9);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -250,8 +249,7 @@
   .modal-usuario-container {
     width: 95%;
     max-width: none;
-    margin-left: -47.5%;
-    margin-top: -45%;
+    transform: translate(-50%, -50%);
     max-height: 90vh;
   }
 

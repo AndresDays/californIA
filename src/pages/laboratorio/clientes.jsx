@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/header-laboratorio.jsx';
-import Layout from '../../components/layout.jsx';
+import PageLayout from '../../components/page-layout.jsx';
 import { useAuth } from '../../context/auth-context';
 import { supabase } from '../../lib/supabase-client';
 import './clientes.css';
@@ -17,11 +16,51 @@ const Clientes = () => {
   const [totalClientes, setTotalClientes] = useState(0);
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);
+  const [empleadoData, setEmpleadoData] = useState(null);
   const clientesPorPagina = 500;
+
+  useEffect(() => {
+    const fetchEmpleadoData = async () => {
+      if (!user?.id) return;
+      try {
+        const { data: empleado, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', user.id)
+          .maybeSingle();
+        if (!error && empleado) setEmpleadoData(empleado);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    fetchEmpleadoData();
+  }, [user]);
 
   useEffect(() => {
     cargarClientes();
   }, [paginaActual, buscarCliente]);
+
+  const getPrimerNombre = (nombreCompleto) => {
+    if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
+    return nombreCompleto;
+  };
+
+  const formatRol = (rol) => {
+    if (!rol) return 'Usuario';
+    const roles = {
+      admin: 'Administrador',
+      administrador: 'Administrador',
+      radiologo: 'Radiólogo - Director',
+      doctor: 'Médico',
+      medico: 'Médico',
+      tecnico_radiologia: 'Técnico en Radiología',
+      tecnico: 'Técnico',
+      quimico: 'Químico',
+      recepcionista: 'Recepcionista',
+      desarrollador: 'Desarrollador',
+    };
+    return roles[rol] || rol;
+  };
 
   const cargarClientes = async () => {
     try {
@@ -159,14 +198,16 @@ const Clientes = () => {
     }
   };
 
-  const clienteInicio = (paginaActual - 1) * clientesPorPagina + 1;
+  const clienteInicio = totalClientes ? (paginaActual - 1) * clientesPorPagina + 1 : 0;
   const clienteFin = Math.min(paginaActual * clientesPorPagina, totalClientes);
 
   return (
-    <Layout>
-      <div className="admin-clientes-wrapper">
-        <Header />
+    <PageLayout
+      empleadoData={empleadoData}
+      formatRol={formatRol}
+      getPrimerNombre={getPrimerNombre}>
 
+      <div className="admin-clientes-wrapper">
         <div className="admin-clientes-header">
           <h1 className="admin-clientes-title">Administrar Clientes</h1>
         </div>
@@ -267,15 +308,16 @@ const Clientes = () => {
             </table>
           </div>
         </div>
+
         <ModalAgregarPaciente
           isOpen={modalAgregarPacienteOpen}
           onClose={() => setModalAgregarPacienteOpen(false)}
           onGuardar={handleGuardarPacienteModal}
           pacienteEditar={pacienteEditar}
         />
-
       </div>
-    </Layout>
+
+    </PageLayout>
   );
 };
 
