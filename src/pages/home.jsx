@@ -28,6 +28,14 @@ const Dashboard = () => {
 		estudiosRealizados: 0,
 		ingresos: 0,
 	});
+	const [bandejasTrabajo, setBandejasTrabajo] = useState({
+		capturaPendiente: 0,
+		capturaGuardada: 0,
+		radiologiaSubir: 0,
+		radiologiaInterpretar: 0,
+		entregaLista: 0,
+	});
+	const [bandejasLoading, setBandejasLoading] = useState(true);
 	const [pacientesProximos, setPacientesProximos] = useState([]);
 	const [estadisticasSemanales, setEstadisticasSemanales] = useState([]);
 	const [modalNuevaCitaOpen, setModalNuevaCitaOpen] = useState(false);
@@ -69,6 +77,82 @@ const Dashboard = () => {
 	useEffect(() => {
 		cargarEstadisticasSemanales();
 	}, [vistaGrafica, sucursalFiltro]);
+
+	useEffect(() => {
+		cargarBandejasTrabajo();
+	}, []);
+
+	const normalizarRol = (rol = "") =>
+		String(rol)
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.trim()
+			.toLowerCase()
+			.replace(/\s+/g, "_");
+
+	const obtenerConteo = async (consulta) => {
+		const { count, error } = await consulta;
+		if (error) throw error;
+		return count || 0;
+	};
+
+	const cargarBandejasTrabajo = async () => {
+		setBandejasLoading(true);
+		try {
+			const resultados = await Promise.allSettled([
+				obtenerConteo(
+					supabase
+						.from("estudios_venta")
+						.select("id_estudio_venta", { count: "exact", head: true })
+						.eq("estado_validacion", "captura"),
+				),
+				obtenerConteo(
+					supabase
+						.from("estudios_venta")
+						.select("id_estudio_venta", { count: "exact", head: true })
+						.eq("estado_validacion", "guardado"),
+				),
+				obtenerConteo(
+					supabase
+						.from("estudios_radiologia")
+						.select("id_estudio", { count: "exact", head: true })
+						.in("estado", ["POR ASIGNAR", "ASIGNADO"]),
+				),
+				obtenerConteo(
+					supabase
+						.from("estudios_radiologia")
+						.select("id_estudio", { count: "exact", head: true })
+						.in("estado", ["EN PROCESO"]),
+				),
+				obtenerConteo(
+					supabase
+						.from("estudios_venta")
+						.select("id_estudio_venta", { count: "exact", head: true })
+						.eq("estado_validacion", "validado")
+						.eq("entregado", false),
+				),
+				obtenerConteo(
+					supabase
+						.from("estudios_radiologia")
+						.select("id_estudio", { count: "exact", head: true })
+						.eq("listo_entrega", true),
+				),
+			]);
+			const valor = (index) =>
+				resultados[index].status === "fulfilled" ? resultados[index].value : 0;
+			setBandejasTrabajo({
+				capturaPendiente: valor(0),
+				capturaGuardada: valor(1),
+				radiologiaSubir: valor(2),
+				radiologiaInterpretar: valor(3),
+				entregaLista: valor(4) + valor(5),
+			});
+		} catch (error) {
+			console.error("Error al cargar bandejas de trabajo:", error);
+		} finally {
+			setBandejasLoading(false);
+		}
+	};
 
 	const cargarEstadisticas = async () => {
 		try {
@@ -329,6 +413,59 @@ const Dashboard = () => {
 		new Date(f).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 	const getNombrePaciente = (cita) =>
 		cita.pacientes?.nombre || cita.nombre_paciente || "Sin nombre";
+	const rolEmpleado = normalizarRol(empleadoData?.rol);
+	const esAdmin =
+		!rolEmpleado ||
+		["admin", "administrador", "desarrollador"].includes(rolEmpleado);
+	const bandejasPorRol = [
+		{
+			id: "captura-pendiente",
+			titulo: "Captura",
+			descripcion: "Pendientes de capturar",
+			conteo: bandejasTrabajo.capturaPendiente,
+			ruta: "/captura",
+			roles: ["quimico", "capturista", "recepcionista"],
+		},
+		{
+			id: "captura-validar",
+			titulo: "Validacion",
+			descripcion: "Guardados por revisar",
+			conteo: bandejasTrabajo.capturaGuardada,
+			ruta: "/captura",
+			roles: ["quimico", "capturista"],
+		},
+		{
+			id: "radiologia-subir",
+			titulo: "Radiologia",
+			descripcion: "Pendientes de tomar/subir",
+			conteo: bandejasTrabajo.radiologiaSubir,
+			ruta: "/radiologia",
+			roles: ["tecnico", "tecnico_radiologia"],
+		},
+		{
+			id: "radiologo-interpretar",
+			titulo: "Radiologo",
+			descripcion: "Pendientes de interpretar",
+			conteo: bandejasTrabajo.radiologiaInterpretar,
+			ruta: "/radiologia",
+			roles: ["radiologo"],
+		},
+		{
+			id: "entrega-lista",
+			titulo: "Entrega",
+			descripcion: "Listos para entregar",
+			conteo: bandejasTrabajo.entregaLista,
+			ruta: "/entrega-resultados",
+			roles: ["recepcionista", "entrega"],
+		},
+	];
+	const bandejasVisibles = esAdmin
+		? bandejasPorRol
+		: bandejasPorRol.filter((bandeja) => bandeja.roles.includes(rolEmpleado));
+	const totalTareasRol = bandejasVisibles.reduce(
+		(total, bandeja) => total + bandeja.conteo,
+		0,
+	);
 
 	return (
 		<div className="dashboard-container">
@@ -433,6 +570,37 @@ const Dashboard = () => {
 								</div>
 							</div>
 						</div>
+
+						<section
+							className="workbench-section"
+							aria-labelledby="workbench-title">
+							<div className="workbench-header">
+								<div>
+									<h2 id="workbench-title">Centro de trabajo</h2>
+									<p>
+										{esAdmin
+											? "Vista general de pendientes por area"
+											: `Bandejas para ${formatRol(empleadoData?.rol)}`}
+									</p>
+								</div>
+								<span className="workbench-total">
+									{bandejasLoading ? "..." : totalTareasRol} tareas
+								</span>
+							</div>
+							<div className="workbench-grid">
+								{bandejasVisibles.map((bandeja) => (
+									<button
+										type="button"
+										key={bandeja.id}
+										className="workbench-card"
+										onClick={() => navigate(bandeja.ruta)}>
+										<span className="workbench-card-label">{bandeja.titulo}</span>
+										<strong>{bandejasLoading ? "..." : bandeja.conteo}</strong>
+										<span>{bandeja.descripcion}</span>
+									</button>
+								))}
+							</div>
+						</section>
 
 						<div className="main-content-grid">
 							<div className="quick-access-section">
