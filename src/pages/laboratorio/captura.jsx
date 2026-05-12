@@ -23,6 +23,10 @@ import {
 	tieneAdeudoVenta,
 } from "../../utils/venta-payment-status";
 import { crearNotificacion } from "../../utils/notificaciones";
+import {
+	obtenerEstadoSolicitud,
+	obtenerMetaEstadoSolicitud,
+} from "../../utils/solicitud-estado";
 import "./captura.css";
 
 const Captura = () => {
@@ -407,6 +411,15 @@ const Captura = () => {
 		return textos[estado] || "Pendiente";
 	};
 
+	const renderEstadoSolicitud = (venta) => {
+		const meta = obtenerMetaEstadoSolicitud(obtenerEstadoSolicitud(venta));
+		return (
+			<span className={`badge-estado-solicitud ${meta.className}`}>
+				{meta.label}
+			</span>
+		);
+	};
+
 	const limpiarFiltros = () => {
 		const hoy = new Date().toISOString().split("T")[0];
 		setFechaInicial(hoy);
@@ -602,20 +615,13 @@ const Captura = () => {
 											venta.estudios_venta,
 										);
 										const claseAdeudo = obtenerClaseAdeudoVenta(venta);
-										const estadoVenta = obtenerEstadoCapturaVenta(
-											venta.estudios_venta,
-										);
 										return (
 											<tr
 												key={venta.id_venta}
 												className={`${claseEstado} ${claseAdeudo} ${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""}`}
 												onClick={() => seleccionarVenta(venta)}>
 												<td>{venta.folio}</td>
-												<td>
-													<span className={`badge-estado-fila estado-${estadoVenta}`}>
-														{obtenerTextoEstadoVenta(estadoVenta)}
-													</span>
-												</td>
+												<td>{renderEstadoSolicitud(venta)}</td>
 												<td>{venta.pacientes?.nombre || "N/A"}</td>
 												<td>{calcularEdad(venta.pacientes?.fecha_nacimiento)}</td>
 												<td>{venta.pacientes?.sexo || "N/A"}</td>

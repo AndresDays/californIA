@@ -1,8 +1,10 @@
 import {
 	calcularPendientesEntrega,
 	calcularSaldoEntrega,
+	estaEnRangoEntrega,
 	filtrarVentasEntrega,
 	tieneSaldoPendiente,
+	ventaListaEnRangoEntrega,
 } from "./entrega-resultados";
 
 describe("entrega-resultados helpers", () => {
@@ -36,6 +38,63 @@ describe("entrega-resultados helpers", () => {
 	test("cuenta solo estudios validados pendientes de entrega", () => {
 		expect(calcularPendientesEntrega(ventas[0].estudios_venta)).toBe(1);
 		expect(calcularPendientesEntrega(ventas[1].estudios_venta)).toBe(1);
+	});
+
+	test("trata muestra pendiente null como entregable y true como bloqueada", () => {
+		const estudiosVenta = [
+			{
+				estado_validacion: "validado",
+				entregado: false,
+				muestra_pendiente: null,
+			},
+			{
+				estado_validacion: "validado",
+				entregado: false,
+				muestra_pendiente: true,
+			},
+			{
+				estado_validacion: "validado",
+				entregado: false,
+				muestra_pendiente: false,
+			},
+		];
+
+		expect(calcularPendientesEntrega(estudiosVenta)).toBe(2);
+	});
+
+	test("usa la fecha de validacion para el rango de entrega", () => {
+		const estudio = {
+			estado_validacion: "validado",
+			entregado: false,
+			fecha_venta: "2026-05-09T16:00:00.000Z",
+			updated_at: "2026-05-11T18:00:00.000Z",
+		};
+
+		expect(estaEnRangoEntrega(estudio, "2026-05-11", "2026-05-11")).toBe(
+			true,
+		);
+		expect(estaEnRangoEntrega(estudio, "2026-05-09", "2026-05-09")).toBe(
+			false,
+		);
+	});
+
+	test("incluye ventas de hoy aunque el estudio no tenga fecha lista confiable", () => {
+		const venta = {
+			fecha_venta: "2026-05-11T17:00:00.000Z",
+			estudios_venta: [
+				{
+					estado_validacion: "validado",
+					entregado: false,
+					muestra_pendiente: false,
+					updated_at: null,
+				},
+			],
+			estudios_radiologia: [],
+		};
+
+		expect(ventaListaEnRangoEntrega(venta, "2026-05-11", "2026-05-11")).toBe(
+			true,
+		);
 	});
 
 	test("suma reportes de radiologia listos a los pendientes de entrega", () => {
