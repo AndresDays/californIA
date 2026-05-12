@@ -6,6 +6,10 @@ import pdfBtn from "../../../assets/pdfBtn.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import {
+	resolverEmpresaOperativaCatalogo,
+	resolverModalidadDesdeTipo,
+} from "../../../utils/cita-nuevo-paciente";
 import "./estudios-lab.css";
 
 const EstudiosLab = () => {
@@ -20,6 +24,10 @@ const EstudiosLab = () => {
 	const [metodos, setMetodos] = useState([]);
 	const [tecnicas, setTecnicas] = useState([]);
 	const [equipos, setEquipos] = useState([]);
+	const [empresas, setEmpresas] = useState([]);
+	const [tiposEstudio, setTiposEstudio] = useState([]);
+	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
+	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
 	const [key, setKey] = useState("");
 	const [clave, setClave] = useState("");
 	const [descripcion, setDescripcion] = useState("");
@@ -36,9 +44,27 @@ const EstudiosLab = () => {
 	const [imprimirTecnica, setImprimirTecnica] = useState(false);
 	const [imprimirEquipo, setImprimirEquipo] = useState(false);
 	const [imprimirMuestra, setImprimirMuestra] = useState(false);
+	const [regionAnatomica, setRegionAnatomica] = useState("");
+	const [requiereContraste, setRequiereContraste] = useState(false);
+	const [requiereInterpretacion, setRequiereInterpretacion] = useState(true);
+	const [preparacion, setPreparacion] = useState("");
+	const [duracionMinutos, setDuracionMinutos] = useState("");
+	const [activoImagen, setActivoImagen] = useState(true);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
 	const [empleadoData, setEmpleadoData] = useState(null);
+
+	const empresaActual = empresas.find(
+		(empresa) => String(empresa.id_empresa) === String(empresaSeleccionada),
+	);
+	const tipoEstudioActual = tiposEstudio.find(
+		(tipo) => String(tipo.id_tipo_estudio) === String(tipoEstudioSeleccionado),
+	);
+	const modalidadSeleccionada = resolverModalidadDesdeTipo(
+		tipoEstudioActual?.nombre || tipoEstudioSeleccionado || "",
+	);
+	const esFormularioImagen =
+		Boolean(tipoEstudioSeleccionado) && modalidadSeleccionada !== "laboratorio";
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -63,6 +89,32 @@ const EstudiosLab = () => {
 		cargarEstudios();
 	}, [buscarEstudio]);
 
+	useEffect(() => {
+		if (empresaSeleccionada) {
+			cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
+		} else {
+			setTiposEstudio([]);
+			setTipoEstudioSeleccionado("");
+		}
+	}, [empresaSeleccionada]);
+
+	useEffect(() => {
+		if (!tiposEstudio.length || !tipoEstudioSeleccionado) return;
+		if (
+			tiposEstudio.some(
+				(tipo) => String(tipo.id_tipo_estudio) === String(tipoEstudioSeleccionado),
+			)
+		) {
+			return;
+		}
+		const tipoPorModalidad = tiposEstudio.find(
+			(tipo) => resolverModalidadDesdeTipo(tipo.nombre) === tipoEstudioSeleccionado,
+		);
+		if (tipoPorModalidad) {
+			setTipoEstudioSeleccionado(String(tipoPorModalidad.id_tipo_estudio));
+		}
+	}, [tiposEstudio, tipoEstudioSeleccionado]);
+
 	const cargarCatalogos = async () => {
 		await Promise.all([
 			cargarAreas(),
@@ -71,6 +123,7 @@ const EstudiosLab = () => {
 			cargarMetodos(),
 			cargarTecnicas(),
 			cargarEquipos(),
+			cargarEmpresas(),
 		]);
 	};
 
@@ -158,20 +211,99 @@ const EstudiosLab = () => {
 		}
 	};
 
+	const cargarEmpresas = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("empresas")
+				.select("id_empresa, nombre")
+				.order("nombre");
+			if (error) throw error;
+			setEmpresas(data || []);
+		} catch (error) {
+			console.error("Error al cargar empresas:", error);
+		}
+	};
+
+	const cargarTiposEstudio = async (idEmpresa) => {
+		try {
+			const { data, error } = await supabase
+				.from("empresa_tipos_estudio")
+				.select(
+					`
+					id_tipo_estudio,
+					tipos_estudio (
+						id_tipo_estudio,
+						nombre
+					)
+				`,
+				)
+				.eq("id_empresa", idEmpresa)
+				.order("tipos_estudio(nombre)");
+			if (error) throw error;
+			const tipos = (data || [])
+				.map((item) => ({
+					id_tipo_estudio:
+						item.tipos_estudio?.id_tipo_estudio || item.id_tipo_estudio,
+					nombre: item.tipos_estudio?.nombre || "",
+				}))
+				.filter((tipo) => tipo.nombre);
+			setTiposEstudio(tipos);
+			setTipoEstudioSeleccionado((actual) =>
+				tipos.some((tipo) => String(tipo.id_tipo_estudio) === String(actual)) ||
+				tipos.some((tipo) => resolverModalidadDesdeTipo(tipo.nombre) === actual)
+					? actual
+					: "",
+			);
+		} catch (error) {
+			console.error("Error al cargar tipos de estudio:", error);
+			setTiposEstudio([]);
+			setTipoEstudioSeleccionado("");
+		}
+	};
+
 	const cargarEstudios = async () => {
 		try {
-			let query = supabase
+			let queryLab = supabase
 				.from("estudios_lab_catalogo")
 				.select("*", { count: "exact" });
 			if (buscarEstudio.trim()) {
-				query = query.or(
+				queryLab = queryLab.or(
 					`clave.ilike.%${buscarEstudio}%,descripcion.ilike.%${buscarEstudio}%,area.ilike.%${buscarEstudio}%`,
 				);
 			}
-			const { data, error, count } = await query.order("id", { ascending: true });
-			if (error) throw error;
-			setTotalEstudios(count || 0);
-			setEstudios(data || []);
+			const { data: labData, error: labError, count: labCount } =
+				await queryLab.order("id", { ascending: true });
+			if (labError) throw labError;
+
+			let queryImagen = supabase
+				.from("estudios_imagen_catalogo")
+				.select("*", { count: "exact" });
+			if (buscarEstudio.trim()) {
+				queryImagen = queryImagen.or(
+					`clave.ilike.%${buscarEstudio}%,descripcion.ilike.%${buscarEstudio}%,area.ilike.%${buscarEstudio}%,modalidad.ilike.%${buscarEstudio}%`,
+				);
+			}
+			const {
+				data: imagenData,
+				error: imagenError,
+				count: imagenCount,
+			} = await queryImagen.order("id", { ascending: true });
+			if (imagenError) throw imagenError;
+
+			setTotalEstudios((labCount || 0) + (imagenCount || 0));
+			setEstudios([
+				...(labData || []).map((estudio) => ({
+					...estudio,
+					modulo: "laboratorio",
+					tipo_catalogo: "Laboratorio",
+				})),
+				...(imagenData || []).map((estudio) => ({
+					...estudio,
+					modulo: "imagen",
+					tipo_catalogo: estudio.empresa_operativa || "Imagen",
+					area: estudio.area || "Imagen",
+				})),
+			]);
 		} catch (error) {
 			console.error("Error al cargar estudios:", error);
 		}
@@ -194,6 +326,12 @@ const EstudiosLab = () => {
 		setImprimirTecnica(false);
 		setImprimirEquipo(false);
 		setImprimirMuestra(false);
+		setRegionAnatomica("");
+		setRequiereContraste(false);
+		setRequiereInterpretacion(true);
+		setPreparacion("");
+		setDuracionMinutos("");
+		setActivoImagen(true);
 		setModoEdicion(false);
 		setEstudioSeleccionado(null);
 	};
@@ -217,11 +355,60 @@ const EstudiosLab = () => {
 		imprimir_muestra: imprimirMuestra,
 	});
 
+	const buildEstudioImagenData = () => ({
+		clave,
+		descripcion,
+		empresa_operativa: resolverEmpresaOperativaCatalogo(empresaActual?.nombre || ""),
+		id_empresa: empresaActual?.id_empresa || null,
+		modalidad: modalidadSeleccionada,
+		area: area || "Imagen",
+		region_anatomica: regionAnatomica || null,
+		requiere_contraste: requiereContraste,
+		requiere_interpretacion: requiereInterpretacion,
+		dias_proceso: parseInt(diasProceso, 10) || 1,
+		preparacion: preparacion || null,
+		duracion_minutos: duracionMinutos ? parseInt(duracionMinutos, 10) : null,
+		activo: activoImagen,
+	});
+
+	const validarFormulario = () => {
+		if (!clave.trim() || !descripcion.trim()) {
+			alert("Captura clave y descripciÃ³n del estudio");
+			return false;
+		}
+		if (empresaSeleccionada && !tipoEstudioSeleccionado) {
+			alert("Selecciona el tipo de estudio");
+			return false;
+		}
+		if (esFormularioImagen) {
+			if (!empresaActual) {
+				alert("Selecciona la empresa del estudio");
+				return false;
+			}
+			if (!modalidadSeleccionada || modalidadSeleccionada === "laboratorio") {
+				alert("Selecciona un tipo de estudio de imagen");
+				return false;
+			}
+			if (!resolverEmpresaOperativaCatalogo(empresaActual.nombre)) {
+				alert("No se pudo identificar si la empresa es CDC o CDI");
+				return false;
+			}
+		}
+		return true;
+	};
+
 	const handleGuardar = async () => {
+		if (!validarFormulario()) return;
 		try {
+			const tabla = esFormularioImagen
+				? "estudios_imagen_catalogo"
+				: "estudios_lab_catalogo";
+			const payload = esFormularioImagen
+				? buildEstudioImagenData()
+				: buildEstudioData();
 			const { error } = await supabase
-				.from("estudios_lab_catalogo")
-				.insert([buildEstudioData()]);
+				.from(tabla)
+				.insert([payload]);
 			if (error) throw error;
 			alert("Estudio guardado correctamente");
 			limpiarFormulario();
@@ -234,11 +421,15 @@ const EstudiosLab = () => {
 
 	const handleEditar = async () => {
 		if (!estudioSeleccionado) return;
+		if (!validarFormulario()) return;
 		try {
+			const esImagen = estudioSeleccionado.modulo === "imagen";
+			const tabla = esImagen ? "estudios_imagen_catalogo" : "estudios_lab_catalogo";
+			const payload = esImagen ? buildEstudioImagenData() : buildEstudioData();
 			const { error } = await supabase
-				.from("estudios_lab_catalogo")
-				.update(buildEstudioData())
-				.eq("id", estudioSeleccionado);
+				.from(tabla)
+				.update(payload)
+				.eq("id", estudioSeleccionado.id);
 			if (error) throw error;
 			alert("Estudio actualizado correctamente");
 			limpiarFormulario();
@@ -250,33 +441,50 @@ const EstudiosLab = () => {
 	};
 
 	const cargarEstudioParaEditar = (estudio) => {
-		setKey(estudio.key || "");
+		const esImagen = estudio.modulo === "imagen";
+		setKey(esImagen ? "" : estudio.key || "");
 		setClave(estudio.clave || "");
 		setDescripcion(estudio.descripcion || "");
 		setArea(estudio.area || "");
-		setTipoMuestra(estudio.tipo_muestra || "");
-		setRecipiente(estudio.recipiente || "");
-		setMetodo(estudio.metodo || "");
-		setTecnica(estudio.tecnica || "");
-		setEquipo(estudio.equipo || "");
-		setCondicionesPaciente(estudio.condiciones_paciente || "");
-		setEtiquetasExtra(estudio.etiquetas_extra || "");
+		setTipoMuestra(esImagen ? "" : estudio.tipo_muestra || "");
+		setRecipiente(esImagen ? "" : estudio.recipiente || "");
+		setMetodo(esImagen ? "" : estudio.metodo || "");
+		setTecnica(esImagen ? "" : estudio.tecnica || "");
+		setEquipo(esImagen ? "" : estudio.equipo || "");
+		setCondicionesPaciente(esImagen ? "" : estudio.condiciones_paciente || "");
+		setEtiquetasExtra(esImagen ? "" : estudio.etiquetas_extra || "");
 		setDiasProceso(estudio.dias_proceso || "");
-		setImprimirMetodo(estudio.imprimir_metodo || false);
-		setImprimirTecnica(estudio.imprimir_tecnica || false);
-		setImprimirEquipo(estudio.imprimir_equipo || false);
-		setImprimirMuestra(estudio.imprimir_muestra || false);
+		setImprimirMetodo(esImagen ? false : estudio.imprimir_metodo || false);
+		setImprimirTecnica(esImagen ? false : estudio.imprimir_tecnica || false);
+		setImprimirEquipo(esImagen ? false : estudio.imprimir_equipo || false);
+		setImprimirMuestra(esImagen ? false : estudio.imprimir_muestra || false);
+		setRegionAnatomica(esImagen ? estudio.region_anatomica || "" : "");
+		setRequiereContraste(esImagen ? Boolean(estudio.requiere_contraste) : false);
+		setRequiereInterpretacion(
+			esImagen ? Boolean(estudio.requiere_interpretacion) : true,
+		);
+		setPreparacion(esImagen ? estudio.preparacion || "" : "");
+		setDuracionMinutos(esImagen ? estudio.duracion_minutos || "" : "");
+		setActivoImagen(esImagen ? estudio.activo !== false : true);
+		if (esImagen) {
+			setEmpresaSeleccionada(estudio.id_empresa ? String(estudio.id_empresa) : "");
+			setTipoEstudioSeleccionado(estudio.modalidad || "");
+		}
 		setModoEdicion(true);
-		setEstudioSeleccionado(estudio.id);
+		setEstudioSeleccionado({ id: estudio.id, modulo: estudio.modulo });
 	};
 
-	const handleEliminar = async (id) => {
+	const handleEliminar = async (estudio) => {
 		if (window.confirm("¿Está seguro de eliminar este estudio?")) {
 			try {
+				const tabla =
+					estudio.modulo === "imagen"
+						? "estudios_imagen_catalogo"
+						: "estudios_lab_catalogo";
 				const { error } = await supabase
-					.from("estudios_lab_catalogo")
+					.from(tabla)
 					.delete()
-					.eq("id", id);
+					.eq("id", estudio.id);
 				if (error) throw error;
 				alert("Estudio eliminado correctamente");
 				cargarEstudios();
@@ -322,6 +530,47 @@ const EstudiosLab = () => {
 
 				<div className="admin-estudios-content">
 					<div className="panel-formulario-estudios">
+						<div className="selector-catalogo-estudios">
+							<div className="campo-estudio">
+								<label>Empresa</label>
+								<select
+									value={empresaSeleccionada}
+									onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+									className="select-estudio">
+									<option value="">Laboratorio / General</option>
+									{empresas.map((empresa) => (
+										<option key={empresa.id_empresa} value={empresa.id_empresa}>
+											{empresa.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="campo-estudio">
+								<label>Tipo de estudio</label>
+								<select
+									value={tipoEstudioSeleccionado}
+									onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
+									className="select-estudio"
+									disabled={!empresaSeleccionada}>
+									<option value="">
+										{empresaSeleccionada
+											? "Selecciona tipo"
+											: "Selecciona empresa primero"}
+									</option>
+									{tiposEstudio.map((tipo) => (
+										<option
+											key={tipo.id_tipo_estudio}
+											value={tipo.id_tipo_estudio}>
+											{tipo.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="catalogo-badge">
+								{esFormularioImagen ? "Catálogo de imagen" : "Catálogo laboratorio"}
+							</div>
+						</div>
+
 						<div className="campo-estudio">
 							<label>Key</label>
 							<input
@@ -329,6 +578,7 @@ const EstudiosLab = () => {
 								value={key}
 								onChange={(e) => setKey(e.target.value)}
 								className="input-estudio"
+								disabled={esFormularioImagen}
 							/>
 						</div>
 						<div className="campo-estudio">
@@ -350,6 +600,113 @@ const EstudiosLab = () => {
 							/>
 						</div>
 
+						{esFormularioImagen ? (
+							<>
+								<div className="campo-estudio-doble">
+									<div className="campo-estudio">
+										<label>Modalidad</label>
+										<input
+											type="text"
+											value={modalidadSeleccionada}
+											className="input-estudio"
+											readOnly
+										/>
+									</div>
+									<div className="campo-estudio">
+										<label>Empresa operativa</label>
+										<input
+											type="text"
+											value={resolverEmpresaOperativaCatalogo(empresaActual?.nombre || "")}
+											className="input-estudio"
+											readOnly
+										/>
+									</div>
+								</div>
+
+								<div className="campo-estudio-doble">
+									<div className="campo-estudio">
+										<label>Area</label>
+										<input
+											type="text"
+											value={area}
+											onChange={(e) => setArea(e.target.value)}
+											className="input-estudio"
+											placeholder="Imagen"
+										/>
+									</div>
+									<div className="campo-estudio">
+										<label>Región anatómica</label>
+										<input
+											type="text"
+											value={regionAnatomica}
+											onChange={(e) => setRegionAnatomica(e.target.value)}
+											className="input-estudio"
+										/>
+									</div>
+								</div>
+
+								<div className="campo-estudio-doble">
+									<div className="campo-estudio">
+										<label>Días de Proceso</label>
+										<input
+											type="number"
+											value={diasProceso}
+											onChange={(e) => setDiasProceso(e.target.value)}
+											className="input-estudio"
+										/>
+									</div>
+									<div className="campo-estudio">
+										<label>Duración estimada (min)</label>
+										<input
+											type="number"
+											value={duracionMinutos}
+											onChange={(e) => setDuracionMinutos(e.target.value)}
+											className="input-estudio"
+										/>
+									</div>
+								</div>
+
+								<div className="campo-estudio">
+									<label>Preparación</label>
+									<textarea
+										value={preparacion}
+										onChange={(e) => setPreparacion(e.target.value)}
+										className="textarea-estudio"
+										rows="3"
+									/>
+								</div>
+
+								<div className="checkboxes-impresion">
+									<label className="checkbox-label">
+										<input
+											type="checkbox"
+											checked={requiereContraste}
+											onChange={(e) => setRequiereContraste(e.target.checked)}
+										/>
+										<span>Requiere contraste</span>
+									</label>
+									<label className="checkbox-label">
+										<input
+											type="checkbox"
+											checked={requiereInterpretacion}
+											onChange={(e) =>
+												setRequiereInterpretacion(e.target.checked)
+											}
+										/>
+										<span>Requiere interpretación</span>
+									</label>
+									<label className="checkbox-label">
+										<input
+											type="checkbox"
+											checked={activoImagen}
+											onChange={(e) => setActivoImagen(e.target.checked)}
+										/>
+										<span>Activo</span>
+									</label>
+								</div>
+							</>
+						) : (
+							<>
 						<div className="campo-estudio-doble">
 							<div className="campo-estudio">
 								<label>Area</label>
@@ -523,6 +880,8 @@ const EstudiosLab = () => {
 								<span>Imprimir Muestra</span>
 							</label>
 						</div>
+							</>
+						)}
 
 						<div className="botones-formulario">
 							<button className="btn-guardar-estudio" onClick={handleGuardar}>
@@ -567,26 +926,30 @@ const EstudiosLab = () => {
 								<thead>
 									<tr>
 										<th>ID</th>
+										<th>CatÃ¡logo</th>
 										<th>Clave</th>
 										<th>Descripcion</th>
 										<th>Area</th>
+										<th>Tipo</th>
 										<th>Acciones</th>
 									</tr>
 								</thead>
 								<tbody>
 									{estudios.length === 0 ? (
 										<tr>
-											<td colSpan="5" className="sin-estudios-adm">
+											<td colSpan="7" className="sin-estudios-adm">
 												No hay estudios para mostrar
 											</td>
 										</tr>
 									) : (
 										estudios.map((estudio, index) => (
-											<tr key={estudio.id}>
+											<tr key={`${estudio.modulo}-${estudio.id}`}>
 												<td>{index + 1}</td>
+												<td>{estudio.tipo_catalogo}</td>
 												<td>{estudio.clave}</td>
 												<td>{estudio.descripcion}</td>
 												<td>{estudio.area}</td>
+												<td>{estudio.modalidad || "laboratorio"}</td>
 												<td>
 													<div className="acciones-estudios-adm">
 														<button
@@ -601,7 +964,7 @@ const EstudiosLab = () => {
 														</button>
 														<button
 															className="btn-eliminar-estudio-tabla"
-															onClick={() => handleEliminar(estudio.id)}
+															onClick={() => handleEliminar(estudio)}
 															title="Eliminar estudio">
 															<img
 																src={eliminarIconoV2}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase-client';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
 import './modal-agregar-doctor.css';
+import '../../../components/admin-entity-modal.css';
 
 const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) => {
   const [apellidoPaterno, setApellidoPaterno] = useState('');
@@ -157,8 +158,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleCerrar}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay admin-entity-modal-overlay" onClick={handleCerrar}>
+      <div className="modal-container admin-entity-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEditMode ? 'Editar Doctor' : 'Agregar Doctor'}</h2>
           <button className="modal-close" onClick={handleCerrar}>✕</button>

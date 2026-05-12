@@ -60,7 +60,6 @@ export const sidebarItems = [
 		hasSubmenu: true,
 		submenu: [
 			{ id: "pacientes", label: "Pacientes", icon: subIcon, path: "/pacientes" },
-			{ id: "clientes", label: "Clientes", icon: subIcon, path: "/clientes" },
 			{ id: "doctores", label: "Doctores", icon: subIcon, path: "/doctores" },
 			{ id: "usuarios", label: "Usuarios", icon: subIcon, path: "/usuarios" },
 		],

@@ -27,7 +27,6 @@ describe("sidebar shared menu", () => {
 	test("keeps catalogs and technical configuration separated", () => {
 		expect(labelsFor("administracion")).toEqual([
 			"Pacientes",
-			"Clientes",
 			"Doctores",
 			"Usuarios",
 		]);
