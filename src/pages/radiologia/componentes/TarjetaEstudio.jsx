@@ -3,11 +3,15 @@ import './TarjetaEstudio.css';
 
 const TarjetaEstudio = ({ 
   tipoEstudio, 
+  descripcionEstudio,
   nombrePaciente, 
   horaFecha, 
   sucursal, 
   estado, 
+  tieneImagen,
+  subiendoImagen = false,
   onVerDetalles,
+  onSubirImagen,
   onAsignar,
   onClick 
 }) => {
@@ -58,6 +62,9 @@ const TarjetaEstudio = ({
 
       <div className="tarjeta-estudio-body">
         <h4 className="nombre-paciente">{nombrePaciente || 'Sin nombre'}</h4>
+        {descripcionEstudio && (
+          <p className="descripcion-estudio">{descripcionEstudio}</p>
+        )}
         
         <div className="info-estudio">
           <p className="hora-fecha">{horaFecha || '--:--'}</p>
@@ -69,6 +76,17 @@ const TarjetaEstudio = ({
         </div>
 
         <div className="tarjeta-acciones">
+          <button
+            type="button"
+            className={`btn-subir-imagen ${tieneImagen ? 'con-imagen' : ''}`}
+            disabled={subiendoImagen}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onSubirImagen) onSubirImagen();
+            }}
+          >
+            {subiendoImagen ? 'Subiendo...' : tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
+          </button>
           <button 
             className="btn-menu-estudio"
             onClick={(e) => {

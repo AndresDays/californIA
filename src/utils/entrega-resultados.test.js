@@ -4,6 +4,7 @@ import {
 	estaEnRangoEntrega,
 	filtrarVentasEntrega,
 	tieneSaldoPendiente,
+	ventaCompletaListaEntrega,
 	ventaListaEnRangoEntrega,
 } from "./entrega-resultados";
 
@@ -107,6 +108,73 @@ describe("entrega-resultados helpers", () => {
 		expect(
 			calcularPendientesEntrega(ventas[0].estudios_venta, estudiosRadiologia),
 		).toBe(2);
+	});
+
+	test("no cuenta estudios de imagen de estudios_venta como laboratorio", () => {
+		const estudiosVenta = [
+			{
+				clave_estudio: "RM-ABDOMEN-SIMPLE",
+				descripcion_estudio: "RM ABDOMEN SIMPLE",
+				area: "Resonancia magnetica",
+				estado_validacion: "validado",
+				entregado: false,
+			},
+		];
+		const estudiosRadiologia = [
+			{
+				listo_entrega: true,
+				entregado: false,
+			},
+		];
+
+		expect(calcularPendientesEntrega(estudiosVenta, estudiosRadiologia)).toBe(1);
+	});
+
+	test("bloquea entrega mixta hasta que laboratorio e imagen esten listos", () => {
+		const ventaMixtaPendienteImagen = {
+			fecha_venta: "2026-05-11T17:00:00.000Z",
+			estudios_venta: [
+				{
+					clave_estudio: "QS3",
+					estado_validacion: "validado",
+					entregado: false,
+					muestra_pendiente: false,
+				},
+				{
+					clave_estudio: "RM-CRANEO-SIMPLE",
+					estado_validacion: "pendiente",
+					entregado: false,
+				},
+			],
+			estudios_radiologia_todos: [
+				{ listo_entrega: false, entregado: false },
+			],
+			estudios_radiologia: [],
+		};
+
+		expect(ventaCompletaListaEntrega(ventaMixtaPendienteImagen)).toBe(false);
+		expect(
+			ventaListaEnRangoEntrega(
+				ventaMixtaPendienteImagen,
+				"2026-05-11",
+				"2026-05-11",
+			),
+		).toBe(false);
+
+		const ventaMixtaLista = {
+			...ventaMixtaPendienteImagen,
+			estudios_radiologia_todos: [
+				{ listo_entrega: true, entregado: false, updated_at: "2026-05-11T18:00:00.000Z" },
+			],
+			estudios_radiologia: [
+				{ listo_entrega: true, entregado: false, updated_at: "2026-05-11T18:00:00.000Z" },
+			],
+		};
+
+		expect(ventaCompletaListaEntrega(ventaMixtaLista)).toBe(true);
+		expect(
+			ventaListaEnRangoEntrega(ventaMixtaLista, "2026-05-11", "2026-05-11"),
+		).toBe(true);
 	});
 
 	test("filtra por folio, paciente o cliente en una busqueda general", () => {

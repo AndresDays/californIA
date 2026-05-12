@@ -5,6 +5,7 @@ const mockNavigate = jest.fn();
 const mockUpdate = jest.fn(() => ({
   eq: jest.fn().mockResolvedValue({ error: null }),
 }));
+const mockUpload = jest.fn().mockResolvedValue({ error: null });
 const mockHeader = jest.fn(() => <div>Header</div>);
 const mockSidebar = jest.fn(({ isOpen }) => <div>{isOpen ? 'Sidebar mobile abierto' : 'Sidebar mobile cerrado'}</div>);
 const mockSidebarHome = jest.fn(() => <div>Sidebar escritorio</div>);
@@ -30,10 +31,13 @@ jest.mock('../../../components/header-principal', () => (props) => mockHeader(pr
 jest.mock('../../../components/sidebar', () => (props) => mockSidebar(props));
 jest.mock('../../../components/sidebar-home', () => (props) => mockSidebarHome(props));
 jest.mock('../../../utils/use-sidebar', () => () => mockSidebarState);
-jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onClick, onVerDetalles }) => (
+jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onClick, onVerDetalles, onSubirImagen }) => (
   <div>
     <button type="button" onClick={onClick}>
       {nombrePaciente} {estado}
+    </button>
+    <button type="button" onClick={onSubirImagen}>
+      Subir imagen {nombrePaciente}
     </button>
     <button type="button" onClick={onVerDetalles} aria-label={`Detalles ${nombrePaciente}`}>
       ⋮
@@ -43,6 +47,11 @@ jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onCl
 
 jest.mock('../../../lib/supabase-client', () => ({
   supabase: {
+    storage: {
+      from: jest.fn(() => ({
+        upload: mockUpload,
+      })),
+    },
     from: jest.fn((table) => {
       if (table === 'empleados') {
         return {
@@ -64,6 +73,7 @@ jest.mock('../../../lib/supabase-client', () => ({
               id_estudio: 1,
               tipo_estudio: 'DX',
               estado: 'POR ASIGNAR',
+              storage_path: null,
               sucursal: 'Centro',
               fecha_estudio: new Date().toISOString(),
               pacientes: { id_paciente: 11, nombre: 'Maria Gomez' },
@@ -72,6 +82,7 @@ jest.mock('../../../lib/supabase-client', () => ({
               id_estudio: 2,
               tipo_estudio: 'US',
               estado: 'ASIGNADO',
+              storage_path: '2/previo.dcm',
               sucursal: 'Norte',
               fecha_estudio: new Date().toISOString(),
               pacientes: { id_paciente: 12, nombre: 'Juan Perez' },
@@ -80,6 +91,7 @@ jest.mock('../../../lib/supabase-client', () => ({
               id_estudio: 3,
               tipo_estudio: 'DX',
               estado: 'EN PROCESO',
+              storage_path: '3/imagen.dcm',
               sucursal: 'Centro',
               fecha_estudio: new Date().toISOString(),
               pacientes: { id_paciente: 13, nombre: 'Ana Lopez' },
@@ -104,7 +116,7 @@ beforeEach(() => {
 test('does not show the create group action', async () => {
   render(<DashboardRadiologia />);
 
-  await waitFor(() => expect(screen.getByText(/Maria Gomez/i)).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
 
   expect(screen.queryByRole('button', { name: /Crear Grupo/i })).not.toBeInTheDocument();
 });
@@ -146,16 +158,16 @@ test('connects the header hamburger to the responsive sidebar', async () => {
 test('shows operational filters and keeps card details behind the three-dot action', async () => {
   render(<DashboardRadiologia />);
 
-  await waitFor(() => expect(screen.getByText(/Maria Gomez/i)).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
 
   expect(screen.getByRole('button', { name: /Todos 3/i })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Por asignar 1/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Por tomar\/subir 1/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Asignados 1/i })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /En proceso 1/i })).toBeInTheDocument();
   expect(screen.getByPlaceholderText(/Buscar paciente, estudio o sucursal/i)).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: /Por asignar 1/i }));
-  expect(screen.getByText(/Maria Gomez/i)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Por tomar\/subir 1/i }));
+  expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument();
   expect(screen.queryByText(/Juan Perez/i)).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i }));
@@ -173,4 +185,25 @@ test('shows operational filters and keeps card details behind the three-dot acti
   fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
 
   expect(screen.getByRole('heading', { name: /Detalle del estudio/i })).toBeInTheDocument();
+});
+
+test('uploads an image file to the pending radiology study', async () => {
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+
+  fireEvent.click(screen.getByRole('button', { name: /Subir imagen Maria Gomez/i }));
+
+  const input = document.querySelector('.radiologia-input-archivo');
+  const archivo = new File(['dicom'], 'torax.dcm', { type: 'application/dicom' });
+  fireEvent.change(input, { target: { files: [archivo] } });
+
+  await waitFor(() => expect(mockUpload).toHaveBeenCalled());
+  expect(mockUpload.mock.calls[0][0]).toMatch(/^1\/\d+-torax\.dcm$/);
+  expect(mockUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      estado: 'EN PROCESO',
+      storage_path: expect.stringMatching(/^1\/\d+-torax\.dcm$/),
+    })
+  );
 });

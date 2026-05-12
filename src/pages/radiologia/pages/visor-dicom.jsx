@@ -55,6 +55,20 @@ let csInitPromise = null;
 const BUCKET_ADJUNTOS_REPORTE = "reportes-radiologia-adjuntos";
 const REPORTE_ADJUNTO_MAX_SIZE = 25 * 1024 * 1024;
 
+const normalizarTextoEstudio = (valor = "") =>
+	String(valor)
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]/g, "");
+
+const descripcionesCoinciden = (a = "", b = "") => {
+	const textoA = normalizarTextoEstudio(a);
+	const textoB = normalizarTextoEstudio(b);
+	if (!textoA || !textoB) return false;
+	return textoA === textoB || textoA.includes(textoB) || textoB.includes(textoA);
+};
+
 const initCornerstone = () => {
 	if (csModules) return Promise.resolve(csModules);
 	if (csInitPromise) return csInitPromise;
@@ -3244,10 +3258,11 @@ const VisorDicom = () => {
 				.update(payload)
 				.eq("id_estudio", estudioId || estudioData?.id);
 		const actualizadoEn = new Date().toISOString();
+		const idEstudio = estudioId || estudioData?.id;
 		let payloadReporte = {
 			reporte: textoReporte,
 			estado: "COMPLETADO",
-			listo_entrega: Boolean(textoReporte.trim()),
+			listo_entrega: false,
 			entregado: false,
 			updated_at: actualizadoEn,
 		};
@@ -3269,24 +3284,86 @@ const VisorDicom = () => {
 		if (error) showNotif("Error al guardar el reporte", "error");
 		else {
 			setReporteTexto(textoReporte);
-			const idEstudio = estudioId || estudioData?.id;
-			const { data: estudioEntrega } = await supabase
+			let { data: estudioEntrega, error: errorEstudioEntrega } = await supabase
 				.from("estudios_radiologia")
-				.select("id_estudio, id_venta, id_sucursal, sucursal, tipo_estudio")
+				.select(
+					"id_estudio, id_venta, id_estudio_venta, id_sucursal, sucursal, tipo_estudio, id_paciente, descripcion, fecha_estudio",
+				)
 				.eq("id_estudio", idEstudio)
 				.maybeSingle();
+			if (errorEstudioEntrega) {
+				const { data: estudioBasico, error: errorBasico } = await supabase
+					.from("estudios_radiologia")
+					.select("id_estudio, tipo_estudio, id_paciente, descripcion, fecha_estudio")
+					.eq("id_estudio", idEstudio)
+					.maybeSingle();
+				if (errorBasico) {
+					console.error("Error al consultar estudio de radiologia:", errorBasico);
+				}
+				estudioEntrega = estudioBasico || null;
+			}
+			if (textoReporte.trim() && estudioEntrega) {
+				let idEstudioVenta = estudioEntrega.id_estudio_venta || null;
+				if (!idEstudioVenta && estudioEntrega.id_paciente) {
+					const { data: ventasPaciente, error: errorVentasPaciente } = await supabase
+						.from("ventas")
+						.select(
+							"id_venta, fecha_venta, estudios_venta (id_estudio_venta, descripcion_estudio, clave_estudio, estado_validacion)",
+						)
+						.eq("id_paciente", estudioEntrega.id_paciente)
+						.eq("estado", "activo")
+						.order("fecha_venta", { ascending: false })
+						.limit(20);
+					if (errorVentasPaciente) {
+						console.error(
+							"Error al buscar venta para estudio de imagen:",
+							errorVentasPaciente,
+						);
+					}
+					const estudioVentaRelacionado = (ventasPaciente || [])
+						.flatMap((venta) =>
+							(venta.estudios_venta || []).map((estudioVenta) => ({
+								...estudioVenta,
+								id_venta: venta.id_venta,
+							})),
+						)
+						.find((estudioVenta) =>
+							descripcionesCoinciden(
+								estudioVenta.descripcion_estudio || estudioVenta.clave_estudio,
+								estudioEntrega.descripcion || pacienteInfo.tipoEstudio,
+							),
+						);
+					idEstudioVenta = estudioVentaRelacionado?.id_estudio_venta || null;
+				}
+				if (idEstudioVenta) {
+					const { error: errorEstudioVenta } = await supabase
+						.from("estudios_venta")
+						.update({
+							estado_captura: "completado",
+							estado_validacion: "guardado",
+							updated_at: actualizadoEn,
+						})
+						.eq("id_estudio_venta", idEstudioVenta);
+					if (errorEstudioVenta) {
+						console.error(
+							"Error al sincronizar estudio de imagen en captura:",
+							errorEstudioVenta,
+						);
+					}
+				}
+			}
 			await crearNotificacion(supabase, {
-				titulo: "Reporte de imagen listo",
+				titulo: "Reporte de imagen guardado",
 				mensaje: `${pacienteInfo.nombre} · ${estudioEntrega?.tipo_estudio || pacienteInfo.tipoEstudio}`,
-				tipo: "entrega",
-				canal_destino: "entrega",
+				tipo: "captura",
+				canal_destino: "captura",
 				entidad_tipo: "estudio_radiologia",
 				entidad_id: Number(idEstudio),
 				id_venta: estudioEntrega?.id_venta || null,
 				id_sucursal:
 					estudioEntrega?.id_sucursal || empleadoData?.id_sucursal || null,
 				sucursal: estudioEntrega?.sucursal || empleadoData?.sucursal || "",
-				action_path: "/entrega-resultados",
+				action_path: "/captura",
 			});
 			showNotif("Reporte guardado", "exito");
 		}

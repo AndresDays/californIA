@@ -1,9 +1,57 @@
 import { calcularSaldoVenta, tieneAdeudoVenta } from "./venta-payment-status";
 
+const normalizarTexto = (valor = "") =>
+	String(valor)
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
+
+export const estudioImagenListoEntrega = (estudio = {}) =>
+	estudio.listo_entrega === true && estudio.entregado !== true;
+
+export const esEstudioImagenEntrega = (estudio = {}) => {
+	const texto = normalizarTexto(
+		`${estudio.clave_estudio || estudio.clave || ""} ${estudio.area || ""} ${estudio.descripcion_estudio || estudio.descripcion || ""}`,
+	);
+	return (
+		/^(rm|rx|tac|us|ec|uo|vet)-/.test(texto) ||
+		/radiologia|imagen|rayos|ultrasonido|ultrasonografia|tomografia|resonancia|mastografia|contrastados|veterinaria/.test(
+			texto,
+		)
+	);
+};
+
 export const estudioLaboratorioListoEntrega = (estudio = {}) =>
+	!esEstudioImagenEntrega(estudio) &&
 	estudio.estado_validacion === "validado" &&
 	!estudio.entregado &&
 	estudio.muestra_pendiente !== true;
+
+export const ventaCompletaListaEntrega = (venta = {}) => {
+	const estudiosVenta = venta.estudios_venta || [];
+	const estudiosLaboratorioPendientes = estudiosVenta.filter(
+		(estudio) => !esEstudioImagenEntrega(estudio) && estudio.entregado !== true,
+	);
+	const estudiosRadiologiaPendientes = (
+		venta.estudios_radiologia_todos ||
+		venta.estudios_radiologia ||
+		[]
+	).filter((estudio) => estudio.entregado !== true);
+
+	const hayPendientes =
+		estudiosLaboratorioPendientes.length > 0 ||
+		estudiosRadiologiaPendientes.length > 0;
+	if (!hayPendientes) return false;
+
+	const laboratorioListo = estudiosLaboratorioPendientes.every(
+		estudioLaboratorioListoEntrega,
+	);
+	const radiologiaLista = estudiosRadiologiaPendientes.every(
+		estudioImagenListoEntrega,
+	);
+
+	return laboratorioListo && radiologiaLista;
+};
 
 const formatearFechaMexico = (fecha = new Date()) => {
 	const partes = new Intl.DateTimeFormat("es-MX", {
@@ -45,6 +93,8 @@ export const ventaListaEnRangoEntrega = (
 	fechaInicial = "",
 	fechaFinal = "",
 ) => {
+	if (!ventaCompletaListaEntrega(venta)) return false;
+
 	const ventaEnRango = fechaEnRangoEntrega(
 		venta.fecha_venta,
 		fechaInicial,
@@ -57,8 +107,7 @@ export const ventaListaEnRangoEntrega = (
 	);
 	const radiologiaEnRango = (venta.estudios_radiologia || []).some(
 		(estudio) =>
-			estudio.listo_entrega &&
-			!estudio.entregado &&
+			estudioImagenListoEntrega(estudio) &&
 			(ventaEnRango || estaEnRangoEntrega(estudio, fechaInicial, fechaFinal)),
 	);
 
@@ -73,7 +122,7 @@ export const calcularPendientesEntrega = (
 		(estudio) => estudioLaboratorioListoEntrega(estudio),
 	).length;
 	const pendientesRadiologia = estudiosRadiologia.filter(
-		(estudio) => estudio.listo_entrega && !estudio.entregado,
+		estudioImagenListoEntrega,
 	).length;
 
 	return pendientesLaboratorio + pendientesRadiologia;

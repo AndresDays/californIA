@@ -11,7 +11,9 @@ import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import {
 	CAPTURA_FILTROS_ESTADO,
+	aplicarEstadoRadiologiaACaptura,
 	contarVentasPorEstadoCaptura,
+	esEstudioImagenCaptura,
 	filtrarVentasPorEstadoCaptura,
 	obtenerClaseEstadoCapturaVenta,
 	obtenerEstadoCapturaVenta,
@@ -120,6 +122,65 @@ const Captura = () => {
 		}
 	};
 
+	const cargarRadiologiaParaCaptura = async ({
+		idsVentas = [],
+		idsEstudiosVenta = [],
+		idsPacientes = [],
+	} = {}) => {
+		const consultas = [];
+		const selectRadiologia =
+			"id_estudio, id_venta, id_estudio_venta, id_paciente, tipo_estudio, descripcion, estado, listo_entrega, reporte, fecha_estudio";
+		const selectRadiologiaBasico =
+			"id_estudio, id_paciente, tipo_estudio, descripcion, estado, reporte, fecha_estudio";
+
+		if (idsVentas.length) {
+			consultas.push(
+				supabase
+					.from("estudios_radiologia")
+					.select(selectRadiologia)
+					.in("id_venta", idsVentas),
+			);
+		}
+		if (idsEstudiosVenta.length) {
+			consultas.push(
+				supabase
+					.from("estudios_radiologia")
+					.select(selectRadiologia)
+					.in("id_estudio_venta", idsEstudiosVenta),
+			);
+		}
+		if (idsPacientes.length) {
+			consultas.push(
+				supabase
+					.from("estudios_radiologia")
+					.select(selectRadiologiaBasico)
+					.in("id_paciente", idsPacientes),
+			);
+		}
+		if (!consultas.length) return [];
+
+		const respuestas = await Promise.all(consultas);
+		const estudios = [];
+		const idsIncluidos = new Set();
+
+		for (const { data, error } of respuestas) {
+			if (error) {
+				console.warn("No se pudo cargar estado de radiologia para captura:", error);
+				continue;
+			}
+			for (const estudio of data || []) {
+				const id =
+					estudio.id_estudio ||
+					`${estudio.id_venta || ""}-${estudio.id_estudio_venta || ""}-${estudio.descripcion || ""}`;
+				if (idsIncluidos.has(id)) continue;
+				idsIncluidos.add(id);
+				estudios.push(estudio);
+			}
+		}
+
+		return estudios;
+	};
+
 	const cargarVentas = async () => {
 		try {
 			const { data, error } = await supabase
@@ -128,14 +189,61 @@ const Captura = () => {
 					`id_venta, folio, fecha_venta, estado, total, pago_recibido,
 					pacientes (id_paciente, nombre, fecha_nacimiento, sexo, tipo),
 					clientes (id_cliente, nombre),
-					estudios_venta (id_estudio_venta, area, estado_captura, estado_validacion, muestra_pendiente)`,
+					estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, area, estado_captura, estado_validacion, muestra_pendiente)`,
 				)
 				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
 				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
 				.eq("estado", "activo")
 				.order("fecha_venta", { ascending: false });
 			if (error) throw error;
-			setVentas(data || []);
+			const ventasData = data || [];
+			const idsVentas = ventasData.map((venta) => venta.id_venta).filter(Boolean);
+			const idsPacientes = ventasData
+				.map((venta) => venta.pacientes?.id_paciente)
+				.filter(Boolean);
+			const idsEstudiosVenta = ventasData
+				.flatMap((venta) => venta.estudios_venta || [])
+				.map((estudio) => estudio.id_estudio_venta)
+				.filter(Boolean);
+			const estudiosRadiologia = await cargarRadiologiaParaCaptura({
+				idsVentas,
+				idsEstudiosVenta,
+				idsPacientes,
+			});
+			const radiologiaPorVenta = estudiosRadiologia.reduce((acc, estudio) => {
+				if (!estudio.id_venta) return acc;
+				acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
+				return acc;
+			}, {});
+			const radiologiaPorEstudioVenta = estudiosRadiologia.reduce((acc, estudio) => {
+				if (!estudio.id_estudio_venta) return acc;
+				acc[estudio.id_estudio_venta] = [
+					...(acc[estudio.id_estudio_venta] || []),
+					estudio,
+				];
+				return acc;
+			}, {});
+			const radiologiaPorPaciente = estudiosRadiologia.reduce((acc, estudio) => {
+				if (!estudio.id_paciente) return acc;
+				acc[estudio.id_paciente] = [...(acc[estudio.id_paciente] || []), estudio];
+				return acc;
+			}, {});
+			setVentas(
+				ventasData.map((venta) => ({
+					...venta,
+					estudios_venta: aplicarEstadoRadiologiaACaptura(
+						venta.estudios_venta || [],
+						[
+							...(radiologiaPorVenta[venta.id_venta] || []),
+							...(radiologiaPorPaciente[venta.pacientes?.id_paciente] || []),
+							...(venta.estudios_venta || []).flatMap(
+								(estudio) =>
+									radiologiaPorEstudioVenta[estudio.id_estudio_venta] || [],
+							),
+						],
+					),
+				})),
+			);
 		} catch (error) {
 			console.error("Error al cargar ventas:", error);
 			setVentas([]);
@@ -145,18 +253,29 @@ const Captura = () => {
 	const seleccionarVenta = (venta) => {
 		setVentaSeleccionada(venta);
 		setObservaciones("");
-		cargarResultados(venta.id_venta);
+		cargarResultados(venta.id_venta, venta);
 	};
 
-	const cargarResultados = async (idVenta) => {
+	const cargarResultados = async (idVenta, ventaBase = ventaSeleccionada) => {
 		try {
 			const { data: estudiosVenta, error: errorEstudios } = await supabase
 				.from("estudios_venta")
 				.select("*")
 				.eq("id_venta", idVenta);
 			if (errorEstudios) throw errorEstudios;
+			const estudiosRadiologia = await cargarRadiologiaParaCaptura({
+				idsVentas: [idVenta].filter(Boolean),
+				idsEstudiosVenta: (estudiosVenta || [])
+					.map((estudio) => estudio.id_estudio_venta)
+					.filter(Boolean),
+				idsPacientes: [ventaBase?.pacientes?.id_paciente].filter(Boolean),
+			});
+			const estudiosVentaConRadiologia = aplicarEstadoRadiologiaACaptura(
+				estudiosVenta || [],
+				estudiosRadiologia,
+			);
 			const estudiosConAnalitos = await Promise.all(
-				estudiosVenta.map(async (estudio) => {
+				estudiosVentaConRadiologia.map(async (estudio) => {
 					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
 						.from("estudio_analitos")
 						.select("*")
@@ -238,6 +357,7 @@ const Captura = () => {
 		}
 		try {
 			for (const estudio of resultados) {
+				if (esEstudioImagenCaptura(estudio)) continue;
 				if (estudio.muestra_pendiente) continue;
 				const hayResultados = estudio.analitos.some(
 					(a) => a.resultado && a.resultado.trim() !== "",
@@ -281,16 +401,52 @@ const Captura = () => {
 			return;
 		}
 		try {
+			const actualizadoEn = new Date().toISOString();
+			const idsRadiologiaParaEntrega = [];
+			const idsEstudiosImagenVenta = [];
+
 			for (const estudio of resultados) {
+				if (esEstudioImagenCaptura(estudio)) {
+					if (estudio.estado_validacion === "guardado") {
+						if (estudio.radiologia_id_estudio) {
+							idsRadiologiaParaEntrega.push(estudio.radiologia_id_estudio);
+						}
+						if (estudio.id_estudio_venta) {
+							idsEstudiosImagenVenta.push(estudio.id_estudio_venta);
+						}
+					}
+					continue;
+				}
 				const { error } = await supabase
 					.from("estudios_venta")
 					.update({
 						estado_captura: "completado",
 						estado_validacion: "validado",
-						updated_at: new Date().toISOString(),
+						updated_at: actualizadoEn,
 					})
 					.eq("id_estudio_venta", estudio.id_estudio_venta);
 				if (error) throw error;
+			}
+			if (idsEstudiosImagenVenta.length > 0) {
+				const { error: errorEstudiosImagen } = await supabase
+					.from("estudios_venta")
+					.update({
+						estado_captura: "completado",
+						estado_validacion: "validado",
+						updated_at: actualizadoEn,
+					})
+					.in("id_estudio_venta", idsEstudiosImagenVenta);
+				if (errorEstudiosImagen) throw errorEstudiosImagen;
+			}
+			if (idsRadiologiaParaEntrega.length > 0) {
+				const { error: errorRadiologia } = await supabase
+					.from("estudios_radiologia")
+					.update({
+						listo_entrega: true,
+						updated_at: actualizadoEn,
+					})
+					.in("id_estudio", idsRadiologiaParaEntrega);
+				if (errorRadiologia) throw errorRadiologia;
 			}
 			await crearNotificacion(supabase, {
 				titulo: "Resultados de laboratorio listos",
@@ -319,7 +475,22 @@ const Captura = () => {
 			return;
 		}
 		try {
+			const idsRadiologiaParaRetirar = [];
 			for (const estudio of resultados) {
+				if (esEstudioImagenCaptura(estudio)) {
+					if (estudio.radiologia_id_estudio) {
+						idsRadiologiaParaRetirar.push(estudio.radiologia_id_estudio);
+					}
+					const { error } = await supabase
+						.from("estudios_venta")
+						.update({
+							estado_validacion: "guardado",
+							updated_at: new Date().toISOString(),
+						})
+						.eq("id_estudio_venta", estudio.id_estudio_venta);
+					if (error) throw error;
+					continue;
+				}
 				const { error } = await supabase
 					.from("estudios_venta")
 					.update({
@@ -328,6 +499,16 @@ const Captura = () => {
 					})
 					.eq("id_estudio_venta", estudio.id_estudio_venta);
 				if (error) throw error;
+			}
+			if (idsRadiologiaParaRetirar.length > 0) {
+				const { error: errorRadiologia } = await supabase
+					.from("estudios_radiologia")
+					.update({
+						listo_entrega: false,
+						updated_at: new Date().toISOString(),
+					})
+					.in("id_estudio", idsRadiologiaParaRetirar);
+				if (errorRadiologia) throw errorRadiologia;
 			}
 			mostrarNotificacion("Estudios invalidados exitosamente", "exito");
 			await cargarVentas();
