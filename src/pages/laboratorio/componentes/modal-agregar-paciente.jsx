@@ -8,6 +8,7 @@ import cedulaIcono from '../../../assets/cedulaIcono.png';
 import nivelIcono from '../../../assets/nivelIcono.png';
 import correoIcono from '../../../assets/correoIcono.png';
 import telefonoIcono from '../../../assets/telefonoIcono.png';
+import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
 
 const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = null }) => {
   const [apellidoPaterno, setApellidoPaterno] = useState('');
@@ -58,7 +59,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       } else if (telefonoSinCodigo.startsWith('+1 ')) {
         telefonoSinCodigo = telefonoSinCodigo.substring(3);
       }
-      setTelefono(telefonoSinCodigo);
+      setTelefono(normalizarTelefono10(telefonoSinCodigo));
       
       if (pacienteEditar.fechaNacimiento) {
         const fecha = new Date(pacienteEditar.fechaNacimiento);
@@ -152,11 +153,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   };
 
   const handleTelefonoChange = (e) => {
-    const valor = e.target.value;
-    const soloNumeros = valor.replace(/\D/g, '');
-    if (soloNumeros.length <= 10) {
-      setTelefono(soloNumeros);
-    }
+    setTelefono(normalizarTelefono10(e.target.value));
   };
 
   const obtenerTelefonoCompleto = () => {
@@ -170,6 +167,16 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
 
     if (!apellidoPaterno.trim() || !nombre.trim()) {
       alert('Por favor, ingresa al menos el apellido paterno y el nombre');
+      return;
+    }
+
+    if (email.trim() && !esEmailValido(email)) {
+      alert('Por favor, ingresa un email válido');
+      return;
+    }
+
+    if (telefono && !esTelefono10Digitos(telefono)) {
+      alert('El teléfono debe contener exactamente 10 dígitos numéricos');
       return;
     }
 
@@ -430,6 +437,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
               placeholder="Ingresar Teléfono (10 dígitos)"
               className="modal-input-paciente"
               maxLength="10"
+              inputMode="numeric"
             />
           </div>
 

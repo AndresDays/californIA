@@ -7,6 +7,11 @@ import Header from "../../../components/header-principal";
 import Sidebar from "../../../components/sidebar";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import {
+	esEmailValido,
+	esTelefono10Digitos,
+	normalizarTelefono10,
+} from "../../../utils/form-validations";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
@@ -2705,6 +2710,17 @@ const VisorDicom = () => {
 
 	const guardarFichaPaciente = async () => {
 		if (!fichaData?.paciente) return;
+		if (
+			fichaData.paciente.telefono &&
+			!esTelefono10Digitos(fichaData.paciente.telefono)
+		) {
+			showNotif("El teléfono debe tener 10 dígitos numéricos", "error");
+			return;
+		}
+		if (fichaData.paciente.email && !esEmailValido(fichaData.paciente.email)) {
+			showNotif("Ingresa un email válido", "error");
+			return;
+		}
 		const { error } = await supabase
 			.from("pacientes")
 			.update({
@@ -4428,10 +4444,12 @@ const VisorDicom = () => {
 																...d,
 																paciente: {
 																	...d.paciente,
-																	telefono: e.target.value,
+																	telefono: normalizarTelefono10(e.target.value),
 																},
 															}))
 														}
+														maxLength="10"
+														inputMode="numeric"
 													/>
 												</div>
 												<div className="vd-ficha-row">

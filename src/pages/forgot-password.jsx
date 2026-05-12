@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
+import { esEmailValido } from '../utils/form-validations'
 import './Login.css'
 
 let logoSrc
@@ -26,6 +27,12 @@ const ForgotPassword = () => {
 
     if (!email) {
       setError('Por favor, ingresa tu correo electrónico')
+      setLoading(false)
+      return
+    }
+
+    if (!esEmailValido(email)) {
+      setError('Por favor, ingresa un correo válido')
       setLoading(false)
       return
     }

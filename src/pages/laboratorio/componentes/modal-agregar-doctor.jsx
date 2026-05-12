@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase-client';
+import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
 import './modal-agregar-doctor.css';
 
 const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) => {
@@ -36,7 +37,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       setNombre(doctorEditar.nombre || '');
       setSexo(doctorEditar.sexo || '');
       setEmail(doctorEditar.email || '');
-      setTelefono(doctorEditar.telefono || '');
+      setTelefono(normalizarTelefono10(doctorEditar.telefono || ''));
       setUsuario(doctorEditar.usuario || '');
       setContrasena(doctorEditar.contrasena || '');
       
@@ -76,12 +77,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   };
 
   const handleTelefonoChange = (e) => {
-    const valor = e.target.value;
-
-    const soloNumeros = valor.replace(/\D/g, '');
-    if (soloNumeros.length <= 10) {
-      setTelefono(soloNumeros);
-    }
+    setTelefono(normalizarTelefono10(e.target.value));
   };
 
   const limpiarCampos = () => {
@@ -102,6 +98,16 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   const handleGuardar = async () => {
     if (!apellidoPaterno || !nombre) {
       alert('Por favor completa al menos Apellido Paterno y Nombre');
+      return;
+    }
+
+    if (email.trim() && !esEmailValido(email)) {
+      alert('Por favor ingresa un email válido');
+      return;
+    }
+
+    if (telefono && !esTelefono10Digitos(telefono)) {
+      alert('El teléfono debe contener exactamente 10 dígitos numéricos');
       return;
     }
 
@@ -289,6 +295,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
                 placeholder="Ingresar Teléfono (10 dígitos)"
                 className="modal-input"
                 maxLength="10"
+                inputMode="numeric"
               />
             </div>
           </div>
