@@ -14,6 +14,7 @@ import {
 	formatoDuracionHoras,
 	formatoMonedaAdmin,
 } from "../../utils/reporte-administrativo";
+import { esErrorTablaInexistente } from "../../utils/supabase-errors";
 import "./reporte-administrativo.css";
 
 const SELECT_VENTAS_ADMIN = `
@@ -109,13 +110,12 @@ const ReporteAdministrativo = () => {
 				.order("fecha_venta", { ascending: false });
 			let radiologiaQuery = supabase
 				.from("estudios_radiologia")
-				.select("id_estudio, id_venta, estado, listo_entrega, entregado, fecha_estudio, id_sucursal")
+				.select("id_estudio, id_venta, estado, listo_entrega, entregado, fecha_estudio")
 				.gte("fecha_estudio", `${fechaInicial}T00:00:00`)
 				.lte("fecha_estudio", `${fechaFinal}T23:59:59`);
 
 			if (sucursalSeleccionada) {
 				ventasQuery = ventasQuery.eq("id_sucursal", sucursalSeleccionada);
-				radiologiaQuery = radiologiaQuery.eq("id_sucursal", sucursalSeleccionada);
 			}
 
 			const [ventasResp, radiologiaResp, auditoriaResp] = await Promise.all([
@@ -131,10 +131,29 @@ const ReporteAdministrativo = () => {
 
 			if (ventasResp.error) throw ventasResp.error;
 			if (radiologiaResp.error) throw radiologiaResp.error;
-			if (auditoriaResp.error) throw auditoriaResp.error;
-			setVentas(ventasResp.data || []);
-			setEstudiosRadiologia(radiologiaResp.data || []);
-			setEventosAuditoria(auditoriaResp.data || []);
+			if (
+				auditoriaResp.error &&
+				!esErrorTablaInexistente(auditoriaResp.error, "solicitudes_auditoria")
+			) {
+				throw auditoriaResp.error;
+			}
+			const ventasData = ventasResp.data || [];
+			const radiologiaData = radiologiaResp.data || [];
+			const idsVentasSucursal = new Set(
+				ventasData
+					.map((venta) => venta.id_venta)
+					.filter((idVenta) => idVenta !== null && idVenta !== undefined)
+					.map(String),
+			);
+			setVentas(ventasData);
+			setEstudiosRadiologia(
+				sucursalSeleccionada
+					? radiologiaData.filter((estudio) =>
+							idsVentasSucursal.has(String(estudio.id_venta || "")),
+						)
+					: radiologiaData,
+			);
+			setEventosAuditoria(auditoriaResp.error ? [] : auditoriaResp.data || []);
 		} catch (error) {
 			console.error("Error al cargar reporte administrativo:", error);
 			setErrorReporte(error.message || "No se pudo cargar el reporte administrativo");
