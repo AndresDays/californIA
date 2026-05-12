@@ -25,10 +25,12 @@ import NuevoPaciente from './pages/laboratorio/nuevo-paciente';
 import Cotizacion from './pages/laboratorio/recepcion/cotizacion';
 import EditarSolicitud from './pages/laboratorio/recepcion/editar-solicitud';
 import Historial from './pages/laboratorio/recepcion/historial';
+import ReporteAdministrativo from './pages/laboratorio/reporte-administrativo';
 import ReporteVentas from './pages/laboratorio/reporte-ventas';
 import Login from './pages/login';
 import Pacientes from './pages/pacientes';
 import Perfil from './pages/perfil';
+import PortalResultados from './pages/portal-resultados';
 import DashboardRadiologia from './pages/radiologia/pages/dashboard-radiologia';
 import PlantillasRadiologia from './pages/radiologia/pages/plantillas-radiologia';
 import ReporteRadiologia from './pages/radiologia/pages/ReporteRadiologia';
@@ -45,6 +47,8 @@ function App() {
 					<Route path="/login" element={<Login />} />
 
 					<Route path="/forgot-password" element={<ForgotPassword />} />
+
+					<Route path="/resultados" element={<PortalResultados />} />
 
 					<Route
 						path="/dashboard"
@@ -213,6 +217,15 @@ function App() {
 						element={
 							<ProtectedRoute>
 								<ReporteVentas />
+							</ProtectedRoute>
+						}
+					/>
+
+					<Route
+						path="/reporte-administrativo"
+						element={
+							<ProtectedRoute>
+								<ReporteAdministrativo />
 							</ProtectedRoute>
 						}
 					/>

@@ -17,7 +17,10 @@ import PageLayout from '../components/page-layout';
 import { useAuth } from '../context/auth-context';
 import { supabase } from '../lib/supabase-client';
 import { CITA_ESTADOS, CITA_ESTADOS_DASHBOARD } from '../utils/cita-lifecycle';
-import { calcularIngresosVentasPagadas } from '../utils/dashboard-stats';
+import {
+	calcularIngresosPorAreaVentasPagadas,
+	calcularIngresosVentasPagadas,
+} from '../utils/dashboard-stats';
 import './CalifornIA.css';
 
 const Dashboard = () => {
@@ -259,10 +262,10 @@ const Dashboard = () => {
 
 	const cargarEstadisticasSemanales = async () => {
 		try {
-			let query = supabase
+			let queryCitas = supabase
 				.from("citas")
-				.select("fecha_estudio, tipo_estudio, id_sucursal, monto, estado");
-			if (sucursalFiltro) query = query.eq("id_sucursal", sucursalFiltro);
+				.select("fecha_estudio, tipo_estudio, id_sucursal, estado");
+			if (sucursalFiltro) queryCitas = queryCitas.eq("id_sucursal", sucursalFiltro);
 			const hoy = new Date();
 			let inicio, fin, labels, numPeriodos;
 			if (vistaGrafica === "semana") {
@@ -276,8 +279,9 @@ const Dashboard = () => {
 				numPeriodos = 7;
 			} else if (vistaGrafica === "mes") {
 				inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-				fin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-				numPeriodos = Math.ceil(fin.getDate() / 7);
+				fin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
+				const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+				numPeriodos = Math.ceil(ultimoDiaMes.getDate() / 7);
 				labels = Array.from({ length: numPeriodos }, (_, i) => `Sem ${i + 1}`);
 			} else {
 				inicio = new Date(hoy.getFullYear(), 0, 1);
@@ -300,16 +304,34 @@ const Dashboard = () => {
 			}
 			const fmt = (d) =>
 				`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00`;
-			query = query.gte("fecha_estudio", fmt(inicio)).lt("fecha_estudio", fmt(fin));
-			const { data, error } = await query;
-			if (error) throw error;
-			const ahoraCompleto = new Date();
-			const horaActualStr = `${ahoraCompleto.getFullYear()}-${String(ahoraCompleto.getMonth() + 1).padStart(2, "0")}-${String(ahoraCompleto.getDate()).padStart(2, "0")}T${String(ahoraCompleto.getHours()).padStart(2, "0")}:${String(ahoraCompleto.getMinutes()).padStart(2, "0")}:00`;
+			queryCitas = queryCitas
+				.gte("fecha_estudio", fmt(inicio))
+				.lt("fecha_estudio", fmt(fin));
+			let queryVentas = supabase
+				.from("ventas")
+				.select(
+					`
+						fecha_venta, estado, total, pago_recibido, id_sucursal, sucursal,
+						estudios_venta ( clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
+					`,
+				)
+				.eq("estado", "activo")
+				.gte("fecha_venta", fmt(inicio))
+				.lt("fecha_venta", fmt(fin));
+			if (sucursalFiltro) queryVentas = queryVentas.eq("id_sucursal", sucursalFiltro);
+			const [respuestaCitas, respuestaVentas] = await Promise.all([
+				queryCitas,
+				queryVentas,
+			]);
+			if (respuestaCitas.error) throw respuestaCitas.error;
+			if (respuestaVentas.error) throw respuestaVentas.error;
+			const citas = respuestaCitas.data || [];
+			const ventas = respuestaVentas.data || [];
 			const cR = new Array(numPeriodos).fill(0),
 				cL = new Array(numPeriodos).fill(0);
 			const iR = new Array(numPeriodos).fill(0),
 				iL = new Array(numPeriodos).fill(0);
-			data?.forEach((est) => {
+			citas.forEach((est) => {
 				if (est.estado === "cancelada") return;
 				const f = new Date(est.fecha_estudio);
 				let idx =
@@ -319,30 +341,28 @@ const Dashboard = () => {
 							? Math.floor((f.getDate() - 1) / 7)
 							: f.getMonth();
 				const tipo = est.tipo_estudio?.toLowerCase() || "";
-				const monto = parseFloat(est.monto) || 0;
 				if (
 					tipo.includes("radio") ||
 					tipo.includes("rayos") ||
 					tipo.includes("rx")
 				) {
 					cR[idx]++;
-					if (
-						[CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA].includes(
-							est.estado,
-						) &&
-						est.fecha_estudio <= horaActualStr
-					)
-						iR[idx] += monto;
 				} else {
 					cL[idx]++;
-					if (
-						[CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA].includes(
-							est.estado,
-						) &&
-						est.fecha_estudio <= horaActualStr
-					)
-						iL[idx] += monto;
 				}
+			});
+			ventas.forEach((venta) => {
+				const f = new Date(venta.fecha_venta);
+				if (Number.isNaN(f.getTime())) return;
+				const idx =
+					vistaGrafica === "semana"
+						? f.getDay()
+						: vistaGrafica === "mes"
+							? Math.floor((f.getDate() - 1) / 7)
+							: f.getMonth();
+				const ingresos = calcularIngresosPorAreaVentasPagadas([venta]);
+				iR[idx] += ingresos.radiologia;
+				iL[idx] += ingresos.laboratorio;
 			});
 			setEstadisticasSemanales(
 				labels.map((label, i) => {

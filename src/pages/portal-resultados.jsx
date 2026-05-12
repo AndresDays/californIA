@@ -1,0 +1,272 @@
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import logo from "../assets/CalifornIA.png";
+import { supabase } from "../lib/supabase-client";
+import { MEMBRETE_B64 } from "./radiologia/pages/reporte-radiologia-template";
+import {
+	crearTextoCompartirResultados,
+	crearUrlPortalResultados,
+	normalizarTextoResultado,
+	normalizarTelefonoPortal,
+} from "../utils/portal-resultados";
+import "./portal-resultados.css";
+
+const formatearFecha = (fecha) => {
+	if (!fecha) return "-";
+	return new Date(fecha).toLocaleDateString("es-MX", {
+		day: "2-digit",
+		month: "long",
+		year: "numeric",
+	});
+};
+
+const calcularEdad = (fechaNacimiento) => {
+	if (!fechaNacimiento) return "";
+	const hoy = new Date();
+	const nacimiento = new Date(fechaNacimiento);
+	let edad = hoy.getFullYear() - nacimiento.getFullYear();
+	const mes = hoy.getMonth() - nacimiento.getMonth();
+	if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
+	return `${edad} anos`;
+};
+
+	const obtenerAnalitoTexto = (analito) => {
+	const partes = [
+		normalizarTextoResultado(analito.descripcion || analito.clave),
+		normalizarTextoResultado(analito.resultado || "-"),
+		normalizarTextoResultado(analito.referencia || ""),
+	].filter(Boolean);
+	return partes.join(" - ");
+};
+
+const obtenerAnalitoCampos = (analito) => ({
+	analito: normalizarTextoResultado(analito.descripcion || analito.clave || "-"),
+	resultado: normalizarTextoResultado(analito.resultado || "-"),
+	referencia: normalizarTextoResultado(analito.referencia || "-"),
+});
+
+const PortalResultados = () => {
+	const [searchParams] = useSearchParams();
+	const [folio, setFolio] = useState(searchParams.get("folio") || "");
+	const [telefono, setTelefono] = useState(searchParams.get("telefono") || "");
+	const [cargando, setCargando] = useState(false);
+	const [resultado, setResultado] = useState(null);
+	const [error, setError] = useState("");
+
+	const venta = resultado?.venta || null;
+	const estudios = resultado?.estudios || [];
+	const portalUrl = useMemo(
+		() =>
+			crearUrlPortalResultados({
+				folio: venta?.folio || folio,
+				telefono: venta?.telefono || telefono,
+			}),
+		[folio, telefono, venta],
+	);
+
+	useEffect(() => {
+		document.title = "Resultados";
+		if (folio && telefono) buscarResultados();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	const buscarResultados = async (event) => {
+		event?.preventDefault();
+		setError("");
+		setResultado(null);
+
+		if (!folio.trim() || !normalizarTelefonoPortal(telefono)) {
+			setError("Captura folio y telefono para consultar resultados.");
+			return;
+		}
+
+		setCargando(true);
+		const { data, error: rpcError } = await supabase.rpc("buscar_resultados_portal", {
+			p_folio: folio.trim(),
+			p_telefono: telefono,
+		});
+		setCargando(false);
+
+		if (rpcError) {
+			console.error("Error al consultar portal de resultados:", rpcError);
+			setError(
+				rpcError.message ||
+					"No fue posible consultar resultados. Intenta de nuevo.",
+			);
+			return;
+		}
+
+		setResultado(data);
+		if (!data?.encontrado) setError(data?.mensaje || "No encontramos resultados.");
+	};
+
+	const compartirWhatsApp = () => {
+		const texto = crearTextoCompartirResultados({
+			paciente: venta?.paciente,
+			folio: venta?.folio || folio,
+			url: portalUrl,
+		});
+		window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+	};
+
+	const compartirEmail = () => {
+		const subject = `Resultados ${venta?.folio || folio}`;
+		const body = crearTextoCompartirResultados({
+			paciente: venta?.paciente,
+			folio: venta?.folio || folio,
+			url: portalUrl,
+		});
+		window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+	};
+
+	const imprimir = () => window.print();
+
+	return (
+		<div className="portal-resultados">
+			<header className="portal-header">
+				<img src={logo} alt="Centro Diagnostico California" />
+				<div>
+					<h1>Resultados</h1>
+					<p>Consulta por folio y telefono del paciente</p>
+				</div>
+			</header>
+
+			<main className="portal-main">
+				<section className="portal-consulta">
+					<form onSubmit={buscarResultados} className="portal-form">
+						<label>
+							<span>Folio</span>
+							<input
+								value={folio}
+								onChange={(event) => setFolio(event.target.value)}
+								placeholder="Ej. 1105260004"
+								autoComplete="off"
+							/>
+						</label>
+						<label>
+							<span>Telefono</span>
+							<input
+								value={telefono}
+								onChange={(event) => setTelefono(event.target.value)}
+								placeholder="10 digitos"
+								inputMode="tel"
+								autoComplete="tel"
+							/>
+						</label>
+						<button type="submit" disabled={cargando}>
+							{cargando ? "Buscando..." : "Consultar"}
+						</button>
+					</form>
+					{error && <div className="portal-alerta">{error}</div>}
+				</section>
+
+				{resultado?.encontrado && !resultado?.autorizado && (
+					<section className="portal-bloqueado">
+						<h2>Entrega pendiente</h2>
+						<p>{resultado.mensaje}</p>
+						<strong>Saldo: ${Number(resultado.saldo || 0).toFixed(2)}</strong>
+					</section>
+				)}
+
+				{resultado?.encontrado && resultado?.autorizado && (
+					<section className="portal-resultados-panel">
+						<div className="portal-membrete-print">
+							<img
+								src={`data:image/jpeg;base64,${MEMBRETE_B64}`}
+								alt="Centro Diagnostico California"
+							/>
+						</div>
+						<div className="portal-resumen">
+							<div>
+								<span>Paciente</span>
+								<strong>{venta?.paciente || "-"}</strong>
+								<small>
+									{calcularEdad(venta?.fecha_nacimiento)}
+									{venta?.sexo ? ` - ${venta.sexo}` : ""}
+								</small>
+							</div>
+							<div>
+								<span>Folio</span>
+								<strong>{venta?.folio}</strong>
+								<small>{formatearFecha(venta?.fecha_venta)}</small>
+							</div>
+							<div>
+								<span>Cliente</span>
+								<strong>{venta?.cliente || "Particular"}</strong>
+								<small>{estudios.length} resultado(s)</small>
+							</div>
+						</div>
+
+						<div className="portal-actions">
+							<button type="button" onClick={imprimir}>
+								Descargar / imprimir
+							</button>
+							<button type="button" onClick={compartirWhatsApp}>
+								WhatsApp
+							</button>
+							<button type="button" onClick={compartirEmail}>
+								E-mail
+							</button>
+						</div>
+
+						{estudios.length === 0 ? (
+							<div className="portal-vacio">
+								Los resultados aun no estan liberados para descarga.
+							</div>
+						) : (
+							<div className="portal-estudios">
+								{estudios.map((estudio) => (
+									<article
+										className="portal-estudio"
+										key={`${estudio.tipo}-${estudio.id}`}>
+										<div className="portal-estudio-header">
+											<div>
+												<span>{estudio.tipo === "imagen" ? "Imagen" : "Laboratorio"}</span>
+												<h2>{estudio.descripcion}</h2>
+											</div>
+											<strong>{estudio.estado}</strong>
+										</div>
+
+										{estudio.tipo === "imagen" ? (
+											<div className="portal-reporte">
+												{String(estudio.reporte || "")
+													.split("\n")
+													.filter(Boolean)
+													.map((linea, index) => (
+														<p key={`${estudio.id}-${index}`}>{linea}</p>
+													))}
+											</div>
+										) : (
+											<div className="portal-analitos-texto">
+												<div className="portal-analitos-header">
+													<span>Analito</span>
+													<span>Resultado</span>
+													<span>Referencia</span>
+												</div>
+												{(estudio.analitos || []).map((analito) => {
+													const campos = obtenerAnalitoCampos(analito);
+													return (
+														<div
+															className="portal-analito-row"
+															key={`${estudio.id}-${analito.clave}`}>
+															<span>{campos.analito}</span>
+															<strong>{campos.resultado}</strong>
+															<span>{campos.referencia}</span>
+															<p>{obtenerAnalitoTexto(analito)}</p>
+														</div>
+													);
+												})}
+											</div>
+										)}
+									</article>
+								))}
+							</div>
+						)}
+					</section>
+				)}
+			</main>
+		</div>
+	);
+};
+
+export default PortalResultados;
