@@ -12,12 +12,19 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { esErrorColumnaInexistente } from "../../utils/supabase-errors";
 import {
 	calcularPendientesEntrega,
 	calcularSaldoEntrega,
+	estudioLaboratorioListoEntrega,
 	filtrarVentasEntrega,
 	tieneSaldoPendiente,
+	ventaListaEnRangoEntrega,
 } from "../../utils/entrega-resultados";
+import {
+	obtenerEstadoSolicitud,
+	obtenerMetaEstadoSolicitud,
+} from "../../utils/solicitud-estado";
 import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
 import "./entrega-resultados.css";
 
@@ -25,13 +32,26 @@ const SELECT_VENTAS = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido,
 	pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
 	clientes ( id_cliente, nombre ),
-	estudios_venta ( id_estudio_venta, estado_validacion, entregado, muestra_pendiente )
+	estudios_venta ( id_estudio_venta, estado_validacion, entregado, muestra_pendiente, updated_at )
 `;
 
 const SELECT_RADIOLOGIA_ENTREGA = `
 	id_estudio, id_venta, id_estudio_venta, tipo_estudio, descripcion, reporte,
-	listo_entrega, entregado, fecha_entrega
+	listo_entrega, entregado, fecha_entrega, updated_at
 `;
+
+const COLUMNAS_RADIOLOGIA_ENTREGA = [
+	"id_venta",
+	"id_estudio_venta",
+	"listo_entrega",
+	"entregado",
+	"fecha_entrega",
+];
+
+const esErrorSchemaRadiologiaEntrega = (error) =>
+	COLUMNAS_RADIOLOGIA_ENTREGA.some((columna) =>
+		esErrorColumnaInexistente(error, columna),
+	);
 
 const formatearFechaMexico = (fecha = new Date()) => {
 	const partes = new Intl.DateTimeFormat("es-MX", {
@@ -103,28 +123,46 @@ const EntregaResultados = () => {
 		try {
 			const { data: estudiosValidados, error: errorEstudios } = await supabase
 				.from("estudios_venta")
-				.select("id_estudio_venta, id_venta, estado_validacion, entregado, muestra_pendiente")
-				.eq("estado_validacion", "validado")
-				.eq("muestra_pendiente", false);
+				.select("id_estudio_venta, id_venta, estado_validacion, entregado, muestra_pendiente, updated_at")
+				.eq("estado_validacion", "validado");
 
 			if (errorEstudios) throw errorEstudios;
 
-			const { data: estudiosRadiologiaListos, error: errorRadiologia } =
-				await supabase
-					.from("estudios_radiologia")
-					.select(SELECT_RADIOLOGIA_ENTREGA)
-					.eq("listo_entrega", true)
-					.eq("entregado", false);
+			let estudiosRadiologiaListos = [];
+			const { data: radiologiaData, error: errorRadiologia } = await supabase
+				.from("estudios_radiologia")
+				.select(SELECT_RADIOLOGIA_ENTREGA)
+				.eq("listo_entrega", true)
+				.eq("entregado", false);
 
-			if (errorRadiologia) throw errorRadiologia;
+			if (errorRadiologia) {
+				if (!esErrorSchemaRadiologiaEntrega(errorRadiologia)) {
+					throw errorRadiologia;
+				}
+				console.warn(
+					"Radiología no se pudo cargar porque faltan columnas de entrega:",
+					errorRadiologia,
+				);
+			} else {
+				estudiosRadiologiaListos = radiologiaData || [];
+			}
+
+			const estudiosLaboratorioListos = (estudiosValidados || []).filter(
+				(estudio) => estudioLaboratorioListoEntrega(estudio),
+			);
+			const estudiosRadiologiaPendientes = (estudiosRadiologiaListos || []).filter(
+				(estudio) =>
+					estudio.listo_entrega &&
+					!estudio.entregado,
+			);
 
 			const idsVentasListas = [
 				...new Set(
 					[
-						...(estudiosValidados || []),
-						...(estudiosRadiologiaListos || []),
+						...estudiosLaboratorioListos,
+						...estudiosRadiologiaPendientes,
 					]
-						.filter((estudio) => estudio.id_venta && !estudio.entregado)
+						.filter((estudio) => estudio.id_venta)
 						.map((estudio) => estudio.id_venta),
 				),
 			];
@@ -142,7 +180,10 @@ const EntregaResultados = () => {
 				.order("fecha_venta", { ascending: false });
 
 			if (error) throw error;
-			const radiologiaPorVenta = (estudiosRadiologiaListos || []).reduce(
+			const ventasConLaboratorioListo = new Set(
+				estudiosLaboratorioListos.map((estudio) => estudio.id_venta),
+			);
+			const radiologiaPorVenta = estudiosRadiologiaPendientes.reduce(
 				(acc, estudio) => {
 					if (!estudio.id_venta) return acc;
 					acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
@@ -155,21 +196,20 @@ const EntregaResultados = () => {
 					...venta,
 					estudios_radiologia: radiologiaPorVenta[venta.id_venta] || [],
 				}))
-				.filter((venta) => {
-					const fechaVenta = formatearFechaMexico(new Date(venta.fecha_venta));
-					const tieneLaboratorio = venta.estudios_venta?.some(
-						(estudio) =>
-							estudio.estado_validacion === "validado" && !estudio.entregado,
-					);
-					const tieneRadiologia = venta.estudios_radiologia?.some(
-						(estudio) => estudio.listo_entrega && !estudio.entregado,
-					);
-					return (
-						fechaVenta >= fechaInicial &&
-						fechaVenta <= fechaFinal &&
-						(tieneLaboratorio || tieneRadiologia)
-					);
-				});
+				.filter((venta) =>
+					ventaListaEnRangoEntrega(
+						{
+							...venta,
+							estudios_venta: (venta.estudios_venta || []).filter((estudio) =>
+								ventasConLaboratorioListo.has(venta.id_venta)
+									? estudioLaboratorioListoEntrega(estudio)
+									: false,
+							),
+						},
+						fechaInicial,
+						fechaFinal,
+					),
+				);
 			setVentas(ventasListasEntrega);
 		} catch (error) {
 			console.error("Error al cargar ventas:", error);
@@ -190,11 +230,10 @@ const EntregaResultados = () => {
 				.select("*")
 				.eq("id_venta", idVenta)
 				.eq("estado_validacion", "validado")
-				.eq("muestra_pendiente", false)
 				.order("id_estudio_venta");
 			if (error) throw error;
 			const estudiosPendientesEntrega = (data || []).filter(
-				(estudio) => !estudio.entregado,
+				(estudio) => estudioLaboratorioListoEntrega(estudio),
 			);
 			setEstudiosVenta(estudiosPendientesEntrega);
 			const { data: radiologiaData, error: errorRadiologia } = await supabase
@@ -204,8 +243,16 @@ const EntregaResultados = () => {
 				.eq("listo_entrega", true)
 				.eq("entregado", false)
 				.order("id_estudio");
-			if (errorRadiologia) throw errorRadiologia;
-			const radiologiaPendiente = radiologiaData || [];
+			if (errorRadiologia && !esErrorSchemaRadiologiaEntrega(errorRadiologia)) {
+				throw errorRadiologia;
+			}
+			if (errorRadiologia) {
+				console.warn(
+					"Radiología no se pudo cargar porque faltan columnas de entrega:",
+					errorRadiologia,
+				);
+			}
+			const radiologiaPendiente = errorRadiologia ? [] : radiologiaData || [];
 			setEstudiosRadiologia(radiologiaPendiente);
 			return {
 				laboratorio: estudiosPendientesEntrega,
@@ -426,6 +473,14 @@ const EntregaResultados = () => {
 	const saldoVentaSeleccionada = calcularSaldoEntrega(ventaSeleccionada || {});
 	const totalSeleccionadosPendientes =
 		estudiosVenta.length + estudiosRadiologia.length;
+	const renderEstadoSolicitud = (venta) => {
+		const meta = obtenerMetaEstadoSolicitud(obtenerEstadoSolicitud(venta));
+		return (
+			<span className={`badge-estado-solicitud ${meta.className}`}>
+				{meta.label}
+			</span>
+		);
+	};
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -529,6 +584,7 @@ const EntregaResultados = () => {
 								<thead>
 									<tr>
 										<th>Folio</th>
+										<th>Estado</th>
 										<th>Nombre</th>
 										<th>Cliente</th>
 										<th>Estudios</th>
@@ -549,6 +605,7 @@ const EntregaResultados = () => {
 												className={`${ventaSeleccionada?.id_venta === venta.id_venta ? "selected" : ""} ${claseAdeudo}`}
 												onClick={() => seleccionarVenta(venta)}>
 												<td>{venta.folio}</td>
+												<td>{renderEstadoSolicitud(venta)}</td>
 												<td>
 													<strong>{venta.pacientes?.nombre || "N/A"}</strong>
 													<span className="paciente-meta-entrega">
@@ -573,7 +630,7 @@ const EntregaResultados = () => {
 									})}
 									{ventasFiltradas.length === 0 && (
 										<tr>
-											<td colSpan="5" className="no-data">
+											<td colSpan="6" className="no-data">
 												No hay resultados validados pendientes de entrega
 											</td>
 										</tr>
