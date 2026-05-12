@@ -5,9 +5,15 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import {
+	construirEstudioCatalogoUnificado,
 	construirEstudioSeleccionado,
 	dividirEstudiosCita,
 	encontrarEstudioCatalogo,
+	filtrarEstudiosCatalogo,
+	resolverCodigoTipoRadiologia,
+	resolverEmpresaOperativaCatalogo,
+	resolverModalidadDesdeTipo,
+	tipoEstudioEsImagen,
 } from "../../utils/cita-nuevo-paciente";
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import { generarTicketVenta } from "../../utils/generarTicketVenta";
@@ -46,11 +52,12 @@ const normalizarTextoEstudio = (valor = "") =>
 		.toLowerCase();
 
 const esEstudioRadiologia = (estudio = {}) => {
+	if (estudio.modulo === "imagen" || estudio.requiere_imagen === true) return true;
 	const texto = normalizarTextoEstudio(
-		`${estudio.area || ""} ${estudio.descripcion || ""} ${estudio.descripcion_estudio || ""} ${estudio.clave || ""} ${estudio.clave_estudio || ""}`,
+		`${estudio.area || ""} ${estudio.modalidad || ""} ${estudio.descripcion || ""} ${estudio.descripcion_estudio || ""} ${estudio.clave || ""} ${estudio.clave_estudio || ""}`,
 	);
 	return (
-		/radiologia|imagen|rayos|ultrasonido|ultrasonografia|tomografia|resonancia|mastografia/.test(
+		/radiologia|imagen|rayos|ultrasonido|ultrasonografia|tomografia|resonancia|mastografia|contrastados|veterinaria/.test(
 			texto,
 		) || /\b(rx|usg|tac|rm)\b/.test(texto)
 	);
@@ -108,6 +115,8 @@ const NuevoPaciente = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
+	const [catalogoImagenError, setCatalogoImagenError] = useState("");
+	const [buscandoImagen, setBuscandoImagen] = useState(false);
 
 	const [subtotal, setSubtotal] = useState(0);
 	const [ivaPercent, setIvaPercent] = useState(16);
@@ -374,7 +383,7 @@ const NuevoPaciente = () => {
 							id_estudio_venta: estudio.id_estudio_venta,
 							id_paciente: idPaciente,
 							id_tecnico: null,
-							tipo_estudio: estudio.descripcion_estudio || estudio.clave_estudio,
+							tipo_estudio: resolverCodigoTipoRadiologia(estudio),
 							descripcion: estudio.descripcion_estudio,
 							fecha_estudio: fechaMexico.toISOString(),
 							estado: "POR ASIGNAR",
@@ -571,16 +580,100 @@ const NuevoPaciente = () => {
 
 	const cargarEstudiosDisponibles = async () => {
 		try {
-			const { data, error } = await supabase
+			const { data: estudiosLab, error } = await supabase
 				.from("estudios_lab_catalogo")
-				.select("id, clave, descripcion, area")
+				.select("id, clave, descripcion, area, dias_proceso")
 				.order("clave");
 
 			if (error) throw error;
 
-			setEstudiosDisponibles(data || []);
+			const estudiosLaboratorio = (estudiosLab || []).map((estudio) =>
+				construirEstudioCatalogoUnificado(estudio, "laboratorio"),
+			);
+
+			const { data: estudiosImagen, error: errorImagen } = await supabase
+				.from("estudios_imagen_catalogo")
+				.select(
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso",
+				)
+				.eq("activo", true)
+				.order("clave");
+
+			if (errorImagen) {
+				console.warn("No se pudo cargar catálogo de imagen:", errorImagen);
+				setCatalogoImagenError(
+					"No se pudo cargar el catalogo de imagen. Revisa que las migraciones esten aplicadas.",
+				);
+				setEstudiosDisponibles(estudiosLaboratorio);
+				return;
+			}
+			setCatalogoImagenError("");
+
+			const estudiosImagenFormateados = (estudiosImagen || []).map((estudio) =>
+				construirEstudioCatalogoUnificado(estudio, "imagen"),
+			);
+
+			setEstudiosDisponibles([
+				...estudiosLaboratorio,
+				...estudiosImagenFormateados,
+			]);
 		} catch (error) {
 			console.error("Error al cargar estudios:", error);
+		}
+	};
+
+	const buscarEstudiosImagenDirecto = async () => {
+		const empresaOperativa = resolverEmpresaOperativaCatalogo(
+			empresaActual?.nombre || "",
+		);
+		const modalidad = resolverModalidadDesdeTipo(tipoEstudioActual?.nombre || "");
+
+		if (!empresaOperativa || !modalidad || modalidad === "laboratorio") return;
+
+		setBuscandoImagen(true);
+		try {
+			const termino = buscarEstudio.trim();
+			let query = supabase
+				.from("estudios_imagen_catalogo")
+				.select(
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso",
+				)
+				.eq("activo", true)
+				.eq("modalidad", modalidad);
+
+			if (empresaActual?.id_empresa) {
+				query = query.eq("id_empresa", empresaActual.id_empresa);
+			} else {
+				query = query.eq("empresa_operativa", empresaOperativa);
+			}
+
+			if (termino.length >= 2) {
+				query = query.or(`clave.ilike.%${termino}%,descripcion.ilike.%${termino}%`);
+			}
+
+			const { data, error } = await query.order("clave").limit(25);
+			if (error) throw error;
+
+			const nuevos = (data || []).map((estudio) =>
+				construirEstudioCatalogoUnificado(estudio, "imagen"),
+			);
+			setCatalogoImagenError("");
+			if (nuevos.length === 0) return;
+
+			setEstudiosDisponibles((prev) => {
+				const claves = new Set(prev.map((estudio) => estudio.clave));
+				return [
+					...prev,
+					...nuevos.filter((estudio) => !claves.has(estudio.clave)),
+				];
+			});
+		} catch (error) {
+			console.error("Error al buscar estudios de imagen:", error);
+			setCatalogoImagenError(
+				"No se pudo consultar el catalogo de imagen para este tipo de estudio.",
+			);
+		} finally {
+			setBuscandoImagen(false);
 		}
 	};
 
@@ -783,7 +876,7 @@ const NuevoPaciente = () => {
 	};
 
 	const agregarEstudio = async (estudio) => {
-		if (estudiosSeleccionados.find((e) => e.id === estudio.id)) {
+		if (estudiosSeleccionados.find((e) => e.clave === estudio.clave)) {
 			alert("Este estudio ya fue agregado");
 			return;
 		}
@@ -799,7 +892,7 @@ const NuevoPaciente = () => {
 			...estudio,
 			precio: precioEstudio,
 			cantidad: 1,
-			diasProceso: 1,
+			diasProceso: estudio.diasProceso || estudio.dias_proceso || 1,
 			cliente: nombreCliente || "Sin cliente",
 			muestra_pendiente: false,
 		};
@@ -1017,11 +1110,34 @@ const NuevoPaciente = () => {
 		setDescuentoPercent(0);
 	};
 
-	const estudiosFiltrados = estudiosDisponibles.filter(
-		(est) =>
-			est.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-			est.clave.toLowerCase().includes(buscarEstudio.toLowerCase()),
+	const empresaActual = empresas.find(
+		(emp) => emp.id_empresa?.toString() === empresaSeleccionada?.toString(),
 	);
+	const tipoEstudioActual = tiposEstudio.find(
+		(tipo) =>
+			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
+	);
+	const estudiosFiltrados = filtrarEstudiosCatalogo({
+		estudios: estudiosDisponibles,
+		busqueda: buscarEstudio,
+		empresaId: empresaSeleccionada,
+		empresaNombre: empresaActual?.nombre || "",
+		tipoNombre: tipoEstudioActual?.nombre || "",
+	});
+
+	useEffect(() => {
+		if (!showBusquedaEstudios || buscarEstudio.trim().length < 2) return;
+		if (!tipoEstudioEsImagen(tipoEstudioActual?.nombre || "")) return;
+		if (estudiosFiltrados.length > 0) return;
+
+		buscarEstudiosImagenDirecto();
+	}, [
+		showBusquedaEstudios,
+		buscarEstudio,
+		empresaSeleccionada,
+		tipoEstudioSeleccionado,
+		estudiosFiltrados.length,
+	]);
 
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
@@ -1453,14 +1569,23 @@ const NuevoPaciente = () => {
 										buscarEstudio.length >= 2 &&
 										clienteSeleccionado && (
 											<div className="search-results-estudios">
-												{estudiosFiltrados.map((est) => (
-													<div
-														key={est.id}
-														className="search-result-item"
-														onClick={() => agregarEstudio(est)}>
-														<strong>{est.clave}</strong> - {est.descripcion}
+												{estudiosFiltrados.length > 0 ? (
+													estudiosFiltrados.map((est) => (
+														<div
+															key={est.id}
+															className="search-result-item"
+															onClick={() => agregarEstudio(est)}>
+															<strong>{est.clave}</strong> - {est.descripcion}
+														</div>
+													))
+												) : (
+													<div className="search-result-empty">
+														{buscandoImagen
+															? "Buscando estudios de imagen..."
+															: catalogoImagenError ||
+															"No hay estudios que coincidan con ese filtro"}
 													</div>
-												))}
+												)}
 											</div>
 										)}
 								</div>

@@ -32,7 +32,7 @@ const SELECT_VENTAS = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido,
 	pacientes ( id_paciente, nombre, fecha_nacimiento, sexo, tipo ),
 	clientes ( id_cliente, nombre ),
-	estudios_venta ( id_estudio_venta, estado_validacion, entregado, muestra_pendiente, updated_at )
+	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, area, estado_validacion, entregado, muestra_pendiente, updated_at )
 `;
 
 const SELECT_RADIOLOGIA_ENTREGA = `
@@ -128,11 +128,10 @@ const EntregaResultados = () => {
 
 			if (errorEstudios) throw errorEstudios;
 
-			let estudiosRadiologiaListos = [];
+			let estudiosRadiologiaNoEntregados = [];
 			const { data: radiologiaData, error: errorRadiologia } = await supabase
 				.from("estudios_radiologia")
 				.select(SELECT_RADIOLOGIA_ENTREGA)
-				.eq("listo_entrega", true)
 				.eq("entregado", false);
 
 			if (errorRadiologia) {
@@ -144,13 +143,13 @@ const EntregaResultados = () => {
 					errorRadiologia,
 				);
 			} else {
-				estudiosRadiologiaListos = radiologiaData || [];
+				estudiosRadiologiaNoEntregados = radiologiaData || [];
 			}
 
 			const estudiosLaboratorioListos = (estudiosValidados || []).filter(
 				(estudio) => estudioLaboratorioListoEntrega(estudio),
 			);
-			const estudiosRadiologiaPendientes = (estudiosRadiologiaListos || []).filter(
+			const estudiosRadiologiaPendientes = (estudiosRadiologiaNoEntregados || []).filter(
 				(estudio) =>
 					estudio.listo_entrega &&
 					!estudio.entregado,
@@ -183,7 +182,15 @@ const EntregaResultados = () => {
 			const ventasConLaboratorioListo = new Set(
 				estudiosLaboratorioListos.map((estudio) => estudio.id_venta),
 			);
-			const radiologiaPorVenta = estudiosRadiologiaPendientes.reduce(
+			const radiologiaListaPorVenta = estudiosRadiologiaPendientes.reduce(
+				(acc, estudio) => {
+					if (!estudio.id_venta) return acc;
+					acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
+					return acc;
+				},
+				{},
+			);
+			const radiologiaNoEntregadaPorVenta = estudiosRadiologiaNoEntregados.reduce(
 				(acc, estudio) => {
 					if (!estudio.id_venta) return acc;
 					acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
@@ -194,22 +201,25 @@ const EntregaResultados = () => {
 			const ventasListasEntrega = (data || [])
 				.map((venta) => ({
 					...venta,
-					estudios_radiologia: radiologiaPorVenta[venta.id_venta] || [],
+					estudios_radiologia: radiologiaListaPorVenta[venta.id_venta] || [],
+					estudios_radiologia_todos:
+						radiologiaNoEntregadaPorVenta[venta.id_venta] || [],
 				}))
 				.filter((venta) =>
 					ventaListaEnRangoEntrega(
-						{
-							...venta,
-							estudios_venta: (venta.estudios_venta || []).filter((estudio) =>
-								ventasConLaboratorioListo.has(venta.id_venta)
-									? estudioLaboratorioListoEntrega(estudio)
-									: false,
-							),
-						},
+						venta,
 						fechaInicial,
 						fechaFinal,
 					),
-				);
+				)
+				.map((venta) => ({
+					...venta,
+					estudios_venta: (venta.estudios_venta || []).filter((estudio) =>
+						ventasConLaboratorioListo.has(venta.id_venta)
+							? estudioLaboratorioListoEntrega(estudio)
+							: false,
+					),
+				}));
 			setVentas(ventasListasEntrega);
 		} catch (error) {
 			console.error("Error al cargar ventas:", error);

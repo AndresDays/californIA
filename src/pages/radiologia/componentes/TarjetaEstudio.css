@@ -39,7 +39,7 @@
 }
 
 .nombre-paciente {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: white;
@@ -48,6 +48,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.descripcion-estudio {
+  min-height: 2.2rem;
+  margin: 0 0 1rem 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .info-estudio {
@@ -105,7 +116,39 @@
 
 .tarjeta-acciones {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-subir-imagen {
+  flex: 1;
+  min-height: 40px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(83, 185, 219, 0.45);
+  border-radius: 8px;
+  background: rgba(83, 185, 219, 0.18);
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-subir-imagen:hover:not(:disabled) {
+  background: rgba(83, 185, 219, 0.3);
+  border-color: rgba(83, 185, 219, 0.75);
+}
+
+.btn-subir-imagen.con-imagen {
+  background: rgba(76, 175, 80, 0.16);
+  border-color: rgba(76, 175, 80, 0.38);
+}
+
+.btn-subir-imagen:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .btn-menu-estudio {

@@ -170,7 +170,7 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  z-index: 101;
+  z-index: 40;
 }
 
 .search-input {
@@ -245,14 +245,15 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(10, 25, 41, 0.95);
+  background: #071625;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(111, 179, 210, 0.3);
   border-radius: 8px;
   margin-top: 0.5rem;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 80;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
 }
 
 .search-result-item {
@@ -268,6 +269,12 @@
 
 .search-result-item:last-child {
   border-bottom: none;
+}
+
+.search-result-empty {
+	padding: 0.8rem 0.9rem;
+	color: rgba(255, 255, 255, 0.72);
+	font-size: 0.86rem;
 }
 
 .result-nombre {
@@ -449,6 +456,8 @@
 }
 
 .estudios-section {
+	position: relative;
+	z-index: 20;
 	background: rgba(10, 25, 41, 0.42);
 	backdrop-filter: blur(10px);
 	border: 1px solid rgba(255, 255, 255, 0.08);
@@ -482,6 +491,8 @@
 }
 
 .estudios-table-container {
+	position: relative;
+	z-index: 1;
 	max-height: 240px;
 	overflow-y: auto;
 	margin-top: 0.75rem;

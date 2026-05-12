@@ -13,17 +13,31 @@ import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
   { id: 'todos', label: 'Todos' },
-  { id: 'POR ASIGNAR', label: 'Por asignar' },
+  { id: 'POR ASIGNAR', label: 'Por tomar/subir' },
   { id: 'ASIGNADO', label: 'Asignados' },
   { id: 'EN PROCESO', label: 'En proceso' },
   { id: 'COMPLETADO', label: 'Completados' }
 ];
+
+const BUCKET_RADIOLOGIA = 'radiologia';
+const IMAGEN_MAX_SIZE = 500 * 1024 * 1024;
+
+const limpiarNombreArchivo = (nombre = '') =>
+  nombre
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9.]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'imagen';
 
 const DashboardRadiologia = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
   const menuRef = useRef(null);
+  const inputImagenRef = useRef(null);
+  const estudioParaSubirRef = useRef(null);
 
   const [empleadoData, setEmpleadoData] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,6 +46,7 @@ const DashboardRadiologia = () => {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
+  const [subiendoImagenId, setSubiendoImagenId] = useState(null);
   const [notificacion, setNotificacion] = useState({
     isOpen: false,
     mensaje: '',
@@ -46,7 +61,7 @@ const DashboardRadiologia = () => {
       try {
         const { data: empleado, error } = await supabase
           .from('empleados')
-          .select('nombre, rol')
+          .select('id_empleado, nombre, rol')
           .eq('auth_uuid', user.id)
           .maybeSingle();
 
@@ -78,7 +93,9 @@ const DashboardRadiologia = () => {
         .select(`
           id_estudio,
           tipo_estudio,
+          descripcion,
           estado,
+          storage_path,
           sucursal,
           fecha_estudio,
           pacientes:id_paciente (
@@ -117,10 +134,12 @@ const DashboardRadiologia = () => {
         return {
           id: estudio.id_estudio,
           tipoEstudio: estudio.tipo_estudio,
+          descripcionEstudio: estudio.descripcion,
           nombrePaciente: nombreCompleto,
           horaFecha: horaFecha,
           sucursal: estudio.sucursal || 'Sin sucursal',
           estado: estudio.estado,
+          tieneImagen: Boolean(estudio.storage_path),
           idPaciente: paciente?.id_paciente
         };
       }) || [];
@@ -153,6 +172,62 @@ const DashboardRadiologia = () => {
 
   const handleVerDetalles = (estudio) => {
     setEstudioSeleccionado(estudio);
+  };
+
+  const handleSeleccionarImagen = (estudio) => {
+    estudioParaSubirRef.current = estudio;
+    inputImagenRef.current?.click();
+  };
+
+  const handleImagenSeleccionada = async (event) => {
+    const archivo = event.target.files?.[0];
+    const estudio = estudioParaSubirRef.current;
+    event.target.value = '';
+
+    if (!archivo || !estudio) return;
+
+    if (archivo.size > IMAGEN_MAX_SIZE) {
+      mostrarNotificacion('El archivo debe pesar menos de 500MB', 'error');
+      return;
+    }
+
+    setSubiendoImagenId(estudio.id);
+    try {
+      const nombreSeguro = limpiarNombreArchivo(archivo.name);
+      const archivoPath = `${estudio.id}/${Date.now()}-${nombreSeguro}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_RADIOLOGIA)
+        .upload(archivoPath, archivo, {
+          cacheControl: '3600',
+          contentType: archivo.type || 'application/octet-stream',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { error: updateError } = await supabase
+        .from('estudios_radiologia')
+        .update({
+          storage_path: archivoPath,
+          estado: 'EN PROCESO',
+          ...(empleadoData?.id_empleado ? { id_tecnico: empleadoData.id_empleado } : {}),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id_estudio', estudio.id);
+
+      if (updateError) throw updateError;
+
+      mostrarNotificacion('Imagen subida al estudio pendiente', 'exito');
+      setEstudioSeleccionado(null);
+      cargarEstudios();
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      mostrarNotificacion('Error al subir la imagen del estudio', 'error');
+    } finally {
+      estudioParaSubirRef.current = null;
+      setSubiendoImagenId(null);
+    }
   };
 
   const handleAsignar = async (estudio) => {
@@ -302,6 +377,13 @@ const DashboardRadiologia = () => {
         </div>
 
         <div className="grid-estudios">
+          <input
+            ref={inputImagenRef}
+            type="file"
+            className="radiologia-input-archivo"
+            accept=".dcm,.dicom,application/dicom,image/*"
+            onChange={handleImagenSeleccionada}
+          />
           {loading ? (
             <div className="sin-estudios">
               <p>Cargando estudios...</p>
@@ -315,11 +397,15 @@ const DashboardRadiologia = () => {
               <TarjetaEstudio
                 key={estudio.id}
                 tipoEstudio={estudio.tipoEstudio}
+                descripcionEstudio={estudio.descripcionEstudio}
                 nombrePaciente={estudio.nombrePaciente}
                 horaFecha={estudio.horaFecha}
                 sucursal={estudio.sucursal}
                 estado={estudio.estado}
+                tieneImagen={estudio.tieneImagen}
+                subiendoImagen={subiendoImagenId === estudio.id}
                 onVerDetalles={() => handleVerDetalles(estudio)}
+                onSubirImagen={() => handleSeleccionarImagen(estudio)}
                 onAsignar={() => handleAsignar(estudio)}
                 onClick={() => handleVerEstudio(estudio)}
               />
@@ -365,6 +451,10 @@ const DashboardRadiologia = () => {
                   <strong>{estudioSeleccionado.horaFecha}</strong>
                 </div>
                 <div className="radiologia-detalle-dato">
+                  <span>Estudio solicitado</span>
+                  <strong>{estudioSeleccionado.descripcionEstudio || estudioSeleccionado.tipoEstudio}</strong>
+                </div>
+                <div className="radiologia-detalle-dato">
                   <span>ID estudio</span>
                   <strong>{estudioSeleccionado.id}</strong>
                 </div>
@@ -372,6 +462,13 @@ const DashboardRadiologia = () => {
             </div>
 
             <div className="radiologia-detalle-acciones">
+              <button
+                type="button"
+                className="radiologia-btn-secundario"
+                onClick={() => handleSeleccionarImagen(estudioSeleccionado)}
+              >
+                {estudioSeleccionado.tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
+              </button>
               <button
                 type="button"
                 className="radiologia-btn-secundario"
