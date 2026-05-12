@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './modal-agregar-paciente.css';
+import '../../../components/admin-entity-modal.css';
 import pacientesIcono from '../../../assets/pacientesIcono.png';
 import calendarioIcono from '../../../assets/calendarioIcono.png';
 import sexoIcono from '../../../assets/sexoIcono.png';
@@ -236,8 +237,8 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   const anos = Array.from({ length: 120 }, (_, i) => anoActual - i);
 
   return (
-    <div className="modal-overlay-paciente" onClick={handleClose}>
-      <div className="modal-contenedor-paciente" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay-paciente admin-entity-modal-overlay" onClick={handleClose}>
+      <div className="modal-contenedor-paciente admin-entity-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-paciente">
           <h2 className="modal-titulo-paciente">
             {isEditMode ? 'Editar Cliente' : 'Agregar Cliente'}

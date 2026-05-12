@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { prepararUsuarioParaFormulario } from '../utils/usuarios-auth';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './ModalAgregarUsuario.css';
+import './admin-entity-modal.css';
 
 const ModalAgregarUsuario = ({
   isOpen,
@@ -138,8 +139,8 @@ const ModalAgregarUsuario = ({
 
   return (
     <>
-      <div className="modal-usuario-overlay" onClick={handleClose} />
-      <div className="modal-usuario-container">
+      <div className="modal-usuario-overlay admin-entity-modal-overlay" onClick={handleClose} />
+      <div className="modal-usuario-container admin-entity-modal">
         <div className="modal-usuario-header">
           <h2 className="modal-usuario-titulo">
             {usuarioEditar ? 'Editar Usuario' : 'Agregar Nuevo Usuario'}

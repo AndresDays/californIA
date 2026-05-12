@@ -76,6 +76,32 @@
 	gap: 0.4rem;
 }
 
+.selector-catalogo-estudios {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+	gap: 1rem;
+	align-items: end;
+	padding: 1rem;
+	background: rgba(111, 179, 210, 0.08);
+	border: 1px solid rgba(111, 179, 210, 0.22);
+	border-radius: 10px;
+}
+
+.catalogo-badge {
+	min-height: 41px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 0.9rem;
+	border-radius: 8px;
+	background: rgba(83, 185, 219, 0.18);
+	border: 1px solid rgba(83, 185, 219, 0.28);
+	color: #d9f6ff;
+	font-size: 0.86rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
 .campo-estudio label {
 	font-size: 0.88rem;
 	color: rgba(255, 255, 255, 0.9);
@@ -94,6 +120,15 @@
 	font-size: 0.9rem;
 	box-sizing: border-box;
 	width: 100%;
+}
+
+.input-estudio:disabled,
+.select-estudio:disabled,
+.textarea-estudio:disabled,
+.input-estudio[readonly] {
+	opacity: 0.72;
+	cursor: not-allowed;
+	background: rgba(10, 25, 41, 0.38);
 }
 
 .input-estudio:focus,
@@ -424,6 +459,10 @@
 }
 
 @media (max-width: 768px) {
+	.selector-catalogo-estudios {
+		grid-template-columns: 1fr;
+	}
+
 	.campo-estudio-doble {
 		grid-template-columns: 1fr;
 	}
