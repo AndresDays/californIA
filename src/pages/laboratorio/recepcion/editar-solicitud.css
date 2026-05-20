@@ -69,6 +69,20 @@
 	display: block;
 }
 
+.btn-devolucion-orden {
+	border: 1px solid rgba(255, 214, 102, 0.55);
+	border-radius: 8px;
+	padding: 0.7rem 1rem;
+	background: rgba(255, 184, 28, 0.16);
+	color: #ffe9a3;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.btn-devolucion-orden:hover {
+	background: rgba(255, 184, 28, 0.24);
+}
+
 .editar-solicitud-content {
 	flex: 1;
 	display: grid;

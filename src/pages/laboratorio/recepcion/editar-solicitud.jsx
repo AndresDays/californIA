@@ -20,6 +20,11 @@ import {
 	registrarEventoSolicitud,
 } from "../../../utils/solicitud-auditoria";
 import {
+	TIPOS_MOVIMIENTO_PAGO,
+	cargarHistorialPagosVenta,
+	registrarMovimientoPagoVenta,
+} from "../../../utils/pagos-ventas";
+import {
 	esErrorColumnaSchemaCache,
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
@@ -65,6 +70,7 @@ const EditarSolicitud = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	const [historialPagos, setHistorialPagos] = useState([]);
 	const [timelineAuditoria, setTimelineAuditoria] = useState([]);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
 		useState(false);
@@ -241,12 +247,18 @@ const EditarSolicitud = () => {
 		setTimelineAuditoria(data || []);
 	};
 
+	const cargarHistorialPagosOrden = async (idVenta) => {
+		const movimientos = await cargarHistorialPagosVenta(supabase, idVenta);
+		setHistorialPagos(movimientos);
+	};
+
 	const seleccionarOrden = async (orden) => {
 		setOrdenSeleccionada(orden);
 		setFolio(orden.folio);
 		setMotivoModificacion("");
 		setPago("");
 		cargarAuditoriaOrden(orden.id_venta);
+		cargarHistorialPagosOrden(orden.id_venta);
 		setClienteSeleccionado(orden.id_cliente?.toString() || "");
 		setIvaPercent(orden.iva ? (orden.iva / orden.subtotal) * 100 : 0);
 		setDescuentoPercent(
@@ -372,6 +384,7 @@ const EditarSolicitud = () => {
 		}
 		try {
 			const totalPagado = abono + (parseFloat(pago) || 0);
+			const pagoNuevo = parseFloat(pago) || 0;
 			const { error: errorVenta } = await supabase
 				.from("ventas")
 				.update({
@@ -388,6 +401,18 @@ const EditarSolicitud = () => {
 				})
 				.eq("id_venta", ordenSeleccionada.id_venta);
 			if (errorVenta) throw errorVenta;
+			if (pagoNuevo > 0) {
+				await registrarMovimientoPagoVenta(supabase, {
+					id_venta: ordenSeleccionada.id_venta,
+					folio,
+					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.ABONO,
+					monto: pagoNuevo,
+					forma_pago: formaPago,
+					motivo: motivoModificacion,
+					empleado: empleadoData,
+					user,
+				});
+			}
 			await registrarEventoSolicitud(supabase, {
 				id_venta: ordenSeleccionada.id_venta,
 				folio,
@@ -436,6 +461,7 @@ const EditarSolicitud = () => {
 			if (errorEstudios) throw errorEstudios;
 			mostrarNotificacion("Orden actualizada exitosamente", "exito");
 			await cargarAuditoriaOrden(ordenSeleccionada.id_venta);
+			await cargarHistorialPagosOrden(ordenSeleccionada.id_venta);
 			await cargarOrdenes();
 			setTimeout(() => window.print(), 800);
 		} catch (err) {
@@ -455,6 +481,19 @@ const EditarSolicitud = () => {
 				.update({ estado: "cancelado", updated_at: new Date().toISOString() })
 				.eq("id_venta", ordenSeleccionada.id_venta);
 			if (error) throw error;
+			const pagoActual = parseFloat(ordenSeleccionada.pago_recibido) || 0;
+			if (pagoActual > 0) {
+				await registrarMovimientoPagoVenta(supabase, {
+					id_venta: ordenSeleccionada.id_venta,
+					folio,
+					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.CANCELACION,
+					monto: pagoActual,
+					forma_pago: ordenSeleccionada.forma_pago || formaPago,
+					motivo: motivoModificacion || "Cancelacion de orden",
+					empleado: empleadoData,
+					user,
+				});
+			}
 			await registrarEventoSolicitud(supabase, {
 				id_venta: ordenSeleccionada.id_venta,
 				folio,
@@ -466,11 +505,77 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
 			setOrdenSeleccionada(null);
 			setEstudiosSeleccionados([]);
+			setHistorialPagos([]);
 			setFolio("");
 			await cargarOrdenes();
 		} catch (err) {
 			console.error("Error al cancelar:", err);
 			mostrarNotificacion("Error al cancelar la orden", "error");
+		}
+	};
+
+	const registrarDevolucion = async () => {
+		if (!ordenSeleccionada) {
+			mostrarNotificacion("Seleccione una orden primero", "advertencia");
+			return;
+		}
+		if (!motivoModificacion.trim()) {
+			mostrarNotificacion("Ingrese el motivo de la devolucion", "advertencia");
+			return;
+		}
+		const montoDevolucion = parseFloat(pago) || 0;
+		if (montoDevolucion <= 0) {
+			mostrarNotificacion("Ingrese el monto a devolver en Pago $", "advertencia");
+			return;
+		}
+		if (montoDevolucion > abono) {
+			mostrarNotificacion("La devolucion no puede ser mayor a lo abonado", "advertencia");
+			return;
+		}
+		try {
+			const nuevoPagoRecibido = Math.max(abono - montoDevolucion, 0);
+			const { error } = await supabase
+				.from("ventas")
+				.update({
+					pago_recibido: nuevoPagoRecibido,
+					observaciones: motivoModificacion,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id_venta", ordenSeleccionada.id_venta);
+			if (error) throw error;
+			await registrarMovimientoPagoVenta(supabase, {
+				id_venta: ordenSeleccionada.id_venta,
+				folio,
+				tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.DEVOLUCION,
+				monto: montoDevolucion,
+				forma_pago: formaPago,
+				motivo: motivoModificacion,
+				empleado: empleadoData,
+				user,
+			});
+			await registrarEventoSolicitud(supabase, {
+				id_venta: ordenSeleccionada.id_venta,
+				folio,
+				evento: EVENTOS_SOLICITUD.ADEUDO_CAMBIADO,
+				descripcion: `Devolucion registrada por $${montoDevolucion.toFixed(2)}`,
+				empleado: empleadoData,
+				user,
+				detalles: {
+					motivo: motivoModificacion,
+					devolucion: montoDevolucion,
+					pago_anterior: abono,
+					pago_nuevo: nuevoPagoRecibido,
+				},
+			});
+			setAbono(nuevoPagoRecibido);
+			setPago("");
+			mostrarNotificacion("Devolucion registrada", "exito");
+			await cargarHistorialPagosOrden(ordenSeleccionada.id_venta);
+			await cargarAuditoriaOrden(ordenSeleccionada.id_venta);
+			await cargarOrdenes();
+		} catch (err) {
+			console.error("Error al registrar devolucion:", err);
+			mostrarNotificacion("Error al registrar la devolucion", "error");
 		}
 	};
 
@@ -997,6 +1102,12 @@ const EditarSolicitud = () => {
 
 						<div className="botones-finales">
 							<button
+								type="button"
+								className="btn-devolucion-orden"
+								onClick={registrarDevolucion}>
+								Devolucion
+							</button>
+							<button
 								className="btn-guardar-imprimir-img"
 								onClick={guardarYImprimir}>
 								<img
@@ -1005,6 +1116,44 @@ const EditarSolicitud = () => {
 									className="icono-guardar-imp"
 								/>
 							</button>
+						</div>
+
+						<div className="auditoria-section">
+							<div className="auditoria-header">
+								<h3>Historial de pagos</h3>
+								<span>{historialPagos.length} movimientos</span>
+							</div>
+							<div className="auditoria-lista">
+								{!ordenSeleccionada ? (
+									<p className="auditoria-empty">Seleccione una orden</p>
+								) : historialPagos.length === 0 ? (
+									<p className="auditoria-empty">Sin movimientos registrados</p>
+								) : (
+									historialPagos.map((movimiento) => (
+										<div className="auditoria-item" key={movimiento.id_movimiento}>
+											<div className="auditoria-dot" />
+											<div>
+												<strong>
+													{movimiento.tipo_movimiento} - $
+													{Number(movimiento.monto || 0).toFixed(2)}
+												</strong>
+												<span>
+													{movimiento.forma_pago || "Sin forma de pago"} -{" "}
+													{movimiento.actor_nombre || "Usuario"}
+												</span>
+												<time>
+													{movimiento.created_at
+														? new Date(movimiento.created_at).toLocaleString("es-MX", {
+																dateStyle: "short",
+																timeStyle: "short",
+															})
+														: ""}
+												</time>
+											</div>
+										</div>
+									))
+								)}
+							</div>
 						</div>
 
 						<div className="auditoria-section">

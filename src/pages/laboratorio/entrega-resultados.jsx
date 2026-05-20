@@ -12,7 +12,10 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
-import { esErrorColumnaInexistente } from "../../utils/supabase-errors";
+import {
+	esErrorColumnaInexistente,
+	esErrorTablaInexistente,
+} from "../../utils/supabase-errors";
 import {
 	calcularPendientesEntrega,
 	calcularSaldoEntrega,
@@ -34,6 +37,7 @@ import {
 	crearUrlPortalResultados,
 } from "../../utils/portal-resultados";
 import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
+import { puedeAutorizarEntregaConAdeudo } from "../../utils/pagos-ventas";
 import "./entrega-resultados.css";
 
 const SELECT_VENTAS = `
@@ -90,6 +94,8 @@ const EntregaResultados = () => {
 	const [mediaPagina, setMediaPagina] = useState(false);
 	const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
 	const [observacionesEntrega, setObservacionesEntrega] = useState("");
+	const [motivoAutorizacionAdeudo, setMotivoAutorizacionAdeudo] = useState("");
+	const [autorizacionesAdeudo, setAutorizacionesAdeudo] = useState({});
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
@@ -238,6 +244,7 @@ const EntregaResultados = () => {
 	const seleccionarVenta = async (venta) => {
 		setVentaSeleccionada(venta);
 		setObservacionesEntrega("");
+		setMotivoAutorizacionAdeudo("");
 		await cargarEstudiosVenta(venta.id_venta);
 	};
 
@@ -305,11 +312,75 @@ const EntregaResultados = () => {
 		if (!ventaSeleccionada || !tieneSaldoPendiente(ventaSeleccionada)) {
 			return false;
 		}
+		if (autorizacionesAdeudo[ventaSeleccionada.id_venta]) {
+			return false;
+		}
 		mostrarNotificacion(
-			`No se puede ${accion} con adeudo de $${calcularSaldoEntrega(ventaSeleccionada).toFixed(2)}. Edita la solicitud y liquida el monto completo.`,
+			`No se puede ${accion} con adeudo de $${calcularSaldoEntrega(ventaSeleccionada).toFixed(2)}. Liquida el monto o solicita autorizacion administrativa.`,
 			"advertencia",
 		);
 		return true;
+	};
+
+	const autorizarEntregaConAdeudo = async () => {
+		if (!ventaSeleccionada || !tieneSaldoPendiente(ventaSeleccionada)) return;
+		if (!puedeAutorizarEntregaConAdeudo(empleadoData)) {
+			mostrarNotificacion("Solo administracion puede autorizar entrega con adeudo", "advertencia");
+			return;
+		}
+		if (!motivoAutorizacionAdeudo.trim()) {
+			mostrarNotificacion("Escribe el motivo de autorizacion", "advertencia");
+			return;
+		}
+
+		const saldo = calcularSaldoEntrega(ventaSeleccionada);
+		const payload = {
+			id_venta: ventaSeleccionada.id_venta,
+			folio: ventaSeleccionada.folio,
+			saldo_autorizado: saldo,
+			motivo: motivoAutorizacionAdeudo.trim(),
+			autorizado_por_nombre: empleadoData?.nombre || user?.email || "Usuario",
+			autorizado_por_rol: empleadoData?.rol || null,
+			autorizado_por_auth_uuid: user?.id || null,
+		};
+		const { error } = await supabase
+			.from("autorizaciones_entrega_adeudo")
+			.insert(payload);
+		if (error && !esErrorTablaInexistente(error, "autorizaciones_entrega_adeudo")) {
+			console.error("Error al autorizar entrega con adeudo:", error);
+			mostrarNotificacion("No se pudo registrar la autorizacion", "error");
+			return;
+		}
+		await registrarEventoSolicitud(supabase, {
+			id_venta: ventaSeleccionada.id_venta,
+			folio: ventaSeleccionada.folio,
+			evento: EVENTOS_SOLICITUD.ADEUDO_CAMBIADO,
+			descripcion: `Entrega autorizada con adeudo de $${saldo.toFixed(2)}`,
+			empleado: empleadoData,
+			user,
+			detalles: {
+				motivo: motivoAutorizacionAdeudo.trim(),
+				saldo_autorizado: saldo,
+			},
+		});
+		setAutorizacionesAdeudo((prev) => ({
+			...prev,
+			[ventaSeleccionada.id_venta]: payload,
+		}));
+		setMotivoAutorizacionAdeudo("");
+		mostrarNotificacion("Entrega con adeudo autorizada", "exito");
+	};
+
+	const marcarAutorizacionAdeudoUsada = async () => {
+		if (!ventaSeleccionada || !autorizacionesAdeudo[ventaSeleccionada.id_venta]) return;
+		const { error } = await supabase
+			.from("autorizaciones_entrega_adeudo")
+			.update({ usado: true, usado_en: new Date().toISOString() })
+			.eq("id_venta", ventaSeleccionada.id_venta)
+			.eq("usado", false);
+		if (error && !esErrorTablaInexistente(error, "autorizaciones_entrega_adeudo")) {
+			console.warn("No se pudo marcar autorizacion de adeudo como usada:", error);
+		}
 	};
 
 	const marcarComoEntregado = async (idEstudioVenta) => {
@@ -337,6 +408,7 @@ const EntregaResultados = () => {
 				entidad_tipo: "estudio_venta",
 				entidad_id: idEstudioVenta,
 			});
+			await marcarAutorizacionAdeudoUsada();
 			mostrarNotificacion("Estudio marcado como entregado", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {
@@ -370,6 +442,7 @@ const EntregaResultados = () => {
 				entidad_tipo: "estudio_radiologia",
 				entidad_id: idEstudio,
 			});
+			await marcarAutorizacionAdeudoUsada();
 			mostrarNotificacion("Reporte de imagen marcado como entregado", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {
@@ -428,6 +501,7 @@ const EntregaResultados = () => {
 					estudios_imagen: idsRadiologia.length,
 				},
 			});
+			await marcarAutorizacionAdeudoUsada();
 			mostrarNotificacion("Todos los estudios fueron marcados como entregados", "exito");
 			await actualizarDespuesDeEntrega();
 		} catch (error) {
@@ -547,6 +621,9 @@ const EntregaResultados = () => {
 		0,
 	);
 	const saldoVentaSeleccionada = calcularSaldoEntrega(ventaSeleccionada || {});
+	const entregaAdeudoAutorizada = Boolean(
+		ventaSeleccionada && autorizacionesAdeudo[ventaSeleccionada.id_venta],
+	);
 	const totalSeleccionadosPendientes =
 		estudiosVenta.length + estudiosRadiologia.length;
 	const renderEstadoSolicitud = (venta) => {
@@ -779,11 +856,29 @@ const EntregaResultados = () => {
 								<span
 									className={`badge-saldo ${saldoVentaSeleccionada > 0 ? "pendiente" : "pagado"}`}>
 									{saldoVentaSeleccionada > 0
-										? `Saldo $${saldoVentaSeleccionada.toFixed(2)}`
+										? entregaAdeudoAutorizada
+											? `Autorizado $${saldoVentaSeleccionada.toFixed(2)}`
+											: `Saldo $${saldoVentaSeleccionada.toFixed(2)}`
 										: "Pagado"}
 								</span>
 							</div>
 						)}
+						{ventaSeleccionada &&
+							saldoVentaSeleccionada > 0 &&
+							puedeAutorizarEntregaConAdeudo(empleadoData) &&
+							!entregaAdeudoAutorizada && (
+								<div className="entrega-autorizacion-adeudo">
+									<input
+										type="text"
+										value={motivoAutorizacionAdeudo}
+										onChange={(e) => setMotivoAutorizacionAdeudo(e.target.value)}
+										placeholder="Motivo para liberar con adeudo"
+									/>
+									<button type="button" onClick={autorizarEntregaConAdeudo}>
+										Autorizar adeudo
+									</button>
+								</div>
+							)}
 						<div className="observaciones-entrega-section">
 							<label>Observaciones de Entrega</label>
 							<textarea
