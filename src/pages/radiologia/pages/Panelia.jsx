@@ -72,7 +72,7 @@ export default function PanelIA({ activo, imageId, onClose }) {
 
 	const getDicomCanvas = () => {
 		const candidatos = [
-			".cornerstone-element.activo canvas",
+			".panel-imagen.activo .cornerstone-element canvas",
 			".cornerstone-element canvas",
 			".vd-grid canvas",
 			".vd-visor canvas",
@@ -90,6 +90,80 @@ export default function PanelIA({ activo, imageId, onClose }) {
 		return null;
 	};
 
+	const getCornerstoneElement = (csCanvas) => {
+		const element = csCanvas?.closest?.(".cornerstone-element") || csCanvas?.parentElement;
+		return element || null;
+	};
+
+	const getImageBounds = async (csCanvas) => {
+		if (!csCanvas) return null;
+
+		try {
+			const cornerstoneModule = await import("cornerstone-core");
+			const cornerstone = cornerstoneModule.default || cornerstoneModule;
+			const element = getCornerstoneElement(csCanvas);
+			const enabled = element ? cornerstone.getEnabledElement(element) : null;
+			const image = enabled?.image;
+			const viewport = element ? cornerstone.getViewport(element) : enabled?.viewport;
+
+			if (image && viewport?.scale) {
+				const rotation = Math.abs(viewport.rotation || 0) % 180;
+				const imageWidth = rotation === 90 ? image.height : image.width;
+				const imageHeight = rotation === 90 ? image.width : image.height;
+				const scale = viewport.scale;
+				const width = imageWidth * scale;
+				const height = imageHeight * scale;
+				const centerX = csCanvas.width / 2 + (viewport.translation?.x || 0) * scale;
+				const centerY = csCanvas.height / 2 + (viewport.translation?.y || 0) * scale;
+				const left = centerX - width / 2;
+				const top = centerY - height / 2;
+
+				return {
+					x: Math.max(0, left),
+					y: Math.max(0, top),
+					width: Math.max(0, Math.min(csCanvas.width, left + width) - Math.max(0, left)),
+					height: Math.max(0, Math.min(csCanvas.height, top + height) - Math.max(0, top)),
+				};
+			}
+		} catch (err) {
+			// Cornerstone may still be initializing; fall back to the full canvas.
+		}
+
+		return {
+			x: 0,
+			y: 0,
+			width: csCanvas.width,
+			height: csCanvas.height,
+		};
+	};
+
+	const canvasToBlob = (canvas) =>
+		new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
+
+	const recortarImagenActiva = async (csCanvas) => {
+		const bounds = await getImageBounds(csCanvas);
+		if (!bounds?.width || !bounds?.height) return null;
+
+		const crop = document.createElement("canvas");
+		crop.width = Math.round(bounds.width);
+		crop.height = Math.round(bounds.height);
+		crop
+			.getContext("2d")
+			.drawImage(
+				csCanvas,
+				bounds.x,
+				bounds.y,
+				bounds.width,
+				bounds.height,
+				0,
+				0,
+				crop.width,
+				crop.height,
+			);
+
+		return canvasToBlob(crop);
+	};
+
 	const asegurarOverlaySobreCanvas = (csCanvas) => {
 		if (!csCanvas) return null;
 
@@ -103,7 +177,7 @@ export default function PanelIA({ activo, imageId, onClose }) {
         top: 0;
         left: 0;
         pointer-events: none;
-        z-index: 50;
+        z-index: 6;
         border-radius: 4px;
         transition: opacity 0.25s ease;
         opacity: 0;
@@ -119,8 +193,13 @@ export default function PanelIA({ activo, imageId, onClose }) {
 			parent.appendChild(overlay);
 		}
 
+		const parentRect = overlay.parentElement.getBoundingClientRect();
+		const canvasRect = csCanvas.getBoundingClientRect();
+
 		overlay.width = csCanvas.width;
 		overlay.height = csCanvas.height;
+		overlay.style.left = `${canvasRect.left - parentRect.left}px`;
+		overlay.style.top = `${canvasRect.top - parentRect.top}px`;
 		overlay.style.width = csCanvas.clientWidth
 			? `${csCanvas.clientWidth}px`
 			: `${csCanvas.width}px`;
@@ -134,7 +213,7 @@ export default function PanelIA({ activo, imageId, onClose }) {
 		return overlay;
 	};
 
-	const dibujarCamOverlay = (dataUrl) => {
+	const dibujarCamOverlay = async (dataUrl) => {
 		if (!dataUrl) {
 			const overlay = document.getElementById("pia-cam-overlay");
 			if (overlay) overlay.style.opacity = "0";
@@ -150,14 +229,20 @@ export default function PanelIA({ activo, imageId, onClose }) {
 
 		const overlay = asegurarOverlaySobreCanvas(csCanvas);
 		if (!overlay) return;
+		const imageBounds = await getImageBounds(csCanvas);
 
 		const ctx = overlay.getContext("2d");
 		ctx.clearRect(0, 0, overlay.width, overlay.height);
 
 		const img = new window.Image();
 		img.onload = () => {
+			const parentRect = overlay.parentElement.getBoundingClientRect();
+			const canvasRect = csCanvas.getBoundingClientRect();
+
 			overlay.width = csCanvas.width;
 			overlay.height = csCanvas.height;
+			overlay.style.left = `${canvasRect.left - parentRect.left}px`;
+			overlay.style.top = `${canvasRect.top - parentRect.top}px`;
 			overlay.style.width = csCanvas.clientWidth
 				? `${csCanvas.clientWidth}px`
 				: `${csCanvas.width}px`;
@@ -167,9 +252,25 @@ export default function PanelIA({ activo, imageId, onClose }) {
 
 			const drawCtx = overlay.getContext("2d");
 			drawCtx.clearRect(0, 0, overlay.width, overlay.height);
+			drawCtx.save();
+			drawCtx.beginPath();
+			drawCtx.rect(
+				imageBounds.x,
+				imageBounds.y,
+				imageBounds.width,
+				imageBounds.height,
+			);
+			drawCtx.clip();
 			drawCtx.globalAlpha = 0.55;
-			drawCtx.drawImage(img, 0, 0, overlay.width, overlay.height);
+			drawCtx.drawImage(
+				img,
+				imageBounds.x,
+				imageBounds.y,
+				imageBounds.width,
+				imageBounds.height,
+			);
 			drawCtx.globalAlpha = 1;
+			drawCtx.restore();
 			overlay.style.opacity = "1";
 		};
 
@@ -257,9 +358,7 @@ export default function PanelIA({ activo, imageId, onClose }) {
 			let blob;
 
 			if (csCanvas) {
-				blob = await new Promise((res) =>
-					csCanvas.toBlob((b) => res(b), "image/png"),
-				);
+				blob = await recortarImagenActiva(csCanvas);
 			} else {
 				throw new Error("No hay imagen en el visor");
 			}
