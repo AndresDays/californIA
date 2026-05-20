@@ -35,6 +35,10 @@ import {
 } from "../../utils/sucursal-empleado";
 import { crearNotificaciones } from "../../utils/notificaciones";
 import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
+import {
+	TIPOS_MOVIMIENTO_PAGO,
+	registrarMovimientoPagoVenta,
+} from "../../utils/pagos-ventas";
 import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
 import {
 	esEmailValido,
@@ -364,6 +368,20 @@ const NuevoPaciente = () => {
 			}
 
 			if (errorVenta) throw errorVenta;
+			if (pagoNormalizado > 0) {
+				await registrarMovimientoPagoVenta(supabase, {
+					id_venta: venta.id_venta,
+					folio,
+					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
+					monto: pagoNormalizado,
+					forma_pago: formaPago,
+					motivo: "Pago inicial de solicitud",
+					id_sucursal: sucursalEmpleado.id_sucursal,
+					sucursal: sucursalEmpleado.sucursal,
+					empleado: empleadoData || empleado,
+					user,
+				});
+			}
 			await registrarEventoSolicitud(supabase, {
 				id_venta: venta.id_venta,
 				folio,

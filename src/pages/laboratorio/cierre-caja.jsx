@@ -5,6 +5,10 @@ import pacienteIcono from "../../assets/pacientesIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import {
+	resumirMovimientosCaja,
+} from "../../utils/pagos-ventas";
+import { esErrorTablaInexistente } from "../../utils/supabase-errors";
 import "./cierre-caja.css";
 
 const CierreCaja = () => {
@@ -15,9 +19,8 @@ const CierreCaja = () => {
 	);
 	const [sucursales, setSucursales] = useState([]);
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
-	const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(
-		"JUAN ANDRES DIAZ RODRIGUEZ",
-	);
+	const [empleados, setEmpleados] = useState([]);
+	const [usuarioSeleccionado, setUsuarioSeleccionado] = useState("");
 	const [montoApertura, setMontoApertura] = useState(0);
 	const [ventasEfectivo, setVentasEfectivo] = useState(0);
 	const [ingresosEfectivo, setIngresosEfectivo] = useState(0);
@@ -56,6 +59,7 @@ const CierreCaja = () => {
 		};
 		fetchEmpleadoData();
 		cargarSucursales();
+		cargarEmpleados();
 	}, [user]);
 
 	useEffect(() => {
@@ -77,6 +81,10 @@ const CierreCaja = () => {
 		montoCancelados,
 	]);
 
+	useEffect(() => {
+		cargarCorteCaja();
+	}, [fechaActual, sucursalSeleccionada, usuarioSeleccionado]);
+
 	const cargarSucursales = async () => {
 		try {
 			const { data, error } = await supabase
@@ -89,6 +97,90 @@ const CierreCaja = () => {
 		} catch (error) {
 			console.error("Error al cargar sucursales:", error);
 		}
+	};
+
+	const cargarEmpleados = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("empleados")
+				.select("nombre, rol, auth_uuid")
+				.order("nombre");
+			if (error) throw error;
+			setEmpleados(data || []);
+		} catch (error) {
+			console.error("Error al cargar empleados:", error);
+		}
+	};
+
+	const cargarCorteCaja = async () => {
+		const inicio = `${fechaActual}T00:00:00`;
+		const fin = `${fechaActual}T23:59:59`;
+		try {
+			let query = supabase
+				.from("movimientos_pago_venta")
+				.select("*")
+				.gte("created_at", inicio)
+				.lte("created_at", fin);
+			if (sucursalSeleccionada) {
+				query = query.eq("id_sucursal", sucursalSeleccionada);
+			}
+			if (usuarioSeleccionado) {
+				query = query.eq("actor_auth_uuid", usuarioSeleccionado);
+			}
+			const { data, error } = await query;
+			if (error) {
+				if (!esErrorTablaInexistente(error, "movimientos_pago_venta")) throw error;
+				await cargarCorteDesdeVentas(inicio, fin);
+				return;
+			}
+			const resumen = resumirMovimientosCaja(data || []);
+			setVentasEfectivo(resumen.efectivo);
+			setVentasTarjeta(resumen.tarjeta);
+			setTransferencias(resumen.transferencia);
+			setCredito(resumen.credito);
+			setMontoCancelados(resumen.cancelaciones);
+			setTotalAdeudos(resumen.adeudos);
+		} catch (error) {
+			console.error("Error al cargar corte de caja:", error);
+		}
+	};
+
+	const cargarCorteDesdeVentas = async (inicio, fin) => {
+		let query = supabase
+			.from("ventas")
+			.select("total, pago_recibido, forma_pago, estado, id_sucursal")
+			.gte("fecha_venta", inicio)
+			.lte("fecha_venta", fin);
+		if (sucursalSeleccionada) query = query.eq("id_sucursal", sucursalSeleccionada);
+		const { data, error } = await query;
+		if (error) throw error;
+		const ventas = data || [];
+		const suma = (forma) =>
+			ventas
+				.filter((venta) =>
+					String(venta.forma_pago || "").toLowerCase().includes(forma),
+				)
+				.reduce((total, venta) => total + (parseFloat(venta.pago_recibido) || 0), 0);
+		setVentasEfectivo(suma("efectivo"));
+		setVentasTarjeta(suma("tarjeta"));
+		setTransferencias(suma("transfer"));
+		setCredito(suma("credito"));
+		setMontoCancelados(
+			ventas
+				.filter((venta) => String(venta.estado || "").toLowerCase().includes("cancel"))
+				.reduce((total, venta) => total + (parseFloat(venta.pago_recibido) || 0), 0),
+		);
+		setTotalAdeudos(
+			ventas.reduce(
+				(total, venta) =>
+					total +
+					Math.max(
+						(parseFloat(venta.total) || 0) - (parseFloat(venta.pago_recibido) || 0),
+						0,
+					),
+				0,
+			),
+		);
 	};
 
 	const calcularTotales = () => {
@@ -184,10 +276,14 @@ const CierreCaja = () => {
 								value={usuarioSeleccionado}
 								onChange={(e) => setUsuarioSeleccionado(e.target.value)}
 								className="select-usuario-cierre">
-								<option value="JUAN ANDRES DIAZ RODRIGUEZ">
-									JUAN ANDRES DIAZ RODRIGUEZ
-								</option>
-								<option value="OTRO USUARIO">OTRO USUARIO</option>
+								<option value="">Todos los empleados</option>
+								{empleados.map((empleado) => (
+									<option
+										key={empleado.auth_uuid || empleado.nombre}
+										value={empleado.auth_uuid || ""}>
+										{empleado.nombre}
+									</option>
+								))}
 							</select>
 						</div>
 					</div>

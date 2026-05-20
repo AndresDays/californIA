@@ -554,6 +554,37 @@
 	padding-inline: 0.9rem;
 }
 
+.entrega-autorizacion-adeudo {
+	display: grid;
+	grid-template-columns: minmax(180px, 1fr) auto;
+	gap: 10px;
+	align-items: center;
+	margin-top: 12px;
+	padding: 12px;
+	border: 1px solid #d6a533;
+	border-radius: 8px;
+	background: #fff8e6;
+}
+
+.entrega-autorizacion-adeudo input {
+	width: 100%;
+	border: 1px solid #d9b45a;
+	border-radius: 6px;
+	padding: 10px 12px;
+	font-size: 14px;
+	background: #fff;
+}
+
+.entrega-autorizacion-adeudo button {
+	border: 0;
+	border-radius: 6px;
+	padding: 10px 14px;
+	background: #8a5a00;
+	color: #fff;
+	font-weight: 700;
+	cursor: pointer;
+}
+
 .observaciones-entrega-section {
 	display: flex;
 	flex-direction: column;
