@@ -27,6 +27,7 @@ import EditarSolicitud from './pages/laboratorio/recepcion/editar-solicitud';
 import Historial from './pages/laboratorio/recepcion/historial';
 import ReporteAdministrativo from './pages/laboratorio/reporte-administrativo';
 import ReporteVentas from './pages/laboratorio/reporte-ventas';
+import Turnos from './pages/laboratorio/turnos';
 import Login from './pages/login';
 import Pacientes from './pages/pacientes';
 import Perfil from './pages/perfil';
@@ -35,6 +36,7 @@ import DashboardRadiologia from './pages/radiologia/pages/dashboard-radiologia';
 import PlantillasRadiologia from './pages/radiologia/pages/plantillas-radiologia';
 import ReporteRadiologia from './pages/radiologia/pages/ReporteRadiologia';
 import VisorDicom from './pages/radiologia/pages/visor-dicom';
+import SalaEspera from './pages/sala-espera';
 import Usuarios from './pages/usuarios';
 
 function App() {
@@ -49,6 +51,8 @@ function App() {
 					<Route path="/forgot-password" element={<ForgotPassword />} />
 
 					<Route path="/resultados" element={<PortalResultados />} />
+
+					<Route path="/sala-espera" element={<SalaEspera />} />
 
 					<Route
 						path="/dashboard"
@@ -181,6 +185,15 @@ function App() {
 						element={
 							<ProtectedRoute>
 								<Historial />
+							</ProtectedRoute>
+						}
+					/>
+
+					<Route
+						path="/turnos"
+						element={
+							<ProtectedRoute>
+								<Turnos />
 							</ProtectedRoute>
 						}
 					/>

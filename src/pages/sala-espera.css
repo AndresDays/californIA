@@ -1,0 +1,160 @@
+.sala-espera-page {
+	min-height: 100vh;
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	gap: 28px;
+	padding: 34px clamp(22px, 5vw, 72px) 40px;
+	background: linear-gradient(135deg, #061621 0%, #0a2a37 58%, #132326 100%);
+	color: #f8fcff;
+	overflow: hidden;
+}
+
+.sala-espera-topbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	min-height: 72px;
+}
+
+.sala-espera-topbar img {
+	width: min(250px, 38vw);
+	height: auto;
+	object-fit: contain;
+}
+
+.sala-espera-topbar div {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	text-align: right;
+}
+
+.sala-espera-topbar strong {
+	font-size: clamp(22px, 2.4vw, 38px);
+}
+
+.sala-espera-topbar span {
+	color: rgba(248, 252, 255, 0.72);
+	font-size: clamp(14px, 1.5vw, 22px);
+	text-transform: capitalize;
+}
+
+.sala-current {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 0;
+	text-align: center;
+}
+
+.sala-kicker {
+	margin-bottom: 8px;
+	color: #f2c94c;
+	font-size: clamp(22px, 2.6vw, 44px);
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0;
+}
+
+.sala-turn-code {
+	display: grid;
+	place-items: center;
+	min-width: clamp(220px, 28vw, 460px);
+	min-height: clamp(112px, 14vw, 210px);
+	margin-bottom: 22px;
+	border-radius: 8px;
+	background: #f2c94c;
+	color: #101820;
+	font-size: clamp(72px, 11vw, 180px);
+	font-weight: 950;
+	line-height: 1;
+	box-shadow: 0 24px 60px rgba(242, 201, 76, 0.24);
+}
+
+.sala-current h1 {
+	max-width: 1100px;
+	margin: 0;
+	font-size: clamp(54px, 8vw, 132px);
+	line-height: 1.02;
+	font-weight: 950;
+}
+
+.sala-destination {
+	margin-top: 22px;
+	color: #a9ecff;
+	font-size: clamp(32px, 5vw, 82px);
+	font-weight: 900;
+}
+
+.sala-current:not(.has-call) h1 {
+	font-size: clamp(48px, 7vw, 110px);
+}
+
+.sala-recent {
+	display: grid;
+	gap: 16px;
+}
+
+.sala-recent h2 {
+	font-size: clamp(20px, 2vw, 34px);
+	color: rgba(248, 252, 255, 0.84);
+}
+
+.sala-recent-grid {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 14px;
+}
+
+.sala-recent-item,
+.sala-empty {
+	min-height: 86px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.09);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 6px;
+	text-align: center;
+}
+
+.sala-recent-item strong {
+	color: #f2c94c;
+	font-size: clamp(24px, 2.6vw, 44px);
+	font-weight: 950;
+}
+
+.sala-recent-item span,
+.sala-empty {
+	color: rgba(248, 252, 255, 0.74);
+	font-size: clamp(14px, 1.5vw, 20px);
+}
+
+.sala-empty {
+	grid-column: 1 / -1;
+}
+
+@media (max-width: 760px) {
+	.sala-espera-page {
+		overflow: auto;
+	}
+
+	.sala-espera-topbar {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.sala-espera-topbar div {
+		align-items: flex-start;
+		text-align: left;
+	}
+
+	.sala-recent-grid {
+		grid-template-columns: 1fr;
+	}
+}

@@ -49,6 +49,7 @@ export const sidebarItems = [
 			},
 			{ id: "cotizacion", label: "Cotización", icon: subIcon, path: "/cotizacion" },
 			{ id: "historial", label: "Historial", icon: subIcon, path: "/historial" },
+			{ id: "turnos", label: "Turnos", icon: subIcon, path: "/turnos" },
 			{ id: "cierre-caja", label: "Cierre Caja", icon: subIcon, path: "/cierre-caja" },
 		],
 	},

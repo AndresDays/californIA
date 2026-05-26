@@ -150,8 +150,8 @@
 }
 
 .form-select option {
-  background: #0a1929;
-  color: white;
+  background: #FFFFFF;
+  color: #0A1929;
 }
 
 .form-textarea {
@@ -783,6 +783,59 @@
 	text-align: center;
 	font-size: 1rem;
 	color: #66BB6A;
+}
+
+.turno-sala-section {
+	background: rgba(10, 25, 41, 0.42);
+	backdrop-filter: blur(10px);
+	border: 1px solid rgba(83, 185, 219, 0.22);
+	border-radius: 8px;
+	padding: 0.9rem;
+}
+
+.turno-sala-toggle {
+	align-items: flex-start;
+	cursor: pointer;
+	display: flex;
+	gap: 0.75rem;
+	margin: 0;
+}
+
+.turno-sala-toggle input {
+	accent-color: #6FB3D2;
+	flex: 0 0 auto;
+	height: 18px;
+	margin-top: 0.15rem;
+	width: 18px;
+}
+
+.turno-sala-toggle span {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.turno-sala-toggle strong {
+	color: #FFFFFF;
+	font-size: 0.9rem;
+	line-height: 1.2;
+}
+
+.turno-sala-toggle small {
+	color: rgba(255, 255, 255, 0.62);
+	font-size: 0.76rem;
+	line-height: 1.25;
+}
+
+.turno-sala-controls {
+	display: grid;
+	gap: 0.75rem;
+	margin-top: 0.85rem;
+}
+
+.turno-sala-controls .form-group {
+	margin-bottom: 0;
 }
 
 .action-buttons-final {
