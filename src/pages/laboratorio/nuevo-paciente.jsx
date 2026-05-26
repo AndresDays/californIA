@@ -39,6 +39,12 @@ import {
 	TIPOS_MOVIMIENTO_PAGO,
 	registrarMovimientoPagoVenta,
 } from "../../utils/pagos-ventas";
+import {
+	generarCodigoTurno,
+	obtenerRangoDiaLocalISO,
+	resolverDestinoTurnoDesdeEstudios,
+	TURNO_DESTINOS,
+} from "../../utils/turnos-pacientes";
 import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
 import {
 	esEmailValido,
@@ -143,6 +149,10 @@ const NuevoPaciente = () => {
 	const [cambio, setCambio] = useState(0);
 
 	const [formaPago, setFormaPago] = useState("efectivo");
+	const [agregarASalaEspera, setAgregarASalaEspera] = useState(true);
+	const [destinoTurno, setDestinoTurno] = useState("");
+	const [destinoTurnoManual, setDestinoTurnoManual] = useState(false);
+	const [prioridadTurno, setPrioridadTurno] = useState("0");
 
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const citaIdDesdeDashboard =
@@ -205,6 +215,12 @@ const NuevoPaciente = () => {
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, pagoRecibido]);
 
 	useEffect(() => {
+		if (!destinoTurnoManual) {
+			setDestinoTurno(resolverDestinoTurnoDesdeEstudios(estudiosSeleccionados));
+		}
+	}, [estudiosSeleccionados, destinoTurnoManual]);
+
+	useEffect(() => {
 		if (empresaSeleccionada) {
 			cargarTiposEstudio(parseInt(empresaSeleccionada));
 		} else {
@@ -254,6 +270,40 @@ const NuevoPaciente = () => {
 			console.error("Error al generar folio:", error);
 			return `${prefijo}0001`;
 		}
+	};
+
+	const crearTurnoDesdeSolicitud = async ({
+		idPaciente,
+		idCita,
+		nombrePaciente,
+		estudios,
+		fechaProgramada,
+	}) => {
+		const rangoHoy = obtenerRangoDiaLocalISO(new Date());
+
+		const { count, error: errorConteo } = await supabase
+			.from("turnos_pacientes")
+			.select("id_turno", { count: "exact", head: true })
+			.gte("fecha_programada", rangoHoy.inicio)
+			.lte("fecha_programada", rangoHoy.fin);
+
+		if (errorConteo) throw errorConteo;
+
+		const destinoSugerido =
+			destinoTurno.trim() || resolverDestinoTurnoDesdeEstudios(estudios);
+		const { error } = await supabase.from("turnos_pacientes").insert({
+			id_paciente: idPaciente,
+			id_cita: idCita || null,
+			codigo_turno: generarCodigoTurno((count || 0) + 1),
+			nombre_paciente: nombrePaciente,
+			area: destinoSugerido,
+			destino: destinoSugerido,
+			prioridad: Number(prioridadTurno) || 0,
+			fecha_programada: fechaProgramada,
+			creado_por: user?.id || null,
+		});
+
+		if (error) throw error;
 	};
 
 	const guardarYPagar = async () => {
@@ -552,6 +602,24 @@ const NuevoPaciente = () => {
 				if (errorCita) throw errorCita;
 			}
 
+			let turnoCreado = false;
+			let errorTurno = "";
+			if (agregarASalaEspera) {
+				try {
+					await crearTurnoDesdeSolicitud({
+						idPaciente,
+						idCita: idCitaPrecargada,
+						nombrePaciente: nombreCompleto,
+						estudios: estudiosGuardados || estudiosSeleccionados,
+						fechaProgramada: fechaMexico.toISOString(),
+					});
+					turnoCreado = true;
+				} catch (error) {
+					console.error("Error al crear turno:", error);
+					errorTurno = error.message;
+				}
+			}
+
 			await generarTicketVenta({
 				folio,
 				fecha: new Date(),
@@ -567,7 +635,15 @@ const NuevoPaciente = () => {
 				observaciones,
 			});
 
-			alert(`¡Venta registrada exitosamente!\nFolio: ${folio}`);
+			alert(
+				`¡Venta registrada exitosamente!\nFolio: ${folio}${
+					turnoCreado
+						? "\nTurno agregado a sala de espera."
+						: errorTurno
+							? `\nNo se pudo crear el turno: ${errorTurno}`
+							: ""
+				}`,
+			);
 			limpiarFormulario();
 			navigate("/captura");
 		} catch (error) {
@@ -1189,6 +1265,10 @@ const NuevoPaciente = () => {
 		setBuscarEstudio("");
 		setPagoRecibido("");
 		setDescuentoPercent(0);
+		setAgregarASalaEspera(true);
+		setDestinoTurno("");
+		setDestinoTurnoManual(false);
+		setPrioridadTurno("0");
 	};
 
 	const empresaActual = empresas.find(
@@ -1859,6 +1939,52 @@ const NuevoPaciente = () => {
 								{cambio > 0 && (
 									<div className="cambio-display">
 										<strong>Cambio:</strong> ${cambio.toFixed(2)}
+									</div>
+								)}
+							</section>
+
+							<section className="turno-sala-section">
+								<label className="turno-sala-toggle">
+									<input
+										type="checkbox"
+										checked={agregarASalaEspera}
+										onChange={(e) => setAgregarASalaEspera(e.target.checked)}
+									/>
+									<span>
+										<strong>Agregar a sala de espera</strong>
+										<small>Se creara el turno al guardar la solicitud</small>
+									</span>
+								</label>
+
+								{agregarASalaEspera && (
+									<div className="turno-sala-controls">
+										<div className="form-group">
+											<label>Destino inicial</label>
+											<select
+												value={destinoTurno || "Laboratorio"}
+												onChange={(e) => {
+													setDestinoTurnoManual(true);
+													setDestinoTurno(e.target.value);
+												}}
+												className="form-select">
+												{TURNO_DESTINOS.map((destino) => (
+													<option key={destino} value={destino} label={destino}>
+														{destino}
+													</option>
+												))}
+											</select>
+										</div>
+										<div className="form-group">
+											<label>Prioridad</label>
+											<select
+												value={prioridadTurno}
+												onChange={(e) => setPrioridadTurno(e.target.value)}
+												className="form-select">
+												<option value="0">Normal</option>
+												<option value="1">Preferente</option>
+												<option value="2">Urgente</option>
+											</select>
+										</div>
 									</div>
 								)}
 							</section>
