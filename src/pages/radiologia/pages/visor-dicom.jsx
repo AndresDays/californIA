@@ -19,6 +19,11 @@ import {
 	registrarEventoSolicitud,
 } from "../../../utils/solicitud-auditoria";
 import { obtenerColumnaSchemaCacheFaltante } from "../../../utils/supabase-errors";
+import {
+	agruparImagenesDicomPorSerie,
+	crearImagenDicomFallback,
+	normalizarStoragePathDicom,
+} from "../../../utils/dicom-series";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import PanelIA from "./Panelia";
@@ -2387,6 +2392,8 @@ const VisorDicom = () => {
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [imageIds, setImageIds] = useState([]);
+	const [seriesDicom, setSeriesDicom] = useState([]);
+	const [serieActivaId, setSerieActivaId] = useState(null);
 	const [panelActivo, setPanelActivo] = useState(0);
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
@@ -2617,6 +2624,33 @@ const VisorDicom = () => {
 		reporteEditorRef.current.innerHTML = (reporteTexto || "").replace(/\n/g, "<br>");
 	}, [panelDerecho]);
 
+	const crearImagenesConUrlPublica = (imagenes = []) =>
+		imagenes.map((imagen) => {
+			const bucket = imagen.bucket || "radiologia";
+			const storagePath = normalizarStoragePathDicom(imagen.storage_path, bucket);
+			const { data: urlData } = supabase.storage
+				.from(bucket)
+				.getPublicUrl(storagePath);
+
+			return {
+				...imagen,
+				bucket,
+				storage_path: storagePath,
+				imageId: `wadouri:${urlData.publicUrl}`,
+			};
+		});
+
+	const seleccionarSerieDicom = (serie, panelObjetivo = panelActivo) => {
+		if (!serie?.imageIds?.length) return;
+		setSerieActivaId(serie.id);
+		setImageIds(serie.imageIds);
+		setPanelImageIds((prev) => {
+			const n = [...prev];
+			n[panelObjetivo] = serie.imageIds[0];
+			return n;
+		});
+	};
+
 	const cargarImagenes = async () => {
 		setLoading(true);
 		setError(null);
@@ -2625,25 +2659,36 @@ const VisorDicom = () => {
 			const idEstudio = estudioId || estudioData?.id;
 			const { data: estudio, error: errEst } = await supabase
 				.from("estudios_radiologia")
-				.select("storage_path, reporte")
+				.select("storage_path, reporte, tipo_estudio, descripcion, fecha_estudio")
 				.eq("id_estudio", idEstudio)
 				.single();
 			if (errEst) throw errEst;
-			if (!estudio?.storage_path) throw new Error("Sin archivo");
 			if (estudio.reporte) setReporteTexto(estudio.reporte);
-			const storagePath = estudio.storage_path.includes("supabase.co")
-				? estudio.storage_path.split("/radiologia/").pop().split("?")[0]
-				: estudio.storage_path;
-			const { data: urlData } = supabase.storage
-				.from("radiologia")
-				.getPublicUrl(storagePath);
-			const wadouri = `wadouri:${urlData.publicUrl}`;
-			setImageIds([wadouri]);
-			setPanelImageIds((prev) => {
-				const n = [...prev];
-				n[0] = wadouri;
-				return n;
-			});
+
+			let imagenesDicom = [];
+			const consultaImagenes = supabase
+				.from("estudio_dicom_imagenes")
+				.select("*")
+				.eq("id_estudio", idEstudio);
+			const { data: imagenesGuardadas, error: errImagenes } =
+				typeof consultaImagenes.order === "function"
+					? await consultaImagenes.order("instance_number", { ascending: true, nullsFirst: false })
+					: await consultaImagenes;
+
+			if (!errImagenes) imagenesDicom = imagenesGuardadas || [];
+
+			if (imagenesDicom.length === 0 && estudio?.storage_path) {
+				imagenesDicom = [crearImagenDicomFallback(estudio.storage_path, estudio)];
+			}
+
+			if (imagenesDicom.length === 0) throw new Error("Sin archivo");
+
+			const imagenesConUrl = crearImagenesConUrlPublica(imagenesDicom);
+			const series = agruparImagenesDicomPorSerie(imagenesConUrl, estudio);
+			const primeraSerie = series[0];
+
+			setSeriesDicom(series);
+			seleccionarSerieDicom(primeraSerie, 0);
 		} catch (e) {
 			setError(e.message);
 		} finally {
@@ -3249,6 +3294,7 @@ const VisorDicom = () => {
 			setCineActivo(false);
 			return;
 		}
+		if (imageIds.length === 0) return;
 		cineIdx.current = 0;
 		cineRef.current = setInterval(() => {
 			cineIdx.current = (cineIdx.current + 1) % imageIds.length;
@@ -3262,7 +3308,7 @@ const VisorDicom = () => {
 	};
 
 	const descargarArchivo = () => {
-		const url = imageIds[0]?.replace("wadouri:", "");
+		const url = (panelImageIds[panelActivo] || imageIds[0])?.replace("wadouri:", "");
 		if (!url) return;
 		const a = document.createElement("a");
 		a.href = url;
@@ -3558,6 +3604,7 @@ const VisorDicom = () => {
 	const imagenActivaTexto =
 		imagenActivaIndex >= 0 ? `${imagenActivaIndex + 1}/${imageIds.length}` : "0/0";
 	const mostrarMiniaturaReporte = Boolean(reporteTexto.trim()) || panelDerecho === "reporte";
+	const totalImagenesDicom = seriesDicom.reduce((total, serie) => total + serie.imagenes.length, 0);
 	const detalleResumen = [
 		{ label: "Radiólogo", value: empleadoData?.nombre || "Sin asignar", action: "radiologo" },
 		{ label: "Técnico", value: "Pendiente", action: "tecnico" },
@@ -3780,7 +3827,7 @@ const VisorDicom = () => {
 							title={seriesContraidas ? "Expandir series" : "Contraer series"}>
 							{seriesContraidas ? "›" : "‹"}
 						</button>
-						<span className="vd-serie-count">{imageIds.length}</span>
+						<span className="vd-serie-count">{totalImagenesDicom || imageIds.length}</span>
 					</div>
 					<div className="vd-miniaturas">
 						{loading ? (
@@ -3791,25 +3838,39 @@ const VisorDicom = () => {
 						) : error ? (
 							<div className="vd-mini-estado error">Error: {error}</div>
 						) : (
-							imageIds.map((id, i) => (
-								<div
-									key={i}
-									className={`vd-miniatura ${panelImageIds[panelActivo] === id ? "activa" : ""}`}
-									onClick={() =>
-										setPanelImageIds((prev) => {
-											const n = [...prev];
-											n[panelActivo] = id;
-											return n;
-										})
-									}>
-									<div className="vd-mini-img">
-										<span className="vd-mini-dcm">DCM</span>
-										<span className="vd-mini-num">{i + 1}</span>
-									</div>
-									<div className="vd-mini-footer">
-										<span>Serie {i + 1}</span>
-										<small>{i + 1}/{imageIds.length}</small>
-									</div>
+							seriesDicom.map((serie, serieIndex) => (
+								<div className="vd-serie-grupo" key={serie.id || serieIndex}>
+									<button
+										type="button"
+										className={`vd-serie-titulo ${serieActivaId === serie.id ? "activa" : ""}`}
+										onClick={() => seleccionarSerieDicom(serie)}>
+										<span>{serie.label || `Serie ${serieIndex + 1}`}</span>
+										<small>{serie.imagenes.length}</small>
+									</button>
+									{serie.imagenes.map((imagen, i) => (
+										<button
+											type="button"
+											key={imagen.id_imagen || imagen.storage_path || `${serie.id}-${i}`}
+											className={`vd-miniatura ${panelImageIds[panelActivo] === imagen.imageId ? "activa" : ""}`}
+											onClick={() => {
+												setSerieActivaId(serie.id);
+												setImageIds(serie.imageIds);
+												setPanelImageIds((prev) => {
+													const n = [...prev];
+													n[panelActivo] = imagen.imageId;
+													return n;
+												});
+											}}>
+											<div className="vd-mini-img">
+												<span className="vd-mini-dcm">{serie.modalidad || "DCM"}</span>
+												<span className="vd-mini-num">{imagen.numero || i + 1}</span>
+											</div>
+											<div className="vd-mini-footer">
+												<span>Imagen {i + 1}</span>
+												<small>{i + 1}/{serie.imagenes.length}</small>
+											</div>
+										</button>
+									))}
 								</div>
 							))
 						)}
