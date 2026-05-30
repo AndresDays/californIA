@@ -5,6 +5,7 @@ const mockNavigate = jest.fn();
 const mockUpdate = jest.fn(() => ({
   eq: jest.fn().mockResolvedValue({ error: null }),
 }));
+const mockInsertDicomImagenes = jest.fn().mockResolvedValue({ error: null });
 const mockUpload = jest.fn().mockResolvedValue({ error: null });
 const mockHeader = jest.fn(() => <div>Header</div>);
 const mockSidebar = jest.fn(({ isOpen }) => <div>{isOpen ? 'Sidebar mobile abierto' : 'Sidebar mobile cerrado'}</div>);
@@ -61,6 +62,11 @@ jest.mock('../../../lib/supabase-client', () => ({
             data: null,
             error: null,
           }),
+        };
+      }
+      if (table === 'estudio_dicom_imagenes') {
+        return {
+          insert: mockInsertDicomImagenes,
         };
       }
 
@@ -199,11 +205,49 @@ test('uploads an image file to the pending radiology study', async () => {
   fireEvent.change(input, { target: { files: [archivo] } });
 
   await waitFor(() => expect(mockUpload).toHaveBeenCalled());
-  expect(mockUpload.mock.calls[0][0]).toMatch(/^1\/\d+-torax\.dcm$/);
+  expect(mockUpload.mock.calls[0][0]).toMatch(/^1\/\d+-1-torax\.dcm$/);
+  expect(mockInsertDicomImagenes).toHaveBeenCalledWith([
+    expect.objectContaining({
+      id_estudio: 1,
+      storage_path: expect.stringMatching(/^1\/\d+-1-torax\.dcm$/),
+      file_name: 'torax.dcm',
+      instance_number: 1,
+    }),
+  ]);
   expect(mockUpdate).toHaveBeenCalledWith(
     expect.objectContaining({
       estado: 'EN PROCESO',
-      storage_path: expect.stringMatching(/^1\/\d+-torax\.dcm$/),
+      storage_path: expect.stringMatching(/^1\/\d+-1-torax\.dcm$/),
+    })
+  );
+});
+
+test('uploads multiple DICOM files and records every image for the study', async () => {
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+
+  fireEvent.click(screen.getByRole('button', { name: /Subir imagen Maria Gomez/i }));
+
+  const input = document.querySelector('.radiologia-input-archivo');
+  const archivo1 = new File(['dicom-1'], 'serie-001.dcm', { type: 'application/dicom' });
+  const archivo2 = new File(['dicom-2'], 'serie-002.dcm', { type: 'application/dicom' });
+  fireEvent.change(input, { target: { files: [archivo1, archivo2] } });
+
+  await waitFor(() => expect(mockUpload).toHaveBeenCalledTimes(2));
+  expect(mockInsertDicomImagenes).toHaveBeenCalledWith([
+    expect.objectContaining({
+      storage_path: expect.stringMatching(/^1\/\d+-1-serie-001\.dcm$/),
+      instance_number: 1,
+    }),
+    expect.objectContaining({
+      storage_path: expect.stringMatching(/^1\/\d+-2-serie-002\.dcm$/),
+      instance_number: 2,
+    }),
+  ]);
+  expect(mockUpdate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      storage_path: expect.stringMatching(/^1\/\d+-1-serie-001\.dcm$/),
     })
   );
 });

@@ -13,6 +13,7 @@ import {
   EVENTOS_SOLICITUD,
   registrarEventoSolicitud,
 } from '../../../utils/solicitud-auditoria';
+import { normalizarModalidadVisor } from '../../../utils/dicom-series';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -34,6 +35,36 @@ const limpiarNombreArchivo = (nombre = '') =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9.]+/g, '-')
     .replace(/(^-|-$)/g, '') || 'imagen';
+
+const obtenerNumeroInstanciaDesdeNombre = (nombre = '') => {
+  const coincidencia = String(nombre).match(/(?:^|[^0-9])([0-9]{1,5})(?:[^0-9]|$)/);
+  return coincidencia ? Number(coincidencia[1]) : null;
+};
+
+const leerMetadatosDicom = async (archivo) => {
+  try {
+    const dicomParserModule = await import('dicom-parser');
+    const dicomParser = dicomParserModule.default || dicomParserModule;
+    const buffer = await archivo.arrayBuffer();
+    const dataSet = dicomParser.parseDicom(new Uint8Array(buffer));
+    const entero = (tag) => {
+      const valor = dataSet.string(tag);
+      const numero = Number(valor);
+      return Number.isFinite(numero) ? numero : null;
+    };
+
+    return {
+      modality: dataSet.string('x00080060') || null,
+      study_instance_uid: dataSet.string('x0020000d') || null,
+      series_instance_uid: dataSet.string('x0020000e') || null,
+      series_description: dataSet.string('x0008103e') || null,
+      instance_number: entero('x00200013'),
+      frame_count: entero('x00280008'),
+    };
+  } catch (error) {
+    return {};
+  }
+};
 
 const DashboardRadiologia = () => {
   const { user, signOut } = useAuth();
@@ -194,36 +225,71 @@ const DashboardRadiologia = () => {
   };
 
   const handleImagenSeleccionada = async (event) => {
-    const archivo = event.target.files?.[0];
+    const archivos = Array.from(event.target.files || []);
     const estudio = estudioParaSubirRef.current;
     event.target.value = '';
 
-    if (!archivo || !estudio) return;
+    if (archivos.length === 0 || !estudio) return;
 
-    if (archivo.size > IMAGEN_MAX_SIZE) {
+    const archivoPesado = archivos.find((archivo) => archivo.size > IMAGEN_MAX_SIZE);
+    if (archivoPesado) {
       mostrarNotificacion('El archivo debe pesar menos de 500MB', 'error');
       return;
     }
 
     setSubiendoImagenId(estudio.id);
     try {
-      const nombreSeguro = limpiarNombreArchivo(archivo.name);
-      const archivoPath = `${estudio.id}/${Date.now()}-${nombreSeguro}`;
+      const marcaTiempo = Date.now();
+      const imagenesSubidas = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET_RADIOLOGIA)
-        .upload(archivoPath, archivo, {
-          cacheControl: '3600',
-          contentType: archivo.type || 'application/octet-stream',
-          upsert: false
+      for (const [indice, archivo] of archivos.entries()) {
+        const nombreSeguro = limpiarNombreArchivo(archivo.name);
+        const archivoPath = `${estudio.id}/${marcaTiempo}-${indice + 1}-${nombreSeguro}`;
+        const metadataDicom = await leerMetadatosDicom(archivo);
+
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET_RADIOLOGIA)
+          .upload(archivoPath, archivo, {
+            cacheControl: '3600',
+            contentType: archivo.type || 'application/octet-stream',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        imagenesSubidas.push({
+          id_estudio: estudio.id,
+          bucket: BUCKET_RADIOLOGIA,
+          storage_path: archivoPath,
+          file_name: archivo.name,
+          file_size: archivo.size,
+          mime_type: archivo.type || 'application/octet-stream',
+          modality: metadataDicom.modality || normalizarModalidadVisor({
+            tipoEstudio: estudio.tipoEstudio,
+            descripcion: estudio.descripcionEstudio,
+          }),
+          study_instance_uid: metadataDicom.study_instance_uid || null,
+          series_instance_uid: metadataDicom.series_instance_uid || null,
+          series_description: metadataDicom.series_description || estudio.descripcionEstudio || estudio.tipoEstudio || 'Serie 1',
+          instance_number: metadataDicom.instance_number || obtenerNumeroInstanciaDesdeNombre(archivo.name) || indice + 1,
+          frame_count: metadataDicom.frame_count || null,
         });
+      }
 
-      if (uploadError) throw uploadError;
+      const archivoPathPrincipal = imagenesSubidas[0]?.storage_path;
+
+      if (imagenesSubidas.length > 0) {
+        const { error: insertImagenesError } = await supabase
+          .from('estudio_dicom_imagenes')
+          .insert(imagenesSubidas);
+
+        if (insertImagenesError) throw insertImagenesError;
+      }
 
       const { error: updateError } = await supabase
         .from('estudios_radiologia')
         .update({
-          storage_path: archivoPath,
+          storage_path: archivoPathPrincipal,
           estado: 'EN PROCESO',
           ...(empleadoData?.id_empleado ? { id_tecnico: empleadoData.id_empleado } : {}),
           updated_at: new Date().toISOString()
@@ -240,12 +306,18 @@ const DashboardRadiologia = () => {
         entidad_tipo: 'estudio_radiologia',
         entidad_id: estudio.id,
         detalles: {
-          storage_path: archivoPath,
+          storage_path: archivoPathPrincipal,
+          total_archivos: imagenesSubidas.length,
           id_estudio_venta: estudio.idEstudioVenta
         }
       });
 
-      mostrarNotificacion('Imagen subida al estudio pendiente', 'exito');
+      mostrarNotificacion(
+        imagenesSubidas.length === 1
+          ? 'Imagen subida al estudio pendiente'
+          : `${imagenesSubidas.length} imagenes subidas al estudio pendiente`,
+        'exito'
+      );
       setEstudioSeleccionado(null);
       cargarEstudios();
     } catch (error) {
@@ -409,6 +481,7 @@ const DashboardRadiologia = () => {
             type="file"
             className="radiologia-input-archivo"
             accept=".dcm,.dicom,application/dicom,image/*"
+            multiple
             onChange={handleImagenSeleccionada}
           />
           {loading ? (

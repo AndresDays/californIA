@@ -8,6 +8,7 @@ const mockHeader = jest.fn(() => <div>Header</div>);
 const mockSidebar = jest.fn(({ isOpen }) => <div>{isOpen ? "Sidebar mobile abierto" : "Sidebar mobile cerrado"}</div>);
 const mockSidebarHome = jest.fn(() => <div>Sidebar escritorio</div>);
 const mockSetSidebarOpen = jest.fn();
+let mockDicomImagenes = [];
 let mockSidebarState = {
 	sidebarOpen: false,
 	setSidebarOpen: mockSetSidebarOpen,
@@ -113,6 +114,16 @@ jest.mock("../../../lib/supabase-client", () => ({
 					}),
 				};
 			}
+			if (table === "estudio_dicom_imagenes") {
+				return {
+					select: jest.fn().mockReturnThis(),
+					eq: jest.fn().mockReturnThis(),
+					order: jest.fn().mockResolvedValue({
+						data: mockDicomImagenes,
+						error: null,
+					}),
+				};
+			}
 
 			return {
 				select: jest.fn().mockReturnThis(),
@@ -157,11 +168,47 @@ beforeAll(() => {
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	mockDicomImagenes = [];
 	mockSidebarState = {
 		sidebarOpen: false,
 		setSidebarOpen: mockSetSidebarOpen,
 		isMobile: false,
 	};
+});
+
+test("renders uploaded DICOM images grouped by series", async () => {
+	mockDicomImagenes = [
+		{
+			id_imagen: 1,
+			storage_path: "99/sagital-002.dcm",
+			series_instance_uid: "serie-sagital",
+			series_description: "Sagital",
+			modality: "MR",
+			instance_number: 2,
+		},
+		{
+			id_imagen: 2,
+			storage_path: "99/sagital-001.dcm",
+			series_instance_uid: "serie-sagital",
+			series_description: "Sagital",
+			modality: "MR",
+			instance_number: 1,
+		},
+		{
+			id_imagen: 3,
+			storage_path: "99/coronal-001.dcm",
+			series_instance_uid: "serie-coronal",
+			series_description: "Coronal",
+			modality: "MR",
+			instance_number: 1,
+		},
+	];
+
+	render(<VisorDicom />);
+
+	expect(await screen.findByRole("button", { name: /Sagital 2/i })).toBeInTheDocument();
+	expect(screen.getByRole("button", { name: /Coronal 1/i })).toBeInTheDocument();
+	expect(screen.getAllByText(/Resonancia Magnetica/i).length).toBeGreaterThan(0);
 });
 
 test("keeps IA on its floating toggle and opens report/details only when requested", async () => {
