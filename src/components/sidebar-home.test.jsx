@@ -43,4 +43,13 @@ describe('sidebar-home responsive desktop layout', () => {
 
     expect(screen.queryByRole('button', { name: /Cotización/i })).not.toBeInTheDocument();
   });
+  test('closes the submenu after selecting an option', () => {
+    render(<SidebarHome />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Administraci/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Pacientes/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/pacientes');
+    expect(screen.queryByRole('button', { name: /Doctores/i })).not.toBeInTheDocument();
+  });
 });

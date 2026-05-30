@@ -1,44 +1,75 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
 .turnos-main {
-	width: min(1480px, calc(100% - 96px));
-	margin: 96px auto 40px;
-	color: #f7fbff;
+	width: 100%;
+	max-width: 1800px;
+	margin: 0 auto;
+	padding: 0.65rem 1.5rem 2rem 120px;
+	color: #fff;
+	font-family: 'Codec Pro', sans-serif;
 }
 
 .turnos-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 24px;
-	margin-bottom: 22px;
+	gap: 1rem;
+	margin-bottom: 1rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 8px;
+	background: rgba(10, 25, 41, 0.36);
+	backdrop-filter: blur(10px);
 }
 
 .turnos-header h1 {
-	font-size: 34px;
+	margin: 0 0 0.25rem;
+	font-size: 1.35rem;
 	line-height: 1.1;
-	margin-bottom: 6px;
+	font-weight: 800;
 }
 
 .turnos-header p {
-	color: rgba(247, 251, 255, 0.78);
-	font-size: 15px;
+	margin: 0;
+	color: rgba(255, 255, 255, 0.66);
+	font-size: 0.86rem;
 }
 
 .turnos-tv-link,
 .turnos-primary,
 .turnos-cita button,
 .turno-actions button {
-	border: 0;
-	border-radius: 8px;
-	background: #53b9db;
+	border: 1px solid rgba(83, 185, 219, 0.36);
+	border-radius: 7px;
+	background: rgba(83, 185, 219, 0.92);
 	color: #061621;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.88rem;
 	font-weight: 800;
 	cursor: pointer;
-	box-shadow: 0 10px 24px rgba(83, 185, 219, 0.25);
+	transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.turnos-tv-link:hover,
+.turnos-primary:hover,
+.turnos-cita button:hover,
+.turno-actions button:hover {
+	background: #6bc7e6;
+	border-color: rgba(111, 179, 210, 0.7);
+	transform: translateY(-1px);
 }
 
 .turnos-tv-link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	align-self: center;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	min-height: 38px;
 	text-decoration: none;
-	padding: 13px 18px;
+	padding: 0.65rem 0.9rem;
+	line-height: 1;
 	white-space: nowrap;
 }
 
@@ -46,87 +77,114 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 16px;
-	padding: 12px 14px;
-	margin-bottom: 18px;
-	border: 1px solid rgba(83, 185, 219, 0.35);
+	gap: 1rem;
+	padding: 0.75rem 0.9rem;
+	margin-bottom: 1rem;
+	border: 1px solid rgba(83, 185, 219, 0.3);
 	border-radius: 8px;
-	background: rgba(6, 22, 33, 0.78);
+	background: rgba(10, 25, 41, 0.46);
 	color: #d8f6ff;
+	font-size: 0.86rem;
+	backdrop-filter: blur(10px);
 }
 
 .turnos-alert button {
 	width: 28px;
 	height: 28px;
-	border: 0;
-	border-radius: 50%;
-	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 7px;
+	background: rgba(255, 255, 255, 0.08);
 	color: #fff;
 	cursor: pointer;
 }
 
 .turnos-grid {
 	display: grid;
-	grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
-	gap: 18px;
-	margin-bottom: 18px;
+	grid-template-columns: minmax(320px, 0.88fr) minmax(420px, 1.12fr);
+	gap: 1rem;
+	margin-bottom: 1rem;
 }
 
 .turnos-panel,
 .turnos-column {
-	border: 1px solid rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 8px;
-	background: rgba(7, 20, 32, 0.82);
-	box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
-	backdrop-filter: blur(12px);
+	background: rgba(10, 25, 41, 0.42);
+	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+	backdrop-filter: blur(10px);
 }
 
 .turnos-panel {
-	padding: 18px;
+	padding: 1rem;
 }
 
 .turnos-panel h2,
 .turnos-column-header h2 {
-	font-size: 18px;
-	margin-bottom: 14px;
+	margin: 0;
+	color: rgba(255, 255, 255, 0.92);
+	font-size: 0.98rem;
+	font-weight: 800;
+}
+
+.turnos-panel h2 {
+	margin-bottom: 0.9rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .turnos-field {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 7px;
-	margin-bottom: 13px;
+	gap: 0.35rem;
+	margin-bottom: 0.75rem;
 }
 
 .turnos-field label {
-	font-size: 12px;
+	font-size: 0.75rem;
 	font-weight: 800;
 	text-transform: uppercase;
-	color: rgba(247, 251, 255, 0.72);
+	letter-spacing: 0.02em;
+	color: rgba(255, 255, 255, 0.62);
 }
 
 .turnos-field input,
-.turnos-field select {
+.turnos-field select,
+.turnos-cita select {
 	width: 100%;
-	min-height: 42px;
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.08);
+	min-height: 40px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 7px;
+	background: rgba(7, 20, 34, 0.54);
 	color: #fff;
-	padding: 0 12px;
+	padding: 0 0.65rem;
 	outline: none;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.88rem;
+	transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.turnos-field select option {
-	background: #FFFFFF;
-	color: #0b1b28;
+.turnos-field input:focus,
+.turnos-field select:focus,
+.turnos-cita select:focus {
+	border-color: rgba(111, 179, 210, 0.65);
+	background: rgba(7, 20, 34, 0.78);
+}
+
+.turnos-field input::placeholder {
+	color: rgba(255, 255, 255, 0.38);
+}
+
+.turnos-field select option,
+.turnos-cita select option {
+	background: #fff;
+	color: #0a1929;
 }
 
 .turnos-form-row {
 	display: grid;
 	grid-template-columns: 1fr 130px;
-	gap: 12px;
+	gap: 0.75rem;
 }
 
 .turnos-results {
@@ -134,27 +192,32 @@
 	top: calc(100% + 6px);
 	left: 0;
 	right: 0;
-	z-index: 5;
+	z-index: 20;
 	max-height: 260px;
 	overflow: auto;
-	border: 1px solid rgba(83, 185, 219, 0.24);
+	border: 1px solid rgba(83, 185, 219, 0.28);
 	border-radius: 8px;
-	background: #0a1b27;
+	background: #061a2e;
 	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
 }
 
 .turnos-results button {
 	display: flex;
 	justify-content: space-between;
-	gap: 12px;
+	gap: 0.75rem;
 	width: 100%;
-	padding: 11px 12px;
+	padding: 0.7rem 0.75rem;
 	border: 0;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 	background: transparent;
 	color: #fff;
+	font-family: 'Codec Pro', sans-serif;
 	text-align: left;
 	cursor: pointer;
+}
+
+.turnos-results button:hover {
+	background: rgba(83, 185, 219, 0.12);
 }
 
 .turnos-results span {
@@ -163,34 +226,34 @@
 
 .turnos-primary {
 	width: 100%;
-	min-height: 44px;
-	margin-top: 4px;
+	min-height: 42px;
+	margin-top: 0.25rem;
 }
 
 .turnos-citas-list {
 	display: grid;
-	gap: 10px;
+	gap: 0.65rem;
 	max-height: 322px;
 	overflow: auto;
-	padding-right: 4px;
+	padding-right: 0.25rem;
 }
 
 .turnos-cita {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
 	align-items: center;
-	gap: 14px;
-	padding: 12px;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	gap: 0.85rem;
+	padding: 0.75rem;
+	border: 1px solid rgba(255, 255, 255, 0.09);
 	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.06);
+	background: rgba(7, 20, 34, 0.45);
 }
 
 .turnos-cita div,
 .turno-card-main div {
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
+	gap: 0.22rem;
 	min-width: 0;
 }
 
@@ -199,44 +262,30 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	color: rgba(255, 255, 255, 0.92);
+	font-size: 0.9rem;
 }
 
 .turnos-cita span,
 .turno-card-main span,
 .turnos-empty {
-	color: rgba(247, 251, 255, 0.66);
-	font-size: 13px;
-}
-
-.turnos-cita select {
-	width: 100%;
-	min-height: 36px;
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.08);
-	color: #fff;
-	padding: 0 10px;
-	outline: none;
-}
-
-.turnos-cita select option {
-	background: #FFFFFF;
-	color: #0b1b28;
+	color: rgba(255, 255, 255, 0.62);
+	font-size: 0.82rem;
 }
 
 .turnos-cita button {
-	min-width: 86px;
+	min-width: 84px;
 	height: 36px;
 }
 
 .turnos-board {
 	display: grid;
 	grid-template-columns: minmax(320px, 1.05fr) minmax(320px, 1.05fr) minmax(220px, 0.7fr);
-	gap: 18px;
+	gap: 1rem;
 }
 
 .turnos-column {
-	padding: 16px;
+	padding: 1rem;
 	min-height: 360px;
 }
 
@@ -244,85 +293,96 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 12px;
+	gap: 0.75rem;
+	margin-bottom: 0.8rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .turnos-column-header span {
 	display: grid;
 	place-items: center;
-	min-width: 34px;
-	height: 28px;
+	min-width: 32px;
+	height: 26px;
 	border-radius: 999px;
 	background: rgba(83, 185, 219, 0.18);
 	color: #a9ecff;
+	font-size: 0.78rem;
 	font-weight: 800;
 }
 
 .turno-card {
 	display: grid;
-	gap: 14px;
-	padding: 14px;
-	margin-bottom: 12px;
+	gap: 0.85rem;
+	padding: 0.85rem;
+	margin-bottom: 0.75rem;
 	border: 1px solid rgba(255, 255, 255, 0.1);
 	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.07);
+	background: rgba(7, 20, 34, 0.46);
 }
 
 .turno-card.called {
 	border-color: rgba(83, 185, 219, 0.42);
-	background: rgba(83, 185, 219, 0.1);
+	background: rgba(13, 67, 105, 0.32);
 }
 
 .turno-card-main {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: 0.8rem;
 	min-width: 0;
 }
 
 .turno-code {
 	display: grid;
 	place-items: center;
-	flex: 0 0 72px;
-	height: 48px;
+	flex: 0 0 68px;
+	height: 46px;
 	border-radius: 8px;
 	background: #f2c94c;
 	color: #17202a;
-	font-size: 18px;
+	font-size: 1rem;
 	font-weight: 900;
 }
 
 .turno-actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: 0.5rem;
 }
 
 .turno-actions button {
-	min-height: 36px;
-	padding: 0 12px;
+	min-height: 35px;
+	padding: 0 0.8rem;
 }
 
 .turno-actions .secondary {
 	background: rgba(255, 255, 255, 0.14);
 	color: #fff;
-	box-shadow: none;
+	border-color: rgba(255, 255, 255, 0.14);
+}
+
+.turno-actions .secondary:hover {
+	background: rgba(255, 255, 255, 0.2);
 }
 
 .turno-actions .ghost {
 	background: transparent;
 	color: #f7fbff;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	box-shadow: none;
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.turno-actions .ghost:hover {
+	background: rgba(255, 255, 255, 0.08);
 }
 
 .turno-mini {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 12px;
-	padding: 10px 0;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	gap: 0.75rem;
+	padding: 0.65rem 0;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .turno-mini span {
@@ -331,14 +391,13 @@
 }
 
 .turno-mini strong {
-	color: rgba(247, 251, 255, 0.78);
-	font-size: 13px;
+	color: rgba(255, 255, 255, 0.74);
+	font-size: 0.82rem;
 }
 
 @media (max-width: 1180px) {
 	.turnos-main {
-		width: min(100% - 28px, 980px);
-		margin-top: 86px;
+		padding: 0.6rem 1rem 1.5rem 104px;
 	}
 
 	.turnos-grid,
@@ -347,17 +406,46 @@
 	}
 }
 
-@media (max-width: 640px) {
-	.turnos-header,
-	.turnos-cita {
-		align-items: stretch;
+@media (max-width: 760px) {
+	.turnos-main {
+		padding: 0.45rem 0.75rem 1rem;
 	}
 
-	.turnos-cita {
-		grid-template-columns: 1fr;
+	.turnos-header {
+		align-items: center;
+		flex-direction: row;
+		padding: 0.7rem 0.75rem;
 	}
 
+	.turnos-tv-link {
+		min-height: 38px;
+		max-width: 132px;
+		padding: 0.55rem 0.75rem;
+		text-align: center;
+		white-space: normal;
+	}
+
+	.turnos-header h1 {
+		font-size: 1.28rem;
+	}
+
+	.turnos-header p {
+		font-size: 0.78rem;
+	}
+
+	.turnos-cita,
 	.turnos-form-row {
 		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 420px) {
+	.turnos-header {
+		gap: 0.65rem;
+	}
+
+	.turnos-tv-link {
+		min-width: 112px;
+		max-width: 118px;
 	}
 }
