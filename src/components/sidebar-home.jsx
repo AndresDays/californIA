@@ -31,17 +31,7 @@ const SidebarHome = () => {
   };
 
   useEffect(() => {
-    const activeParent = sidebarItems.find((item) => item.hasSubmenu && isSubmenuActive(item));
-
-    if (activeParent) {
-      setActiveSubmenu(activeParent.id);
-      return;
-    }
-
-    setActiveSubmenu((current) => {
-      const currentItem = sidebarItems.find((item) => item.id === current);
-      return currentItem && isSubmenuActive(currentItem) ? current : null;
-    });
+    setActiveSubmenu(null);
   }, [location.pathname]);
 
   useEffect(() => {

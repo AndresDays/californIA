@@ -22,13 +22,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 		submenu?.some((item) => location.pathname.startsWith(item.path));
 
 	useEffect(() => {
-		const activeMenus = sidebarItems
-			.filter((item) => item.hasSubmenu && isSubmenuActive(item.submenu))
-			.reduce((menus, item) => ({ ...menus, [item.id]: true }), {});
-
-		if (Object.keys(activeMenus).length > 0) {
-			setExpandedMenus((prev) => ({ ...prev, ...activeMenus }));
-		}
+		setExpandedMenus({});
 	}, [location.pathname]);
 
 	return (
