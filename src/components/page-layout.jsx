@@ -44,9 +44,13 @@ const PageLayout = ({ children, empleadoData, formatRol, getPrimerNombre }) => {
 			/>
 
 			{isMobile ? (
-				<Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+				<Sidebar
+					isOpen={sidebarOpen}
+					setIsOpen={setSidebarOpen}
+					empleadoData={empleadoData}
+				/>
 			) : (
-				<SidebarHome />
+				<SidebarHome empleadoData={empleadoData} />
 			)}
 
 			{children}

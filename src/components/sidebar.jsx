@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import californIA from "../assets/CalifornIA.png";
+import { useAuth } from "../context/auth-context";
+import { guardarRolCacheado, obtenerRolCacheado } from "../utils/role-cache";
+import { filtrarMenuPorRol } from "../utils/role-permissions";
 import { sidebarItems } from "./sidebar-menu";
 import "./sidebar.css";
 
-const Sidebar = ({ isOpen, setIsOpen }) => {
+const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { empleadoData, user } = useAuth();
 	const [expandedMenus, setExpandedMenus] = useState({});
+	const rolEmpleado = empleadoDataProp?.rol || empleadoData?.rol;
+	const rolSidebar = rolEmpleado || obtenerRolCacheado(user?.id);
+	const menuItems = user && !rolSidebar ? [] : filtrarMenuPorRol(sidebarItems, rolSidebar);
 
 	const toggleSubmenu = (itemId) =>
 		setExpandedMenus((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
@@ -25,6 +32,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 		setExpandedMenus({});
 	}, [location.pathname]);
 
+	useEffect(() => {
+		guardarRolCacheado(user?.id, rolEmpleado);
+	}, [rolEmpleado, user?.id]);
+
 	return (
 		<>
 			{isOpen && (
@@ -36,7 +47,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 					<img src={californIA} alt="CalifornIA" className="sidebar-logo" />
 				</div>
 				<nav className="sidebar-nav">
-					{sidebarItems.map((item) => (
+					{menuItems.map((item) => (
 						<div key={item.id} className="sidebar-item-wrapper">
 							<button
 								className={`sidebar-item ${isActive(item.path) || isSubmenuActive(item.submenu) ? "active" : ""}`}

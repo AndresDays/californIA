@@ -21,10 +21,12 @@ import {
 	calcularIngresosPorAreaVentasPagadas,
 	calcularIngresosVentasPagadas,
 } from '../utils/dashboard-stats';
+import { esDashboardRayosX, esQuimico, esRecepcionista } from '../utils/role-permissions';
 import './CalifornIA.css';
 
 const Dashboard = () => {
-	const [empleadoData, setEmpleadoData] = useState(null);
+	const { user, empleadoData: empleadoContext } = useAuth();
+	const [empleadoData, setEmpleadoData] = useState(empleadoContext || null);
 	const [stats, setStats] = useState({
 		totalPacientes: 0,
 		citasHoy: 0,
@@ -44,13 +46,16 @@ const Dashboard = () => {
 	const [modalNuevaCitaOpen, setModalNuevaCitaOpen] = useState(false);
 	const [modalEditarCitaOpen, setModalEditarCitaOpen] = useState(false);
 	const [citaEditando, setCitaEditando] = useState(null);
-	const [tipoGrafica, setTipoGrafica] = useState("pacientes");
+	const [tipoGrafica, setTipoGrafica] = useState("ingresos");
 	const [vistaGrafica, setVistaGrafica] = useState("semana");
 	const [sucursalFiltro, setSucursalFiltro] = useState("");
 	const [sucursales, setSucursales] = useState([]);
 
-	const { user } = useAuth();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		if (empleadoContext) setEmpleadoData(empleadoContext);
+	}, [empleadoContext]);
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -434,6 +439,14 @@ const Dashboard = () => {
 	const getNombrePaciente = (cita) =>
 		cita.pacientes?.nombre || cita.nombre_paciente || "Sin nombre";
 	const rolEmpleado = normalizarRol(empleadoData?.rol);
+	const esRolRecepcionista = esRecepcionista(rolEmpleado);
+	const esRolDashboardRayosX = esDashboardRayosX(rolEmpleado);
+	const esDashboardRestringido =
+		esRolRecepcionista || esQuimico(rolEmpleado) || esRolDashboardRayosX;
+	const mostrarModuloRadiologia = !esDashboardRestringido || esRolDashboardRayosX;
+	const mostrarAccionesRapidas = !esRolDashboardRayosX;
+	const puedeVerIngresos = !esDashboardRestringido;
+	const tipoGraficaActual = puedeVerIngresos ? tipoGrafica : "pacientes";
 	const esAdmin =
 		!rolEmpleado ||
 		["admin", "administrador", "desarrollador"].includes(rolEmpleado);
@@ -556,36 +569,37 @@ const Dashboard = () => {
 								</div>
 							</div>
 							<div
-								className="stat-card clickable"
-								onClick={() =>
+								className={`stat-card ${puedeVerIngresos ? "clickable" : ""}`}
+								onClick={() => {
+									if (!puedeVerIngresos) return;
 									setTipoGrafica(
 										tipoGrafica === "pacientes" ? "ingresos" : "pacientes",
-									)
-								}>
+									);
+								}}>
 								<div className="stat-icon revenue">
 									<img
-										src={tipoGrafica === "pacientes" ? dineroIcono : pacientesIcono}
+										src={tipoGraficaActual === "pacientes" ? pacientesIcono : dineroIcono}
 										alt="stat"
 										className="stat-icon-img"
 									/>
 								</div>
 								<div className="stat-content">
 									<p className="stat-label">
-										{tipoGrafica === "pacientes"
-											? "Ingresos del Mes"
-											: "Pacientes de Hoy"}
+										{tipoGraficaActual === "pacientes"
+											? "Pacientes de Hoy"
+											: "Ingresos del Mes"}
 									</p>
 									<h2 className="stat-value">
-										{tipoGrafica === "pacientes"
-											? stats.ingresos >= 1000
+										{tipoGraficaActual === "pacientes"
+											? stats.citasHoy
+											: stats.ingresos >= 1000
 												? `$${(stats.ingresos / 1000).toFixed(1)}k`
-												: `$${stats.ingresos.toFixed(0)}`
-											: stats.citasHoy}
+												: `$${stats.ingresos.toFixed(0)}`}
 									</h2>
 									<p className="stat-change positive">
-										{tipoGrafica === "pacientes"
-											? "Ventas pagadas del mes"
-											: "Click para ver gráfica"}
+										{tipoGraficaActual === "pacientes"
+											? "Agenda del dia"
+											: "Ventas pagadas del mes"}
 									</p>
 								</div>
 							</div>
@@ -624,54 +638,66 @@ const Dashboard = () => {
 
 						<div className="main-content-grid">
 							<div className="quick-access-section">
-								<h3 className="section-title">Módulos Principales</h3>
-								<div className="modules-grid">
-									<button
+								<h3
+									className="section-title"
+									id={esDashboardRestringido && mostrarAccionesRapidas ? "quick-actions-title" : undefined}>
+									{esDashboardRestringido && mostrarAccionesRapidas
+										? "Acciones rápidas"
+										: "Módulos Principales"}
+								</h3>
+								{mostrarModuloRadiologia && (
+									<div className="modules-grid">
+										<button
 										type="button"
 										className="module-card module-card-primary radiology"
 										aria-label="Abrir Radiología"
 										onClick={() => navigate("/radiologia")}>
 										<img src={RadBtn} alt="Radiología" className="module-btn-img" />
-									</button>
-								</div>
-								<div
-									className="quick-actions-panel"
-									role="group"
-									aria-labelledby="quick-actions-title">
-									<h4 className="quick-actions-title" id="quick-actions-title">
-										Acciones rápidas
-									</h4>
-									<div className="quick-actions-grid">
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => setModalNuevaCitaOpen(true)}>
-											<img src={calendarioIcono} alt="" className="quick-action-icon" />
-											<span>Nueva cita</span>
-										</button>
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => navigate("/nuevo-paciente")}>
-											<img src={nuevoPacienteIcono} alt="" className="quick-action-icon" />
-											<span>Nuevo paciente</span>
-										</button>
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => navigate("/editar-solicitud")}>
-											<img src={editarIcono} alt="" className="quick-action-icon" />
-											<span>Editar solicitud</span>
-										</button>
-										<button
-											type="button"
-											className="quick-action-card"
-											onClick={() => navigate("/entrega-resultados")}>
-											<img src={entregaIcono} alt="" className="quick-action-icon" />
-											<span>Entrega</span>
 										</button>
 									</div>
-								</div>
+								)}
+								{mostrarAccionesRapidas && (
+									<div
+										className="quick-actions-panel"
+										role="group"
+										aria-labelledby="quick-actions-title">
+										{!esDashboardRestringido && (
+											<h4 className="quick-actions-title" id="quick-actions-title">
+												Acciones rápidas
+											</h4>
+										)}
+										<div className="quick-actions-grid">
+											<button
+												type="button"
+												className="quick-action-card"
+												onClick={() => setModalNuevaCitaOpen(true)}>
+												<img src={calendarioIcono} alt="" className="quick-action-icon" />
+												<span>Nueva cita</span>
+											</button>
+											<button
+												type="button"
+												className="quick-action-card"
+												onClick={() => navigate("/nuevo-paciente")}>
+												<img src={nuevoPacienteIcono} alt="" className="quick-action-icon" />
+												<span>Nuevo paciente</span>
+											</button>
+											<button
+												type="button"
+												className="quick-action-card"
+												onClick={() => navigate("/editar-solicitud")}>
+												<img src={editarIcono} alt="" className="quick-action-icon" />
+												<span>Editar solicitud</span>
+											</button>
+											<button
+												type="button"
+												className="quick-action-card"
+												onClick={() => navigate("/entrega-resultados")}>
+												<img src={entregaIcono} alt="" className="quick-action-icon" />
+												<span>Entrega</span>
+											</button>
+										</div>
+									</div>
+								)}
 								<div className="logo-container">
 									<img
 										src={californIA}
@@ -684,7 +710,7 @@ const Dashboard = () => {
 							<div className="appointments-section">
 								<div className="section-header">
 									<h3 className="section-title">
-										{tipoGrafica === "pacientes"
+										{tipoGraficaActual === "pacientes"
 											? "Estadísticas de Pacientes"
 											: "Estadísticas de Ingresos"}
 									</h3>
@@ -721,7 +747,7 @@ const Dashboard = () => {
 								</div>
 
 								<div className="chart-container">
-									{tipoGrafica === "pacientes" ? (
+									{tipoGraficaActual === "pacientes" ? (
 										<div className="chart-bars">
 											{estadisticasSemanales.map((stat, index) => {
 												const maxTotal = Math.max(
@@ -890,7 +916,7 @@ const Dashboard = () => {
 										</div>
 									)}
 									<div className="chart-legend">
-										{tipoGrafica === "pacientes" ? (
+										{tipoGraficaActual === "pacientes" ? (
 											<>
 												<div className="legend-item">
 													<div className="legend-color radiologia" />

@@ -20,6 +20,7 @@ describe("sidebar shared menu", () => {
 			"Editar Solicitud",
 			"Cotización",
 			"Historial",
+			"Turnos",
 			"Cierre Caja",
 		]);
 	});
