@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import Dashboard from './home';
 
+let mockEmpleadoData = null;
+
 // Mock useAuth
 jest.mock('../context/auth-context', () => ({
   useAuth: () => ({
@@ -9,6 +11,7 @@ jest.mock('../context/auth-context', () => ({
       id: 'fake-user-id',
       email: 'test@user.com'
     },
+    empleadoData: mockEmpleadoData,
     signOut: jest.fn()
   }),
 }));
@@ -58,6 +61,10 @@ jest.mock('../components/sidebar-home', () => () => <div>MockSidebar</div>);
 jest.mock('../components/editar-cita-modal', () => () => <div>MockEditarCitaModal</div>);
 jest.mock('../components/nueva-cita-modal', () => () => <div>MockNuevaCitaModal</div>);
 
+beforeEach(() => {
+  mockEmpleadoData = null;
+});
+
 test('renders Dashboard with welcome and stats', () => {
   render(<Dashboard />);
   expect(screen.getByText(/Bienvenido/)).toBeInTheDocument();
@@ -79,3 +86,47 @@ test('uses the dashboard module space for radiology and quick actions', () => {
   expect(within(quickActions).getByRole('button', { name: /Editar solicitud/i })).toBeInTheDocument();
   expect(within(quickActions).getByRole('button', { name: /Entrega/i })).toBeInTheDocument();
 });
+
+test('hides income access for receptionist role', () => {
+  mockEmpleadoData = { nombre: 'Recepcion Uno', rol: 'recepcionista' };
+
+  render(<Dashboard />);
+
+  expect(screen.queryByText(/Ingresos del Mes/i)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Abrir Radiolog/i })).not.toBeInTheDocument();
+  expect(screen.queryByText(/MÃ³dulos Principales/i)).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /Acciones rápidas/i })).toBeInTheDocument();
+  const quickActions = screen.getByRole('group', { name: /Acciones rápidas/i });
+  expect(within(quickActions).getByRole('button', { name: /Nueva cita/i })).toBeInTheDocument();
+  expect(within(quickActions).getByRole('button', { name: /Nuevo paciente/i })).toBeInTheDocument();
+  expect(within(quickActions).getByRole('button', { name: /Editar solicitud/i })).toBeInTheDocument();
+  expect(within(quickActions).getByRole('button', { name: /Entrega/i })).toBeInTheDocument();
+  expect(screen.getByText(/Pacientes de Hoy/i)).toBeInTheDocument();
+});
+
+test('uses restricted dashboard layout for quimico role', () => {
+  mockEmpleadoData = { nombre: 'Quimico Uno', rol: 'quimico' };
+
+  render(<Dashboard />);
+
+  expect(screen.queryByText(/Ingresos del Mes/i)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Abrir Radiolog/i })).not.toBeInTheDocument();
+  expect(screen.queryByText(/MÃ³dulos Principales/i)).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /Acciones rápidas/i })).toBeInTheDocument();
+  expect(screen.getByText(/Pacientes de Hoy/i)).toBeInTheDocument();
+});
+
+test.each(['tecnico_radiologia', 'tecnico', 'medico'])(
+  'uses restricted dashboard with radiology module and no quick actions for %s',
+  (rol) => {
+    mockEmpleadoData = { nombre: 'Rayos Uno', rol };
+
+    render(<Dashboard />);
+
+    expect(screen.queryByText(/Ingresos del Mes/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Módulos Principales/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Abrir Radiolog/i })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /Acciones rápidas/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Pacientes de Hoy/i)).toBeInTheDocument();
+  },
+);

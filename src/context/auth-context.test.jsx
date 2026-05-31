@@ -6,6 +6,11 @@ import { supabase } from '../lib/supabase-client';
 // Mock de supabase
 jest.mock('../lib/supabase-client', () => ({
   supabase: {
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    })),
     auth: {
       getSession: jest.fn(() => Promise.resolve({ 
         data: { session: null }, 

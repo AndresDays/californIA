@@ -1,13 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/auth-context';
+import { guardarRolCacheado, obtenerRolCacheado } from '../utils/role-cache';
+import { filtrarMenuPorRol } from '../utils/role-permissions';
 import { sidebarItems } from './sidebar-menu';
 import './sidebar-home.css';
 
-const SidebarHome = () => {
+const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { empleadoData, user } = useAuth();
   const sidebarRef = useRef(null);
   const [activeSubmenu, setActiveSubmenu] = useState(null);
+  const rolEmpleado = empleadoDataProp?.rol || empleadoData?.rol;
+  const rolSidebar = rolEmpleado || obtenerRolCacheado(user?.id);
+  const menuItems = user && !rolSidebar ? [] : filtrarMenuPorRol(sidebarItems, rolSidebar);
+
+  useEffect(() => {
+    guardarRolCacheado(user?.id, rolEmpleado);
+  }, [rolEmpleado, user?.id]);
 
   const isCurrentPath = (path) => location.pathname === path;
   const isSubmenuActive = (item) =>
@@ -47,7 +58,7 @@ const SidebarHome = () => {
 
   return (
     <aside className="sidebar-home" ref={sidebarRef}>
-      {sidebarItems.map((item) => (
+      {menuItems.map((item) => (
         <div
           key={item.id}
           className="sidebar-home-item-container"

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth-context';
 import { supabase } from '../lib/supabase-client';
+import { esRecepcionista } from '../utils/role-permissions';
 import './header-lab.css';
 import californIA from '../assets/CalifornIA.png';
 import usericon from '../assets/usericon.png';
@@ -10,7 +11,7 @@ const HeaderLab = ({ tipo = 'default' }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [empleado, setEmpleado] = useState(null);
   const menuRef = useRef(null);
-  const { user, signOut } = useAuth();
+  const { user, signOut, empleadoData } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,6 +64,7 @@ const HeaderLab = ({ tipo = 'default' }) => {
   };
 
   const headerClass = tipo === 'azul' ? 'app-header azul' : 'app-header';
+  const recepcionista = esRecepcionista(empleadoData?.rol || empleado?.rol);
 
   return (
     <header className={headerClass}>
@@ -85,11 +87,24 @@ const HeaderLab = ({ tipo = 'default' }) => {
           <div className="user-dropdown-menu">
             <button className="close-menu-btn" onClick={() => setMenuOpen(false)}>×</button>
             <button onClick={() => navigate('/dashboard')} className="menu-item">Dashboard</button>
-            <button onClick={() => navigate('/laboratorio')} className="menu-item">Laboratorio</button>
-            <button onClick={() => navigate('/captura')} className="menu-item">Captura</button>
-            <button onClick={() => navigate('/recepcion')} className="menu-item">Recepción</button>
-            <button onClick={() => navigate('/usuarios')} className="menu-item">Usuarios</button>
+            {!recepcionista && (
+              <>
+                <button onClick={() => navigate('/laboratorio')} className="menu-item">Laboratorio</button>
+                <button onClick={() => navigate('/captura')} className="menu-item">Captura</button>
+                <button onClick={() => navigate('/recepcion')} className="menu-item">Recepción</button>
+                <button onClick={() => navigate('/usuarios')} className="menu-item">Usuarios</button>
+              </>
+            )}
+            {recepcionista && (
+              <>
+                <button onClick={() => navigate('/nuevo-paciente')} className="menu-item">Nuevo Paciente</button>
+                <button onClick={() => navigate('/entrega-resultados')} className="menu-item">Entrega de Resultados</button>
+                <button onClick={() => navigate('/cotizacion')} className="menu-item">Recepción</button>
+                <button onClick={() => navigate('/cierre-caja')} className="menu-item">Cierre Caja</button>
+              </>
+            )}
             <button onClick={() => navigate('/pacientes')} className="menu-item">Pacientes</button>
+            <button onClick={() => navigate('/doctores')} className="menu-item">Doctores</button>
             <button onClick={handleLogout} className="menu-item logout">Cerrar Sesión</button>
           </div>
         )}
