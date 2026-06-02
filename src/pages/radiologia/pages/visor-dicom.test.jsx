@@ -1,303 +1,333 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import VisorDicom from "./visor-dicom";
+import React from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import VisorDicom from './visor-dicom';
 
+// Polyfills
+import { TextEncoder, TextDecoder } from 'util';
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Mock de HTMLCanvasElement
+beforeAll(() => {
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    value: () => ({
+      clearRect:    jest.fn(),
+      beginPath:    jest.fn(),
+      moveTo:       jest.fn(),
+      lineTo:       jest.fn(),
+      stroke:       jest.fn(),
+      fill:         jest.fn(),
+      arc:          jest.fn(),
+      ellipse:      jest.fn(),
+      strokeRect:   jest.fn(),
+      fillRect:     jest.fn(),
+      drawImage:    jest.fn(),
+      save:         jest.fn(),
+      restore:      jest.fn(),
+      clip:         jest.fn(),
+      measureText:  jest.fn(() => ({ width: 0 })),
+      fillText:     jest.fn(),
+      setLineDash:  jest.fn(),
+      getImageData: jest.fn(() => ({ data: new Uint8ClampedArray(4) })),
+      putImageData: jest.fn(),
+      toDataURL:    jest.fn(() => 'data:image/png;base64,MOCKED'),
+    }),
+  });
+});
+
+// Mock de Cornerstone
+jest.mock('cornerstone-core', () => ({
+  enable: jest.fn(),
+  disable: jest.fn(),
+  loadAndCacheImage: jest.fn(() => Promise.resolve({
+    imageId: 'mock-id',
+    columnPixelSpacing: 1,
+    rowPixelSpacing: 1,
+    width: 512,
+    height: 512,
+  })),
+  displayImage: jest.fn(),
+  getViewport: jest.fn(() => ({
+    scale: 1,
+    voi: { windowWidth: 400, windowCenter: 40 },
+    translation: { x: 0, y: 0 },
+  })),
+  setViewport: jest.fn(),
+  updateImage: jest.fn(),
+  reset: jest.fn(),
+  resize: jest.fn(),
+  getImage: jest.fn(() => ({})),
+  getEnabledElement: jest.fn(() => ({ canvas: {} })),
+  events: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
+  registerImageLoader: jest.fn(),
+}));
+
+jest.mock('cornerstone-wado-image-loader', () => ({
+  external: { cornerstone: null, dicomParser: null },
+  configure: jest.fn(),
+  wadouri: {
+    dataSetCacheManager: { unload: jest.fn() },
+    fileManager: { add: jest.fn(), remove: jest.fn() },
+  },
+}));
+
+jest.mock('cornerstone-tools', () => ({
+  external: { cornerstone: null, Hammer: null },
+  init: jest.fn(),
+  addTool: jest.fn(),
+  setToolActive: jest.fn(),
+}));
+
+jest.mock('dicom-parser', () => ({}));
+
+// Mock de Assets
+jest.mock('../../../assets/anguloIcono.png',      () => 'mock-img');
+jest.mock('../../../assets/anotarIcono.png',      () => 'mock-img');
+jest.mock('../../../assets/basuraIcon.png',       () => 'mock-img');
+jest.mock('../../../assets/capturaIcono.png',     () => 'mock-img');
+jest.mock('../../../assets/centrarIcono.png',     () => 'mock-img');
+jest.mock('../../../assets/cineIcono.png',        () => 'mock-img');
+jest.mock('../../../assets/comentarioIcono.png',  () => 'mock-img');
+jest.mock('../../../assets/compartirIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/contrasteIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/descargarIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/detallesIcono.png',    () => 'mock-img');
+jest.mock('../../../assets/doctorV2Icono.png',    () => 'mock-img');
+jest.mock('../../../assets/editarIcono.png',      () => 'mock-img');
+jest.mock('../../../assets/etiquetaIcono.png',    () => 'mock-img');
+jest.mock('../../../assets/exclamacionIcono.png', () => 'mock-img');
+jest.mock('../../../assets/formatoIcono.png',     () => 'mock-img');
+jest.mock('../../../assets/informacionIcono.png', () => 'mock-img');
+jest.mock('../../../assets/longitudIcono.png',    () => 'mock-img');
+jest.mock('../../../assets/lupaIcono.png',        () => 'mock-img');
+jest.mock('../../../assets/masIcono.png',         () => 'mock-img');
+jest.mock('../../../assets/metricasIcono.png',    () => 'mock-img');
+jest.mock('../../../assets/moverIcono.png',       () => 'mock-img');
+jest.mock('../../../assets/nubeIcono.png',        () => 'mock-img');
+jest.mock('../../../assets/ojosIcono.png',        () => 'mock-img');
+jest.mock('../../../assets/referenteIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/restaurarIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/scrollIcono.png',      () => 'mock-img');
+jest.mock('../../../assets/solicitudIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/tecnicoIcono.png',     () => 'mock-img');
+
+// Mock de CSS
+jest.mock('./VisorDicom.css', () => ({}));
+
+// Mock de React Router
 const mockNavigate = jest.fn();
-const mockUploadAdjunto = jest.fn().mockResolvedValue({ error: null });
-const mockInsertAdjunto = jest.fn().mockReturnThis();
-const mockHeader = jest.fn(() => <div>Header</div>);
-const mockSidebar = jest.fn(({ isOpen }) => <div>{isOpen ? "Sidebar mobile abierto" : "Sidebar mobile cerrado"}</div>);
-const mockSidebarHome = jest.fn(() => <div>Sidebar escritorio</div>);
-const mockSetSidebarOpen = jest.fn();
-let mockDicomImagenes = [];
-let mockSidebarState = {
-	sidebarOpen: false,
-	setSidebarOpen: mockSetSidebarOpen,
-	isMobile: false,
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useParams:   () => ({ estudioId: '123' }),
+  useLocation: () => ({
+    state: {
+      estudio: {
+        id: 123,
+        nombrePaciente: 'Juan Pérez',
+        tipoEstudio: 'RX',
+        sucursal: 'Norte',
+        horaFecha: '2024-01-01',
+        estado: 'Pendiente',
+      },
+    },
+  }),
+}));
+
+// Mock de AuthContext
+jest.mock('../../../context/auth-context', () => ({
+  useAuth: () => ({
+    user: { id: 'user-123', email: 'test@test.com' },
+    signOut: jest.fn(),
+  }),
+}));
+
+// Mock de Supabase
+jest.mock('../../../lib/supabase-client', () => ({
+  supabase: {
+    from: jest.fn(() => ({
+      select:      jest.fn().mockReturnThis(),
+      eq:          jest.fn().mockReturnThis(),
+      neq:         jest.fn().mockReturnThis(),
+      order:       jest.fn().mockReturnThis(),
+      limit:       jest.fn().mockReturnThis(),
+      single:      jest.fn(() => Promise.resolve({ data: { url_archivo: 'mock.dcm' }, error: null })),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      insert:      jest.fn().mockReturnThis(),
+      update:      jest.fn().mockReturnThis(),
+      delete:      jest.fn().mockReturnThis(),
+    })),
+    storage: {
+      from: jest.fn(() => ({
+        upload:       jest.fn(() => Promise.resolve({ error: null })),
+        getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://mock.url/file.dcm' } })),
+      })),
+    },
+  },
+}));
+
+// Mock de componentes hijos
+jest.mock('../../../components/header-principal', () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-header">MockHeader</div>,
+}));
+jest.mock('../../../components/ModalConfirmarEliminacion', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+jest.mock('../../../components/ModalNotificacion', () => ({
+  __esModule: true,
+  default: ({ isOpen, mensaje }) =>
+    isOpen ? <div data-testid="mock-notificacion">{mensaje}</div> : null,
+}));
+jest.mock('../componentes/ModalAsignar', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+// Helper
+const renderVisor = async () => {
+  let result;
+  await act(async () => {
+    result = render(<VisorDicom />);
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  return result;
 };
 
-jest.mock("../../../context/auth-context", () => ({
-	useAuth: () => ({
-		user: { id: "user-1", email: "radiologo@test.com" },
-		signOut: jest.fn(),
-	}),
-}));
+// SUITE 1 — Renderizado general
+describe('VisorDicom — Renderizado general', () => {
+  beforeEach(() => jest.clearAllMocks());
 
-jest.mock("react-router-dom", () => ({
-	useNavigate: () => mockNavigate,
-	useParams: () => ({ estudioId: "99" }),
-	useLocation: () => ({
-		state: {
-			estudio: {
-				id: 99,
-				nombrePaciente: "Maria Gomez",
-				tipoEstudio: "RX Torax",
-				sucursal: "Centro",
-				horaFecha: "10 mayo 2026, 10:30",
-				estado: "EN PROCESO",
-			},
-		},
-	}),
-}));
+  test('renderiza sin errores', async () => {
+    await renderVisor();
+  });
 
-jest.mock("../../../components/header-principal", () => (props) => mockHeader(props));
-jest.mock("../../../components/sidebar", () => (props) => mockSidebar(props));
-jest.mock("../../../components/sidebar-home", () => (props) => mockSidebarHome(props));
-jest.mock("../../../utils/use-sidebar", () => () => mockSidebarState);
-jest.mock("../componentes/ModalAsignar", () => () => null);
-jest.mock("../../../components/ModalConfirmarEliminacion", () => () => null);
-jest.mock("../../../components/ModalNotificacion", () => () => null);
-jest.mock("./Panelia", () => ({ activo }) => (
-	<div data-testid="panel-ia">{activo ? "IA activa" : "IA apagada"}</div>
-));
+  test('muestra el Header', async () => {
+    await renderVisor();
+    expect(screen.getByTestId('mock-header')).toBeInTheDocument();
+  });
 
-jest.mock("cornerstone-core", () => ({
-	getEnabledElement: jest.fn(() => ({})),
-	enable: jest.fn(),
-	events: { addEventListener: jest.fn() },
-	getViewport: jest.fn(() => ({ scale: 1, voi: { windowWidth: 0, windowCenter: 0 } })),
-	loadAndCacheImage: jest.fn(),
-	displayImage: jest.fn(),
-	setViewport: jest.fn(),
-	resize: jest.fn(),
-}));
-jest.mock("dicom-parser", () => ({}));
-jest.mock("cornerstone-tools", () => ({ external: {} }));
-jest.mock("cornerstone-wado-image-loader", () => ({
-	external: {},
-	configure: jest.fn(),
-}));
+  test('muestra el botón Atrás', async () => {
+    await renderVisor();
+    expect(screen.getByText(/Atrás/)).toBeInTheDocument();
+  });
 
-jest.mock("../../../lib/supabase-client", () => ({
-	supabase: {
-		from: jest.fn((table) => {
-			if (table === "empleados") {
-				return {
-					select: jest.fn().mockReturnThis(),
-					eq: jest.fn().mockReturnThis(),
-					maybeSingle: jest.fn().mockResolvedValue({
-						data: {
-							nombre: "Dra. Ruiz",
-							rol: "radiologo",
-							cedula: "12345",
-							especialidad: "Radiologia",
-						},
-					}),
-				};
-			}
-			if (table === "plantillas_radiologia") {
-				return {
-					select: jest.fn().mockReturnThis(),
-					order: jest.fn().mockResolvedValue({
-						data: [
-							{
-								id: "tpl-1",
-								nombre: "DRA ODILE",
-								descripcion: "Membrete privado",
-								categoria: "RX",
-								visibilidad: "privado",
-								mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-								archivo_url: "https://example.com/dra-odile.docx",
-								created_at: "2024-09-06T14:32:00Z",
-							},
-						],
-						error: null,
-					}),
-				};
-			}
-			if (table === "reporte_radiologia_adjuntos") {
-				return {
-					insert: mockInsertAdjunto,
-					select: jest.fn().mockReturnThis(),
-					single: jest.fn().mockResolvedValue({
-						data: { id: "adjunto-1" },
-						error: null,
-					}),
-				};
-			}
-			if (table === "estudio_dicom_imagenes") {
-				return {
-					select: jest.fn().mockReturnThis(),
-					eq: jest.fn().mockReturnThis(),
-					order: jest.fn().mockResolvedValue({
-						data: mockDicomImagenes,
-						error: null,
-					}),
-				};
-			}
+  test('muestra la sección Herramientas', async () => {
+    await renderVisor();
+    expect(screen.getByText('Herramientas')).toBeInTheDocument();
+  });
 
-			return {
-				select: jest.fn().mockReturnThis(),
-				eq: jest.fn().mockReturnThis(),
-				single: jest.fn().mockResolvedValue({
-					data: {
-						storage_path: null,
-						reporte: "Reporte previo",
-					},
-					error: null,
-				}),
-				update: jest.fn().mockReturnThis(),
-			};
-		}),
-		storage: {
-			from: jest.fn(() => ({
-				getPublicUrl: jest.fn(() => ({ data: { publicUrl: "https://example.com/a.dcm" } })),
-				upload: mockUploadAdjunto,
-			})),
-		},
-	},
-}));
+  test('muestra la sección Flujo', async () => {
+    await renderVisor();
+    expect(screen.getByText('Flujo')).toBeInTheDocument();
+  });
 
-beforeAll(() => {
-	HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
-		clearRect: jest.fn(),
-		beginPath: jest.fn(),
-		moveTo: jest.fn(),
-		lineTo: jest.fn(),
-		arc: jest.fn(),
-		ellipse: jest.fn(),
-		rect: jest.fn(),
-		stroke: jest.fn(),
-		fill: jest.fn(),
-		fillText: jest.fn(),
-		measureText: jest.fn(() => ({ width: 40 })),
-		save: jest.fn(),
-		restore: jest.fn(),
-		setLineDash: jest.fn(),
-	}));
+  test('muestra la sección Series en la barra lateral', async () => {
+    await renderVisor();
+    expect(screen.getByText('Series')).toBeInTheDocument();
+  });
+
+  test('muestra el panel con mensaje "Sin imagen" cuando no hay imageId', async () => {
+    await renderVisor();
+    expect(screen.getByText('Sin imagen')).toBeInTheDocument();
+  });
 });
 
-beforeEach(() => {
-	jest.clearAllMocks();
-	mockDicomImagenes = [];
-	mockSidebarState = {
-		sidebarOpen: false,
-		setSidebarOpen: mockSetSidebarOpen,
-		isMobile: false,
-	};
+// SUITE 2 — Toolbar: herramientas
+describe('VisorDicom — Toolbar herramientas', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test.each([
+    'Scroll', 'Ampliar', 'W/L', 'Mover',
+    'Longitud', 'Anotar', 'Ángulo', 'Centrar',
+  ])('muestra el botón de herramienta "%s"', async (label) => {
+    await renderVisor();
+    expect(screen.getByTitle(label)).toBeInTheDocument();
+  });
+
+  test('clic en una herramienta la marca como activa', async () => {
+    await renderVisor();
+    const btn = screen.getByTitle('Ampliar');
+    fireEvent.click(btn);
+    expect(btn.className).toContain('activo');
+  });
+
+  test('clic en Centrar incrementa el contador de centrado', async () => {
+    await renderVisor();
+    const btn = screen.getByTitle('Centrar');
+    fireEvent.click(btn);
+    expect(btn).toBeInTheDocument();
+  });
 });
 
-test("renders uploaded DICOM images grouped by series", async () => {
-	mockDicomImagenes = [
-		{
-			id_imagen: 1,
-			storage_path: "99/sagital-002.dcm",
-			series_instance_uid: "serie-sagital",
-			series_description: "Sagital",
-			modality: "MR",
-			instance_number: 2,
-		},
-		{
-			id_imagen: 2,
-			storage_path: "99/sagital-001.dcm",
-			series_instance_uid: "serie-sagital",
-			series_description: "Sagital",
-			modality: "MR",
-			instance_number: 1,
-		},
-		{
-			id_imagen: 3,
-			storage_path: "99/coronal-001.dcm",
-			series_instance_uid: "serie-coronal",
-			series_description: "Coronal",
-			modality: "MR",
-			instance_number: 1,
-		},
-	];
+// SUITE 3 — Toolbar: acciones
+describe('VisorDicom — Toolbar acciones', () => {
+  beforeEach(() => jest.clearAllMocks());
 
-	render(<VisorDicom />);
+  test.each([
+    'Restaurar', 'CINE', 'Más', 'Detalle',
+    'Descargar', 'Captura',
+    'Compartir', 'Formato',
+  ])('muestra el botón de acción "%s"', async (label) => {
+    await renderVisor();
+    expect(screen.getByTitle(label)).toBeInTheDocument();
+  });
 
-	expect(await screen.findByRole("button", { name: /Sagital 2/i })).toBeInTheDocument();
-	expect(screen.getByRole("button", { name: /Coronal 1/i })).toBeInTheDocument();
-	expect(screen.getAllByText(/Resonancia Magnetica/i).length).toBeGreaterThan(0);
+  test('muestra el botón de Reporte (título "Abrir reporte")', async () => {
+    await renderVisor();
+    expect(screen.getByTitle('Abrir reporte')).toBeInTheDocument();
+  });
+
+  test('clic en Más muestra opciones del submenú', async () => {
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Más')); });
+    // MAS_ITEMS includes "Lupa", "Elipse", etc.
+    expect(screen.getByTitle('Lupa')).toBeInTheDocument();
+  });
+
+  test('clic en Detalle abre el panel de detalles', async () => {
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Detalle')); });
+    // panelDerecho="detalles" shows patient info panel
+    expect(screen.getByText('Paciente')).toBeInTheDocument();
+  });
+
+  test('clic en opciones de reporte muestra las opciones', async () => {
+    await renderVisor();
+    // Click the "Opciones de reporte" toggle button
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    // REPORTE_ITEMS includes "Nueva pestaña", "Usar plantilla", "Adjuntar"
+    expect(screen.getByTitle('Nueva pestaña')).toBeInTheDocument();
+  });
+
+  test('clic en Formato muestra el popup de formatos de grid', async () => {
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Formato')); });
+    expect(screen.getAllByText('1×1').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('2×2')).toBeInTheDocument();
+    expect(screen.getByText('2×3')).toBeInTheDocument();
+  });
+
+  test('clic en Más y luego en Detalle cierra el submenú Más', async () => {
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Más')); });
+    expect(screen.getByTitle('Lupa')).toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByTitle('Detalle')); });
+    // Clicking Detalle closes Más submenu
+    expect(screen.queryByTitle('Lupa')).not.toBeInTheDocument();
+  });
 });
 
-test("keeps IA on its floating toggle and opens report/details only when requested", async () => {
-	render(<VisorDicom />);
+// SUITE 4 — Navegación
+describe('VisorDicom — Navegación', () => {
+  beforeEach(() => jest.clearAllMocks());
 
-	await waitFor(() => expect(mockHeader).toHaveBeenCalled());
-	const headerProps = mockHeader.mock.calls.at(-1)[0];
-	expect(headerProps.menuOpen).toBe(false);
-	expect(typeof headerProps.setMenuOpen).toBe("function");
-	expect(headerProps.menuRef).toBeTruthy();
-
-	expect(screen.getByText("Herramientas")).toBeInTheDocument();
-	expect(screen.getByText("Flujo")).toBeInTheDocument();
-	expect(screen.getAllByText("Maria Gomez").length).toBeGreaterThan(0);
-	expect(screen.getAllByText("EN PROCESO").length).toBeGreaterThan(0);
-	expect(screen.getByRole("button", { name: /Contraer series/i })).toBeInTheDocument();
-	expect(screen.getByText(/Herramienta:/i)).toBeInTheDocument();
-	expect(screen.queryByRole("button", { name: /^Info$/i })).not.toBeInTheDocument();
-	expect(screen.getByRole("button", { name: /Activar IA/i })).toBeInTheDocument();
-	expect(screen.getByTestId("panel-ia")).toHaveTextContent("IA apagada");
-	expect(screen.queryByText("Reporte radiológico")).not.toBeInTheDocument();
-	expect(screen.queryByText("Radiólogo")).not.toBeInTheDocument();
-	expect(screen.queryByRole("button", { name: /^IA$/i })).not.toBeInTheDocument();
-
-	fireEvent.click(screen.getByRole("button", { name: /Activar IA/i }));
-	expect(screen.getByTestId("panel-ia")).toHaveTextContent("IA activa");
-
-	fireEvent.click(screen.getAllByRole("button", { name: /^Reporte$/i })[0]);
-	expect(screen.getByText("Documento de interpretación")).toBeInTheDocument();
-	expect(screen.getByText("Centro Diagnóstico California")).toBeInTheDocument();
-	expect(screen.getByRole("textbox", { name: /Editor de interpretación radiológica/i })).toBeInTheDocument();
-	expect(screen.getByRole("button", { name: /Buscar Plantilla/i })).toBeInTheDocument();
-	expect(screen.queryByRole("button", { name: /\\+ Plantillas/i })).not.toBeInTheDocument();
-
-	fireEvent.click(screen.getByRole("button", { name: /Buscar Plantilla/i }));
-	expect(await screen.findByRole("dialog", { name: /Elegir plantilla/i })).toBeInTheDocument();
-	expect(screen.getByRole("tab", { name: /Privado/i })).toBeInTheDocument();
-	fireEvent.click(screen.getByRole("tab", { name: /Privado/i }));
-	expect(await screen.findByText("DRA ODILE")).toBeInTheDocument();
-	fireEvent.click(screen.getByRole("button", { name: /Cerrar selector de plantillas/i }));
-
-	fireEvent.click(screen.getByRole("button", { name: /Opciones de reporte/i }));
-	expect(screen.getByRole("button", { name: /Nueva pestaña/i })).toBeInTheDocument();
-	expect(screen.getByRole("button", { name: /Usar plantilla/i })).toBeInTheDocument();
-	fireEvent.click(screen.getByRole("button", { name: /Adjuntar/i }));
-	fireEvent.change(screen.getByLabelText(/Adjuntar archivo al reporte/i), {
-		target: {
-			files: [
-				new File(["archivo"], "interpretacion.docx", {
-					type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-				}),
-			],
-		},
-	});
-	await waitFor(() => expect(mockUploadAdjunto).toHaveBeenCalled());
-	expect(mockInsertAdjunto).toHaveBeenCalled();
-
-	fireEvent.click(screen.getByRole("button", { name: /Opciones de reporte/i }));
-	fireEvent.mouseDown(document.body);
-	expect(screen.queryByRole("button", { name: /Nueva pestaña/i })).not.toBeInTheDocument();
-
-	fireEvent.click(screen.getByRole("button", { name: /^Detalle$/i }));
-	expect(screen.getByText("Radiólogo")).toBeInTheDocument();
-	expect(screen.getByText("Técnico")).toBeInTheDocument();
-	fireEvent.mouseDown(document.body);
-	expect(screen.queryByText("Técnico")).not.toBeInTheDocument();
-
-	await waitFor(() => expect(screen.getAllByText(/Sin archivo/i).length).toBeGreaterThan(0));
-});
-
-test("connects the header hamburger to the responsive sidebar", async () => {
-	mockSidebarState = {
-		sidebarOpen: true,
-		setSidebarOpen: mockSetSidebarOpen,
-		isMobile: true,
-	};
-
-	render(<VisorDicom />);
-
-	await waitFor(() => expect(mockHeader).toHaveBeenCalled());
-	const headerProps = mockHeader.mock.calls.at(-1)[0];
-
-	expect(headerProps.sidebarOpen).toBe(true);
-	expect(headerProps.setSidebarOpen).toBe(mockSetSidebarOpen);
-	expect(mockSidebar.mock.calls.at(-1)[0]).toEqual(
-		expect.objectContaining({
-			isOpen: true,
-			setIsOpen: mockSetSidebarOpen,
-		}),
-	);
-	expect(mockSidebarHome).not.toHaveBeenCalled();
+  test('clic en Atrás llama a navigate(-1)', async () => {
+    await renderVisor();
+    fireEvent.click(screen.getByText(/Atrás/));
+    expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
 });

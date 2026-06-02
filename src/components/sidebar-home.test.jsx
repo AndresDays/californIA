@@ -13,7 +13,12 @@ jest.mock('react-router-dom', () => ({
 }));
 
 jest.mock('../context/auth-context', () => ({
-  useAuth: () => ({ empleadoData: mockEmpleadoData, user: mockUser }),
+  useAuth: () => ({
+    empleadoData: mockEmpleadoData,
+    user: mockUser,
+    // empleadoLoading is true when user is set but empleadoData hasn't loaded yet
+    empleadoLoading: mockUser !== null && mockEmpleadoData === null,
+  }),
 }));
 
 describe('sidebar-home responsive desktop layout', () => {
@@ -72,16 +77,19 @@ describe('sidebar-home responsive desktop layout', () => {
 
     expect(screen.getByRole('button', { name: /Inicio/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Captura/i })).not.toBeInTheDocument();
+    // Recepcionista does not see Reportes at all
+    expect(screen.queryByRole('button', { name: /Reportes/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Administraci/i }));
     expect(screen.getByRole('button', { name: /Pacientes/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Doctores/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Usuarios/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Reportes/i }));
-    expect(screen.getByRole('button', { name: /^Ventas$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Cierre Caja/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Administrativo/i })).not.toBeInTheDocument();
+    // Recepcion submenu should be visible
+    fireEvent.click(screen.getByRole('button', { name: /Recepci/i }));
+    expect(screen.getByRole('button', { name: /Cotización/i })).toBeInTheDocument();
+    // Cierre Caja is in Recepcion submenu for recepcionista
+    expect(screen.getByRole('button', { name: /Cierre Caja/i })).toBeInTheDocument();
   });
 
   test('uses page employee role to hide users when context is not ready', () => {
@@ -107,18 +115,18 @@ describe('sidebar-home responsive desktop layout', () => {
     expect(screen.queryByRole('button', { name: /Configuraci/i })).not.toBeInTheDocument();
   });
 
-  test('keeps the previous user menu while the next page reloads employee role', () => {
+  test('hides all menu items while employee role is loading', () => {
     mockUser = { id: 'cached-user' };
     mockEmpleadoData = { rol: 'recepcionista' };
     const { rerender } = render(<SidebarHome />);
 
     expect(screen.getByRole('button', { name: /Inicio/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Captura/i })).not.toBeInTheDocument();
 
+    // When empleadoData is null and user is set, empleadoLoading=true -> show nothing
     mockEmpleadoData = null;
     rerender(<SidebarHome />);
 
-    expect(screen.getByRole('button', { name: /Inicio/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Inicio/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Captura/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Configuraci/i })).not.toBeInTheDocument();
   });

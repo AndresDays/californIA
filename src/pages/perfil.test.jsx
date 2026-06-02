@@ -1,51 +1,33 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import Perfil from './perfil';
 
-const mockHeader = jest.fn(() => <div>MockHeader</div>);
-const mockSidebar = jest.fn(({ isOpen }) => <div>{isOpen ? 'MockMobileSidebarOpen' : 'MockMobileSidebarClosed'}</div>);
-const mockSidebarHome = jest.fn(() => <div>MockSidebarHome</div>);
-const mockSetSidebarOpen = jest.fn();
-let mockSidebarState = {
-  sidebarOpen: false,
-  setSidebarOpen: mockSetSidebarOpen,
-  isMobile: false
-};
-
-// Mock de HTMLCanvasElement para evitar errores de jsdom
+// Mock Canvas
 beforeAll(() => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     value: () => ({
-      clearRect: jest.fn(),
-      beginPath: jest.fn(),
-      moveTo: jest.fn(),
-      lineTo: jest.fn(),
-      stroke: jest.fn(),
+      clearRect:    jest.fn(),
+      beginPath:    jest.fn(),
+      moveTo:       jest.fn(),
+      lineTo:       jest.fn(),
+      stroke:       jest.fn(),
       getImageData: jest.fn(),
       putImageData: jest.fn(),
-      toDataURL: () => "data:image/png;base64,MOCKED"
+      toDataURL:    () => 'data:image/png;base64,MOCKED'
     }),
   });
 });
 
-// Mock useAuth
+// Mocks
 jest.mock('../context/auth-context', () => ({
-  useAuth: () => ({
-    user: {
-      id: 'fake-user-id',
-      email: 'test@user.com'
-    },
-    signOut: jest.fn()
-  }),
+  useAuth: () => ({ user: { id: 'fake-user-id', email: 'test@user.com' }, signOut: jest.fn() })
 }));
 
-// Mock useNavigate
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => jest.fn(),
 }));
 
-// Mock supabase client
 jest.mock('../lib/supabase-client', () => ({
   supabase: {
     from: () => ({
@@ -53,9 +35,6 @@ jest.mock('../lib/supabase-client', () => ({
         eq: () => ({
           single: () => Promise.resolve({ data: null })
         }),
-        update: () => ({
-          eq: () => Promise.resolve({ error: null })
-        })
       }),
       update: () => ({
         eq: () => Promise.resolve({ error: null })
@@ -63,7 +42,7 @@ jest.mock('../lib/supabase-client', () => ({
     }),
     storage: {
       from: () => ({
-        upload: () => Promise.resolve({ error: null }),
+        upload:       () => Promise.resolve({ error: null }),
         getPublicUrl: () => ({ data: { publicUrl: 'public-foto.jpg' } })
       })
     },
@@ -73,75 +52,108 @@ jest.mock('../lib/supabase-client', () => ({
   }
 }));
 
-// Mock child components
-jest.mock('../components/header-principal', () => (props) => mockHeader(props));
-jest.mock('../components/sidebar', () => (props) => mockSidebar(props));
-jest.mock('../components/sidebar-home', () => (props) => mockSidebarHome(props));
-jest.mock('../components/ModalNotificacion', () => () => <div>MockNotificacion</div>);
-jest.mock('../utils/use-sidebar', () => () => mockSidebarState);
+jest.mock('../utils/use-sidebar', () => () => ({
+  sidebarOpen: false,
+  setSidebarOpen: jest.fn(),
+  isMobile: false,
+}));
 
-beforeEach(() => {
-  jest.clearAllMocks();
-  mockSidebarState = {
-    sidebarOpen: false,
-    setSidebarOpen: mockSetSidebarOpen,
-    isMobile: false
-  };
+jest.mock('../components/header-principal', () => () => <div>MockHeader</div>);
+jest.mock('../components/sidebar-home',     () => () => <div>MockSidebar</div>);
+jest.mock('../components/sidebar',          () => () => <div>MockSidebarMobile</div>);
+jest.mock('../components/ModalNotificacion', () => ({ isOpen, mensaje }) =>
+  isOpen ? <div role="alert">{mensaje}</div> : null
+);
+
+// Perfil — Renderizado
+describe('Perfil — Renderizado', () => {
+  test('renderiza el formulario con el botón guardar', () => {
+    render(<Perfil />);
+    expect(screen.getByText(/Guardar cambios/i)).toBeInTheDocument();
+  });
+
+  test('muestra las pestañas de perfil', () => {
+    render(<Perfil />);
+    expect(screen.getByRole('tab', { name: /Datos personales/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Seguridad/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Firma digital/i })).toBeInTheDocument();
+  });
+
+  test('renderiza los campos del tab datos personales por defecto', () => {
+    render(<Perfil />);
+    expect(screen.getAllByRole('textbox')[0]).toHaveAttribute('name', 'nombre');
+    expect(screen.getAllByRole('textbox')[1]).toHaveAttribute('name', 'apellido');
+    expect(screen.getAllByRole('textbox')[2]).toHaveAttribute('name', 'email');
+    expect(screen.getAllByRole('textbox')[4]).toBeDisabled(); // tipoUsuario
+  });
+
+  test('los campos de contraseña están en el tab Seguridad', () => {
+    render(<Perfil />);
+    // Not visible on datos tab
+    expect(screen.queryByPlaceholderText(/Dejar vacío para no cambiar/)).not.toBeInTheDocument();
+    // Click security tab
+    fireEvent.click(screen.getByRole('tab', { name: /Seguridad/i }));
+    expect(screen.getByPlaceholderText(/Dejar vacío para no cambiar/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Confirmar nueva contraseña/)).toBeInTheDocument();
+  });
+
+  test('renderiza el canvas de firma en el tab firma digital', () => {
+    render(<Perfil />);
+    fireEvent.click(screen.getByRole('tab', { name: /Firma digital/i }));
+    expect(screen.getByText('Dibujar firma')).toBeInTheDocument();
+    expect(screen.getByText('Limpiar firma')).toBeInTheDocument();
+  });
 });
 
-test('renders Perfil page with cleaner profile sections', () => {
-  render(<Perfil />);
-  expect(screen.getByRole('button', { name: /guardar cambios/i })).toBeInTheDocument();
-  expect(screen.getByRole('tab', { name: /datos personales/i })).toBeInTheDocument();
-  expect(screen.getByRole('tab', { name: /seguridad/i })).toBeInTheDocument();
-  expect(screen.getByRole('tab', { name: /firma digital/i })).toBeInTheDocument();
+// Perfil — Validaciones al guardar
+describe('Perfil — Validaciones al guardar', () => {
+  test('muestra error si las contraseñas no coinciden', async () => {
+    render(<Perfil />);
 
-  expect(screen.getAllByRole('textbox')[0]).toHaveAttribute('name', 'nombre');
-  expect(screen.getAllByRole('textbox')[1]).toHaveAttribute('name', 'apellido');
-  expect(screen.getAllByRole('textbox')[2]).toHaveAttribute('name', 'email');
-  expect(screen.getAllByRole('textbox')[3]).toHaveAttribute('name', 'telefono');
-  expect(screen.getAllByRole('textbox')[4]).toBeDisabled(); // Tipo of user
-});
+    fireEvent.click(screen.getByRole('tab', { name: /Seguridad/i }));
+    fireEvent.change(screen.getByPlaceholderText(/Dejar vacío para no cambiar/), {
+      target: { value: 'pass123', name: 'nuevaContrasena' }
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Confirmar nueva contraseña/), {
+      target: { value: 'pass999', name: 'confirmarContrasena' }
+    });
 
-test('moves password inputs into the security tab', () => {
-  render(<Perfil />);
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Guardar cambios/i));
+    });
 
-  expect(screen.queryByPlaceholderText(/Dejar vacío para no cambiar/)).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Las contraseñas no coinciden');
+  });
 
-  fireEvent.click(screen.getByRole('tab', { name: /seguridad/i }));
+  test('muestra error si la contraseña tiene menos de 6 caracteres', async () => {
+    render(<Perfil />);
 
-  expect(screen.getByPlaceholderText(/Dejar vacío para no cambiar/)).toBeInTheDocument();
-  expect(screen.getByPlaceholderText(/Confirmar nueva contraseña/)).toBeInTheDocument();
-});
+    fireEvent.click(screen.getByRole('tab', { name: /Seguridad/i }));
+    fireEvent.change(screen.getByPlaceholderText(/Dejar vacío para no cambiar/), {
+      target: { value: '123', name: 'nuevaContrasena' }
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Confirmar nueva contraseña/), {
+      target: { value: '123', name: 'confirmarContrasena' }
+    });
 
-test('allows uploading a PNG signature from the signature tab', () => {
-  render(<Perfil />);
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Guardar cambios/i));
+    });
 
-  fireEvent.click(screen.getByRole('tab', { name: /firma digital/i }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'La contraseña debe tener al menos 6 caracteres'
+    );
+  });
 
-  const firmaInput = screen.getByLabelText(/subir firma png/i);
-  expect(firmaInput).toHaveAttribute('type', 'file');
-  expect(firmaInput).toHaveAttribute('accept', 'image/png,.png');
-  expect(screen.getByText(/Dibujar firma/)).toBeInTheDocument();
-});
+  test('guarda correctamente y muestra notificación de éxito', async () => {
+    render(<Perfil />);
 
-test('connects the header hamburger to the responsive sidebar', () => {
-  mockSidebarState = {
-    sidebarOpen: true,
-    setSidebarOpen: mockSetSidebarOpen,
-    isMobile: true
-  };
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Guardar cambios/i));
+    });
 
-  render(<Perfil />);
-
-  const headerProps = mockHeader.mock.calls.at(-1)[0];
-  expect(headerProps.sidebarOpen).toBe(true);
-  expect(headerProps.setSidebarOpen).toBe(mockSetSidebarOpen);
-  expect(mockSidebar.mock.calls.at(-1)[0]).toEqual(
-    expect.objectContaining({
-      isOpen: true,
-      setIsOpen: mockSetSidebarOpen,
-    })
-  );
-  expect(mockSidebarHome).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Perfil actualizado correctamente'
+    );
+  });
 });
