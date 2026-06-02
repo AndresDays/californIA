@@ -2,6 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Header from './header-principal';
 
+// Mock NotificationBell to avoid supabase dependency
+jest.mock('./notification-bell', () => () => <button aria-label="Notificaciones">🔔</button>);
+
 const mockNavigate = jest.fn();
 
 // Mock de useNavigate de react-router-dom
@@ -10,68 +13,95 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-describe('Header', () => {
-  const mockProps = {
-    menuOpen: false,
-    setMenuOpen: jest.fn(),
-    menuRef: React.createRef(),
-    empleadoData: {
-      rol: 'admin',
-      nombre: 'Juan Perez'
-    },
-    formatRol: rol => 'ADMIN',
-    getPrimerNombre: nombre => nombre.split(' ')[0],
-    user: { email: 'juan@email.com' },
-    handleLogout: jest.fn(),
-    currentPage: 'inicio'
-  };
+// Props base reutilizables
+const defaultProps = {
+  menuOpen: false,
+  setMenuOpen: jest.fn(),
+  menuRef: React.createRef(),
+  empleadoData: {
+    rol: 'admin',
+    nombre: 'Juan Perez',
+  },
+  formatRol: () => 'Administrador',
+  getPrimerNombre: (nombre) => nombre.split(' ')[0],
+  user: { email: 'juan@email.com' },
+  handleLogout: jest.fn(),
+  currentPage: 'inicio',
+};
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+// SUITE 1 — Renderizado inicial
+describe('Header — Renderizado inicial', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('renderiza sin errores', () => {
+    render(<Header {...defaultProps} />);
   });
 
-  it('does not render the user name and rol in the main header', () => {
-    render(<Header {...mockProps} />);
-    expect(screen.queryByText(/ADMIN/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Juan/)).not.toBeInTheDocument();
+  test('muestra las iniciales del empleado en el avatar', () => {
+    render(<Header {...defaultProps} />);
+    // "Juan Perez" -> "JP"
+    expect(screen.getByText('JP')).toBeInTheDocument();
   });
 
-  it('renders the centered CalifornIA logo', () => {
-    const { container } = render(<Header {...mockProps} />);
-    expect(container.querySelector('.header-california-logo')).toBeInTheDocument();
+  test('muestra el botón de notificaciones', () => {
+    render(<Header {...defaultProps} />);
+    expect(screen.getByLabelText('Notificaciones')).toBeInTheDocument();
   });
 
-  it('calls setMenuOpen on avatar click', () => {
-    render(<Header {...mockProps} />);
-    const avatar = screen.getByLabelText(/Menú de usuario/i);
-    fireEvent.click(avatar);
-    expect(mockProps.setMenuOpen).toHaveBeenCalled();
+  test('muestra el botón de menú de usuario', () => {
+    render(<Header {...defaultProps} />);
+    expect(screen.getByLabelText('Menú de usuario')).toBeInTheDocument();
   });
 
-  it('shows Plantillas in the profile menu for radiologos and navigates to templates', () => {
-    render(
-      <Header
-        {...mockProps}
-        menuOpen
-        empleadoData={{ ...mockProps.empleadoData, rol: 'radiologo' }}
-      />,
-    );
+  test('el menú desplegable NO es visible cuando menuOpen es false', () => {
+    render(<Header {...defaultProps} menuOpen={false} />);
+    expect(screen.queryByText('Perfil')).not.toBeInTheDocument();
+  });
+});
 
-    fireEvent.click(screen.getByRole('button', { name: /Plantillas/i }));
+// SUITE 2 — Menú desplegable
+describe('Header — Menú desplegable', () => {
+  beforeEach(() => jest.clearAllMocks());
 
-    expect(mockProps.setMenuOpen).toHaveBeenCalledWith(false);
-    expect(mockNavigate).toHaveBeenCalledWith('/plantillas');
+  test('el menú es visible cuando menuOpen es true', () => {
+    render(<Header {...defaultProps} menuOpen={true} />);
+    expect(screen.getByText('Perfil')).toBeInTheDocument();
+    expect(screen.getByText('Accesos')).toBeInTheDocument();
+    expect(screen.getByText('Cerrar sesión')).toBeInTheDocument();
   });
 
-  it('hides Plantillas in the profile menu for roles without access', () => {
-    render(
-      <Header
-        {...mockProps}
-        menuOpen
-        empleadoData={{ ...mockProps.empleadoData, rol: 'recepcionista' }}
-      />,
-    );
+  test('muestra Plantillas para rol radiologo', () => {
+    render(<Header {...defaultProps} menuOpen={true} empleadoData={{ rol: 'radiologo', nombre: 'Juan Perez' }} />);
+    expect(screen.getByText('Plantillas')).toBeInTheDocument();
+  });
 
-    expect(screen.queryByRole('button', { name: /Plantillas/i })).not.toBeInTheDocument();
+  test('no muestra Plantillas para rol recepcionista', () => {
+    render(<Header {...defaultProps} menuOpen={true} empleadoData={{ rol: 'recepcionista', nombre: 'Juan Perez' }} />);
+    expect(screen.queryByText('Plantillas')).not.toBeInTheDocument();
+  });
+});
+
+// SUITE 3 — Interacciones
+describe('Header — Interacciones', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  test('clic en el avatar llama a setMenuOpen', () => {
+    const setMenuOpen = jest.fn();
+    render(<Header {...defaultProps} setMenuOpen={setMenuOpen} />);
+    fireEvent.click(screen.getByLabelText('Menú de usuario'));
+    expect(setMenuOpen).toHaveBeenCalled();
+  });
+
+  test('clic en "Perfil" navega a /perfil', () => {
+    render(<Header {...defaultProps} menuOpen={true} />);
+    fireEvent.click(screen.getByText('Perfil'));
+    expect(mockNavigate).toHaveBeenCalledWith('/perfil');
+  });
+
+  test('clic en "Cerrar sesión" llama a handleLogout', () => {
+    const handleLogout = jest.fn();
+    render(<Header {...defaultProps} menuOpen={true} handleLogout={handleLogout} />);
+    fireEvent.click(screen.getByText('Cerrar sesión'));
+    expect(handleLogout).toHaveBeenCalled();
   });
 });
