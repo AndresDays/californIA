@@ -82,11 +82,6 @@ jest.mock('./pages/perfil', () => ({
   default: () => <div data-testid="perfil-page">Perfil Page</div>
 }));
 
-jest.mock('./pages/radiologia', () => ({
-  __esModule: true,
-  default: () => <div data-testid="radiologia-base-page">Radiología Base Page</div>
-}));
-
 jest.mock('./pages/radiologia/pages/dashboard-radiologia', () => ({
   __esModule: true,
   default: () => <div data-testid="radiologia-page">Radiología Page</div>
