@@ -9,16 +9,18 @@ import './sidebar-home.css';
 const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { empleadoData, user } = useAuth();
+  const { empleadoData, empleadoLoading, user } = useAuth();
   const sidebarRef = useRef(null);
   const [activeSubmenu, setActiveSubmenu] = useState(null);
-  const rolEmpleado = empleadoDataProp?.rol || empleadoData?.rol;
-  const rolSidebar = rolEmpleado || obtenerRolCacheado(user?.id);
-  const menuItems = user && !rolSidebar ? [] : filtrarMenuPorRol(sidebarItems, rolSidebar);
+
+  // Auth context es la fuente de verdad. El prop se usa solo como fallback
+  // mientras el contexto termina de cargar (navegación desde otra página).
+  const rol = empleadoData?.rol || empleadoDataProp?.rol || obtenerRolCacheado(user?.id) || null;
+  const menuItems = empleadoLoading ? [] : filtrarMenuPorRol(sidebarItems, rol);
 
   useEffect(() => {
-    guardarRolCacheado(user?.id, rolEmpleado);
-  }, [rolEmpleado, user?.id]);
+    guardarRolCacheado(user?.id, rol);
+  }, [rol, user?.id]);
 
   const isCurrentPath = (path) => location.pathname === path;
   const isSubmenuActive = (item) =>

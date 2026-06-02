@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import empresaIcono from "../../assets/empresaIcono.png";
 import pacienteIcono from "../../assets/pacientesIcono.png";
@@ -24,9 +24,7 @@ const ModalAperturaCaja = ({ onConfirmar, onCerrar, montoActual }) => {
 		<div className="modal-cierre-overlay" onClick={onCerrar}>
 			<div className="modal-cierre-box" onClick={(e) => e.stopPropagation()}>
 				<h2 className="modal-cierre-titulo">Apertura de Caja</h2>
-				<p className="modal-cierre-subtitulo">
-					Registra el fondo inicial del día para esta sucursal.
-				</p>
+				<p className="modal-cierre-subtitulo">Registra el fondo inicial del día para esta sucursal.</p>
 				<div className="modal-cierre-campo">
 					<label>Monto de apertura</label>
 					<input
@@ -53,10 +51,7 @@ const ModalAperturaCaja = ({ onConfirmar, onCerrar, montoActual }) => {
 					<button className="btn-modal-cancelar" onClick={onCerrar} disabled={guardando}>
 						Cancelar
 					</button>
-					<button
-						className="btn-modal-confirmar azul"
-						onClick={handleConfirmar}
-						disabled={guardando}>
+					<button className="btn-modal-confirmar azul" onClick={handleConfirmar} disabled={guardando}>
 						{guardando ? "Guardando…" : "Confirmar apertura"}
 					</button>
 				</div>
@@ -89,9 +84,7 @@ const ModalNuevoMovimiento = ({ onConfirmar, onCerrar }) => {
 		<div className="modal-cierre-overlay" onClick={onCerrar}>
 			<div className="modal-cierre-box" onClick={(e) => e.stopPropagation()}>
 				<h2 className="modal-cierre-titulo">Nuevo Movimiento</h2>
-				<p className="modal-cierre-subtitulo">
-					Registra un ingreso o egreso manual de caja.
-				</p>
+				<p className="modal-cierre-subtitulo">Registra un ingreso o egreso manual de caja.</p>
 				<div className="modal-cierre-toggle">
 					<button
 						className={`toggle-tipo ${tipo === "ingreso" ? "activo verde" : ""}`}
@@ -157,8 +150,15 @@ const ModalNuevoMovimiento = ({ onConfirmar, onCerrar }) => {
 	);
 };
 
+const FILAS_PAGO = [
+	{ key: "efectivo",  label: "Efectivo",      clase: "efectivo" },
+	{ key: "tarjeta",   label: "Tarjeta",        clase: "tarjeta"  },
+	{ key: "transfer",  label: "Transferencia",  clase: "transfer" },
+	{ key: "credito",   label: "Crédito",        clase: "credito"  },
+];
+
 const CierreCaja = () => {
-	const { user } = useAuth();
+	const { user, empleadoData: empleadoContext } = useAuth();
 
 	const [fechaActual, setFechaActual] = useState(new Date().toISOString().split("T")[0]);
 	const [sucursales, setSucursales] = useState([]);
@@ -166,29 +166,31 @@ const CierreCaja = () => {
 	const [empleados, setEmpleados] = useState([]);
 	const [usuarioSeleccionado, setUsuarioSeleccionado] = useState("");
 	const [montoApertura, setMontoApertura] = useState(0);
-	const [ventasEfectivo, setVentasEfectivo] = useState(0);
-	const [ingresosEfectivo, setIngresosEfectivo] = useState(0);
-	const [egresosEfectivo, setEgresosEfectivo] = useState(0);
-	const [totalEfectivo, setTotalEfectivo] = useState(0);
-	const [ventasTarjeta, setVentasTarjeta] = useState(0);
-	const [ingresosTarjeta, setIngresosTarjeta] = useState(0);
-	const [egresosTarjeta, setEgresosTarjeta] = useState(0);
-	const [totalTarjeta, setTotalTarjeta] = useState(0);
-	const [transferencias, setTransferencias] = useState(0);
-	const [ingresosTransferencias, setIngresosTransferencias] = useState(0);
-	const [egresosTransferencias, setEgresosTransferencias] = useState(0);
-	const [totalTransferencias, setTotalTransferencias] = useState(0);
-	const [credito, setCredito] = useState(0);
-	const [ingresosCredito, setIngresosCredito] = useState(0);
-	const [egresosCredito, setEgresosCredito] = useState(0);
-	const [totalCredito, setTotalCredito] = useState(0);
+
+	const [ventas, setVentas] = useState({ efectivo: 0, tarjeta: 0, transfer: 0, credito: 0 });
+	const [ingresos, setIngresos] = useState({ efectivo: 0, tarjeta: 0, transfer: 0, credito: 0 });
+	const [egresos, setEgresos] = useState({ efectivo: 0, tarjeta: 0, transfer: 0, credito: 0 });
+
 	const [montoCancelados, setMontoCancelados] = useState(0);
-	const [totalEnCaja, setTotalEnCaja] = useState(0);
 	const [totalAdeudos, setTotalAdeudos] = useState(0);
-	const [empleadoData, setEmpleadoData] = useState(null);
+	const [empleadoData, setEmpleadoData] = useState(empleadoContext || null);
 	const [modalAperturaOpen, setModalAperturaOpen] = useState(false);
 	const [modalMovimientoOpen, setModalMovimientoOpen] = useState(false);
 	const [notificacion, setNotificacion] = useState(null);
+
+	const totales = FILAS_PAGO.reduce((acc, { key }) => {
+		acc[key] = ventas[key] + ingresos[key] - egresos[key];
+		return acc;
+	}, {});
+
+	const totalEnCaja =
+		montoApertura +
+		Object.values(totales).reduce((s, v) => s + v, 0) -
+		montoCancelados;
+
+	useEffect(() => {
+		if (empleadoContext) setEmpleadoData(empleadoContext);
+	}, [empleadoContext]);
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -210,17 +212,6 @@ const CierreCaja = () => {
 	}, [user]);
 
 	useEffect(() => {
-		calcularTotales();
-	}, [
-		montoApertura,
-		ventasEfectivo, ingresosEfectivo, egresosEfectivo,
-		ventasTarjeta, ingresosTarjeta, egresosTarjeta,
-		transferencias, ingresosTransferencias, egresosTransferencias,
-		credito, ingresosCredito, egresosCredito,
-		montoCancelados,
-	]);
-
-	useEffect(() => {
 		cargarCorteCaja();
 	}, [fechaActual, sucursalSeleccionada, usuarioSeleccionado]);
 
@@ -238,7 +229,7 @@ const CierreCaja = () => {
 				.order("nombre");
 			if (error) throw error;
 			setSucursales(data || []);
-			if (data && data.length > 0) setSucursalSeleccionada(data[0].id_sucursal);
+			if (data?.length > 0) setSucursalSeleccionada(data[0].id_sucursal);
 		} catch (error) {
 			console.error("Error al cargar sucursales:", error);
 		}
@@ -256,6 +247,11 @@ const CierreCaja = () => {
 			console.error("Error al cargar empleados:", error);
 		}
 	};
+
+	const sumarPorForma = (movs, forma) =>
+		movs
+			.filter((m) => String(m.forma_pago || "").toLowerCase().includes(forma))
+			.reduce((s, m) => s + (parseFloat(m.monto) || 0), 0);
 
 	const cargarCorteCaja = async () => {
 		const inicio = `${fechaActual}T00:00:00`;
@@ -276,39 +272,30 @@ const CierreCaja = () => {
 				return;
 			}
 
-			const movVentas = (data || []).filter(
-				(m) => m.motivo !== "apertura_caja" &&
-					m.motivo !== "movimiento_manual_ingreso" &&
-					m.motivo !== "movimiento_manual_egreso",
-			);
-			const movManualesIngreso = (data || []).filter((m) => m.motivo === "movimiento_manual_ingreso");
-			const movManualesEgreso = (data || []).filter((m) => m.motivo === "movimiento_manual_egreso");
-			const apertura = (data || []).find((m) => m.motivo === "apertura_caja");
+			const movVentas    = (data || []).filter((m) => !["apertura_caja", "movimiento_manual_ingreso", "movimiento_manual_egreso"].includes(m.motivo));
+			const movIngreso   = (data || []).filter((m) => m.motivo === "movimiento_manual_ingreso");
+			const movEgreso    = (data || []).filter((m) => m.motivo === "movimiento_manual_egreso");
+			const apertura     = (data || []).find((m) => m.motivo === "apertura_caja");
 
 			if (apertura) setMontoApertura(parseFloat(apertura.monto) || 0);
 
 			const resumen = resumirMovimientosCaja(movVentas);
-			setVentasEfectivo(resumen.efectivo);
-			setVentasTarjeta(resumen.tarjeta);
-			setTransferencias(resumen.transferencia);
-			setCredito(resumen.credito);
+			setVentas({ efectivo: resumen.efectivo, tarjeta: resumen.tarjeta, transfer: resumen.transferencia, credito: resumen.credito });
 			setMontoCancelados(resumen.cancelaciones);
 			setTotalAdeudos(resumen.adeudos);
 
-			const sumarPorForma = (movs, forma) =>
-				movs
-					.filter((m) => String(m.forma_pago || "").toLowerCase().includes(forma))
-					.reduce((s, m) => s + (parseFloat(m.monto) || 0), 0);
-
-			setIngresosEfectivo(sumarPorForma(movManualesIngreso, "efectivo"));
-			setIngresosTarjeta(sumarPorForma(movManualesIngreso, "tarjeta"));
-			setIngresosTransferencias(sumarPorForma(movManualesIngreso, "transfer"));
-			setIngresosCredito(sumarPorForma(movManualesIngreso, "credito") + sumarPorForma(movManualesIngreso, "crédito"));
-
-			setEgresosEfectivo(sumarPorForma(movManualesEgreso, "efectivo"));
-			setEgresosTarjeta(sumarPorForma(movManualesEgreso, "tarjeta"));
-			setEgresosTransferencias(sumarPorForma(movManualesEgreso, "transfer"));
-			setEgresosCredito(sumarPorForma(movManualesEgreso, "credito") + sumarPorForma(movManualesEgreso, "crédito"));
+			setIngresos({
+				efectivo: sumarPorForma(movIngreso, "efectivo"),
+				tarjeta:  sumarPorForma(movIngreso, "tarjeta"),
+				transfer: sumarPorForma(movIngreso, "transfer"),
+				credito:  sumarPorForma(movIngreso, "credito") + sumarPorForma(movIngreso, "crédito"),
+			});
+			setEgresos({
+				efectivo: sumarPorForma(movEgreso, "efectivo"),
+				tarjeta:  sumarPorForma(movEgreso, "tarjeta"),
+				transfer: sumarPorForma(movEgreso, "transfer"),
+				credito:  sumarPorForma(movEgreso, "credito") + sumarPorForma(movEgreso, "crédito"),
+			});
 		} catch (error) {
 			console.error("Error al cargar corte de caja:", error);
 		}
@@ -323,46 +310,24 @@ const CierreCaja = () => {
 		if (sucursalSeleccionada) query = query.eq("id_sucursal", sucursalSeleccionada);
 		const { data, error } = await query;
 		if (error) throw error;
-		const ventas = data || [];
+		const vs = data || [];
 		const suma = (forma) =>
-			ventas
-				.filter((v) => String(v.forma_pago || "").toLowerCase().includes(forma))
+			vs.filter((v) => String(v.forma_pago || "").toLowerCase().includes(forma))
 				.reduce((t, v) => t + (parseFloat(v.pago_recibido) || 0), 0);
-		setVentasEfectivo(suma("efectivo"));
-		setVentasTarjeta(suma("tarjeta"));
-		setTransferencias(suma("transfer"));
-		setCredito(suma("credito"));
+		setVentas({ efectivo: suma("efectivo"), tarjeta: suma("tarjeta"), transfer: suma("transfer"), credito: suma("credito") });
 		setMontoCancelados(
-			ventas
-				.filter((v) => String(v.estado || "").toLowerCase().includes("cancel"))
+			vs.filter((v) => String(v.estado || "").toLowerCase().includes("cancel"))
 				.reduce((t, v) => t + (parseFloat(v.pago_recibido) || 0), 0),
 		);
 		setTotalAdeudos(
-			ventas.reduce(
-				(t, v) => t + Math.max((parseFloat(v.total) || 0) - (parseFloat(v.pago_recibido) || 0), 0),
-				0,
-			),
-		);
-	};
-
-	const calcularTotales = () => {
-		const totEfectivo = ventasEfectivo + ingresosEfectivo - egresosEfectivo;
-		const totTarjeta = ventasTarjeta + ingresosTarjeta - egresosTarjeta;
-		const totTransferencias = transferencias + ingresosTransferencias - egresosTransferencias;
-		const totCredito = credito + ingresosCredito - egresosCredito;
-		setTotalEfectivo(totEfectivo);
-		setTotalTarjeta(totTarjeta);
-		setTotalTransferencias(totTransferencias);
-		setTotalCredito(totCredito);
-		setTotalEnCaja(
-			montoApertura + totEfectivo + totTarjeta + totTransferencias + totCredito - montoCancelados,
+			vs.reduce((t, v) => t + Math.max((parseFloat(v.total) || 0) - (parseFloat(v.pago_recibido) || 0), 0), 0),
 		);
 	};
 
 	const handleAperturaCaja = async (monto, nota) => {
 		try {
 			const sucursalObj = sucursales.find((s) => s.id_sucursal === sucursalSeleccionada);
-			const payload = {
+			const { error } = await supabase.from("movimientos_pago_venta").insert({
 				tipo_movimiento: "ajuste",
 				monto,
 				forma_pago: "efectivo",
@@ -373,8 +338,7 @@ const CierreCaja = () => {
 				actor_nombre: empleadoData?.nombre || null,
 				actor_rol: empleadoData?.rol || null,
 				actor_auth_uuid: user?.id || null,
-			};
-			const { error } = await supabase.from("movimientos_pago_venta").insert(payload);
+			});
 			if (error && !esErrorTablaInexistente(error, "movimientos_pago_venta")) throw error;
 			setMontoApertura(monto);
 			setModalAperturaOpen(false);
@@ -389,7 +353,7 @@ const CierreCaja = () => {
 		try {
 			const sucursalObj = sucursales.find((s) => s.id_sucursal === sucursalSeleccionada);
 			const motivo = tipo === "ingreso" ? "movimiento_manual_ingreso" : "movimiento_manual_egreso";
-			const payload = {
+			const { error } = await supabase.from("movimientos_pago_venta").insert({
 				tipo_movimiento: "ajuste",
 				monto,
 				forma_pago: formaPago.toLowerCase(),
@@ -400,82 +364,74 @@ const CierreCaja = () => {
 				actor_nombre: empleadoData?.nombre || null,
 				actor_rol: empleadoData?.rol || null,
 				actor_auth_uuid: user?.id || null,
-			};
-			const { error } = await supabase.from("movimientos_pago_venta").insert(payload);
+			});
 			if (error && !esErrorTablaInexistente(error, "movimientos_pago_venta")) throw error;
 
 			const fp = formaPago.toLowerCase();
-			if (tipo === "ingreso") {
-				if (fp.includes("efectivo")) setIngresosEfectivo((p) => p + monto);
-				else if (fp.includes("tarjeta")) setIngresosTarjeta((p) => p + monto);
-				else if (fp.includes("transfer")) setIngresosTransferencias((p) => p + monto);
-				else if (fp.includes("credito") || fp.includes("crédito")) setIngresosCredito((p) => p + monto);
-			} else {
-				if (fp.includes("efectivo")) setEgresosEfectivo((p) => p + monto);
-				else if (fp.includes("tarjeta")) setEgresosTarjeta((p) => p + monto);
-				else if (fp.includes("transfer")) setEgresosTransferencias((p) => p + monto);
-				else if (fp.includes("credito") || fp.includes("crédito")) setEgresosCredito((p) => p + monto);
-			}
+			const clave = fp.includes("efectivo") ? "efectivo"
+				: fp.includes("tarjeta") ? "tarjeta"
+				: fp.includes("transfer") ? "transfer"
+				: "credito";
+
+			if (tipo === "ingreso") setIngresos((p) => ({ ...p, [clave]: p[clave] + monto }));
+			else setEgresos((p) => ({ ...p, [clave]: p[clave] + monto }));
 
 			setModalMovimientoOpen(false);
-			setNotificacion({
-				tipo: "exito",
-				texto: `${tipo === "ingreso" ? "Ingreso" : "Egreso"} registrado: $${monto.toFixed(2)} (${formaPago})`,
-			});
+			setNotificacion({ tipo: "exito", texto: `${tipo === "ingreso" ? "Ingreso" : "Egreso"} registrado: $${monto.toFixed(2)} (${formaPago})` });
 		} catch (err) {
 			console.error("Error al registrar movimiento:", err);
 			setNotificacion({ tipo: "error", texto: "No se pudo registrar el movimiento." });
 		}
 	};
 
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
+	const getPrimerNombre = (nombreCompleto) =>
+		nombreCompleto || user?.email?.split("@")[0] || "Usuario";
 
 	const formatRol = (rol) => {
 		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
+		return {
+			admin: "Administrador", administrador: "Administrador",
+			radiologo: "Radiólogo - Director", doctor: "Médico", medico: "Médico",
+			tecnico_radiologia: "Técnico en Radiología", tecnico: "Técnico",
+			quimico: "Químico", recepcionista: "Recepcionista", desarrollador: "Desarrollador",
+		}[rol] || rol;
 	};
 
-	const nombreSucursal =
-		sucursales.find((s) => s.id_sucursal === sucursalSeleccionada)?.nombre || "Todas";
+	const fmt = (n) => `$${(n || 0).toFixed(2)}`;
+	const nombreSucursal = sucursales.find((s) => s.id_sucursal === sucursalSeleccionada)?.nombre || "Todas";
 
 	return (
-		<PageLayout
-			empleadoData={empleadoData}
-			formatRol={formatRol}
-			getPrimerNombre={getPrimerNombre}>
+		<PageLayout empleadoData={empleadoData} formatRol={formatRol} getPrimerNombre={getPrimerNombre}>
 
 			{notificacion && (
-				<div className={`cierre-toast ${notificacion.tipo}`}>
-					{notificacion.texto}
-				</div>
+				<div className={`cierre-toast ${notificacion.tipo}`}>{notificacion.texto}</div>
 			)}
 
 			<div className="cierre-caja-wrapper">
 				<div className="cierre-caja-header">
-					<h1 className="cierre-caja-title">Cierre Caja</h1>
+					<h1 className="cierre-caja-title">Cierre de Caja</h1>
+					<div className="botones-accion-cierre">
+						<button className="btn-apertura-caja" onClick={() => setModalAperturaOpen(true)}>
+							Apertura Caja
+						</button>
+						<button className="btn-nuevo-movimiento" onClick={() => setModalMovimientoOpen(true)}>
+							+ Movimiento
+						</button>
+						<button className="btn-imprimir-detalle" onClick={() => window.print()}>
+							Imprimir
+						</button>
+						<button className="btn-imprimir-sucursal" onClick={() => window.print()}>
+							Imprimir Sucursal
+						</button>
+					</div>
 				</div>
 
 				<div className="cierre-caja-content">
 					<div className="controles-cierre">
 						<div className="fecha-actual-grupo">
 							<label>
-								<img src={calendarioIcono} alt="Fecha" className="icono-label-cierre" />
-								Fecha Actual:
+								<img src={calendarioIcono} alt="" className="icono-label-cierre" />
+								Fecha
 							</label>
 							<input
 								type="date"
@@ -485,145 +441,99 @@ const CierreCaja = () => {
 							/>
 						</div>
 						<div className="sucursal-grupo">
-							<img src={empresaIcono} alt="Empresa" className="icono-campo-cierre" />
+							<label>
+								<img src={empresaIcono} alt="" className="icono-label-cierre" />
+								Sucursal
+							</label>
 							<select
 								value={sucursalSeleccionada}
 								onChange={(e) => setSucursalSeleccionada(e.target.value)}
 								className="select-sucursal-cierre">
-								<option value="">Selecciona una Sucursal</option>
+								<option value="">Todas las sucursales</option>
 								{sucursales.map((s) => (
-									<option key={s.id_sucursal} value={s.id_sucursal}>
-										{s.nombre}
-									</option>
+									<option key={s.id_sucursal} value={s.id_sucursal}>{s.nombre}</option>
 								))}
 							</select>
 						</div>
 						<div className="usuario-grupo">
-							<img src={pacienteIcono} alt="Usuario" className="icono-campo-cierre" />
+							<label>
+								<img src={pacienteIcono} alt="" className="icono-label-cierre" />
+								Empleado
+							</label>
 							<select
 								value={usuarioSeleccionado}
 								onChange={(e) => setUsuarioSeleccionado(e.target.value)}
 								className="select-usuario-cierre">
 								<option value="">Todos los empleados</option>
-								{empleados.map((empleado) => (
-									<option
-										key={empleado.auth_uuid || empleado.nombre}
-										value={empleado.auth_uuid || ""}>
-										{empleado.nombre}
-									</option>
+								{empleados.map((e) => (
+									<option key={e.auth_uuid || e.nombre} value={e.auth_uuid || ""}>{e.nombre}</option>
 								))}
 							</select>
 						</div>
-					</div>
-
-					<div className="botones-accion-cierre">
-						<button className="btn-apertura-caja" onClick={() => setModalAperturaOpen(true)}>
-							Apertura Caja
-						</button>
-						<button className="btn-nuevo-movimiento" onClick={() => setModalMovimientoOpen(true)}>
-							Nuevo movimiento
-						</button>
-						<button className="btn-imprimir-detalle" onClick={() => window.print()}>
-							Imprimir Detalle Caja
-						</button>
-						<button className="btn-imprimir-sucursal" onClick={() => window.print()}>
-							Imprimir Detalle Caja Sucursal
-						</button>
-					</div>
-
-					<div className="monto-apertura-section">
-						<label>Monto Apertura</label>
-						<input
-							type="number"
-							value={montoApertura}
-							onChange={(e) => setMontoApertura(parseFloat(e.target.value) || 0)}
-							className="input-monto-apertura"
-						/>
+						<div className="monto-apertura-section">
+							<label>Apertura</label>
+							<input
+								type="number"
+								value={montoApertura}
+								onChange={(e) => setMontoApertura(parseFloat(e.target.value) || 0)}
+								className="input-monto-apertura"
+							/>
+						</div>
 					</div>
 
 					<div className="campos-cierre-grid">
-						<div className="campo-cierre verde">
-							<label>Ventas Efectivo</label>
-							<input type="number" value={ventasEfectivo} onChange={(e) => setVentasEfectivo(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre verde">
-							<label>Ingresos Efectivo</label>
-							<input type="number" value={ingresosEfectivo} onChange={(e) => setIngresosEfectivo(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre rojo">
-							<label>Egresos Efectivo</label>
-							<input type="number" value={egresosEfectivo} onChange={(e) => setEgresosEfectivo(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre azul">
-							<label>Total Efectivo</label>
-							<input type="number" value={totalEfectivo} readOnly className="input-campo-cierre" />
+						<div className="fila-encabezado">
+							<span>Forma de pago</span>
+							<span>Ventas</span>
+							<span>Ingresos</span>
+							<span>Egresos</span>
+							<span>Total</span>
 						</div>
 
-						<div className="campo-cierre verde">
-							<label>Ventas Tarjeta</label>
-							<input type="number" value={ventasTarjeta} onChange={(e) => setVentasTarjeta(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre verde">
-							<label>Ingresos Tarjeta</label>
-							<input type="number" value={ingresosTarjeta} onChange={(e) => setIngresosTarjeta(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre rojo">
-							<label>Egresos Tarjeta</label>
-							<input type="number" value={egresosTarjeta} onChange={(e) => setEgresosTarjeta(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre azul">
-							<label>Total Tarjeta</label>
-							<input type="number" value={totalTarjeta} readOnly className="input-campo-cierre" />
-						</div>
-
-						<div className="campo-cierre verde">
-							<label>Transferencias</label>
-							<input type="number" value={transferencias} onChange={(e) => setTransferencias(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre verde">
-							<label>Ingresos Transferencias</label>
-							<input type="number" value={ingresosTransferencias} onChange={(e) => setIngresosTransferencias(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre rojo">
-							<label>Egresos Transferencias</label>
-							<input type="number" value={egresosTransferencias} onChange={(e) => setEgresosTransferencias(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre azul">
-							<label>Total Transferencias</label>
-							<input type="number" value={totalTransferencias} readOnly className="input-campo-cierre" />
-						</div>
-
-						<div className="campo-cierre verde">
-							<label>Credito</label>
-							<input type="number" value={credito} onChange={(e) => setCredito(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre verde">
-							<label>Ingresos Credito</label>
-							<input type="number" value={ingresosCredito} onChange={(e) => setIngresosCredito(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre rojo">
-							<label>Egresos Credito</label>
-							<input type="number" value={egresosCredito} onChange={(e) => setEgresosCredito(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre azul">
-							<label>Total Credito</label>
-							<input type="number" value={totalCredito} readOnly className="input-campo-cierre" />
-						</div>
+						{FILAS_PAGO.map(({ key, label, clase }) => (
+							<div key={key} className={`fila-forma-pago ${clase}`}>
+								<div className="fila-label">
+									<span className="fila-dot" />
+									{label}
+								</div>
+								<div className="campo-cierre verde">
+									<input type="number" value={ventas[key]}
+										onChange={(e) => setVentas((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+										className="input-campo-cierre" />
+								</div>
+								<div className="campo-cierre verde">
+									<input type="number" value={ingresos[key]}
+										onChange={(e) => setIngresos((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+										className="input-campo-cierre" />
+								</div>
+								<div className="campo-cierre rojo">
+									<input type="number" value={egresos[key]}
+										onChange={(e) => setEgresos((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+										className="input-campo-cierre" />
+								</div>
+								<div className="campo-cierre azul">
+									<input type="number" value={totales[key]} readOnly className="input-campo-cierre" />
+								</div>
+							</div>
+						))}
 					</div>
 
 					<div className="totales-finales-cierre">
-						<div className="campo-cierre rojo">
-							<label>Monto Cancelados</label>
-							<input type="number" value={montoCancelados} onChange={(e) => setMontoCancelados(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
+						<div className="total-card cancelados">
+							<label>Cancelados</label>
+							<input type="number" value={montoCancelados}
+								onChange={(e) => setMontoCancelados(parseFloat(e.target.value) || 0)}
+								className="input-campo-cierre" />
 						</div>
-						<div className="espacio-vacio" />
-						<div className="campo-cierre azul">
+						<div className="total-card">
+							<label>Adeudos</label>
+							<input type="number" value={totalAdeudos}
+								onChange={(e) => setTotalAdeudos(parseFloat(e.target.value) || 0)}
+								className="input-campo-cierre" />
+						</div>
+						<div className="total-card destacado">
 							<label>Total en Caja</label>
 							<input type="number" value={totalEnCaja} readOnly className="input-campo-cierre" />
-						</div>
-						<div className="campo-cierre azul">
-							<label>Total Adeudos</label>
-							<input type="number" value={totalAdeudos} onChange={(e) => setTotalAdeudos(parseFloat(e.target.value) || 0)} className="input-campo-cierre" />
 						</div>
 					</div>
 				</div>
@@ -634,26 +544,21 @@ const CierreCaja = () => {
 				<p>Fecha: {fechaActual}</p>
 				<table>
 					<tbody>
-						<tr><td>Monto Apertura</td><td>${montoApertura.toFixed(2)}</td></tr>
-						<tr><td>Ventas Efectivo</td><td>${ventasEfectivo.toFixed(2)}</td></tr>
-						<tr><td>Ingresos Efectivo</td><td>${ingresosEfectivo.toFixed(2)}</td></tr>
-						<tr><td>Egresos Efectivo</td><td>-${egresosEfectivo.toFixed(2)}</td></tr>
-						<tr><td>Total Efectivo</td><td>${totalEfectivo.toFixed(2)}</td></tr>
-						<tr><td>Ventas Tarjeta</td><td>${ventasTarjeta.toFixed(2)}</td></tr>
-						<tr><td>Ingresos Tarjeta</td><td>${ingresosTarjeta.toFixed(2)}</td></tr>
-						<tr><td>Egresos Tarjeta</td><td>-${egresosTarjeta.toFixed(2)}</td></tr>
-						<tr><td>Total Tarjeta</td><td>${totalTarjeta.toFixed(2)}</td></tr>
-						<tr><td>Transferencias</td><td>${transferencias.toFixed(2)}</td></tr>
-						<tr><td>Ingresos Transferencias</td><td>${ingresosTransferencias.toFixed(2)}</td></tr>
-						<tr><td>Egresos Transferencias</td><td>-${egresosTransferencias.toFixed(2)}</td></tr>
-						<tr><td>Total Transferencias</td><td>${totalTransferencias.toFixed(2)}</td></tr>
-						<tr><td>Crédito</td><td>${credito.toFixed(2)}</td></tr>
-						<tr><td>Ingresos Crédito</td><td>${ingresosCredito.toFixed(2)}</td></tr>
-						<tr><td>Egresos Crédito</td><td>-${egresosCredito.toFixed(2)}</td></tr>
-						<tr><td>Total Crédito</td><td>${totalCredito.toFixed(2)}</td></tr>
-						<tr><td>Monto Cancelados</td><td>-${montoCancelados.toFixed(2)}</td></tr>
-						<tr className="fila-total"><td><strong>TOTAL EN CAJA</strong></td><td><strong>${totalEnCaja.toFixed(2)}</strong></td></tr>
-						<tr><td>Total Adeudos</td><td>${totalAdeudos.toFixed(2)}</td></tr>
+						<tr><td>Monto Apertura</td><td>{fmt(montoApertura)}</td></tr>
+						{FILAS_PAGO.map(({ key, label }) => (
+							<React.Fragment key={key}>
+								<tr><td>Ventas {label}</td><td>{fmt(ventas[key])}</td></tr>
+								<tr><td>Ingresos {label}</td><td>{fmt(ingresos[key])}</td></tr>
+								<tr><td>Egresos {label}</td><td>-{fmt(egresos[key])}</td></tr>
+								<tr><td>Total {label}</td><td>{fmt(totales[key])}</td></tr>
+							</React.Fragment>
+						))}
+						<tr><td>Cancelados</td><td>-{fmt(montoCancelados)}</td></tr>
+						<tr className="fila-total">
+							<td><strong>TOTAL EN CAJA</strong></td>
+							<td><strong>{fmt(totalEnCaja)}</strong></td>
+						</tr>
+						<tr><td>Total Adeudos</td><td>{fmt(totalAdeudos)}</td></tr>
 					</tbody>
 				</table>
 			</div>
