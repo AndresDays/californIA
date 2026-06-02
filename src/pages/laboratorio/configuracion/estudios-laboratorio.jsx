@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { exportarExcel, exportarPDF } from "../../../utils/exportar-tabla";
 import editarIconoV2 from "../../../assets/editarIconoV2.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import excelBtn from "../../../assets/excelBtn.png";
@@ -259,6 +260,32 @@ const EstudiosLab = () => {
 			setTiposEstudio([]);
 			setTipoEstudioSeleccionado("");
 		}
+	};
+
+	const handleExportarExcel = () => {
+		const columnas = ["#", "Catálogo", "Clave", "Descripción", "Área", "Tipo"];
+		const filas = estudios.map((e, i) => [
+			i + 1,
+			e.tipo_catalogo || "",
+			e.clave || "",
+			e.descripcion || "",
+			e.area || "",
+			e.modalidad || "laboratorio",
+		]);
+		exportarExcel(columnas, filas, "estudios_catalogo");
+	};
+
+	const handleExportarPDF = () => {
+		const columnas = ["#", "Catálogo", "Clave", "Descripción", "Área", "Tipo"];
+		const filas = estudios.map((e, i) => [
+			i + 1,
+			e.tipo_catalogo || "",
+			e.clave || "",
+			e.descripcion || "",
+			e.area || "",
+			e.modalidad || "laboratorio",
+		]);
+		exportarPDF("Catálogo de Estudios", columnas, filas, "estudios_catalogo");
 	};
 
 	const cargarEstudios = async () => {
@@ -908,13 +935,13 @@ const EstudiosLab = () => {
 							<div className="botones-exportar-estudios">
 								<button
 									className="btn-exportar-est"
-									onClick={() => alert("Exportar a Excel")}
+									onClick={handleExportarExcel}
 									title="Exportar a Excel">
 									<img src={excelBtn} alt="Excel" className="icono-exportar" />
 								</button>
 								<button
 									className="btn-exportar-est"
-									onClick={() => alert("Exportar a PDF")}
+									onClick={handleExportarPDF}
 									title="Exportar a PDF">
 									<img src={pdfBtn} alt="PDF" className="icono-exportar" />
 								</button>
