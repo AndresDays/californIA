@@ -4,6 +4,7 @@ import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { exportarExcel, exportarPDF } from "../../../utils/exportar-tabla";
 import ModalAgregarPrecio from "../componentes/modal-agregar-precio";
 import "./precios.css";
 
@@ -20,6 +21,10 @@ const Precios = () => {
 	const [modalAbierto, setModalAbierto] = useState(false);
 	const [precioEditar, setPrecioEditar] = useState(null);
 	const [empleadoData, setEmpleadoData] = useState(null);
+	const [modalDuplicarAbierto, setModalDuplicarAbierto] = useState(false);
+	const [empresaOrigen, setEmpresaOrigen] = useState("");
+	const [empresaDestino, setEmpresaDestino] = useState("");
+	const [duplicando, setDuplicando] = useState(false);
 
 	useEffect(() => {
 		const fetchEmpleadoData = async () => {
@@ -133,6 +138,88 @@ const Precios = () => {
 		return paginas;
 	};
 
+	const fetchTodosLosPrecios = async () => {
+		let query = supabase.from("precios_estudios").select("*");
+		if (buscarPrecio.trim())
+			query = query.or(
+				`clave.ilike.%${buscarPrecio}%,descripcion.ilike.%${buscarPrecio}%,empresa.ilike.%${buscarPrecio}%`,
+			);
+		if (empresaFiltro) query = query.eq("empresa", empresaFiltro);
+		const { data, error } = await query.order("id", { ascending: true });
+		if (error) throw error;
+		return data || [];
+	};
+
+	const handleExportarExcel = async () => {
+		try {
+			const todos = await fetchTodosLosPrecios();
+			const columnas = ["Tipo", "Clave", "Descripción", "Empresa", "Precio", "Fecha"];
+			const filas = todos.map((p) => [
+				p.tipo || "Estudio",
+				p.clave || "",
+				p.descripcion || "",
+				p.empresa || p.cliente || "",
+				`$${p.precio}`,
+				p.fecha ? new Date(p.fecha).toLocaleDateString("es-MX") : "",
+			]);
+			const sufijo = empresaFiltro ? `_${empresaFiltro}` : "";
+			exportarExcel(columnas, filas, `precios${sufijo}`);
+		} catch (err) {
+			console.error("Error al exportar Excel:", err);
+		}
+	};
+
+	const handleExportarPDF = async () => {
+		try {
+			const todos = await fetchTodosLosPrecios();
+			const columnas = ["Tipo", "Clave", "Descripción", "Empresa", "Precio", "Fecha"];
+			const filas = todos.map((p) => [
+				p.tipo || "Estudio",
+				p.clave || "",
+				p.descripcion || "",
+				p.empresa || p.cliente || "",
+				`$${p.precio}`,
+				p.fecha ? new Date(p.fecha).toLocaleDateString("es-MX") : "",
+			]);
+			const titulo = empresaFiltro ? `Lista de Precios — ${empresaFiltro}` : "Lista de Precios";
+			const sufijo = empresaFiltro ? `_${empresaFiltro}` : "";
+			exportarPDF(titulo, columnas, filas, `precios${sufijo}`);
+		} catch (err) {
+			console.error("Error al exportar PDF:", err);
+		}
+	};
+
+	const EMPRESAS = ["ISSSTE", "NAVAL", "SSA", "Particular", "CENTRO MEDICO ANAMAYA"];
+
+	const handleDuplicarLista = async () => {
+		if (!empresaOrigen || !empresaDestino) return;
+		if (empresaOrigen === empresaDestino) return;
+		setDuplicando(true);
+		try {
+			const { data, error } = await supabase
+				.from("precios_estudios")
+				.select("tipo, clave, descripcion, precio")
+				.eq("empresa", empresaOrigen);
+			if (error) throw error;
+			if (!data?.length) { setDuplicando(false); return; }
+			const nuevos = data.map(({ tipo, clave, descripcion, precio }) => ({
+				tipo, clave, descripcion, precio,
+				empresa: empresaDestino,
+				fecha: new Date().toISOString(),
+			}));
+			const { error: insertError } = await supabase.from("precios_estudios").insert(nuevos);
+			if (insertError) throw insertError;
+			setModalDuplicarAbierto(false);
+			setEmpresaOrigen("");
+			setEmpresaDestino("");
+			cargarPrecios();
+		} catch (err) {
+			console.error("Error al duplicar lista:", err);
+		} finally {
+			setDuplicando(false);
+		}
+	};
+
 	const getPrimerNombre = (nombreCompleto) => {
 		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
 		return nombreCompleto;
@@ -194,7 +281,7 @@ const Precios = () => {
 							</button>
 							<button
 								className="btn-duplicar-lista"
-								onClick={() => alert("Duplicar lista de precios")}>
+								onClick={() => setModalDuplicarAbierto(true)}>
 								Duplicar Lista
 							</button>
 						</div>
@@ -214,12 +301,12 @@ const Precios = () => {
 						<div className="botones-exportar-precios">
 							<button
 								className="btn-exportar-precio"
-								onClick={() => alert("Exportar a Excel")}>
+								onClick={handleExportarExcel}>
 								Excel
 							</button>
 							<button
 								className="btn-exportar-precio"
-								onClick={() => alert("Exportar a PDF")}>
+								onClick={handleExportarPDF}>
 								PDF
 							</button>
 						</div>
@@ -382,6 +469,42 @@ const Precios = () => {
 					precioEditar={precioEditar}
 				/>
 			</div>
+
+			{modalDuplicarAbierto && (
+				<div className="modal-duplicar-overlay" onClick={() => setModalDuplicarAbierto(false)}>
+					<div className="modal-duplicar-box" onClick={(e) => e.stopPropagation()}>
+						<h3 className="modal-duplicar-titulo">Duplicar Lista de Precios</h3>
+						<p className="modal-duplicar-subtitulo">
+							Copia todos los precios de una empresa a otra.
+						</p>
+						<div className="modal-duplicar-campo">
+							<label>Empresa origen</label>
+							<select value={empresaOrigen} onChange={(e) => setEmpresaOrigen(e.target.value)} className="modal-duplicar-select">
+								<option value="">Selecciona empresa origen</option>
+								{EMPRESAS.map((e) => <option key={e} value={e}>{e}</option>)}
+							</select>
+						</div>
+						<div className="modal-duplicar-campo">
+							<label>Empresa destino</label>
+							<select value={empresaDestino} onChange={(e) => setEmpresaDestino(e.target.value)} className="modal-duplicar-select">
+								<option value="">Selecciona empresa destino</option>
+								{EMPRESAS.filter((e) => e !== empresaOrigen).map((e) => <option key={e} value={e}>{e}</option>)}
+							</select>
+						</div>
+						<div className="modal-duplicar-acciones">
+							<button className="btn-duplicar-cancelar" onClick={() => setModalDuplicarAbierto(false)} disabled={duplicando}>
+								Cancelar
+							</button>
+							<button
+								className="btn-duplicar-confirmar"
+								onClick={handleDuplicarLista}
+								disabled={duplicando || !empresaOrigen || !empresaDestino}>
+								{duplicando ? "Duplicando…" : "Duplicar"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</PageLayout>
 	);
 };

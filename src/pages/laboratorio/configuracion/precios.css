@@ -458,3 +458,50 @@
 	display: block;
 	object-fit: contain;
 }
+
+.modal-duplicar-overlay {
+	position: fixed; inset: 0;
+	background: rgba(0,0,0,0.65);
+	display: flex; align-items: center; justify-content: center;
+	z-index: 1000; backdrop-filter: blur(6px);
+}
+.modal-duplicar-box {
+	background: rgba(10,25,41,0.97);
+	border: 1px solid rgba(83,185,219,0.25);
+	border-radius: 14px; padding: 1.75rem 2rem;
+	width: 100%; max-width: 400px;
+	display: flex; flex-direction: column; gap: 1.1rem;
+	box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+	font-family: 'Codec Pro', sans-serif; color: white;
+}
+.modal-duplicar-titulo { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.modal-duplicar-subtitulo { margin: -0.5rem 0 0; font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+.modal-duplicar-campo { display: flex; flex-direction: column; gap: 0.35rem; }
+.modal-duplicar-campo label { font-size: 0.75rem; color: rgba(83,185,219,0.85); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.modal-duplicar-select {
+	padding: 0.65rem 0.9rem;
+	background: rgba(10,25,41,0.7);
+	border: 1px solid rgba(83,185,219,0.25);
+	border-radius: 7px; color: white;
+	font-family: 'Codec Pro', sans-serif; font-size: 0.9rem;
+	width: 100%; cursor: pointer;
+}
+.modal-duplicar-select option { background: #0a1929; }
+.modal-duplicar-select:focus { outline: none; border-color: #53B9DB; }
+.modal-duplicar-acciones { display: flex; gap: 0.65rem; justify-content: flex-end; padding-top: 0.25rem; }
+.btn-duplicar-cancelar {
+	padding: 0.6rem 1.2rem; background: transparent;
+	border: 1px solid rgba(255,255,255,0.15); border-radius: 7px;
+	color: rgba(255,255,255,0.55); font-family: 'Codec Pro', sans-serif;
+	font-size: 0.85rem; cursor: pointer;
+}
+.btn-duplicar-cancelar:hover { border-color: rgba(255,255,255,0.35); color: white; }
+.btn-duplicar-confirmar {
+	padding: 0.6rem 1.4rem;
+	background: linear-gradient(135deg, #106DA0, #49B2D4);
+	border: none; border-radius: 7px; color: white;
+	font-family: 'Codec Pro', sans-serif; font-size: 0.85rem; font-weight: 600;
+	cursor: pointer;
+}
+.btn-duplicar-confirmar:hover { opacity: 0.88; }
+.btn-duplicar-confirmar:disabled, .btn-duplicar-cancelar:disabled { opacity: 0.4; cursor: not-allowed; }
