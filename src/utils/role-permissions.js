@@ -35,7 +35,6 @@ const RECEPCIONISTA_PATHS = [
 	"/historial",
 	"/turnos",
 	"/cierre-caja",
-	"/reporte-ventas",
 	"/pacientes",
 	"/doctores",
 	"/perfil",
@@ -83,13 +82,7 @@ export const filtrarMenuPorRol = (items = [], rol) => {
 						),
 					};
 				}
-				if (item.id === "reportes") {
-					return {
-						...item,
-						path: "/reporte-ventas",
-						submenu: item.submenu?.filter((subItem) => subItem.id === "reporte-ventas"),
-					};
-				}
+				if (item.id === "reportes") return null;
 				return null;
 			})
 			.filter(Boolean);

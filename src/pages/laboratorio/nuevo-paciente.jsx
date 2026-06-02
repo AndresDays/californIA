@@ -1879,7 +1879,8 @@ const NuevoPaciente = () => {
 											onChange={(e) => setFormaPago(e.target.value)}
 											className="form-select">
 											<option value="efectivo">Efectivo</option>
-											<option value="tarjeta">Tarjeta</option>
+											<option value="tarjeta_debito">Tarjeta Debito</option>
+											<option value="tarjeta_credito">Tarjeta Credito</option>
 											<option value="transferencia">Transferencia</option>
 										</select>
 									</div>
