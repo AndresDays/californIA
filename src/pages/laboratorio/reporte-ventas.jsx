@@ -10,12 +10,12 @@ import {
 	agruparVentasPorVendedor,
 	calcularMetricasVentas,
 	calcularSaldoVentaReporte,
-	crearCsvVentas,
 	filtrarVentasReporte,
 	formatoMonedaReporte,
 	obtenerIdSucursalVenta,
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
+import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
 import { esErrorColumnaSchemaCache } from "../../utils/supabase-errors";
 import "./reporte-ventas.css";
 
@@ -277,16 +277,35 @@ const ReporteVentas = () => {
 		setFechaFinal(fin.toISOString().split("T")[0]);
 	};
 
-	const descargarCsv = () => {
-		const blob = new Blob([crearCsvVentas(ventasFiltradas)], {
-			type: "text/csv;charset=utf-8;",
+	const colsVentas = ["Folio", "Fecha", "Paciente", "Estudios", "Vendedor", "Forma Pago", "Total", "Pagado", "Saldo", "Sucursal"];
+	const filasVentas = () =>
+		ventasFiltradas.map((v) => {
+			const saldo = calcularSaldoVentaReporte(v);
+			return [
+				v.folio || v.id_venta || "",
+				v.fecha_venta ? new Date(v.fecha_venta).toLocaleDateString("es-MX") : "",
+				v.pacientes?.nombre || v.nombre_paciente || "",
+				(v.estudios_venta || []).map((e) => e.descripcion_estudio || e.clave_estudio).join(", "),
+				v.actor_nombre || v.empleado_nombre || "",
+				v.forma_pago || "",
+				`$${Number(v.total || 0).toFixed(2)}`,
+				`$${Number(v.pago_recibido || 0).toFixed(2)}`,
+				`$${Number(saldo || 0).toFixed(2)}`,
+				v.sucursal || v.sucursales?.nombre || "",
+			];
 		});
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = `reporte-ventas-${fechaInicial}-${fechaFinal}.csv`;
-		link.click();
-		URL.revokeObjectURL(url);
+
+	const descargarExcel = () => {
+		exportarExcel(colsVentas, filasVentas(), `reporte-ventas-${fechaInicial}-${fechaFinal}`);
+	};
+
+	const descargarPDF = () => {
+		exportarPDF(
+			`Reporte de Ventas  ${fechaInicial} – ${fechaFinal}`,
+			colsVentas,
+			filasVentas(),
+			`reporte-ventas-${fechaInicial}-${fechaFinal}`,
+		);
 	};
 
 	const getPrimerNombre = (nombreCompleto) => {
@@ -414,10 +433,10 @@ const ReporteVentas = () => {
 				<div className="rv-header">
 					<h1 className="rv-title">Reporte de Ventas</h1>
 					<div className="rv-header-actions">
-						<button className="rv-btn-sm" onClick={descargarCsv}>
+						<button className="rv-btn-sm" onClick={descargarExcel}>
 							Excel
 						</button>
-						<button className="rv-btn-sm" onClick={() => window.print()}>
+						<button className="rv-btn-sm" onClick={descargarPDF}>
 							PDF
 						</button>
 						<button className="rv-btn-sm accent" onClick={() => window.print()}>

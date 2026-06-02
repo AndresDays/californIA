@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
@@ -192,6 +193,53 @@ const ReporteAdministrativo = () => {
 	const getPrimerNombre = (nombreCompleto) =>
 		nombreCompleto || user?.email?.split("@")[0] || "Usuario";
 
+	const exportarReporteExcel = () => {
+		const sufijo = `${fechaInicial}_${fechaFinal}`;
+		const hojas = [
+			{
+				nombre: "Resumen",
+				cols: ["Métrica", "Valor"],
+				filas: [
+					["Total Ingresos", formatoMonedaAdmin(resumen.totalIngresos)],
+					["Total Ventas", resumen.totalVentas],
+					["Total Adeudos", formatoMonedaAdmin(resumen.totalAdeudos)],
+					["Total Estudios", resumen.totalEstudios],
+					["Pendientes", resumen.pendientes],
+				],
+			},
+		];
+		// Hoja de ingresos por sucursal
+		const colsSuc = ["Sucursal", "Ingresos", "Ventas"];
+		const filasSuc = ingresosSucursal.map((s) => [s.nombre, formatoMonedaAdmin(s.ingreso), s.ventas]);
+		// Hoja de estudios top
+		const colsTop = ["Estudio", "Cantidad", "Ingresos"];
+		const filasTop = estudiosTop.map((e) => [e.nombre, e.cantidad, formatoMonedaAdmin(e.ingresos)]);
+		// Exportar combinado en una sola hoja
+		const cols = ["Sección", "Concepto", "Valor"];
+		const filas = [
+			...hojas[0].filas.map(([c, v]) => ["Resumen", c, v]),
+			...filasSuc.map(([n, i, v]) => ["Ingresos por Sucursal", n, `${i} (${v} ventas)`]),
+			...filasTop.map(([n, c, i]) => ["Estudios más vendidos", n, `${c} uds — ${i}`]),
+		];
+		exportarExcel(cols, filas, `reporte-administrativo-${sufijo}`);
+	};
+
+	const exportarReportePDF = () => {
+		const sufijo = `${fechaInicial}_${fechaFinal}`;
+		const titulo = `Reporte Administrativo  ${fechaInicial} – ${fechaFinal}`;
+		const cols = ["Sección", "Concepto", "Valor"];
+		const filas = [
+			["Resumen", "Total Ingresos", formatoMonedaAdmin(resumen.totalIngresos)],
+			["Resumen", "Total Ventas", String(resumen.totalVentas)],
+			["Resumen", "Total Adeudos", formatoMonedaAdmin(resumen.totalAdeudos)],
+			["Resumen", "Total Estudios", String(resumen.totalEstudios)],
+			["Resumen", "Pendientes", String(resumen.pendientes)],
+			...ingresosSucursal.map((s) => ["Por Sucursal", s.nombre, `${formatoMonedaAdmin(s.ingreso)} (${s.ventas} ventas)`]),
+			...estudiosTop.map((e) => ["Top Estudios", e.nombre, `${e.cantidad} uds — ${formatoMonedaAdmin(e.ingresos)}`]),
+		];
+		exportarPDF(titulo, cols, filas, `reporte-administrativo-${sufijo}`);
+	};
+
 	return (
 		<PageLayout
 			empleadoData={empleadoData}
@@ -203,9 +251,11 @@ const ReporteAdministrativo = () => {
 						<h1 className="ra-title">Reporte Administrativo</h1>
 						<p>Operacion, productividad, adeudos e indicadores de entrega</p>
 					</div>
-					<button className="ra-btn accent" onClick={cargarReporte}>
-						Actualizar
-					</button>
+					<div style={{ display: "flex", gap: "0.5rem" }}>
+						<button className="ra-btn" onClick={exportarReporteExcel}>Excel</button>
+						<button className="ra-btn" onClick={exportarReportePDF}>PDF</button>
+						<button className="ra-btn accent" onClick={cargarReporte}>Actualizar</button>
+					</div>
 				</header>
 
 				<main className="ra-body">
