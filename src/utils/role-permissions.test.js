@@ -43,15 +43,12 @@ test("limits receptionist menu to reception and allowed admin catalogs", () => {
 		"entrega",
 		"recepcion",
 		"administracion",
-		"reportes",
 	]);
 	expect(filtrado.find((item) => item.id === "administracion").submenu.map((item) => item.id)).toEqual([
 		"pacientes",
 		"doctores",
 	]);
-	expect(filtrado.find((item) => item.id === "reportes").submenu.map((item) => item.id)).toEqual([
-		"reporte-ventas",
-	]);
+	expect(filtrado.map((item) => item.id)).not.toContain("reportes");
 });
 
 test("treats recepcion profile as receptionist permissions", () => {
@@ -66,7 +63,8 @@ test("treats recepcion profile as receptionist permissions", () => {
 
 test("blocks receptionist access to restricted routes", () => {
 	expect(puedeAccederRuta("recepcionista", "/pacientes")).toBe(true);
-	expect(puedeAccederRuta("recepcionista", "/reporte-ventas")).toBe(true);
+	expect(puedeAccederRuta("recepcionista", "/reporte-ventas")).toBe(false);
+	expect(puedeAccederRuta("recepcionista", "/reporte-administrativo")).toBe(false);
 	expect(puedeAccederRuta("recepcionista", "/usuarios")).toBe(false);
 	expect(puedeAccederRuta("recepcionista", "/radiologia")).toBe(false);
 	expect(puedeAccederRuta("admin", "/usuarios")).toBe(true);
