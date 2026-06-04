@@ -1,7 +1,7 @@
 {
   "name": "california",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "Sistema de diagnóstico asistido por IA para radiología - Centro Diagnóstico California",
   "scripts": {
@@ -15,6 +15,9 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^9.0.1",
     "@supabase/supabase-js": "^2.39.0",
     "cornerstone-core": "^2.6.1",
     "cornerstone-tools": "^4.22.1",

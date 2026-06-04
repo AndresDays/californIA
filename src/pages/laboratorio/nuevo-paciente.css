@@ -184,6 +184,11 @@
   font-size: 0.9rem;
 }
 
+.search-input-autocomplete {
+  flex: 1;
+  min-width: 0;
+}
+
 .search-input-full {
   width: 100%;
   padding: 0.58rem 0.65rem;
