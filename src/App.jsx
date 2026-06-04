@@ -1,5 +1,6 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
+import AppBoundary from './components/app-boundary';
 import ProtectedRoute from './components/protected-route';
 import { AuthProvider } from './context/auth-context';
 import ForgotPassword from './pages/forgot-password';
@@ -39,309 +40,60 @@ import VisorDicom from './pages/radiologia/pages/visor-dicom';
 import SalaEspera from './pages/sala-espera';
 import Usuarios from './pages/usuarios';
 
+const P = ({ children }) => (
+	<ProtectedRoute>
+		<AppBoundary>{children}</AppBoundary>
+	</ProtectedRoute>
+);
+
 function App() {
-  return (
+	return (
 		<Router>
 			<AuthProvider>
 				<Routes>
 					<Route path="/" element={<Navigate to="/login" replace />} />
 
 					<Route path="/login" element={<Login />} />
-
 					<Route path="/forgot-password" element={<ForgotPassword />} />
-
 					<Route path="/resultados" element={<PortalResultados />} />
-
 					<Route path="/sala-espera" element={<SalaEspera />} />
 
-					<Route
-						path="/dashboard"
-						element={
-							<ProtectedRoute>
-								<Dashboard />
-							</ProtectedRoute>
-						}
-					/>
+					<Route path="/dashboard" element={<P><Dashboard /></P>} />
 
-					<Route
-						path="/radiologia"
-						element={
-							<ProtectedRoute>
-								<DashboardRadiologia />
-							</ProtectedRoute>
-						}
-					/>
+					<Route path="/radiologia" element={<P><DashboardRadiologia /></P>} />
+					<Route path="/visor-dicom/:estudioId" element={<P><VisorDicom /></P>} />
+					<Route path="/reporte" element={<P><ReporteRadiologia /></P>} />
+					<Route path="/plantillas" element={<P><PlantillasRadiologia /></P>} />
 
-					<Route
-						path="/visor-dicom/:estudioId"
-						element={
-							<ProtectedRoute>
-								<VisorDicom />
-							</ProtectedRoute>
-						}
-					/>
+					<Route path="/laboratorio" element={<P><Laboratorio /></P>} />
+					<Route path="/usuarios" element={<P><Usuarios /></P>} />
+					<Route path="/pacientes" element={<P><Pacientes /></P>} />
+					<Route path="/perfil" element={<P><Perfil /></P>} />
+					<Route path="/nuevo-paciente" element={<P><NuevoPaciente /></P>} />
+					<Route path="/captura" element={<P><Captura /></P>} />
+					<Route path="/entrega-resultados" element={<P><EntregaResultados /></P>} />
+					<Route path="/editar-solicitud" element={<P><EditarSolicitud /></P>} />
+					<Route path="/cotizacion" element={<P><Cotizacion /></P>} />
+					<Route path="/historial" element={<P><Historial /></P>} />
+					<Route path="/turnos" element={<P><Turnos /></P>} />
+					<Route path="/cierre-caja" element={<P><CierreCaja /></P>} />
+					<Route path="/clientes" element={<P><Clientes /></P>} />
+					<Route path="/doctores" element={<P><Doctores /></P>} />
+					<Route path="/reporte-ventas" element={<P><ReporteVentas /></P>} />
+					<Route path="/reporte-administrativo" element={<P><ReporteAdministrativo /></P>} />
 
-					<Route
-						path="/reporte"
-						element={
-							<ProtectedRoute>
-								<ReporteRadiologia />
-							</ProtectedRoute>
-						}
-					/>
+					<Route path="/configuracion/estudios" element={<P><EstudiosLab /></P>} />
+					<Route path="/configuracion/analitos" element={<P><Analitos /></P>} />
+					<Route path="/configuracion/paquetes" element={<P><Paquetes /></P>} />
+					<Route path="/configuracion/precios" element={<P><Precios /></P>} />
+					<Route path="/configuracion/areas" element={<P><AdministrarAreas /></P>} />
+					<Route path="/configuracion/tipo-muestra" element={<P><TipoMuestra /></P>} />
+					<Route path="/configuracion/recipientes" element={<P><AdministrarRecipientes /></P>} />
+					<Route path="/configuracion/metodo" element={<P><AdministrarMetodos /></P>} />
+					<Route path="/configuracion/tecnica" element={<P><AdministrarTecnicas /></P>} />
+					<Route path="/configuracion/equipos" element={<P><AdministrarEquipos /></P>} />
+					<Route path="/configuracion/nivel" element={<P><AdministrarNiveles /></P>} />
 
-					<Route
-						path="/plantillas"
-						element={
-							<ProtectedRoute>
-								<PlantillasRadiologia />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/laboratorio"
-						element={
-							<ProtectedRoute>
-								<Laboratorio />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/usuarios"
-						element={
-							<ProtectedRoute>
-								<Usuarios />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/pacientes"
-						element={
-							<ProtectedRoute>
-								<Pacientes />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/perfil"
-						element={
-							<ProtectedRoute>
-								<Perfil />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/nuevo-paciente"
-						element={
-							<ProtectedRoute>
-								<NuevoPaciente />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/captura"
-						element={
-							<ProtectedRoute>
-								<Captura />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/entrega-resultados"
-						element={
-							<ProtectedRoute>
-								<EntregaResultados />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/editar-solicitud"
-						element={
-							<ProtectedRoute>
-								<EditarSolicitud />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/cotizacion"
-						element={
-							<ProtectedRoute>
-								<Cotizacion />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/historial"
-						element={
-							<ProtectedRoute>
-								<Historial />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/turnos"
-						element={
-							<ProtectedRoute>
-								<Turnos />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/cierre-caja"
-						element={
-							<ProtectedRoute>
-								<CierreCaja />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/clientes"
-						element={
-							<ProtectedRoute>
-								<Clientes />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/doctores"
-						element={
-							<ProtectedRoute>
-								<Doctores />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/reporte-ventas"
-						element={
-							<ProtectedRoute>
-								<ReporteVentas />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/reporte-administrativo"
-						element={
-							<ProtectedRoute>
-								<ReporteAdministrativo />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/estudios"
-						element={
-							<ProtectedRoute>
-								<EstudiosLab />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/analitos"
-						element={
-							<ProtectedRoute>
-								<Analitos />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/paquetes"
-						element={
-							<ProtectedRoute>
-								<Paquetes />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/precios"
-						element={
-							<ProtectedRoute>
-								<Precios />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/areas"
-						element={
-							<ProtectedRoute>
-								<AdministrarAreas />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/tipo-muestra"
-						element={
-							<ProtectedRoute>
-								<TipoMuestra />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/recipientes"
-						element={
-							<ProtectedRoute>
-								<AdministrarRecipientes />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/metodo"
-						element={
-							<ProtectedRoute>
-								<AdministrarMetodos />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/tecnica"
-						element={
-							<ProtectedRoute>
-								<AdministrarTecnicas />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/equipos"
-						element={
-							<ProtectedRoute>
-								<AdministrarEquipos />
-							</ProtectedRoute>
-						}
-					/>
-
-					<Route
-						path="/configuracion/nivel"
-						element={
-							<ProtectedRoute>
-								<AdministrarNiveles />
-							</ProtectedRoute>
-						}
-					/>
-					{/* Ruta 404 - redirige al login */}
 					<Route path="*" element={<Navigate to="/login" replace />} />
 				</Routes>
 			</AuthProvider>
@@ -349,4 +101,4 @@ function App() {
 	);
 }
 
-export default App
+export default App;

@@ -1,0 +1,131 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* ── Spinner de carga ────────────────────────────────────────────────────── */
+.app-loading {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1.5rem;
+	background: linear-gradient(135deg, #020F23 0%, #0D4369 100%);
+	font-family: 'Codec Pro', sans-serif;
+}
+
+.app-loading-spinner {
+	width: 48px;
+	height: 48px;
+	border: 3px solid rgba(83, 185, 219, 0.2);
+	border-top-color: #53B9DB;
+	border-radius: 50%;
+	animation: spin 0.75s linear infinite;
+}
+
+.app-loading-text {
+	font-size: 0.9rem;
+	color: rgba(83, 185, 219, 0.7);
+	letter-spacing: 0.08em;
+	font-weight: 500;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+/* ── Pantalla de error ───────────────────────────────────────────────────── */
+.app-error {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1.25rem;
+	background: linear-gradient(135deg, #020F23 0%, #0D4369 100%);
+	font-family: 'Codec Pro', sans-serif;
+	padding: 2rem;
+	text-align: center;
+}
+
+.app-error-icon {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	background: rgba(239, 83, 80, 0.12);
+	border: 1px solid rgba(239, 83, 80, 0.3);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.6rem;
+}
+
+.app-error-title {
+	margin: 0;
+	font-size: 1.3rem;
+	font-weight: 600;
+	color: white;
+	letter-spacing: 0.02em;
+}
+
+.app-error-message {
+	margin: 0;
+	font-size: 0.85rem;
+	color: rgba(255, 255, 255, 0.5);
+	max-width: 420px;
+	line-height: 1.6;
+}
+
+.app-error-detail {
+	margin: 0;
+	font-size: 0.75rem;
+	color: rgba(239, 83, 80, 0.7);
+	background: rgba(239, 83, 80, 0.06);
+	border: 1px solid rgba(239, 83, 80, 0.15);
+	border-radius: 8px;
+	padding: 0.75rem 1rem;
+	max-width: 480px;
+	text-align: left;
+	font-family: monospace;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.app-error-actions {
+	display: flex;
+	gap: 0.75rem;
+	margin-top: 0.5rem;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.app-error-btn {
+	padding: 0.65rem 1.4rem;
+	border-radius: 8px;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.88rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s;
+	border: none;
+}
+
+.app-error-btn.primary {
+	background: linear-gradient(135deg, #106DA0, #49B2D4);
+	color: white;
+	box-shadow: 0 2px 12px rgba(73, 178, 212, 0.3);
+}
+
+.app-error-btn.primary:hover {
+	opacity: 0.88;
+	transform: translateY(-1px);
+}
+
+.app-error-btn.secondary {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.app-error-btn.secondary:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: white;
+}

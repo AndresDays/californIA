@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
+import SearchAutocomplete from "../../components/search-autocomplete.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import {
@@ -891,6 +892,17 @@ const NuevoPaciente = () => {
 		}
 	};
 
+	const buscarPacientesAsync = useCallback(async (termino) => {
+		const { data, error } = await supabase
+			.from("pacientes")
+			.select("*")
+			.or(`nombre.ilike.%${termino}%,apellido_paterno.ilike.%${termino}%,apellido_materno.ilike.%${termino}%,telefono.ilike.%${termino}%`)
+			.order("nombre")
+			.limit(10);
+		if (error) throw error;
+		return data || [];
+	}, []);
+
 	const seleccionarPaciente = (paciente) => {
 		setPacienteSeleccionado(paciente);
 		setNombreCompleto(paciente.nombre);
@@ -1014,6 +1026,17 @@ const NuevoPaciente = () => {
 			setShowBusquedaDoctores(false);
 		}
 	};
+
+	const buscarDoctoresAsync = useCallback(async (termino) => {
+		const { data, error } = await supabase
+			.from("doctores")
+			.select("*")
+			.or(`nombre.ilike.%${termino}%,apellido_paterno.ilike.%${termino}%`)
+			.order("nombre")
+			.limit(10);
+		if (error) throw error;
+		return data || [];
+	}, []);
 
 	const seleccionarDoctor = (doctor) => {
 		setDoctorSeleccionado(doctor);
@@ -1362,15 +1385,27 @@ const NuevoPaciente = () => {
 								<h2 className="section-title">Paciente</h2>
 
 								<div className="search-container">
-									<input
-										type="text"
+									<SearchAutocomplete
+										buscar={buscarPacientesAsync}
+										onSeleccionar={(pac) => pac && seleccionarPaciente(pac)}
+										getLabel={(pac) => pac?.nombre ?? ''}
 										placeholder="Buscar por nombre o teléfono"
-										value={buscarPaciente}
-										onChange={(e) => {
-											setBuscarPaciente(e.target.value);
-											buscarPacientes(e.target.value);
+										value={pacienteSeleccionado}
+										noOptionsText="Sin coincidencias — prueba con otro nombre"
+										renderOpcion={(pac) => {
+											const detalles = formatearPacienteBusqueda(pac);
+											return (
+												<div style={{ width: '100%' }}>
+													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{pac.nombre}</div>
+													{detalles.length > 0 && (
+														<div style={{ fontSize: '0.75rem', color: 'rgba(83,185,219,0.75)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+															{detalles.map((d) => <span key={d}>{d}</span>)}
+														</div>
+													)}
+												</div>
+											);
 										}}
-										className="search-input"
+										className="search-input-autocomplete"
 									/>
 									<button
 										className="btn-search btn-search-paciente"
@@ -1378,45 +1413,6 @@ const NuevoPaciente = () => {
 										title="Agregar nuevo paciente">
 										<img src={pacientesIcono} alt="Paciente" className="btn-icon" />
 									</button>
-
-									{showBusquedaPacientes && pacientesEncontrados.length > 0 && (
-										<div className="search-results">
-											{pacientesEncontrados.map((pac) => {
-												const detalles = formatearPacienteBusqueda(pac);
-
-												return (
-													<div
-														key={pac.id_paciente}
-														className="search-result-item"
-														onClick={() => seleccionarPaciente(pac)}>
-														<div className="result-nombre">{pac.nombre}</div>
-														{detalles.length > 0 && (
-															<div className="result-info">
-																{detalles.map((detalle) => (
-																	<span key={detalle}>{detalle}</span>
-																))}
-															</div>
-														)}
-													</div>
-												);
-											})}
-										</div>
-									)}
-
-									{showBusquedaPacientes &&
-										pacientesEncontrados.length === 0 &&
-										buscarPaciente.length >= 2 && (
-											<div className="search-results">
-												<div className="search-no-results">
-													<span>No hay coincidencias</span>
-													<button
-														type="button"
-														onClick={() => setModalAgregarPacienteOpen(true)}>
-														Agregar paciente
-													</button>
-												</div>
-											</div>
-										)}
 								</div>
 
 								{pacienteSeleccionado && (
@@ -1520,15 +1516,27 @@ const NuevoPaciente = () => {
 								<h2 className="section-title">Doctor</h2>
 
 								<div className="search-container">
-									<input
-										type="text"
+									<SearchAutocomplete
+										buscar={buscarDoctoresAsync}
+										onSeleccionar={(doc) => doc && seleccionarDoctor(doc)}
+										getLabel={(doc) => doc ? formatearDoctorBusqueda(doc).nombre : ''}
 										placeholder="Buscar doctor"
-										value={doctorBusqueda}
-										onChange={(e) => {
-											setDoctorBusqueda(e.target.value);
-											buscarDoctores(e.target.value);
+										value={doctorSeleccionado}
+										noOptionsText="Sin coincidencias"
+										renderOpcion={(doc) => {
+											const { nombre, detalles } = formatearDoctorBusqueda(doc);
+											return (
+												<div style={{ width: '100%' }}>
+													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{nombre}</div>
+													{detalles.length > 0 && (
+														<div style={{ fontSize: '0.75rem', color: 'rgba(83,185,219,0.75)', marginTop: '2px' }}>
+															{detalles.join(' · ')}
+														</div>
+													)}
+												</div>
+											);
 										}}
-										className="search-input"
+										className="search-input-autocomplete"
 									/>
 									<button
 										className="btn-search btn-search-doctor"
@@ -1536,45 +1544,6 @@ const NuevoPaciente = () => {
 										title="Agregar nuevo doctor">
 										<img src={doctorIcono} alt="Doctor" className="btn-icon" />
 									</button>
-
-									{showBusquedaDoctores && doctoresEncontrados.length > 0 && (
-										<div className="search-results">
-											{doctoresEncontrados.map((doc) => {
-												const doctor = formatearDoctorBusqueda(doc);
-
-												return (
-													<div
-														key={doc.id_empleado}
-														className="search-result-item"
-														onClick={() => seleccionarDoctor(doc)}>
-														<div className="result-nombre">{doctor.nombre}</div>
-														{doctor.detalles.length > 0 && (
-															<div className="result-info">
-																{doctor.detalles.map((detalle) => (
-																	<span key={detalle}>{detalle}</span>
-																))}
-															</div>
-														)}
-													</div>
-												);
-											})}
-										</div>
-									)}
-
-									{showBusquedaDoctores &&
-										doctoresEncontrados.length === 0 &&
-										doctorBusqueda.length >= 2 && (
-											<div className="search-results">
-												<div className="search-no-results">
-													<span>No hay coincidencias</span>
-													<button
-														type="button"
-														onClick={() => setModalAgregarDoctorOpen(true)}>
-														Agregar doctor
-													</button>
-												</div>
-											</div>
-										)}
 								</div>
 
 								{doctorSeleccionado && (
