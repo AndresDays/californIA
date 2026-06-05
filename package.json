@@ -4,6 +4,9 @@
   "version": "1.4.0",
   "type": "module",
   "description": "Sistema de diagnóstico asistido por IA para radiología - Centro Diagnóstico California",
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
