@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
 import enviarEmailBtn from "../../assets/enviarEmailBtn.png";
@@ -16,6 +17,7 @@ import {
 	esErrorColumnaInexistente,
 	esErrorTablaInexistente,
 } from "../../utils/supabase-errors";
+import { useEntregaResultados } from "../../hooks/use-entrega-resultados";
 import {
 	calcularPendientesEntrega,
 	calcularSaldoEntrega,
@@ -78,6 +80,7 @@ const formatearFechaMexico = (fecha = new Date()) => {
 
 const EntregaResultados = () => {
 	const { user } = useAuth();
+	const queryClient = useQueryClient();
 
 	const [fechaInicial, setFechaInicial] = useState(
 		formatearFechaMexico(),
@@ -86,7 +89,6 @@ const EntregaResultados = () => {
 		formatearFechaMexico(),
 	);
 	const [busquedaEntrega, setBusquedaEntrega] = useState("");
-	const [ventas, setVentas] = useState([]);
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [estudiosVenta, setEstudiosVenta] = useState([]);
 	const [estudiosRadiologia, setEstudiosRadiologia] = useState([]);
@@ -103,7 +105,7 @@ const EntregaResultados = () => {
 		tipo: "exito",
 	});
 
-	useEffect(() => {
+	useState(() => {
 		const fetchEmpleadoData = async () => {
 			if (!user?.id) return;
 			try {
@@ -124,121 +126,15 @@ const EntregaResultados = () => {
 		fetchEmpleadoData();
 	}, [user]);
 
-	useEffect(() => {
-		cargarVentas();
-	}, [fechaInicial, fechaFinal]);
+	const { data: ventas = [] } = useEntregaResultados({ fechaInicial, fechaFinal });
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
 	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
 
-	const cargarVentas = async () => {
-		try {
-			const { data: estudiosValidados, error: errorEstudios } = await supabase
-				.from("estudios_venta")
-				.select("id_estudio_venta, id_venta, estado_validacion, entregado, muestra_pendiente, updated_at")
-				.eq("estado_validacion", "validado");
-
-			if (errorEstudios) throw errorEstudios;
-
-			let estudiosRadiologiaNoEntregados = [];
-			const { data: radiologiaData, error: errorRadiologia } = await supabase
-				.from("estudios_radiologia")
-				.select(SELECT_RADIOLOGIA_ENTREGA)
-				.eq("entregado", false);
-
-			if (errorRadiologia) {
-				if (!esErrorSchemaRadiologiaEntrega(errorRadiologia)) {
-					throw errorRadiologia;
-				}
-				console.warn(
-					"Radiología no se pudo cargar porque faltan columnas de entrega:",
-					errorRadiologia,
-				);
-			} else {
-				estudiosRadiologiaNoEntregados = radiologiaData || [];
-			}
-
-			const estudiosLaboratorioListos = (estudiosValidados || []).filter(
-				(estudio) => estudioLaboratorioListoEntrega(estudio),
-			);
-			const estudiosRadiologiaPendientes = (estudiosRadiologiaNoEntregados || []).filter(
-				(estudio) =>
-					estudio.listo_entrega &&
-					!estudio.entregado,
-			);
-
-			const idsVentasListas = [
-				...new Set(
-					[
-						...estudiosLaboratorioListos,
-						...estudiosRadiologiaPendientes,
-					]
-						.filter((estudio) => estudio.id_venta)
-						.map((estudio) => estudio.id_venta),
-				),
-			];
-
-			if (idsVentasListas.length === 0) {
-				setVentas([]);
-				return;
-			}
-
-			const { data, error } = await supabase
-				.from("ventas")
-				.select(SELECT_VENTAS)
-				.in("id_venta", idsVentasListas)
-				.eq("estado", "activo")
-				.order("fecha_venta", { ascending: false });
-
-			if (error) throw error;
-			const ventasConLaboratorioListo = new Set(
-				estudiosLaboratorioListos.map((estudio) => estudio.id_venta),
-			);
-			const radiologiaListaPorVenta = estudiosRadiologiaPendientes.reduce(
-				(acc, estudio) => {
-					if (!estudio.id_venta) return acc;
-					acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
-					return acc;
-				},
-				{},
-			);
-			const radiologiaNoEntregadaPorVenta = estudiosRadiologiaNoEntregados.reduce(
-				(acc, estudio) => {
-					if (!estudio.id_venta) return acc;
-					acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
-					return acc;
-				},
-				{},
-			);
-			const ventasListasEntrega = (data || [])
-				.map((venta) => ({
-					...venta,
-					estudios_radiologia: radiologiaListaPorVenta[venta.id_venta] || [],
-					estudios_radiologia_todos:
-						radiologiaNoEntregadaPorVenta[venta.id_venta] || [],
-				}))
-				.filter((venta) =>
-					ventaListaEnRangoEntrega(
-						venta,
-						fechaInicial,
-						fechaFinal,
-					),
-				)
-				.map((venta) => ({
-					...venta,
-					estudios_venta: (venta.estudios_venta || []).filter((estudio) =>
-						ventasConLaboratorioListo.has(venta.id_venta)
-							? estudioLaboratorioListoEntrega(estudio)
-							: false,
-					),
-				}));
-			setVentas(ventasListasEntrega);
-		} catch (error) {
-			console.error("Error al cargar ventas:", error);
-			setVentas([]);
-		}
+	const refrescarVentas = () => {
+		queryClient.invalidateQueries({ queryKey: ['entrega-resultados'] });
 	};
 
 	const seleccionarVenta = async (venta) => {
@@ -305,7 +201,7 @@ const EntregaResultados = () => {
 				setEstudiosRadiologia([]);
 			}
 		}
-		await cargarVentas();
+		refrescarVentas();
 	};
 
 	const bloquearSiTieneAdeudo = (accion) => {

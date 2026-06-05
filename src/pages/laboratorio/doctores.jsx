@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import agregarDoctorBtn from "../../assets/agregarDoctorBtn.png";
 import editarIcono from "../../assets/editarIcono.png";
 import eliminarIconoV2 from "../../assets/eliminarIconoV2.png";
@@ -14,13 +15,13 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { useDoctores } from "../../hooks/use-doctores";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 
 const Doctores = () => {
 	const { user } = useAuth();
+	const queryClient = useQueryClient();
 	const [buscarDoctor, setBuscarDoctor] = useState("");
-	const [doctores, setDoctores] = useState([]);
-	const [totalDoctores, setTotalDoctores] = useState(0);
 	const [paginaActual, setPaginaActual] = useState(1);
 	const [modalAbierto, setModalAbierto] = useState(false);
 	const [doctorEditar, setDoctorEditar] = useState(null);
@@ -34,7 +35,7 @@ const Doctores = () => {
 	});
 	const doctoresPorPagina = 500;
 
-	useEffect(() => {
+	useState(() => {
 		const fetchEmpleadoData = async () => {
 			if (!user?.id) return;
 			try {
@@ -51,9 +52,9 @@ const Doctores = () => {
 		fetchEmpleadoData();
 	}, [user]);
 
-	useEffect(() => {
-		cargarDoctores();
-	}, [buscarDoctor, paginaActual]);
+	const { data: doctoresResult } = useDoctores({ buscar: buscarDoctor, pagina: paginaActual, porPagina: doctoresPorPagina });
+	const totalDoctores = doctoresResult?.count ?? 0;
+	const doctoresRaw = doctoresResult?.data ?? [];
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
@@ -68,49 +69,25 @@ const Doctores = () => {
 		return edad;
 	};
 
-	const cargarDoctores = async () => {
-		try {
-			let query = supabase.from("doctores").select("*", { count: "exact" });
-			if (buscarDoctor.trim()) {
-				query = query.or(
-					`nombre.ilike.%${buscarDoctor}%,apellido_paterno.ilike.%${buscarDoctor}%,apellido_materno.ilike.%${buscarDoctor}%,email.ilike.%${buscarDoctor}%`,
-				);
-			}
-			const desde = (paginaActual - 1) * doctoresPorPagina;
-			const hasta = desde + doctoresPorPagina - 1;
-			const { data, error, count } = await query.order("id_doctor", {
-				ascending: true,
-			}).range(desde, hasta);
-			if (error) throw error;
-			setTotalDoctores(count || 0);
-			setDoctores(
-				data?.map((doctor) => ({
-					id: doctor.id_doctor,
-					apellidoPaterno: doctor.apellido_paterno || "",
-					apellidoMaterno: doctor.apellido_materno || "",
-					nombre: doctor.primer_nombre || doctor.nombre || "",
-					edad: calcularEdad(doctor.fecha_nacimiento),
-					sexo: doctor.sexo || "",
-					fechaNacimiento: doctor.fecha_nacimiento || "",
-					telefono: doctor.telefono || "",
-					email: doctor.email || "",
-					usuario: doctor.usuario || "",
-					contrasena: doctor.contrasena || "",
-					fechaRegistro: new Date(doctor.created_at || Date.now()).toLocaleString(
-						"es-MX",
-						{
-							day: "2-digit",
-							month: "2-digit",
-							year: "numeric",
-							hour: "2-digit",
-							minute: "2-digit",
-						},
-					),
-				})) || [],
-			);
-		} catch (error) {
-			console.error("Error al cargar doctores:", error);
-		}
+	const doctores = doctoresRaw.map((doctor) => ({
+		id: doctor.id_doctor,
+		apellidoPaterno: doctor.apellido_paterno || "",
+		apellidoMaterno: doctor.apellido_materno || "",
+		nombre: doctor.primer_nombre || doctor.nombre || "",
+		edad: calcularEdad(doctor.fecha_nacimiento),
+		sexo: doctor.sexo || "",
+		fechaNacimiento: doctor.fecha_nacimiento || "",
+		telefono: doctor.telefono || "",
+		email: doctor.email || "",
+		usuario: doctor.usuario || "",
+		contrasena: doctor.contrasena || "",
+		fechaRegistro: new Date(doctor.created_at || Date.now()).toLocaleString("es-MX", {
+			day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+		}),
+	}));
+
+	const refrescarDoctores = () => {
+		queryClient.invalidateQueries({ queryKey: ['doctores'] });
 	};
 
 	const handleGuardarDoctor = async (doctorData, isEditMode) => {
@@ -140,7 +117,7 @@ const Doctores = () => {
 				if (error) throw error;
 				mostrarNotificacion("Doctor agregado correctamente", "exito");
 			}
-			cargarDoctores();
+			refrescarDoctores();
 			setModalAbierto(false);
 		} catch (error) {
 			console.error("Error al guardar doctor:", error);
@@ -156,7 +133,7 @@ const Doctores = () => {
 				.delete()
 				.eq("id_doctor", doctorAEliminar.id);
 			if (error) throw error;
-			cargarDoctores();
+			refrescarDoctores();
 			mostrarNotificacion("Doctor eliminado correctamente", "exito");
 		} catch (error) {
 			console.error("Error al eliminar doctor:", error);

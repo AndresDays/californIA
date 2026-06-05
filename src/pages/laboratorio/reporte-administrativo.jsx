@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
@@ -15,18 +16,9 @@ import {
 	formatoDuracionHoras,
 	formatoMonedaAdmin,
 } from "../../utils/reporte-administrativo";
-import { esErrorTablaInexistente } from "../../utils/supabase-errors";
+import { useCatalogosAdministrativos, useReporteAdministrativo } from "../../hooks/use-reporte-administrativo";
 import "./reporte-administrativo.css";
 
-const SELECT_VENTAS_ADMIN = `
-	id_venta, folio, fecha_venta, estado, total, pago_recibido, id_cliente, id_doctor, id_sucursal, sucursal,
-	clientes ( id_cliente, nombre ),
-	citas ( id_cita, id_sucursal, sucursales ( id_sucursal, nombre ) ),
-	estudios_venta (
-		id_estudio_venta, clave_estudio, descripcion_estudio, precio, area,
-		estado_validacion, entregado, muestra_pendiente, id_sucursal, sucursal
-	)
-`;
 
 const hoyMexico = () =>
 	new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
@@ -56,20 +48,13 @@ const formatRol = (rol) => {
 
 const ReporteAdministrativo = () => {
 	const { user } = useAuth();
+	const queryClient = useQueryClient();
 	const [fechaInicial, setFechaInicial] = useState(inicioMesMexico());
 	const [fechaFinal, setFechaFinal] = useState(hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [empleadoData, setEmpleadoData] = useState(null);
-	const [ventas, setVentas] = useState([]);
-	const [estudiosRadiologia, setEstudiosRadiologia] = useState([]);
-	const [eventosAuditoria, setEventosAuditoria] = useState([]);
-	const [sucursales, setSucursales] = useState([]);
-	const [doctores, setDoctores] = useState([]);
-	const [clientes, setClientes] = useState([]);
-	const [cargando, setCargando] = useState(false);
-	const [errorReporte, setErrorReporte] = useState("");
 
-	useEffect(() => {
+	useState(() => {
 		const fetchEmpleadoData = async () => {
 			if (!user?.id) return;
 			const { data } = await supabase
@@ -80,90 +65,26 @@ const ReporteAdministrativo = () => {
 			if (data) setEmpleadoData(data);
 		};
 		fetchEmpleadoData();
-		cargarCatalogos();
 	}, [user]);
 
-	useEffect(() => {
-		cargarReporte();
-	}, [fechaInicial, fechaFinal]);
+	const {
+		data: reporteData,
+		isLoading: cargando,
+		error: reporteError,
+	} = useReporteAdministrativo({ fechaInicial, fechaFinal, sucursalSeleccionada });
 
-	const cargarCatalogos = async () => {
-		const [sucursalesResp, doctoresResp, clientesResp] = await Promise.all([
-			supabase.from("sucursales").select("id_sucursal, nombre").order("nombre"),
-			supabase.from("doctores").select("*").order("nombre"),
-			supabase.from("clientes").select("id_cliente, nombre").order("nombre"),
-		]);
-		if (!sucursalesResp.error) setSucursales(sucursalesResp.data || []);
-		if (!doctoresResp.error) setDoctores(doctoresResp.data || []);
-		if (!clientesResp.error) setClientes(clientesResp.data || []);
-	};
+	const { data: catalogosData } = useCatalogosAdministrativos();
 
-	const cargarReporte = async () => {
-		setCargando(true);
-		setErrorReporte("");
-		try {
-			let ventasQuery = supabase
-				.from("ventas")
-				.select(SELECT_VENTAS_ADMIN)
-				.eq("estado", "activo")
-				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
-				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
-				.order("fecha_venta", { ascending: false });
-			let radiologiaQuery = supabase
-				.from("estudios_radiologia")
-				.select("id_estudio, id_venta, estado, listo_entrega, entregado, fecha_estudio")
-				.gte("fecha_estudio", `${fechaInicial}T00:00:00`)
-				.lte("fecha_estudio", `${fechaFinal}T23:59:59`);
+	const ventas = reporteData?.ventas ?? [];
+	const estudiosRadiologia = reporteData?.estudiosRadiologia ?? [];
+	const eventosAuditoria = reporteData?.eventosAuditoria ?? [];
+	const sucursales = catalogosData?.sucursales ?? [];
+	const doctores = catalogosData?.doctores ?? [];
+	const clientes = catalogosData?.clientes ?? [];
+	const errorReporte = reporteError?.message ?? "";
 
-			if (sucursalSeleccionada) {
-				ventasQuery = ventasQuery.eq("id_sucursal", sucursalSeleccionada);
-			}
-
-			const [ventasResp, radiologiaResp, auditoriaResp] = await Promise.all([
-				ventasQuery,
-				radiologiaQuery,
-				supabase
-					.from("solicitudes_auditoria")
-					.select("id_venta, evento, created_at")
-					.gte("created_at", `${fechaInicial}T00:00:00`)
-					.lte("created_at", `${fechaFinal}T23:59:59`)
-					.order("created_at", { ascending: true }),
-			]);
-
-			if (ventasResp.error) throw ventasResp.error;
-			if (radiologiaResp.error) throw radiologiaResp.error;
-			if (
-				auditoriaResp.error &&
-				!esErrorTablaInexistente(auditoriaResp.error, "solicitudes_auditoria")
-			) {
-				throw auditoriaResp.error;
-			}
-			const ventasData = ventasResp.data || [];
-			const radiologiaData = radiologiaResp.data || [];
-			const idsVentasSucursal = new Set(
-				ventasData
-					.map((venta) => venta.id_venta)
-					.filter((idVenta) => idVenta !== null && idVenta !== undefined)
-					.map(String),
-			);
-			setVentas(ventasData);
-			setEstudiosRadiologia(
-				sucursalSeleccionada
-					? radiologiaData.filter((estudio) =>
-							idsVentasSucursal.has(String(estudio.id_venta || "")),
-						)
-					: radiologiaData,
-			);
-			setEventosAuditoria(auditoriaResp.error ? [] : auditoriaResp.data || []);
-		} catch (error) {
-			console.error("Error al cargar reporte administrativo:", error);
-			setErrorReporte(error.message || "No se pudo cargar el reporte administrativo");
-			setVentas([]);
-			setEstudiosRadiologia([]);
-			setEventosAuditoria([]);
-		} finally {
-			setCargando(false);
-		}
+	const cargarReporte = () => {
+		queryClient.invalidateQueries({ queryKey: ['reporte-administrativo', fechaInicial, fechaFinal, sucursalSeleccionada] });
 	};
 
 	const resumen = useMemo(

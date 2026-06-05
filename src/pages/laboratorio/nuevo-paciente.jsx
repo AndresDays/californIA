@@ -207,7 +207,6 @@ const NuevoPaciente = () => {
 	useEffect(() => {
 		cargarClientes();
 		cargarEmpresas();
-		cargarVendedor();
 		cargarEstudiosDisponibles();
 	}, []);
 
@@ -650,24 +649,6 @@ const NuevoPaciente = () => {
 		} catch (error) {
 			console.error("Error al guardar:", error);
 			alert("Error al guardar la venta: " + error.message);
-		}
-	};
-
-	const cargarVendedor = async () => {
-		if (!user) return;
-
-		try {
-			const { data: perfil } = await supabase
-				.from("empleados")
-				.select("nombre")
-				.eq("auth_uuid", user.id)
-				.single();
-
-			if (perfil) {
-				setVendedor(perfil.nombre || user.email);
-			}
-		} catch (error) {
-			console.error("Error al cargar vendedor:", error);
 		}
 	};
 
