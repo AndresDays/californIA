@@ -3,10 +3,12 @@
 .layout-container {
 	min-height: 100vh;
 	display: flex;
+	background-color: #020F23;
 	background-image: url('../assets/FONDO.jpg');
 	background-size: cover;
 	background-position: center;
 	background-attachment: fixed;
+	background-repeat: no-repeat;
 	font-family: 'Codec Pro', sans-serif;
 }
 

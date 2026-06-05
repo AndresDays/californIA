@@ -24,9 +24,11 @@ const PageLayout = ({ children, empleadoData, formatRol, getPrimerNombre }) => {
 			style={{
 				minHeight: "100vh",
 				backgroundImage: `url(${fondoImg})`,
+				backgroundColor: "#020F23",
 				backgroundSize: "cover",
 				backgroundPosition: "center",
 				backgroundAttachment: "fixed",
+				backgroundRepeat: "no-repeat",
 				display: "flex",
 				flexDirection: "column",
 			}}>
