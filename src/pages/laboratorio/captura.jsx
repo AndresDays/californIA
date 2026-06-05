@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIconoVerde.png";
@@ -9,6 +10,7 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { cargarRadiologiaParaCaptura, useCaptura, useCatalogosCaptura } from "../../hooks/use-captura";
 import {
 	CAPTURA_FILTROS_ESTADO,
 	aplicarEstadoRadiologiaACaptura,
@@ -38,6 +40,7 @@ import "./captura.css";
 const Captura = () => {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 
 	const [fechaInicial, setFechaInicial] = useState(
 		new Date().toISOString().split("T")[0],
@@ -47,12 +50,9 @@ const Captura = () => {
 	);
 	const [buscarEstudio, setBuscarEstudio] = useState("");
 	const [buscarPaciente, setBuscarPaciente] = useState("");
-	const [clientes, setClientes] = useState([]);
-	const [areas, setAreas] = useState([]);
 	const [clienteFiltro, setClienteFiltro] = useState("");
 	const [areaFiltro, setAreaFiltro] = useState("");
 	const [filtroEstadoCaptura, setFiltroEstadoCaptura] = useState("todos");
-	const [ventas, setVentas] = useState([]);
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [idioma, setIdioma] = useState("español");
 	const [mediaPagina, setMediaPagina] = useState(false);
@@ -66,13 +66,13 @@ const Captura = () => {
 		tipo: "exito",
 	});
 
-	useEffect(() => {
+	useState(() => {
 		const fetchEmpleadoData = async () => {
 			if (!user?.id) return;
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol, id_sucursal, sucursal")
+					.select("nombre, rol")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 				if (error) {
@@ -87,171 +87,18 @@ const Captura = () => {
 		fetchEmpleadoData();
 	}, [user]);
 
-	useEffect(() => {
-		cargarClientes();
-		cargarAreas();
-	}, []);
-	useEffect(() => {
-		cargarVentas();
-	}, [fechaInicial, fechaFinal]);
+	const { data: ventas = [] } = useCaptura({ fechaInicial, fechaFinal });
+	const { data: catalogosData } = useCatalogosCaptura();
+	const clientes = catalogosData?.clientes ?? [];
+	const areas = catalogosData?.areas ?? [];
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
 	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
 
-	const cargarClientes = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("clientes")
-				.select("id_cliente, nombre")
-				.order("nombre");
-			if (error) throw error;
-			setClientes(data || []);
-		} catch (error) {
-			console.error("Error al cargar clientes:", error);
-		}
-	};
-
-	const cargarAreas = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("areas")
-				.select("id_area, nombre")
-				.order("nombre");
-			if (error) throw error;
-			setAreas(data || []);
-		} catch (error) {
-			console.error("Error al cargar áreas:", error);
-		}
-	};
-
-	const cargarRadiologiaParaCaptura = async ({
-		idsVentas = [],
-		idsEstudiosVenta = [],
-		idsPacientes = [],
-	} = {}) => {
-		const consultas = [];
-		const selectRadiologia =
-			"id_estudio, id_venta, id_estudio_venta, id_paciente, tipo_estudio, descripcion, estado, listo_entrega, reporte, fecha_estudio";
-		const selectRadiologiaBasico =
-			"id_estudio, id_paciente, tipo_estudio, descripcion, estado, reporte, fecha_estudio";
-
-		if (idsVentas.length) {
-			consultas.push(
-				supabase
-					.from("estudios_radiologia")
-					.select(selectRadiologia)
-					.in("id_venta", idsVentas),
-			);
-		}
-		if (idsEstudiosVenta.length) {
-			consultas.push(
-				supabase
-					.from("estudios_radiologia")
-					.select(selectRadiologia)
-					.in("id_estudio_venta", idsEstudiosVenta),
-			);
-		}
-		if (idsPacientes.length) {
-			consultas.push(
-				supabase
-					.from("estudios_radiologia")
-					.select(selectRadiologiaBasico)
-					.in("id_paciente", idsPacientes),
-			);
-		}
-		if (!consultas.length) return [];
-
-		const respuestas = await Promise.all(consultas);
-		const estudios = [];
-		const idsIncluidos = new Set();
-
-		for (const { data, error } of respuestas) {
-			if (error) {
-				console.warn("No se pudo cargar estado de radiologia para captura:", error);
-				continue;
-			}
-			for (const estudio of data || []) {
-				const id =
-					estudio.id_estudio ||
-					`${estudio.id_venta || ""}-${estudio.id_estudio_venta || ""}-${estudio.descripcion || ""}`;
-				if (idsIncluidos.has(id)) continue;
-				idsIncluidos.add(id);
-				estudios.push(estudio);
-			}
-		}
-
-		return estudios;
-	};
-
-	const cargarVentas = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("ventas")
-				.select(
-					`id_venta, folio, fecha_venta, estado, total, pago_recibido,
-					pacientes (id_paciente, nombre, fecha_nacimiento, sexo, tipo),
-					clientes (id_cliente, nombre),
-					estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, area, estado_captura, estado_validacion, muestra_pendiente)`,
-				)
-				.gte("fecha_venta", `${fechaInicial}T00:00:00`)
-				.lte("fecha_venta", `${fechaFinal}T23:59:59`)
-				.eq("estado", "activo")
-				.order("fecha_venta", { ascending: false });
-			if (error) throw error;
-			const ventasData = data || [];
-			const idsVentas = ventasData.map((venta) => venta.id_venta).filter(Boolean);
-			const idsPacientes = ventasData
-				.map((venta) => venta.pacientes?.id_paciente)
-				.filter(Boolean);
-			const idsEstudiosVenta = ventasData
-				.flatMap((venta) => venta.estudios_venta || [])
-				.map((estudio) => estudio.id_estudio_venta)
-				.filter(Boolean);
-			const estudiosRadiologia = await cargarRadiologiaParaCaptura({
-				idsVentas,
-				idsEstudiosVenta,
-				idsPacientes,
-			});
-			const radiologiaPorVenta = estudiosRadiologia.reduce((acc, estudio) => {
-				if (!estudio.id_venta) return acc;
-				acc[estudio.id_venta] = [...(acc[estudio.id_venta] || []), estudio];
-				return acc;
-			}, {});
-			const radiologiaPorEstudioVenta = estudiosRadiologia.reduce((acc, estudio) => {
-				if (!estudio.id_estudio_venta) return acc;
-				acc[estudio.id_estudio_venta] = [
-					...(acc[estudio.id_estudio_venta] || []),
-					estudio,
-				];
-				return acc;
-			}, {});
-			const radiologiaPorPaciente = estudiosRadiologia.reduce((acc, estudio) => {
-				if (!estudio.id_paciente) return acc;
-				acc[estudio.id_paciente] = [...(acc[estudio.id_paciente] || []), estudio];
-				return acc;
-			}, {});
-			setVentas(
-				ventasData.map((venta) => ({
-					...venta,
-					estudios_venta: aplicarEstadoRadiologiaACaptura(
-						venta.estudios_venta || [],
-						[
-							...(radiologiaPorVenta[venta.id_venta] || []),
-							...(radiologiaPorPaciente[venta.pacientes?.id_paciente] || []),
-							...(venta.estudios_venta || []).flatMap(
-								(estudio) =>
-									radiologiaPorEstudioVenta[estudio.id_estudio_venta] || [],
-							),
-						],
-					),
-				})),
-			);
-		} catch (error) {
-			console.error("Error al cargar ventas:", error);
-			setVentas([]);
-		}
+	const refrescarVentas = () => {
+		queryClient.invalidateQueries({ queryKey: ['captura', fechaInicial, fechaFinal] });
 	};
 
 	const seleccionarVenta = (venta) => {
@@ -392,7 +239,7 @@ const Captura = () => {
 				user,
 			});
 			mostrarNotificacion("Resultados guardados exitosamente", "exito");
-			await cargarVentas();
+			refrescarVentas();
 			if (ventaSeleccionada) await cargarResultados(ventaSeleccionada.id_venta);
 		} catch (error) {
 			console.error("Error al guardar:", error);
@@ -486,7 +333,7 @@ const Captura = () => {
 				action_path: "/entrega-resultados",
 			});
 			mostrarNotificacion("Estudios validados exitosamente", "exito");
-			await cargarVentas();
+			refrescarVentas();
 			if (ventaSeleccionada) await cargarResultados(ventaSeleccionada.id_venta);
 		} catch (error) {
 			console.error("Error al validar:", error);
@@ -536,7 +383,7 @@ const Captura = () => {
 				if (errorRadiologia) throw errorRadiologia;
 			}
 			mostrarNotificacion("Estudios invalidados exitosamente", "exito");
-			await cargarVentas();
+			refrescarVentas();
 			if (ventaSeleccionada) await cargarResultados(ventaSeleccionada.id_venta);
 		} catch (error) {
 			console.error("Error al invalidar:", error);

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import PageLayout from "../../components/page-layout";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { useCitasHoy, useTurnos } from "../../hooks/use-turnos";
 import {
 	generarCodigoTurno,
 	obtenerNombrePrivado,
@@ -69,9 +71,8 @@ const formatRol = (rol) => {
 
 const Turnos = () => {
 	const { user } = useAuth();
+	const queryClient = useQueryClient();
 	const [empleadoData, setEmpleadoData] = useState(null);
-	const [turnos, setTurnos] = useState([]);
-	const [citasHoy, setCitasHoy] = useState([]);
 	const [destinosCitas, setDestinosCitas] = useState({});
 	const [pacientes, setPacientes] = useState([]);
 	const [busquedaPaciente, setBusquedaPaciente] = useState("");
@@ -81,7 +82,9 @@ const Turnos = () => {
 	const [destino, setDestino] = useState("Laboratorio");
 	const [prioridad, setPrioridad] = useState(0);
 	const [mensaje, setMensaje] = useState("");
-	const [cargando, setCargando] = useState(true);
+
+	const { data: turnos = [], isLoading: cargando } = useTurnos();
+	const { data: citasHoy = [] } = useCitasHoy();
 
 	const turnosEnEspera = useMemo(
 		() => ordenarTurnosPorCola(turnos.filter((turno) => turno.estado === TURNO_ESTADOS.ESPERANDO)),
@@ -109,7 +112,7 @@ const Turnos = () => {
 		[turnos],
 	);
 
-	useEffect(() => {
+	useState(() => {
 		const cargarEmpleado = async () => {
 			if (!user?.id) return;
 			const { data, error } = await supabase
@@ -122,24 +125,6 @@ const Turnos = () => {
 
 		cargarEmpleado();
 	}, [user]);
-
-	useEffect(() => {
-		cargarTurnos();
-		cargarCitasHoy();
-
-		const channel = supabase
-			.channel("turnos-pacientes-panel")
-			.on(
-				"postgres_changes",
-				{ event: "*", schema: "public", table: "turnos_pacientes" },
-				() => cargarTurnos(),
-			)
-			.subscribe();
-
-		return () => {
-			supabase.removeChannel(channel);
-		};
-	}, []);
 
 	useEffect(() => {
 		const buscar = async () => {
@@ -164,39 +149,8 @@ const Turnos = () => {
 		return () => clearTimeout(timeout);
 	}, [busquedaPaciente]);
 
-	const cargarTurnos = async () => {
-		setCargando(true);
-		const fecha = hoyLocal();
-		const rango = obtenerRangoDiaLocalISO(fecha);
-		const { data, error } = await supabase
-			.from("turnos_pacientes")
-			.select("*")
-			.gte("fecha_programada", rango.inicio)
-			.lte("fecha_programada", rango.fin)
-			.order("fecha_programada", { ascending: true });
-
-		if (error) {
-			console.error("Error al cargar turnos:", error);
-			setMensaje("No se pudieron cargar los turnos.");
-		} else {
-			setTurnos(data || []);
-		}
-		setCargando(false);
-	};
-
-	const cargarCitasHoy = async () => {
-		const fecha = hoyLocal();
-		const { data, error } = await supabase
-			.from("citas")
-			.select(
-				"id_cita, fecha_estudio, tipo_estudio, nombre_paciente, pacientes(id_paciente, nombre)",
-			)
-			.gte("fecha_estudio", `${fecha}T00:00:00`)
-			.lte("fecha_estudio", `${fecha}T23:59:59`)
-			.not("estado", "eq", "cancelada")
-			.order("fecha_estudio", { ascending: true });
-
-		if (!error) setCitasHoy(data || []);
+	const refrescarTurnos = () => {
+		queryClient.invalidateQueries({ queryKey: ['turnos'] });
 	};
 
 	const obtenerSiguienteCodigo = () => generarCodigoTurno(turnos.length + 1);
@@ -246,7 +200,7 @@ const Turnos = () => {
 		setBusquedaPaciente("");
 		setPacienteSeleccionado(null);
 		setNombreManual("");
-		await cargarTurnos();
+		refrescarTurnos();
 	};
 
 	const actualizarTurno = async (idTurno, cambios) => {
@@ -259,7 +213,7 @@ const Turnos = () => {
 			setMensaje(`No se pudo actualizar el turno: ${error.message}`);
 			return;
 		}
-		await cargarTurnos();
+		refrescarTurnos();
 	};
 
 	const llamarTurno = (turno) =>

@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCitasProximasDashboard, useEstadisticasSemanales, useStatsDashboard } from '../hooks/use-dashboard';
+import { useSucursales } from '../hooks/use-sucursales';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import dineroIcono from '../assets/dineroIcono.png';
 import editarIcono from '../assets/editarIcono.png';
@@ -16,23 +19,13 @@ import '../components/nueva-cita-modal.css';
 import PageLayout from '../components/page-layout';
 import { useAuth } from '../context/auth-context';
 import { supabase } from '../lib/supabase-client';
-import { CITA_ESTADOS, CITA_ESTADOS_DASHBOARD } from '../utils/cita-lifecycle';
-import {
-	calcularIngresosPorAreaVentasPagadas,
-	calcularIngresosVentasPagadas,
-} from '../utils/dashboard-stats';
 import { esDashboardRayosX, esQuimico, esRecepcionista } from '../utils/role-permissions';
 import './CalifornIA.css';
 
 const Dashboard = () => {
 	const { user, empleadoData: empleadoContext } = useAuth();
 	const [empleadoData, setEmpleadoData] = useState(empleadoContext || null);
-	const [stats, setStats] = useState({
-		totalPacientes: 0,
-		citasHoy: 0,
-		estudiosRealizados: 0,
-		ingresos: 0,
-	});
+	// — estados primero —
 	const [bandejasTrabajo, setBandejasTrabajo] = useState({
 		capturaPendiente: 0,
 		capturaGuardada: 0,
@@ -41,54 +34,27 @@ const Dashboard = () => {
 		entregaLista: 0,
 	});
 	const [bandejasLoading, setBandejasLoading] = useState(true);
-	const [pacientesProximos, setPacientesProximos] = useState([]);
-	const [estadisticasSemanales, setEstadisticasSemanales] = useState([]);
 	const [modalNuevaCitaOpen, setModalNuevaCitaOpen] = useState(false);
 	const [modalEditarCitaOpen, setModalEditarCitaOpen] = useState(false);
 	const [citaEditando, setCitaEditando] = useState(null);
 	const [tipoGrafica, setTipoGrafica] = useState("ingresos");
 	const [vistaGrafica, setVistaGrafica] = useState("semana");
 	const [sucursalFiltro, setSucursalFiltro] = useState("");
-	const [sucursales, setSucursales] = useState([]);
+
+	// — hooks de React Query (después de los useState que usan como parámetros) —
+	const { data: stats = { totalPacientes: 0, citasHoy: 0, estudiosRealizados: 0, ingresos: 0 } } = useStatsDashboard();
+	const { data: pacientesProximos = [] } = useCitasProximasDashboard();
+	const { data: estadisticasSemanales = [] } = useEstadisticasSemanales({ vistaGrafica, sucursalFiltro });
+	const { data: sucursales = [] } = useSucursales();
 
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 
 	useEffect(() => {
 		if (empleadoContext) setEmpleadoData(empleadoContext);
 	}, [empleadoContext]);
 
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (error) {
-					console.error("Error al obtener empleado:", error);
-					return;
-				}
-				if (empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-		cargarEstadisticas();
-		cargarPacientesProximos();
-		cargarSucursales();
-		cargarEstadisticasSemanales();
-	}, [user]);
-
-	useEffect(() => {
-		cargarEstadisticasSemanales();
-	}, [vistaGrafica, sucursalFiltro]);
-
-	useEffect(() => {
-		cargarBandejasTrabajo();
-	}, []);
+	const debounceRef = useRef(null);
 
 	const normalizarRol = (rol = "") =>
 		String(rol)
@@ -104,7 +70,7 @@ const Dashboard = () => {
 		return count || 0;
 	};
 
-	const cargarBandejasTrabajo = async () => {
+	const cargarBandejasTrabajo = useCallback(async () => {
 		setBandejasLoading(true);
 		try {
 			const resultados = await Promise.allSettled([
@@ -160,244 +126,34 @@ const Dashboard = () => {
 		} finally {
 			setBandejasLoading(false);
 		}
-	};
+	}, []);
 
-	const cargarEstadisticas = async () => {
-		try {
-			const { count: totalPac } = await supabase
-				.from("pacientes")
-				.select("*", { count: "exact", head: true });
-			const ahora = new Date();
-			const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
-			const { count: citasHoy } = await supabase
-				.from("citas")
-				.select("*", { count: "exact", head: true })
-				.gte("fecha_estudio", hoy)
-				.lt("fecha_estudio", `${hoy}T23:59:59`)
-				.not("estado", "eq", "cancelada");
-			const { data: citasCompletadas } = await supabase
-				.from("citas")
-				.select("tipo_estudio, fecha_estudio")
-				.in("estado", [CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA]);
-			const ahoraCompleto = new Date();
-			const horaActualStr = `${ahoraCompleto.getFullYear()}-${String(ahoraCompleto.getMonth() + 1).padStart(2, "0")}-${String(ahoraCompleto.getDate()).padStart(2, "0")}T${String(ahoraCompleto.getHours()).padStart(2, "0")}:${String(ahoraCompleto.getMinutes()).padStart(2, "0")}:00`;
-			const totalEstudiosRealizados =
-				citasCompletadas?.reduce((total, cita) => {
-					if (cita.fecha_estudio > horaActualStr) return total;
-					if (cita.tipo_estudio) {
-						const estudios = cita.tipo_estudio
-							.split(",")
-							.map((e) => e.trim())
-							.filter((e) => e);
-						return total + (estudios.length > 0 ? estudios.length : 1);
-					}
-					return total + 1;
-				}, 0) || 0;
-			const inicioMes = new Date();
-			inicioMes.setDate(1);
-			inicioMes.setHours(0, 0, 0, 0);
-			const finMes = new Date();
-			finMes.setMonth(finMes.getMonth() + 1);
-			finMes.setDate(1);
-			finMes.setHours(0, 0, 0, 0);
-			const inicioMesStr = `${inicioMes.getFullYear()}-${String(inicioMes.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
-			const finMesStr = `${finMes.getFullYear()}-${String(finMes.getMonth() + 1).padStart(2, "0")}-01T00:00:00`;
-			const { data: ventasMes } = await supabase
-				.from("ventas")
-				.select("fecha_venta, estado, total, pago_recibido")
-				.eq("estado", "activo")
-				.gte("fecha_venta", inicioMesStr)
-				.lt("fecha_venta", finMesStr);
-			const ingresosMes = calcularIngresosVentasPagadas(
-				ventasMes || [],
-				inicioMesStr,
-				finMesStr,
-			);
-			setStats({
-				totalPacientes: totalPac || 0,
-				citasHoy: citasHoy || 0,
-				estudiosRealizados: totalEstudiosRealizados,
-				ingresos: ingresosMes,
-			});
-		} catch (error) {
-			console.error("Error al cargar estadísticas:", error);
-		}
-	};
+	const cargarBandejasDespues = useCallback(() => {
+		clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => cargarBandejasTrabajo(), 400);
+	}, [cargarBandejasTrabajo]);
 
-	const cargarPacientesProximos = async () => {
-		try {
-			const ahora = new Date();
-			const horaLocal = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}T${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}:00`;
-			const { data, error } = await supabase
-				.from("citas")
-				.select(
-					`
-        id_cita, fecha_estudio, estado, tipo_estudio, monto,
-        id_sucursal, nombre_paciente, telefono_paciente,
-        pacientes (nombre, telefono, id_paciente),
-        sucursales (id_sucursal, nombre),
-        clientes (id_cliente, nombre),
-        empresas (id_empresa, nombre),
-        tipos_estudio (id_tipo_estudio, nombre)
-      `,
-				)
-				.gte("fecha_estudio", horaLocal)
-				.in("estado", CITA_ESTADOS_DASHBOARD)
-				.order("fecha_estudio", { ascending: true })
-				.limit(5);
-			if (error) throw error;
-			setPacientesProximos(data || []);
-		} catch (error) {
-			console.error("Error al cargar pacientes próximos:", error);
-		}
-	};
+	useEffect(() => {
+		cargarBandejasTrabajo();
+	}, [cargarBandejasTrabajo]);
 
-	const cargarSucursales = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("sucursales")
-				.select("id_sucursal, nombre")
-				.order("nombre");
-			if (error) throw error;
-			setSucursales(data || []);
-		} catch (error) {
-			console.error("Error al cargar sucursales:", error);
-		}
-	};
+	useEffect(() => {
+		const canal = supabase
+			.channel('bandejas-trabajo')
+			.on('postgres_changes', { event: '*', schema: 'public', table: 'estudios_venta' }, cargarBandejasDespues)
+			.on('postgres_changes', { event: '*', schema: 'public', table: 'estudios_radiologia' }, cargarBandejasDespues)
+			.subscribe();
 
-	const cargarEstadisticasSemanales = async () => {
-		try {
-			let queryCitas = supabase
-				.from("citas")
-				.select("fecha_estudio, tipo_estudio, id_sucursal, estado");
-			if (sucursalFiltro) queryCitas = queryCitas.eq("id_sucursal", sucursalFiltro);
-			const hoy = new Date();
-			let inicio, fin, labels, numPeriodos;
-			if (vistaGrafica === "semana") {
-				const diaSemana = hoy.getDay();
-				inicio = new Date(hoy);
-				inicio.setDate(hoy.getDate() - diaSemana);
-				inicio.setHours(0, 0, 0, 0);
-				fin = new Date(inicio);
-				fin.setDate(inicio.getDate() + 7);
-				labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-				numPeriodos = 7;
-			} else if (vistaGrafica === "mes") {
-				inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-				fin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
-				const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-				numPeriodos = Math.ceil(ultimoDiaMes.getDate() / 7);
-				labels = Array.from({ length: numPeriodos }, (_, i) => `Sem ${i + 1}`);
-			} else {
-				inicio = new Date(hoy.getFullYear(), 0, 1);
-				fin = new Date(hoy.getFullYear() + 1, 0, 1);
-				labels = [
-					"Ene",
-					"Feb",
-					"Mar",
-					"Abr",
-					"May",
-					"Jun",
-					"Jul",
-					"Ago",
-					"Sep",
-					"Oct",
-					"Nov",
-					"Dic",
-				];
-				numPeriodos = 12;
-			}
-			const fmt = (d) =>
-				`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00`;
-			queryCitas = queryCitas
-				.gte("fecha_estudio", fmt(inicio))
-				.lt("fecha_estudio", fmt(fin));
-			let queryVentas = supabase
-				.from("ventas")
-				.select(
-					`
-						fecha_venta, estado, total, pago_recibido, id_sucursal, sucursal,
-						estudios_venta ( clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
-					`,
-				)
-				.eq("estado", "activo")
-				.gte("fecha_venta", fmt(inicio))
-				.lt("fecha_venta", fmt(fin));
-			if (sucursalFiltro) queryVentas = queryVentas.eq("id_sucursal", sucursalFiltro);
-			const [respuestaCitas, respuestaVentas] = await Promise.all([
-				queryCitas,
-				queryVentas,
-			]);
-			if (respuestaCitas.error) throw respuestaCitas.error;
-			if (respuestaVentas.error) throw respuestaVentas.error;
-			const citas = respuestaCitas.data || [];
-			const ventas = respuestaVentas.data || [];
-			const cR = new Array(numPeriodos).fill(0),
-				cL = new Array(numPeriodos).fill(0);
-			const iR = new Array(numPeriodos).fill(0),
-				iL = new Array(numPeriodos).fill(0);
-			citas.forEach((est) => {
-				if (est.estado === "cancelada") return;
-				const f = new Date(est.fecha_estudio);
-				let idx =
-					vistaGrafica === "semana"
-						? f.getDay()
-						: vistaGrafica === "mes"
-							? Math.floor((f.getDate() - 1) / 7)
-							: f.getMonth();
-				const tipo = est.tipo_estudio?.toLowerCase() || "";
-				if (
-					tipo.includes("radio") ||
-					tipo.includes("rayos") ||
-					tipo.includes("rx")
-				) {
-					cR[idx]++;
-				} else {
-					cL[idx]++;
-				}
-			});
-			ventas.forEach((venta) => {
-				const f = new Date(venta.fecha_venta);
-				if (Number.isNaN(f.getTime())) return;
-				const idx =
-					vistaGrafica === "semana"
-						? f.getDay()
-						: vistaGrafica === "mes"
-							? Math.floor((f.getDate() - 1) / 7)
-							: f.getMonth();
-				const ingresos = calcularIngresosPorAreaVentasPagadas([venta]);
-				iR[idx] += ingresos.radiologia;
-				iL[idx] += ingresos.laboratorio;
-			});
-			setEstadisticasSemanales(
-				labels.map((label, i) => {
-					let esActual =
-						vistaGrafica === "semana"
-							? i === hoy.getDay()
-							: vistaGrafica === "mes"
-								? i === Math.floor((hoy.getDate() - 1) / 7)
-								: i === hoy.getMonth();
-					return {
-						label,
-						radiologia: cR[i],
-						laboratorio: cL[i],
-						total: cR[i] + cL[i],
-						ingresosRadiologia: iR[i],
-						ingresosLaboratorio: iL[i],
-						ingresosTotal: iR[i] + iL[i],
-						esActual,
-					};
-				}),
-			);
-		} catch (error) {
-			console.error("Error al cargar estadísticas semanales:", error);
-		}
-	};
+		return () => {
+			clearTimeout(debounceRef.current);
+			supabase.removeChannel(canal);
+		};
+	}, [cargarBandejasDespues]);
 
 	const handleCitaCreada = () => {
-		cargarEstadisticas();
-		cargarPacientesProximos();
-		cargarEstadisticasSemanales();
+		queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+		queryClient.invalidateQueries({ queryKey: ['dashboard-citas-proximas'] });
+		queryClient.invalidateQueries({ queryKey: ['dashboard-estadisticas'] });
 	};
 
 	const cargarCitaEnNuevoPaciente = (cita) => {

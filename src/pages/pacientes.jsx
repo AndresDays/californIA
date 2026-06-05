@@ -1,65 +1,33 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import agregarPacienteBtn from '../assets/agregarPacienteBtn.png';
 import editarIcono from '../assets/editarIcono.png';
 import eliminarIconoV2 from '../assets/eliminarIconoV2.png';
 import imprimirTablaBtn from '../assets/imprimirTablaBtn.png';
-import Header from '../components/header-principal.jsx';
 import ModalConfirmarEliminacion from '../components/ModalConfirmarEliminacion';
 import ModalNotificacion from '../components/ModalNotificacion';
-import SidebarHome from '../components/sidebar-home.jsx';
+import PageLayout from '../components/page-layout.jsx';
 import { useAuth } from '../context/auth-context.jsx';
 import { supabase } from '../lib/supabase-client.js';
+import { usePacientes } from '../hooks/use-pacientes';
 import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
 import './pacientes.css';
 
 const Pacientes = () => {
-  const { user } = useAuth();
-	const navigate = useNavigate();
-	const [menuOpen, setMenuOpen] = useState(false);
-	const menuRef = useRef(null);
+  const { user, empleadoData } = useAuth();
+	const queryClient = useQueryClient();
 
-  const [empleadoData, setEmpleadoData] = useState(null);
   const [buscarPaciente, setBuscarPaciente] = useState('');
-  const [pacientes, setPacientes] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [totalPacientes, setTotalPacientes] = useState(0);
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);
   const pacientesPorPagina = 500;
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [pacienteAEliminar, setPacienteAEliminar] = useState(null);
 
-  useEffect(() => {
-    const fetchEmpleadoData = async () => {
-      if (!user?.id) return;
-
-      try {
-        const { data: empleado, error } = await supabase
-          .from('empleados')
-          .select('nombre, rol')
-          .eq('auth_uuid', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error al obtener empleado:', error);
-          return;
-        }
-
-        if (empleado) {
-          setEmpleadoData(empleado);
-        }
-      } catch (error) {
-        console.error('Error al obtener datos del empleado:', error);
-      }
-    };
-
-    fetchEmpleadoData();
-  }, [user]);
-
-  useEffect(() => {
-    cargarPacientes();
-  }, [paginaActual, buscarPaciente]);
+  const { data: pacientesResult } = usePacientes({ busqueda: buscarPaciente, pagina: paginaActual, porPagina: pacientesPorPagina });
+  const totalPacientes = pacientesResult?.count ?? 0;
+  const pacientesRaw = pacientesResult?.data ?? [];
 
   const [notificacion, setNotificacion] = useState({
   isOpen: false,
@@ -87,7 +55,7 @@ const confirmarEliminarPaciente = async () => {
     if (error) throw error;
 
     mostrarNotificacion('Paciente eliminado correctamente', 'exito');
-    cargarPacientes();
+    refrescarPacientes();
   } catch (error) {
     console.error('Error al eliminar paciente:', error);
     mostrarNotificacion('Error al eliminar paciente: ' + error.message, 'error');
@@ -130,69 +98,13 @@ const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
       mostrarNotificacion('Paciente guardado correctamente', 'exito');
     }
 
-    cargarPacientes();
+    refrescarPacientes();
     setModalAgregarPacienteOpen(false);
   } catch (error) {
     console.error('Error al guardar paciente:', error);
     mostrarNotificacion('Error al guardar paciente: ' + error.message, 'error');
   }
 };
-
-  const cargarPacientes = async () => {
-    try {
-      let query = supabase
-        .from('pacientes')
-        .select('*', { count: 'exact' });
-
-      if (buscarPaciente.trim()) {
-        query = query.or(
-          `nombre.ilike.%${buscarPaciente}%,` +
-          `apellido_paterno.ilike.%${buscarPaciente}%,` +
-          `apellido_materno.ilike.%${buscarPaciente}%,` +
-          `email.ilike.%${buscarPaciente}%`
-        );
-      }
-
-      const desde = (paginaActual - 1) * pacientesPorPagina;
-      const hasta = desde + pacientesPorPagina - 1;
-
-      const { data, error, count } = await query
-        .range(desde, hasta)
-        .order('id_paciente', { ascending: true });
-
-      if (error) throw error;
-
-      setTotalPacientes(count || 0);
-
-      const pacientesFormateados = data?.map(paciente => ({
-        id: paciente.id_paciente,
-        apellidoPaterno: paciente.apellido_paterno || '',
-        apellidoMaterno: paciente.apellido_materno || '',
-        nombre: paciente.primer_nombre || paciente.nombre || '',
-        edad: calcularEdad(paciente.fecha_nacimiento),
-        sexo: paciente.sexo || '',
-        telefono: paciente.telefono || '',
-        email: paciente.email || '',
-        fechaNacimiento: paciente.fecha_nacimiento || '',
-        direccion: paciente.direccion || '',
-        cedula: paciente.cedula || '',
-        condicionEspecial: paciente.condicion_especial || '',
-        pais: paciente.pais || 'México',
-        fechaRegistro: new Date(paciente.created_at || Date.now()).toLocaleString('es-MX', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        })
-      })) || [];
-
-      setPacientes(pacientesFormateados);
-    } catch (error) {
-      console.error('Error al cargar pacientes:', error);
-    }
-  };
 
   const calcularEdad = (fechaNacimiento) => {
     if (!fechaNacimiento) return 0;
@@ -204,6 +116,30 @@ const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
       edad--;
     }
     return edad;
+  };
+
+  const pacientes = pacientesRaw.map(paciente => ({
+    id: paciente.id_paciente,
+    apellidoPaterno: paciente.apellido_paterno || '',
+    apellidoMaterno: paciente.apellido_materno || '',
+    nombre: paciente.primer_nombre || paciente.nombre || '',
+    edad: calcularEdad(paciente.fecha_nacimiento),
+    sexo: paciente.sexo || '',
+    telefono: paciente.telefono || '',
+    email: paciente.email || '',
+    fechaNacimiento: paciente.fecha_nacimiento || '',
+    direccion: paciente.direccion || '',
+    cedula: paciente.cedula || '',
+    condicionEspecial: paciente.condicion_especial || '',
+    pais: paciente.pais || 'México',
+    fechaRegistro: new Date(paciente.created_at || Date.now()).toLocaleString('es-MX', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    })
+  }));
+
+  const refrescarPacientes = () => {
+    queryClient.invalidateQueries({ queryKey: ['pacientes'] });
   };
 
   const handleAgregarPaciente = () => {
@@ -261,31 +197,15 @@ const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
     return roles[rol] || rol;
   };
 
-  const handleLogout = async () => {
-    const { signOut } = useAuth();
-    await signOut();
-    navigate('/login');
-  };
-
   const pacienteInicio = (paginaActual - 1) * pacientesPorPagina + 1;
   const pacienteFin = Math.min(paginaActual * pacientesPorPagina, totalPacientes);
 
   return (
-		<div className="admin-pacientes-wrapper">
-			<Header
-				menuOpen={menuOpen}
-				setMenuOpen={setMenuOpen}
-				menuRef={menuRef}
-				empleadoData={empleadoData}
-				formatRol={formatRol}
-				getPrimerNombre={getPrimerNombre}
-				user={user}
-				handleLogout={handleLogout}
-				currentPage="pacientes"
-			/>
-
-			<SidebarHome />
-
+		<PageLayout
+			empleadoData={empleadoData}
+			formatRol={formatRol}
+			getPrimerNombre={getPrimerNombre}>
+			<div className="admin-pacientes-wrapper">
 			<div className="admin-pacientes-header">
 				<h1 className="admin-pacientes-title">Administrar Pacientes</h1>
 			</div>
@@ -435,6 +355,7 @@ const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
 				tipo={notificacion.tipo}
 			/>
 		</div>
+		</PageLayout>
 	);
 };
 

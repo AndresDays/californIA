@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
-import { supabase } from "../../lib/supabase-client";
+import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
 import {
 	agruparEstudiosVendidos,
 	agruparVentasPorDia,
@@ -16,74 +16,7 @@ import {
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
-import { esErrorColumnaSchemaCache } from "../../utils/supabase-errors";
 import "./reporte-ventas.css";
-
-const SELECT_VENTAS_REPORTE_BASE = `
-	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
-	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor,
-	pacientes ( id_paciente, nombre ),
-	clientes ( id_cliente, nombre ),
-	empleados ( id_empleado, nombre ),
-	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area )
-`;
-
-const SELECT_VENTAS_REPORTE_SUCURSAL = `
-	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
-	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, id_sucursal, sucursal,
-	pacientes ( id_paciente, nombre ),
-	clientes ( id_cliente, nombre ),
-	empleados ( id_empleado, nombre ),
-	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
-`;
-
-const SELECT_VENTAS_REPORTE_ID_CITA = `
-	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
-	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, id_cita, id_sucursal, sucursal,
-	pacientes ( id_paciente, nombre ),
-	clientes ( id_cliente, nombre ),
-	empleados ( id_empleado, nombre ),
-	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
-`;
-
-const SELECT_VENTAS_REPORTE = `
-	id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
-	forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, id_cita, id_sucursal, sucursal,
-	pacientes ( id_paciente, nombre ),
-	clientes ( id_cliente, nombre ),
-	empleados ( id_empleado, nombre ),
-	citas ( id_cita, id_sucursal, sucursales ( id_sucursal, nombre ) ),
-	estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
-`;
-
-const puedeReintentarSinCita = (error) => {
-	const mensaje = error?.message || "";
-	return (
-		esErrorColumnaSchemaCache(error, "id_cita") ||
-		mensaje.includes("relationship") ||
-		mensaje.includes("citas")
-	);
-};
-
-const cargarCitasDeVentas = async (ventas = []) => {
-	const idsCita = [
-		...new Set(ventas.map((venta) => venta.id_cita).filter(Boolean)),
-	];
-	if (idsCita.length === 0) return ventas;
-
-	const { data, error } = await supabase
-		.from("citas")
-		.select("id_cita, id_sucursal, sucursales ( id_sucursal, nombre )")
-		.in("id_cita", idsCita);
-
-	if (error) return ventas;
-
-	const citasPorId = new Map(data.map((cita) => [cita.id_cita, cita]));
-	return ventas.map((venta) => ({
-		...venta,
-		citas: citasPorId.get(venta.id_cita) || venta.citas,
-	}));
-};
 
 const hoyMexico = () =>
 	new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
@@ -95,7 +28,6 @@ const inicioMesMexico = () => {
 };
 
 const ReporteVentas = () => {
-	const { user } = useAuth();
 	const [fechaInicial, setFechaInicial] = useState(inicioMesMexico());
 	const [fechaFinal, setFechaFinal] = useState(hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
@@ -107,116 +39,23 @@ const ReporteVentas = () => {
 	const [doctorSeleccionado, setDoctorSeleccionado] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
-	const [empleadoData, setEmpleadoData] = useState(null);
-	const [ventas, setVentas] = useState([]);
-	const [sucursales, setSucursales] = useState([]);
-	const [vendedores, setVendedores] = useState([]);
-	const [clientes, setClientes] = useState([]);
-	const [doctores, setDoctores] = useState([]);
-	const [areas, setAreas] = useState([]);
-	const [cargando, setCargando] = useState(false);
-	const [errorReporte, setErrorReporte] = useState("");
+	const { empleadoData } = useAuth();
 
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
+	const {
+		data: ventas = [],
+		isLoading: cargando,
+		error: errorQuery,
+		refetch: refrescarVentas,
+	} = useReporteVentas({ fechaInicial, fechaFinal });
 
-	useEffect(() => {
-		cargarCatalogos();
-	}, []);
+	const { data: catalogos } = useCatalogosReporte();
+	const sucursales = catalogos?.sucursales ?? [];
+	const vendedores = catalogos?.vendedores ?? [];
+	const clientes   = catalogos?.clientes   ?? [];
+	const doctores   = catalogos?.doctores   ?? [];
+	const areas      = catalogos?.areas      ?? [];
 
-	useEffect(() => {
-		cargarVentas();
-	}, [fechaInicial, fechaFinal]);
-
-	const cargarCatalogos = async () => {
-		const [
-			sucursalesResp,
-			vendedoresResp,
-			clientesResp,
-			doctoresResp,
-			areasResp,
-		] = await Promise.all([
-			supabase.from("sucursales").select("id_sucursal, nombre").order("nombre"),
-			supabase.from("empleados").select("id_empleado, nombre").order("nombre"),
-			supabase.from("clientes").select("id_cliente, nombre").order("nombre"),
-			supabase.from("doctores").select("*").order("nombre"),
-			supabase.from("areas").select("id_area, nombre").order("nombre"),
-		]);
-
-		if (!sucursalesResp.error) setSucursales(sucursalesResp.data || []);
-		if (!vendedoresResp.error) setVendedores(vendedoresResp.data || []);
-		if (!clientesResp.error) setClientes(clientesResp.data || []);
-		if (!doctoresResp.error) setDoctores(doctoresResp.data || []);
-		if (!areasResp.error) setAreas(areasResp.data || []);
-	};
-
-	const cargarVentas = async () => {
-		setCargando(true);
-		setErrorReporte("");
-		try {
-			const crearQuery = (select) =>
-				supabase
-					.from("ventas")
-					.select(select)
-					.eq("estado", "activo")
-					.gte("fecha_venta", `${fechaInicial}T00:00:00`)
-					.lte("fecha_venta", `${fechaFinal}T23:59:59`)
-					.order("fecha_venta", { ascending: false });
-
-			let { data, error } = await crearQuery(SELECT_VENTAS_REPORTE);
-
-			if (error && puedeReintentarSinCita(error)) {
-				const respuestaConIdCita = await crearQuery(SELECT_VENTAS_REPORTE_ID_CITA);
-				data = respuestaConIdCita.data;
-				error = respuestaConIdCita.error;
-				if (!error) data = await cargarCitasDeVentas(data || []);
-			}
-
-			if (
-				error &&
-				(esErrorColumnaSchemaCache(error, "id_sucursal") ||
-					esErrorColumnaSchemaCache(error, "sucursal"))
-			) {
-				const respuestaSucursal = await crearQuery(SELECT_VENTAS_REPORTE_SUCURSAL);
-				data = respuestaSucursal.data;
-				error = respuestaSucursal.error;
-			}
-
-			if (
-				error &&
-				(esErrorColumnaSchemaCache(error, "id_cita") ||
-					esErrorColumnaSchemaCache(error, "id_sucursal") ||
-					esErrorColumnaSchemaCache(error, "sucursal"))
-			) {
-				const respuestaBase = await crearQuery(SELECT_VENTAS_REPORTE_BASE);
-				data = respuestaBase.data;
-				error = respuestaBase.error;
-			}
-
-			if (error) throw error;
-			setVentas(data || []);
-		} catch (error) {
-			console.error("Error al cargar reporte de ventas:", error);
-			setErrorReporte(error.message || "No se pudo cargar el reporte");
-			setVentas([]);
-		} finally {
-			setCargando(false);
-		}
-	};
+	const errorReporte = errorQuery?.message ?? "";
 
 	const ventasFiltradas = useMemo(
 		() =>
@@ -617,7 +456,7 @@ const ReporteVentas = () => {
 									className="rv-text-input"
 								/>
 							</div>
-							<button className="rv-generar-btn" onClick={cargarVentas}>
+							<button className="rv-generar-btn" onClick={refrescarVentas}>
 								Generar
 							</button>
 						</div>

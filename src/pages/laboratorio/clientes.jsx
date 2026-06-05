@@ -1,25 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/page-layout.jsx';
 import { useAuth } from '../../context/auth-context';
 import { supabase } from '../../lib/supabase-client';
+import { useClientes } from '../../hooks/use-clientes';
 import './clientes.css';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente.jsx';
 
 const Clientes = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [buscarCliente, setBuscarCliente] = useState('');
-  const [clientes, setClientes] = useState([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [totalClientes, setTotalClientes] = useState(0);
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);
   const [empleadoData, setEmpleadoData] = useState(null);
   const clientesPorPagina = 500;
 
-  useEffect(() => {
+  useState(() => {
     const fetchEmpleadoData = async () => {
       if (!user?.id) return;
       try {
@@ -36,9 +37,9 @@ const Clientes = () => {
     fetchEmpleadoData();
   }, [user]);
 
-  useEffect(() => {
-    cargarClientes();
-  }, [paginaActual, buscarCliente]);
+  const { data: clientesResult } = useClientes({ buscar: buscarCliente, pagina: paginaActual, porPagina: clientesPorPagina });
+  const totalClientes = clientesResult?.count ?? 0;
+  const clientesRaw = clientesResult?.data ?? [];
 
   const getPrimerNombre = (nombreCompleto) => {
     if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
@@ -62,62 +63,6 @@ const Clientes = () => {
     return roles[rol] || rol;
   };
 
-  const cargarClientes = async () => {
-    try {
-      let query = supabase
-        .from('pacientes')
-        .select('*', { count: 'exact' });
-
-      if (buscarCliente.trim()) {
-        query = query.or(
-          `nombre.ilike.%${buscarCliente}%,` +
-          `apellido_paterno.ilike.%${buscarCliente}%,` +
-          `apellido_materno.ilike.%${buscarCliente}%,` +
-          `email.ilike.%${buscarCliente}%`
-        );
-      }
-
-      const desde = (paginaActual - 1) * clientesPorPagina;
-      const hasta = desde + clientesPorPagina - 1;
-
-      const { data, error, count } = await query
-        .range(desde, hasta)
-        .order('id_paciente', { ascending: true });
-
-      if (error) throw error;
-
-      setTotalClientes(count || 0);
-
-      const clientesFormateados = data?.map(cliente => ({
-        id: cliente.id_paciente,
-        apellidoPaterno: cliente.apellido_paterno || '',
-        apellidoMaterno: cliente.apellido_materno || '',
-        nombre: cliente.primer_nombre || cliente.nombre || '',
-        edad: calcularEdad(cliente.fecha_nacimiento),
-        sexo: cliente.sexo || '',
-        telefono: cliente.telefono || '',
-        email: cliente.email || '',
-        fechaNacimiento: cliente.fecha_nacimiento || '',
-        direccion: cliente.direccion || '',
-        cedula: cliente.cedula || '',
-        condicionEspecial: cliente.condicion_especial || '',
-        pais: cliente.pais || 'México',
-        fechaRegistro: new Date(cliente.created_at || Date.now()).toLocaleString('es-MX', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        })
-      })) || [];
-
-      setClientes(clientesFormateados);
-    } catch (error) {
-      console.error('Error al cargar clientes:', error);
-    }
-  };
-
   const calcularEdad = (fechaNacimiento) => {
     if (!fechaNacimiento) return 0;
     const hoy = new Date();
@@ -128,6 +73,30 @@ const Clientes = () => {
       edad--;
     }
     return edad;
+  };
+
+  const clientes = clientesRaw.map(cliente => ({
+    id: cliente.id_paciente,
+    apellidoPaterno: cliente.apellido_paterno || '',
+    apellidoMaterno: cliente.apellido_materno || '',
+    nombre: cliente.primer_nombre || cliente.nombre || '',
+    edad: calcularEdad(cliente.fecha_nacimiento),
+    sexo: cliente.sexo || '',
+    telefono: cliente.telefono || '',
+    email: cliente.email || '',
+    fechaNacimiento: cliente.fecha_nacimiento || '',
+    direccion: cliente.direccion || '',
+    cedula: cliente.cedula || '',
+    condicionEspecial: cliente.condicion_especial || '',
+    pais: cliente.pais || 'México',
+    fechaRegistro: new Date(cliente.created_at || Date.now()).toLocaleString('es-MX', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    })
+  }));
+
+  const refrescarClientes = () => {
+    queryClient.invalidateQueries({ queryKey: ['clientes-lista'] });
   };
 
   const handleAgregarCliente = () => {
@@ -174,7 +143,7 @@ const Clientes = () => {
         alert('Cliente guardado correctamente');
       }
 
-      cargarClientes();
+      refrescarClientes();
       setModalAgregarPacienteOpen(false);
     } catch (error) {
       console.error('Error al guardar cliente:', error);

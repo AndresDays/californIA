@@ -32,7 +32,7 @@ const NotificationBell = ({ user, navigate }) => {
 			if (!user?.id) return;
 			const { data, error } = await supabase
 				.from("empleados")
-				.select("auth_uuid, rol, sucursal, id_sucursal")
+				.select("auth_uuid, rol")
 				.eq("auth_uuid", user.id)
 				.maybeSingle();
 			if (!error && data) setEmpleado(data);

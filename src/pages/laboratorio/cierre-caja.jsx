@@ -198,7 +198,7 @@ const CierreCaja = () => {
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol, id_sucursal, sucursal")
+					.select("nombre, rol")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 				if (!error && empleado) setEmpleadoData(empleado);
