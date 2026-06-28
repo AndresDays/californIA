@@ -1,4 +1,5 @@
 import {
+	calcularPagoAplicadoVenta,
 	calcularSaldoVenta,
 	normalizarPagoRecibido,
 	obtenerClaseAdeudoVenta,
@@ -10,6 +11,12 @@ describe("venta-payment-status helpers", () => {
 		expect(normalizarPagoRecibido("")).toBe(0);
 		expect(normalizarPagoRecibido(null)).toBe(0);
 		expect(normalizarPagoRecibido("120.50")).toBe(120.5);
+	});
+
+	test("limita el pago aplicado al total de la venta cuando hay cambio", () => {
+		expect(calcularPagoAplicadoVenta(440, 500)).toBe(440);
+		expect(calcularPagoAplicadoVenta(440, 300)).toBe(300);
+		expect(calcularPagoAplicadoVenta(440, "")).toBe(0);
 	});
 
 	test("marca como adeudo cuando el pago recibido no cubre el total", () => {

@@ -5,6 +5,14 @@ import pacienteIcono from "../../assets/pacientesIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import {
+	filtrarVentasCortePorRecepcionista,
+	formatearMontoCaja,
+	formatearMontoCajaPorForma,
+	limitarMontoCajaADosDecimales,
+	normalizarMontoCajaPorForma,
+	redondearMontoCaja,
+} from "../../utils/cierre-caja";
 import { resumirMovimientosCaja } from "../../utils/pagos-ventas";
 import { esErrorTablaInexistente } from "../../utils/supabase-errors";
 import "./cierre-caja.css";
@@ -30,7 +38,7 @@ const ModalAperturaCaja = ({ onConfirmar, onCerrar, montoActual }) => {
 					<input
 						type="number"
 						min="0"
-						step="0.01"
+						step="0.50"
 						value={monto}
 						onChange={(e) => setMonto(e.target.value)}
 						className="modal-cierre-input azul"
@@ -125,7 +133,7 @@ const ModalNuevoMovimiento = ({ onConfirmar, onCerrar }) => {
 						<input
 							type="number"
 							min="0.01"
-							step="0.01"
+							step={String(formaPago || "").toLowerCase().includes("efectivo") ? "0.50" : "0.01"}
 							value={monto}
 							onChange={(e) => setMonto(e.target.value)}
 							placeholder="0.00"
@@ -179,14 +187,18 @@ const CierreCaja = () => {
 	const [notificacion, setNotificacion] = useState(null);
 
 	const totales = FILAS_PAGO.reduce((acc, { key }) => {
-		acc[key] = ventas[key] + ingresos[key] - egresos[key];
+		acc[key] = normalizarMontoCajaPorForma(
+			ventas[key] + ingresos[key] - egresos[key],
+			key,
+		);
 		return acc;
 	}, {});
 
-	const totalEnCaja =
+	const totalEnCaja = limitarMontoCajaADosDecimales(
 		montoApertura +
-		Object.values(totales).reduce((s, v) => s + v, 0) -
-		montoCancelados;
+			Object.values(totales).reduce((s, v) => s + v, 0) -
+			montoCancelados,
+	);
 
 	useEffect(() => {
 		if (empleadoContext) setEmpleadoData(empleadoContext);
@@ -239,7 +251,7 @@ const CierreCaja = () => {
 		try {
 			const { data, error } = await supabase
 				.from("empleados")
-				.select("nombre, rol, auth_uuid")
+				.select("id_empleado, nombre, rol, auth_uuid")
 				.order("nombre");
 			if (error) throw error;
 			setEmpleados(data || []);
@@ -249,9 +261,12 @@ const CierreCaja = () => {
 	};
 
 	const sumarPorForma = (movs, forma) =>
-		movs
-			.filter((m) => String(m.forma_pago || "").toLowerCase().includes(forma))
-			.reduce((s, m) => s + (parseFloat(m.monto) || 0), 0);
+		normalizarMontoCajaPorForma(
+			movs
+				.filter((m) => String(m.forma_pago || "").toLowerCase().includes(forma))
+				.reduce((s, m) => s + (parseFloat(m.monto) || 0), 0),
+			forma,
+		);
 
 	const cargarCorteCaja = async () => {
 		const inicio = `${fechaActual}T00:00:00`;
@@ -277,12 +292,17 @@ const CierreCaja = () => {
 			const movEgreso    = (data || []).filter((m) => m.motivo === "movimiento_manual_egreso");
 			const apertura     = (data || []).find((m) => m.motivo === "apertura_caja");
 
-			if (apertura) setMontoApertura(parseFloat(apertura.monto) || 0);
+			if (apertura) setMontoApertura(redondearMontoCaja(apertura.monto));
 
 			const resumen = resumirMovimientosCaja(movVentas);
-			setVentas({ efectivo: resumen.efectivo, tarjeta: resumen.tarjeta, transfer: resumen.transferencia, credito: resumen.credito });
-			setMontoCancelados(resumen.cancelaciones);
-			setTotalAdeudos(resumen.adeudos);
+			setVentas({
+				efectivo: redondearMontoCaja(resumen.efectivo),
+				tarjeta: normalizarMontoCajaPorForma(resumen.tarjeta, "tarjeta"),
+				transfer: normalizarMontoCajaPorForma(resumen.transferencia, "transfer"),
+				credito: normalizarMontoCajaPorForma(resumen.credito, "credito"),
+			});
+			setMontoCancelados(limitarMontoCajaADosDecimales(resumen.cancelaciones));
+			setTotalAdeudos(limitarMontoCajaADosDecimales(resumen.adeudos));
 
 			setIngresos({
 				efectivo: sumarPorForma(movIngreso, "efectivo"),
@@ -304,32 +324,44 @@ const CierreCaja = () => {
 	const cargarCorteDesdeVentas = async (inicio, fin) => {
 		let query = supabase
 			.from("ventas")
-			.select("total, pago_recibido, forma_pago, estado, id_sucursal")
+			.select("total, pago_recibido, forma_pago, estado, id_sucursal, id_empleado")
 			.gte("fecha_venta", inicio)
 			.lte("fecha_venta", fin);
 		if (sucursalSeleccionada) query = query.eq("id_sucursal", sucursalSeleccionada);
 		const { data, error } = await query;
 		if (error) throw error;
-		const vs = data || [];
+		const vs = filtrarVentasCortePorRecepcionista(
+			data || [],
+			empleados,
+			usuarioSeleccionado,
+		);
 		const suma = (forma) =>
-			vs.filter((v) => String(v.forma_pago || "").toLowerCase().includes(forma))
-				.reduce((t, v) => t + (parseFloat(v.pago_recibido) || 0), 0);
+			normalizarMontoCajaPorForma(
+				vs.filter((v) => String(v.forma_pago || "").toLowerCase().includes(forma))
+					.reduce((t, v) => t + (parseFloat(v.pago_recibido) || 0), 0),
+				forma,
+			);
 		setVentas({ efectivo: suma("efectivo"), tarjeta: suma("tarjeta"), transfer: suma("transfer"), credito: suma("credito") });
 		setMontoCancelados(
-			vs.filter((v) => String(v.estado || "").toLowerCase().includes("cancel"))
-				.reduce((t, v) => t + (parseFloat(v.pago_recibido) || 0), 0),
+			limitarMontoCajaADosDecimales(
+				vs.filter((v) => String(v.estado || "").toLowerCase().includes("cancel"))
+					.reduce((t, v) => t + (parseFloat(v.pago_recibido) || 0), 0),
+			),
 		);
 		setTotalAdeudos(
-			vs.reduce((t, v) => t + Math.max((parseFloat(v.total) || 0) - (parseFloat(v.pago_recibido) || 0), 0), 0),
+			limitarMontoCajaADosDecimales(
+				vs.reduce((t, v) => t + Math.max((parseFloat(v.total) || 0) - (parseFloat(v.pago_recibido) || 0), 0), 0),
+			),
 		);
 	};
 
 	const handleAperturaCaja = async (monto, nota) => {
 		try {
 			const sucursalObj = sucursales.find((s) => s.id_sucursal === sucursalSeleccionada);
+			const montoRedondeado = normalizarMontoCajaPorForma(monto, "efectivo");
 			const { error } = await supabase.from("movimientos_pago_venta").insert({
 				tipo_movimiento: "ajuste",
-				monto,
+				monto: montoRedondeado,
 				forma_pago: "efectivo",
 				motivo: "apertura_caja",
 				referencia: nota || null,
@@ -340,9 +372,9 @@ const CierreCaja = () => {
 				actor_auth_uuid: user?.id || null,
 			});
 			if (error && !esErrorTablaInexistente(error, "movimientos_pago_venta")) throw error;
-			setMontoApertura(monto);
+			setMontoApertura(montoRedondeado);
 			setModalAperturaOpen(false);
-			setNotificacion({ tipo: "exito", texto: `Apertura registrada: $${monto.toFixed(2)}` });
+			setNotificacion({ tipo: "exito", texto: `Apertura registrada: $${formatearMontoCaja(montoRedondeado)}` });
 		} catch (err) {
 			console.error("Error al registrar apertura:", err);
 			setNotificacion({ tipo: "error", texto: "No se pudo registrar la apertura." });
@@ -353,9 +385,10 @@ const CierreCaja = () => {
 		try {
 			const sucursalObj = sucursales.find((s) => s.id_sucursal === sucursalSeleccionada);
 			const motivo = tipo === "ingreso" ? "movimiento_manual_ingreso" : "movimiento_manual_egreso";
+			const montoRedondeado = normalizarMontoCajaPorForma(monto, formaPago);
 			const { error } = await supabase.from("movimientos_pago_venta").insert({
 				tipo_movimiento: "ajuste",
-				monto,
+				monto: montoRedondeado,
 				forma_pago: formaPago.toLowerCase(),
 				motivo,
 				referencia: concepto,
@@ -373,11 +406,20 @@ const CierreCaja = () => {
 				: fp.includes("transfer") ? "transfer"
 				: "credito";
 
-			if (tipo === "ingreso") setIngresos((p) => ({ ...p, [clave]: p[clave] + monto }));
-			else setEgresos((p) => ({ ...p, [clave]: p[clave] + monto }));
+			if (tipo === "ingreso") {
+				setIngresos((p) => ({
+					...p,
+					[clave]: normalizarMontoCajaPorForma(p[clave] + montoRedondeado, clave),
+				}));
+			} else {
+				setEgresos((p) => ({
+					...p,
+					[clave]: normalizarMontoCajaPorForma(p[clave] + montoRedondeado, clave),
+				}));
+			}
 
 			setModalMovimientoOpen(false);
-			setNotificacion({ tipo: "exito", texto: `${tipo === "ingreso" ? "Ingreso" : "Egreso"} registrado: $${monto.toFixed(2)} (${formaPago})` });
+			setNotificacion({ tipo: "exito", texto: `${tipo === "ingreso" ? "Ingreso" : "Egreso"} registrado: $${formatearMontoCaja(montoRedondeado)} (${formaPago})` });
 		} catch (err) {
 			console.error("Error al registrar movimiento:", err);
 			setNotificacion({ tipo: "error", texto: "No se pudo registrar el movimiento." });
@@ -397,7 +439,8 @@ const CierreCaja = () => {
 		}[rol] || rol;
 	};
 
-	const fmt = (n) => `$${(n || 0).toFixed(2)}`;
+	const fmt = (n) => `$${limitarMontoCajaADosDecimales(n).toFixed(2)}`;
+	const fmtForma = (n, formaPago) => `$${formatearMontoCajaPorForma(n, formaPago)}`;
 	const nombreSucursal = sucursales.find((s) => s.id_sucursal === sucursalSeleccionada)?.nombre || "Todas";
 
 	return (
@@ -474,8 +517,9 @@ const CierreCaja = () => {
 							<label>Apertura</label>
 							<input
 								type="number"
-								value={montoApertura}
-								onChange={(e) => setMontoApertura(parseFloat(e.target.value) || 0)}
+								step="0.50"
+								value={formatearMontoCaja(montoApertura)}
+								onChange={(e) => setMontoApertura(redondearMontoCaja(e.target.value))}
 								className="input-monto-apertura"
 							/>
 						</div>
@@ -497,22 +541,22 @@ const CierreCaja = () => {
 									{label}
 								</div>
 								<div className="campo-cierre verde">
-									<input type="number" value={ventas[key]}
-										onChange={(e) => setVentas((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+									<input type="number" step={key === "efectivo" ? "0.50" : "0.01"} value={formatearMontoCajaPorForma(ventas[key], key)}
+										onChange={(e) => setVentas((p) => ({ ...p, [key]: normalizarMontoCajaPorForma(e.target.value, key) }))}
 										className="input-campo-cierre" />
 								</div>
 								<div className="campo-cierre verde">
-									<input type="number" value={ingresos[key]}
-										onChange={(e) => setIngresos((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+									<input type="number" step={key === "efectivo" ? "0.50" : "0.01"} value={formatearMontoCajaPorForma(ingresos[key], key)}
+										onChange={(e) => setIngresos((p) => ({ ...p, [key]: normalizarMontoCajaPorForma(e.target.value, key) }))}
 										className="input-campo-cierre" />
 								</div>
 								<div className="campo-cierre rojo">
-									<input type="number" value={egresos[key]}
-										onChange={(e) => setEgresos((p) => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
+									<input type="number" step={key === "efectivo" ? "0.50" : "0.01"} value={formatearMontoCajaPorForma(egresos[key], key)}
+										onChange={(e) => setEgresos((p) => ({ ...p, [key]: normalizarMontoCajaPorForma(e.target.value, key) }))}
 										className="input-campo-cierre" />
 								</div>
 								<div className="campo-cierre azul">
-									<input type="number" value={totales[key]} readOnly className="input-campo-cierre" />
+									<input type="number" step={key === "efectivo" ? "0.50" : "0.01"} value={formatearMontoCajaPorForma(totales[key], key)} readOnly className="input-campo-cierre" />
 								</div>
 							</div>
 						))}
@@ -521,19 +565,19 @@ const CierreCaja = () => {
 					<div className="totales-finales-cierre">
 						<div className="total-card cancelados">
 							<label>Cancelados</label>
-							<input type="number" value={montoCancelados}
-								onChange={(e) => setMontoCancelados(parseFloat(e.target.value) || 0)}
+							<input type="number" step="0.01" value={limitarMontoCajaADosDecimales(montoCancelados).toFixed(2)}
+								onChange={(e) => setMontoCancelados(limitarMontoCajaADosDecimales(e.target.value))}
 								className="input-campo-cierre" />
 						</div>
 						<div className="total-card">
 							<label>Adeudos</label>
-							<input type="number" value={totalAdeudos}
-								onChange={(e) => setTotalAdeudos(parseFloat(e.target.value) || 0)}
+							<input type="number" step="0.01" value={limitarMontoCajaADosDecimales(totalAdeudos).toFixed(2)}
+								onChange={(e) => setTotalAdeudos(limitarMontoCajaADosDecimales(e.target.value))}
 								className="input-campo-cierre" />
 						</div>
 						<div className="total-card destacado">
 							<label>Total en Caja</label>
-							<input type="number" value={totalEnCaja} readOnly className="input-campo-cierre" />
+							<input type="number" step="0.01" value={limitarMontoCajaADosDecimales(totalEnCaja).toFixed(2)} readOnly className="input-campo-cierre" />
 						</div>
 					</div>
 				</div>
@@ -547,10 +591,10 @@ const CierreCaja = () => {
 						<tr><td>Monto Apertura</td><td>{fmt(montoApertura)}</td></tr>
 						{FILAS_PAGO.map(({ key, label }) => (
 							<React.Fragment key={key}>
-								<tr><td>Ventas {label}</td><td>{fmt(ventas[key])}</td></tr>
-								<tr><td>Ingresos {label}</td><td>{fmt(ingresos[key])}</td></tr>
-								<tr><td>Egresos {label}</td><td>-{fmt(egresos[key])}</td></tr>
-								<tr><td>Total {label}</td><td>{fmt(totales[key])}</td></tr>
+								<tr><td>Ventas {label}</td><td>{fmtForma(ventas[key], key)}</td></tr>
+								<tr><td>Ingresos {label}</td><td>{fmtForma(ingresos[key], key)}</td></tr>
+								<tr><td>Egresos {label}</td><td>-{fmtForma(egresos[key], key)}</td></tr>
+								<tr><td>Total {label}</td><td>{fmtForma(totales[key], key)}</td></tr>
 							</React.Fragment>
 						))}
 						<tr><td>Cancelados</td><td>-{fmt(montoCancelados)}</td></tr>

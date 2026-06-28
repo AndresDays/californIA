@@ -1,0 +1,66 @@
+<h2>Calendario de citas</h2>
+<p class="subtitle">Dos formas de mostrar todas las citas con columnas por tipo de estudio.</p>
+
+<div class="cards">
+  <div class="card" data-choice="week-columns" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px;background:#f7fafc;border-radius:10px;border:1px solid #dbe7ef">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong style="font-size:15px;color:#1d3446">Semana 22-28 junio</strong>
+          <span style="font-size:12px;color:#607285">Hoy | Semana | Mes</span>
+        </div>
+        <div style="display:grid;grid-template-columns:86px repeat(5,1fr);gap:6px;font-size:11px">
+          <div></div>
+          <strong>Lun 22</strong><strong>Mar 23</strong><strong>Mie 24</strong><strong>Jue 25</strong><strong>Vie 26</strong>
+          <strong style="color:#557">Lab</strong>
+          <div style="background:#fff;border-left:4px solid #2ca6a4;padding:7px;border-radius:6px">08:30 Biometria<br>11:20 Quimica</div>
+          <div style="background:#fff;border-left:4px solid #2ca6a4;padding:7px;border-radius:6px">09:00 Perfil</div>
+          <div style="background:#fff;border-left:4px solid #2ca6a4;padding:7px;border-radius:6px"></div>
+          <div style="background:#fff;border-left:4px solid #2ca6a4;padding:7px;border-radius:6px">10:15 Glucosa</div>
+          <div style="background:#fff;border-left:4px solid #2ca6a4;padding:7px;border-radius:6px"></div>
+          <strong style="color:#557">RX</strong>
+          <div style="background:#fff;border-left:4px solid #2f7ed8;padding:7px;border-radius:6px">10:00 Torax</div>
+          <div style="background:#fff;border-left:4px solid #2f7ed8;padding:7px;border-radius:6px"></div>
+          <div style="background:#fff;border-left:4px solid #2f7ed8;padding:7px;border-radius:6px">12:00 Rodilla</div>
+          <div style="background:#fff;border-left:4px solid #2f7ed8;padding:7px;border-radius:6px"></div>
+          <div style="background:#fff;border-left:4px solid #2f7ed8;padding:7px;border-radius:6px">15:00 Craneo</div>
+          <strong style="color:#557">TAC</strong>
+          <div style="background:#fff;border-left:4px solid #8b5cf6;padding:7px;border-radius:6px"></div>
+          <div style="background:#fff;border-left:4px solid #8b5cf6;padding:7px;border-radius:6px">13:30 Abdomen</div>
+          <div style="background:#fff;border-left:4px solid #8b5cf6;padding:7px;border-radius:6px"></div>
+          <div style="background:#fff;border-left:4px solid #8b5cf6;padding:7px;border-radius:6px"></div>
+          <div style="background:#fff;border-left:4px solid #8b5cf6;padding:7px;border-radius:6px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Opcion A: semana por dias</h3>
+      <p>Una fila por tipo de estudio y columnas por dia. Es compacta y buena para recepcion.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="day-study-columns" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="padding:16px;background:#f7fafc;border-radius:10px;border:1px solid #dbe7ef">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <strong style="font-size:15px;color:#1d3446">Martes 23 junio</strong>
+          <span style="font-size:12px;color:#607285">Dia | Semana | Mes</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(86px,1fr));gap:8px;font-size:11px">
+          <strong>Lab</strong><strong>Ultrasonido</strong><strong>Rayos X</strong><strong>TAC</strong><strong>Resonancia</strong>
+          <div style="background:#fff;border-top:4px solid #2ca6a4;padding:8px;border-radius:7px;min-height:96px">08:30 Ana Perez<br>11:20 Luis Mora<br>14:00 Sofia Ruiz</div>
+          <div style="background:#fff;border-top:4px solid #f59e0b;padding:8px;border-radius:7px;min-height:96px">09:45 USG abdomen</div>
+          <div style="background:#fff;border-top:4px solid #2f7ed8;padding:8px;border-radius:7px;min-height:96px">10:00 RX torax<br>16:30 RX mano</div>
+          <div style="background:#fff;border-top:4px solid #8b5cf6;padding:8px;border-radius:7px;min-height:96px">13:30 TAC abdomen</div>
+          <div style="background:#fff;border-top:4px solid #ef4444;padding:8px;border-radius:7px;min-height:96px">Sin citas</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Opcion B: dia con columnas por estudio</h3>
+      <p>Cada dia abre una agenda detallada con columnas Lab, Ultrasonido, Rayos X, TAC, Resonancia, etc.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">Mi recomendacion: B como vista principal, con selector de dia/semana arriba. Es la que cumple literalmente "por cada dia una columna para cada tipo de estudio".</p>

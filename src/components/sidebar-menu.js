@@ -86,6 +86,12 @@ export const sidebarItems = [
 				path: "/reporte-ventas",
 			},
 			{
+				id: "cortes-dia",
+				label: "Cortes del día",
+				icon: subIcon,
+				path: "/cortes-dia",
+			},
+			{
 				id: "reporte-administrativo",
 				label: "Administrativo",
 				icon: subIcon,

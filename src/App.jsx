@@ -30,6 +30,7 @@ const NuevoPaciente = lazy(() => import('./pages/laboratorio/nuevo-paciente'));
 const Cotizacion = lazy(() => import('./pages/laboratorio/recepcion/cotizacion'));
 const EditarSolicitud = lazy(() => import('./pages/laboratorio/recepcion/editar-solicitud'));
 const Historial = lazy(() => import('./pages/laboratorio/recepcion/historial'));
+const CortesDia = lazy(() => import('./pages/laboratorio/cortes-dia'));
 const ReporteAdministrativo = lazy(() => import('./pages/laboratorio/reporte-administrativo'));
 const ReporteVentas = lazy(() => import('./pages/laboratorio/reporte-ventas'));
 const Turnos = lazy(() => import('./pages/laboratorio/turnos'));
@@ -88,6 +89,7 @@ function App() {
 						<Route path="/clientes" element={<P><Clientes /></P>} />
 						<Route path="/doctores" element={<P><Doctores /></P>} />
 						<Route path="/reporte-ventas" element={<P><ReporteVentas /></P>} />
+						<Route path="/cortes-dia" element={<P><CortesDia /></P>} />
 						<Route path="/reporte-administrativo" element={<P><ReporteAdministrativo /></P>} />
 
 						<Route path="/configuracion/estudios" element={<P><EstudiosLab /></P>} />

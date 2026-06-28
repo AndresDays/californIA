@@ -45,6 +45,7 @@ const QUIMICO_PATHS_BLOQUEADOS = [
 	"/usuarios",
 	"/reporte-ventas",
 	"/reporte-administrativo",
+	"/cortes-dia",
 	"/editar-solicitud",
 	"/cotizacion",
 	"/historial",

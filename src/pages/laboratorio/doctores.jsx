@@ -16,6 +16,10 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { useDoctores } from "../../hooks/use-doctores";
+import {
+	buscarDuplicadoRegistro,
+	crearMensajeRegistroDuplicado,
+} from "../../utils/duplicados-registro.js";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 
 const Doctores = () => {
@@ -27,6 +31,7 @@ const Doctores = () => {
 	const [doctorEditar, setDoctorEditar] = useState(null);
 	const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
 	const [doctorAEliminar, setDoctorAEliminar] = useState(null);
+	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
@@ -91,6 +96,14 @@ const Doctores = () => {
 	};
 
 	const handleGuardarDoctor = async (doctorData, isEditMode) => {
+		const insertarDoctor = async () => {
+			const { error } = await supabase.from("doctores").insert([doctorData]);
+			if (error) throw error;
+			mostrarNotificacion("Doctor agregado correctamente", "exito");
+			refrescarDoctores();
+			setModalAbierto(false);
+		};
+
 		try {
 			if (isEditMode) {
 				const { error } = await supabase
@@ -113,12 +126,26 @@ const Doctores = () => {
 				if (error) throw error;
 				mostrarNotificacion("Doctor actualizado correctamente", "exito");
 			} else {
-				const { error } = await supabase.from("doctores").insert([doctorData]);
-				if (error) throw error;
-				mostrarNotificacion("Doctor agregado correctamente", "exito");
+				const duplicado = await buscarDuplicadoRegistro({
+					supabase,
+					tabla: "doctores",
+					registro: doctorData,
+					idCampo: "id_doctor",
+				});
+				if (duplicado) {
+					setDuplicadoPendiente({
+						mensaje: crearMensajeRegistroDuplicado({ tipo: "doctor", duplicado }),
+						onConfirm: insertarDoctor,
+					});
+					return;
+				}
+
+				await insertarDoctor();
 			}
-			refrescarDoctores();
-			setModalAbierto(false);
+			if (isEditMode) {
+				refrescarDoctores();
+				setModalAbierto(false);
+			}
 		} catch (error) {
 			console.error("Error al guardar doctor:", error);
 			throw error;
@@ -275,6 +302,16 @@ const Doctores = () => {
 									? `${doctorAEliminar.nombre} ${doctorAEliminar.apellidoPaterno} ${doctorAEliminar.apellidoMaterno}`
 									: ""
 							}
+						/>
+						<ModalConfirmarEliminacion
+							isOpen={Boolean(duplicadoPendiente)}
+							onClose={() => setDuplicadoPendiente(null)}
+							onConfirm={() => duplicadoPendiente?.onConfirm?.()}
+							titulo="Registro duplicado"
+							mensaje={duplicadoPendiente?.mensaje}
+							textoConfirmar="Agregar de todos modos"
+							textoCancelar="Cancelar"
+							mostrarAdvertencia={false}
 						/>
 						<ModalNotificacion
 							isOpen={notificacion.isOpen}

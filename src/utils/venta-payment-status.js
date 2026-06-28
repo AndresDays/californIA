@@ -3,6 +3,13 @@ export const normalizarPagoRecibido = (pago) => {
 	return Number.isFinite(monto) && monto > 0 ? monto : 0;
 };
 
+export const calcularPagoAplicadoVenta = (total, pago) => {
+	const totalNormalizado = normalizarPagoRecibido(total);
+	const pagoNormalizado = normalizarPagoRecibido(pago);
+	if (totalNormalizado <= 0 || pagoNormalizado <= 0) return 0;
+	return Math.min(totalNormalizado, pagoNormalizado);
+};
+
 export const calcularSaldoVenta = (venta = {}) => {
 	const total = parseFloat(venta.total) || 0;
 	const pagoRecibido = normalizarPagoRecibido(venta.pago_recibido);
