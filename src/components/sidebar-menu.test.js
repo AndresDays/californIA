@@ -8,6 +8,7 @@ describe("sidebar shared menu", () => {
 		expect(sidebarItems.map((item) => item.label)).toEqual([
 			"Inicio",
 			"Nuevo Paciente",
+			"Calendario",
 			"Captura",
 			"Entrega",
 			"Recepción",
