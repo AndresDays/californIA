@@ -51,3 +51,34 @@ export const useCitasHoy = () => {
     staleTime: 1000 * 60 * 3,
   });
 };
+
+export const useCalendarioCitas = (fecha) =>
+  useQuery({
+    queryKey: ['citas', 'calendario', fecha],
+    queryFn: async () => {
+      const inicioDia = `${fecha}T00:00:00`;
+      const finDia = `${fecha}T23:59:59`;
+
+      const { data, error } = await supabase
+        .from('citas')
+        .select(`
+          id_cita, fecha_estudio, estado, tipo_estudio, monto,
+          id_sucursal, nombre_paciente, telefono_paciente,
+          pacientes ( nombre, telefono, id_paciente ),
+          sucursales ( id_sucursal, nombre ),
+          clientes ( id_cliente, nombre ),
+          empresas ( id_empresa, nombre ),
+          tipos_estudio ( id_tipo_estudio, nombre )
+        `)
+        .gte('fecha_estudio', inicioDia)
+        .lte('fecha_estudio', finDia)
+        .not('estado', 'eq', 'cancelada')
+        .order('fecha_estudio', { ascending: true });
+
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: Boolean(fecha),
+    staleTime: 1000 * 60 * 2,
+    refetchInterval: 1000 * 60 * 5,
+  });

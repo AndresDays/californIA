@@ -9,6 +9,7 @@ import { AuthProvider } from './context/auth-context';
 const ForgotPassword = lazy(() => import('./pages/forgot-password'));
 const Dashboard = lazy(() => import('./pages/home'));
 const Captura = lazy(() => import('./pages/laboratorio/captura'));
+const CalendarioCitas = lazy(() => import('./pages/laboratorio/calendario-citas'));
 const CierreCaja = lazy(() => import('./pages/laboratorio/cierre-caja'));
 const Clientes = lazy(() => import('./pages/laboratorio/clientes'));
 const AdministrarAreas = lazy(() => import('./pages/laboratorio/configuracion/administrar-areas'));
@@ -76,6 +77,7 @@ function App() {
 						<Route path="/pacientes" element={<P><Pacientes /></P>} />
 						<Route path="/perfil" element={<P><Perfil /></P>} />
 						<Route path="/nuevo-paciente" element={<P><NuevoPaciente /></P>} />
+						<Route path="/calendario" element={<P><CalendarioCitas /></P>} />
 						<Route path="/captura" element={<P><Captura /></P>} />
 						<Route path="/entrega-resultados" element={<P><EntregaResultados /></P>} />
 						<Route path="/editar-solicitud" element={<P><EditarSolicitud /></P>} />

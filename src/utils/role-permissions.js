@@ -28,6 +28,7 @@ export const esDashboardRayosX = (rol) =>
 
 const RECEPCIONISTA_PATHS = [
 	"/dashboard",
+	"/calendario",
 	"/nuevo-paciente",
 	"/entrega-resultados",
 	"/editar-solicitud",
@@ -72,6 +73,7 @@ export const filtrarMenuPorRol = (items = [], rol) => {
 		return items
 			.map((item) => {
 				if (item.id === "inicio") return item;
+				if (item.id === "calendario") return item;
 				if (item.id === "nuevo-paciente" || item.id === "entrega") return item;
 				if (item.id === "recepcion") return item;
 				if (item.id === "administracion") {

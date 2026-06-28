@@ -151,6 +151,7 @@ const Dashboard = () => {
 	}, [cargarBandejasDespues]);
 
 	const handleCitaCreada = () => {
+		queryClient.invalidateQueries({ queryKey: ['citas'] });
 		queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
 		queryClient.invalidateQueries({ queryKey: ['dashboard-citas-proximas'] });
 		queryClient.invalidateQueries({ queryKey: ['dashboard-estadisticas'] });
