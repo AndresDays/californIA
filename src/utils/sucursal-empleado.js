@@ -7,14 +7,16 @@ const limpiarSucursal = (valor) =>
 		.toUpperCase();
 
 export const resolverSucursalEmpleado = (empleado = {}, sucursales = []) => {
-	const sucursalTexto = empleado.sucursal || empleado.sucursales?.nombre || "";
+	const empleadoSeguro = empleado || {};
+	const sucursalTexto =
+		empleadoSeguro.sucursal || empleadoSeguro.sucursales?.nombre || "";
 	const sucursalNormalizada = limpiarSucursal(sucursalTexto);
 	const sucursalCatalogo = sucursales.find(
 		(sucursal) => limpiarSucursal(sucursal.nombre) === sucursalNormalizada,
 	);
 	const idSucursal =
-		empleado.id_sucursal ||
-		empleado.sucursales?.id_sucursal ||
+		empleadoSeguro.id_sucursal ||
+		empleadoSeguro.sucursales?.id_sucursal ||
 		sucursalCatalogo?.id_sucursal ||
 		null;
 

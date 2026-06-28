@@ -46,7 +46,10 @@ import {
 	resolverDestinoTurnoDesdeEstudios,
 	TURNO_DESTINOS,
 } from "../../utils/turnos-pacientes";
-import { normalizarPagoRecibido } from "../../utils/venta-payment-status";
+import {
+	calcularPagoAplicadoVenta,
+	normalizarPagoRecibido,
+} from "../../utils/venta-payment-status";
 import {
 	esEmailValido,
 	esTelefono10Digitos,
@@ -55,6 +58,11 @@ import {
 } from "../../utils/form-validations";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
+import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion.jsx";
+import {
+	buscarDuplicadoRegistro,
+	crearMensajeRegistroDuplicado,
+} from "../../utils/duplicados-registro.js";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
 import ModalMuestrasPendientes from "./componentes/modal-muestras-pendientes";
 import "./nuevo-paciente.css";
@@ -95,6 +103,7 @@ const NuevoPaciente = () => {
 
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
 	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
+	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
 		useState(false);
@@ -184,7 +193,7 @@ const NuevoPaciente = () => {
 			try {
 				const { data: empleado, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol, sucursal")
+					.select("id_empleado, nombre, rol, auth_uuid, sucursal")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 
@@ -335,6 +344,7 @@ const NuevoPaciente = () => {
 
 		try {
 			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
+			const pagoAplicado = calcularPagoAplicadoVenta(granTotal, pagoNormalizado);
 			const cambioVenta = Math.max(pagoNormalizado - granTotal, 0);
 			let idPaciente = pacienteSeleccionado?.id_paciente;
 
@@ -361,7 +371,7 @@ const NuevoPaciente = () => {
 
 			const { data: empleado } = await supabase
 				.from("empleados")
-				.select("id_empleado, sucursal")
+				.select("id_empleado, nombre, rol, auth_uuid, sucursal")
 				.eq("auth_uuid", user.id)
 				.single();
 			const { data: sucursalesCatalogo } = await supabase
@@ -394,7 +404,7 @@ const NuevoPaciente = () => {
 					descuento: descuento,
 					total: granTotal,
 					forma_pago: formaPago,
-					pago_recibido: pagoNormalizado,
+					pago_recibido: pagoAplicado,
 					cambio: cambioVenta,
 					observaciones: observaciones,
 					estado: "activo",
@@ -418,12 +428,12 @@ const NuevoPaciente = () => {
 			}
 
 			if (errorVenta) throw errorVenta;
-			if (pagoNormalizado > 0) {
+			if (pagoAplicado > 0) {
 				await registrarMovimientoPagoVenta(supabase, {
 					id_venta: venta.id_venta,
 					folio,
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
-					monto: pagoNormalizado,
+					monto: pagoAplicado,
 					forma_pago: formaPago,
 					motivo: "Pago inicial de solicitud",
 					id_sucursal: sucursalEmpleado.id_sucursal,
@@ -441,22 +451,22 @@ const NuevoPaciente = () => {
 				user,
 				detalles: {
 					total: granTotal,
-					pago_recibido: pagoNormalizado,
-					adeudo: Math.max(granTotal - pagoNormalizado, 0),
+					pago_recibido: pagoAplicado,
+					adeudo: Math.max(granTotal - pagoAplicado, 0),
 				},
 			});
 			await registrarEventoSolicitud(supabase, {
 				id_venta: venta.id_venta,
 				folio,
 				evento: EVENTOS_SOLICITUD.COBRADA,
-				descripcion: `Pago registrado por $${Number(pagoNormalizado || 0).toFixed(2)}`,
+				descripcion: `Pago registrado por $${Number(pagoAplicado || 0).toFixed(2)}`,
 				empleado,
 				user,
 				detalles: {
 					forma_pago: formaPago,
 					total: granTotal,
-					pago_recibido: pagoNormalizado,
-					adeudo: Math.max(granTotal - pagoNormalizado, 0),
+					pago_recibido: pagoAplicado,
+					adeudo: Math.max(granTotal - pagoAplicado, 0),
 				},
 			});
 
@@ -897,6 +907,18 @@ const NuevoPaciente = () => {
 	};
 
 	const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
+		const insertarPaciente = async () => {
+			const { data, error } = await supabase
+				.from("pacientes")
+				.insert([pacienteData])
+				.select()
+				.single();
+
+			if (error) throw error;
+			alert("Paciente guardado correctamente");
+			seleccionarPaciente(data);
+		};
+
 		try {
 			if (isEditMode) {
 				const { error } = await supabase
@@ -923,16 +945,21 @@ const NuevoPaciente = () => {
 				if (error) throw error;
 				alert("Paciente actualizado correctamente");
 			} else {
-				const { data, error } = await supabase
-					.from("pacientes")
-					.insert([pacienteData])
-					.select()
-					.single();
+				const duplicado = await buscarDuplicadoRegistro({
+					supabase,
+					tabla: "pacientes",
+					registro: pacienteData,
+					idCampo: "id_paciente",
+				});
+				if (duplicado) {
+					setDuplicadoPendiente({
+						mensaje: crearMensajeRegistroDuplicado({ tipo: "paciente", duplicado }),
+						onConfirm: insertarPaciente,
+					});
+					return;
+				}
 
-				if (error) throw error;
-				alert("Paciente guardado correctamente");
-
-				seleccionarPaciente(data);
+				await insertarPaciente();
 			}
 		} catch (error) {
 			console.error("Error al guardar paciente:", error);
@@ -941,6 +968,18 @@ const NuevoPaciente = () => {
 	};
 
 	const handleGuardarDoctorModal = async (doctorData, isEditMode) => {
+		const insertarDoctor = async () => {
+			const { data, error } = await supabase
+				.from("doctores")
+				.insert([doctorData])
+				.select()
+				.single();
+
+			if (error) throw error;
+			alert("Doctor guardado correctamente");
+			seleccionarDoctor(data);
+		};
+
 		try {
 			if (isEditMode) {
 				const { error } = await supabase
@@ -966,16 +1005,21 @@ const NuevoPaciente = () => {
 				if (error) throw error;
 				alert("Doctor actualizado correctamente");
 			} else {
-				const { data, error } = await supabase
-					.from("doctores")
-					.insert([doctorData])
-					.select()
-					.single();
+				const duplicado = await buscarDuplicadoRegistro({
+					supabase,
+					tabla: "doctores",
+					registro: doctorData,
+					idCampo: "id_doctor",
+				});
+				if (duplicado) {
+					setDuplicadoPendiente({
+						mensaje: crearMensajeRegistroDuplicado({ tipo: "doctor", duplicado }),
+						onConfirm: insertarDoctor,
+					});
+					return;
+				}
 
-				if (error) throw error;
-				alert("Doctor guardado correctamente");
-
-				seleccionarDoctor(data);
+				await insertarDoctor();
 			}
 		} catch (error) {
 			console.error("Error al guardar doctor:", error);
@@ -1959,6 +2003,17 @@ const NuevoPaciente = () => {
 					isOpen={modalAgregarDoctorOpen}
 					onClose={() => setModalAgregarDoctorOpen(false)}
 					onSave={handleGuardarDoctorModal}
+				/>
+
+				<ModalConfirmarEliminacion
+					isOpen={Boolean(duplicadoPendiente)}
+					onClose={() => setDuplicadoPendiente(null)}
+					onConfirm={() => duplicadoPendiente?.onConfirm?.()}
+					titulo="Registro duplicado"
+					mensaje={duplicadoPendiente?.mensaje}
+					textoConfirmar="Agregar de todos modos"
+					textoCancelar="Cancelar"
+					mostrarAdvertencia={false}
 				/>
 
 				<ModalBuscarCotizacion

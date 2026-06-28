@@ -66,6 +66,20 @@ describe('ModalConfirmarEliminacion — Renderizado inicial', () => {
     expect(screen.getByText('Cancelar')).toBeInTheDocument();
     expect(screen.getByText('Eliminar')).toBeInTheDocument();
   });
+
+  test('permite personalizar botones y ocultar advertencia', () => {
+    render(
+      <ModalConfirmarEliminacion
+        {...defaultProps}
+        textoCancelar="No agregar"
+        textoConfirmar="Agregar de todos modos"
+        mostrarAdvertencia={false}
+      />
+    );
+    expect(screen.getByText('No agregar')).toBeInTheDocument();
+    expect(screen.getByText('Agregar de todos modos')).toBeInTheDocument();
+    expect(screen.queryByText('Esta acción no se puede deshacer.')).not.toBeInTheDocument();
+  });
 });
 
 // SUITE 2 — Interacciones

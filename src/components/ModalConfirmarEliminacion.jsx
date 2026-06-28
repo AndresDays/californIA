@@ -9,12 +9,17 @@ const ModalConfirmarEliminacion = ({
   titulo = "Confirmar Eliminación",
   mensaje,
   nombreElemento,
-  tipo = "elemento"
+  tipo = "elemento",
+  textoCancelar = "Cancelar",
+  textoConfirmar = "Eliminar",
+  mostrarAdvertencia = true
 }) => {
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onConfirm();
+    Promise.resolve(onConfirm()).catch((error) => {
+      console.error("Error al confirmar acción:", error);
+    });
     onClose();
   };
 
@@ -34,9 +39,11 @@ const ModalConfirmarEliminacion = ({
           {nombreElemento && (
             <p className="modal-eliminar-nombre">"{nombreElemento}"</p>
           )}
-          <p className="modal-eliminar-advertencia">
-            Esta acción no se puede deshacer.
-          </p>
+          {mostrarAdvertencia && (
+            <p className="modal-eliminar-advertencia">
+              Esta acción no se puede deshacer.
+            </p>
+          )}
         </div>
 
         <div className="modal-eliminar-footer">
@@ -44,13 +51,13 @@ const ModalConfirmarEliminacion = ({
             className="btn-modal-cancelar" 
             onClick={onClose}
           >
-            Cancelar
+            {textoCancelar}
           </button>
           <button 
             className="btn-modal-eliminar" 
             onClick={handleConfirm}
           >
-            Eliminar
+            {textoConfirmar}
           </button>
         </div>
       </div>
