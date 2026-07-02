@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import notiIcon from "../assets/notificaciones.png";
 import { supabase } from "../lib/supabase-client";
+import { useSessionStore } from "../store/session-store";
 import { notificacionEsParaEmpleado } from "../utils/notificaciones";
 
 const formatearTiempo = (fecha) => {
@@ -20,26 +21,17 @@ const formatearTiempo = (fecha) => {
 
 const NotificationBell = ({ user, navigate }) => {
 	const [open, setOpen] = useState(false);
-	const [empleado, setEmpleado] = useState(null);
 	const [notificaciones, setNotificaciones] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+	const empleadoData = useSessionStore((state) => state.empleadoData);
 	const wrapperRef = useRef(null);
 	const menuRef = useRef(null);
 
-	useEffect(() => {
-		const cargarEmpleado = async () => {
-			if (!user?.id) return;
-			const { data, error } = await supabase
-				.from("empleados")
-				.select("auth_uuid, rol")
-				.eq("auth_uuid", user.id)
-				.maybeSingle();
-			if (!error && data) setEmpleado(data);
-		};
-
-		cargarEmpleado();
-	}, [user?.id]);
+	const empleado = useMemo(() => {
+		if (!user?.id || !empleadoData) return null;
+		return { ...empleadoData, auth_uuid: user.id };
+	}, [empleadoData, user?.id]);
 
 	useEffect(() => {
 		const cargarNotificaciones = async () => {

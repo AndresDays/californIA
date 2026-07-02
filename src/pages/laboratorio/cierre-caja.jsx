@@ -5,6 +5,8 @@ import pacienteIcono from "../../assets/pacientesIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { useSessionStore } from "../../store/session-store";
+
 import {
 	filtrarVentasCortePorRecepcionista,
 	formatearMontoCaja,
@@ -13,6 +15,7 @@ import {
 	normalizarMontoCajaPorForma,
 	redondearMontoCaja,
 } from "../../utils/cierre-caja";
+
 import { resumirMovimientosCaja } from "../../utils/pagos-ventas";
 import { esErrorTablaInexistente } from "../../utils/supabase-errors";
 import "./cierre-caja.css";
@@ -166,7 +169,9 @@ const FILAS_PAGO = [
 ];
 
 const CierreCaja = () => {
-	const { user, empleadoData: empleadoContext } = useAuth();
+	const { user } = useAuth();
+	const empleadoData = useSessionStore((state) => state.empleadoData);
+	const setSucursalActual = useSessionStore((state) => state.setSucursalActual);
 
 	const [fechaActual, setFechaActual] = useState(new Date().toISOString().split("T")[0]);
 	const [sucursales, setSucursales] = useState([]);
@@ -181,7 +186,6 @@ const CierreCaja = () => {
 
 	const [montoCancelados, setMontoCancelados] = useState(0);
 	const [totalAdeudos, setTotalAdeudos] = useState(0);
-	const [empleadoData, setEmpleadoData] = useState(empleadoContext || null);
 	const [modalAperturaOpen, setModalAperturaOpen] = useState(false);
 	const [modalMovimientoOpen, setModalMovimientoOpen] = useState(false);
 	const [notificacion, setNotificacion] = useState(null);
@@ -201,31 +205,18 @@ const CierreCaja = () => {
 	);
 
 	useEffect(() => {
-		if (empleadoContext) setEmpleadoData(empleadoContext);
-	}, [empleadoContext]);
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
 		cargarSucursales();
 		cargarEmpleados();
-	}, [user]);
+	}, []);
 
 	useEffect(() => {
 		cargarCorteCaja();
 	}, [fechaActual, sucursalSeleccionada, usuarioSeleccionado]);
+
+	useEffect(() => {
+		const sucursal = sucursales.find((s) => String(s.id_sucursal) === String(sucursalSeleccionada));
+		setSucursalActual(sucursal || null);
+	}, [setSucursalActual, sucursales, sucursalSeleccionada]);
 
 	useEffect(() => {
 		if (!notificacion) return;

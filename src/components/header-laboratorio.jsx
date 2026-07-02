@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth-context';
-import { supabase } from '../lib/supabase-client';
 import { esRecepcionista } from '../utils/role-permissions';
 import './header-lab.css';
 import californIA from '../assets/CalifornIA.png';
@@ -9,38 +8,9 @@ import usericon from '../assets/usericon.png';
 
 const HeaderLab = ({ tipo = 'default' }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [empleado, setEmpleado] = useState(null);
   const menuRef = useRef(null);
-  const { user, signOut, empleadoData } = useAuth();
+  const { signOut, empleadoData } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchEmpleado = async () => {
-      if (!user?.id) {
-        setEmpleado(null);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from('empleados')
-          .select('*')
-          .eq('auth_uuid', user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error al obtener empleado:', error);
-          return;
-        }
-
-        setEmpleado(data);
-      } catch (error) {
-        console.error('Error en fetchEmpleado:', error);
-      }
-    };
-
-    fetchEmpleado();
-  }, [user]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -64,7 +34,7 @@ const HeaderLab = ({ tipo = 'default' }) => {
   };
 
   const headerClass = tipo === 'azul' ? 'app-header azul' : 'app-header';
-  const recepcionista = esRecepcionista(empleadoData?.rol || empleado?.rol);
+  const recepcionista = esRecepcionista(empleadoData?.rol);
 
   return (
     <header className={headerClass}>
@@ -74,7 +44,7 @@ const HeaderLab = ({ tipo = 'default' }) => {
 
       <div className="header-right" ref={menuRef}>
         <span className="user-name">
-          {empleado?.nombre || 'Cargando...'}
+          {empleadoData?.nombre || 'Cargando...'}
         </span>
         <img
           src={usericon}

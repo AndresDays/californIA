@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import fondoImg from "../assets/FONDO.jpg";
 import { useAuth } from "../context/auth-context";
+import { useSessionStore } from "../store/session-store";
 import useSidebar from "../utils/use-sidebar";
 import Header from "./header-principal";
 import Sidebar from "./sidebar";
@@ -12,6 +13,8 @@ const PageLayout = ({ children, empleadoData, formatRol, getPrimerNombre }) => {
 	const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
 	const menuRef = useRef(null);
 	const { user, signOut } = useAuth();
+	const empleadoStore = useSessionStore((state) => state.empleadoData);
+	const empleadoActual = empleadoData || empleadoStore;
 	const navigate = useNavigate();
 
 	const handleLogout = async () => {
@@ -36,7 +39,7 @@ const PageLayout = ({ children, empleadoData, formatRol, getPrimerNombre }) => {
 				menuOpen={menuOpen}
 				setMenuOpen={setMenuOpen}
 				menuRef={menuRef}
-				empleadoData={empleadoData}
+				empleadoData={empleadoActual}
 				formatRol={formatRol}
 				getPrimerNombre={getPrimerNombre}
 				user={user}
@@ -49,10 +52,10 @@ const PageLayout = ({ children, empleadoData, formatRol, getPrimerNombre }) => {
 				<Sidebar
 					isOpen={sidebarOpen}
 					setIsOpen={setSidebarOpen}
-					empleadoData={empleadoData}
+					empleadoData={empleadoActual}
 				/>
 			) : (
-				<SidebarHome empleadoData={empleadoData} />
+				<SidebarHome empleadoData={empleadoActual} />
 			)}
 
 			{children}

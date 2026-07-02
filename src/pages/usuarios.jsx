@@ -18,9 +18,8 @@ import { buildEmpleadoUpdatePayload, normalizarRolUsuario } from "../utils/usuar
 import { obtenerMensajeErrorFuncion } from "../utils/supabase-functions";
 
 const Usuarios = () => {
-	const { user } = useAuth();
+	const { empleadoData } = useAuth();
 
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [buscarUsuario, setBuscarUsuario] = useState("");
 	const [usuarios, setUsuarios] = useState([]);
 	const [paginaActual, setPaginaActual] = useState(1);
@@ -36,23 +35,6 @@ const Usuarios = () => {
 	const [usuarioEditar, setUsuarioEditar] = useState(null);
 	const [sucursales, setSucursales] = useState([]);
 	const usuariosPorPagina = 500;
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	useEffect(() => {
 		cargarUsuarios();
