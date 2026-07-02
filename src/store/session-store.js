@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase-client';
+import { esDoctorExterno } from '../utils/radiologia-permisos';
+
+const esColumnaInexistente = (error, columna) =>
+  error?.code === '42703' &&
+  String(error?.message || '').toLowerCase().includes(String(columna).toLowerCase());
 
 export const useSessionStore = create((set, get) => ({
   user: null,
@@ -34,17 +39,44 @@ export const useSessionStore = create((set, get) => ({
     set({ empleadoLoading: true });
 
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('empleados')
-        .select('nombre, rol')
+        .select('nombre, rol, id_doctor')
         .eq('auth_uuid', authId)
         .maybeSingle();
+
+      if (esColumnaInexistente(error, 'id_doctor')) {
+        const respuestaBase = await supabase
+          .from('empleados')
+          .select('nombre, rol')
+          .eq('auth_uuid', authId)
+          .maybeSingle();
+        data = respuestaBase.data;
+        error = respuestaBase.error;
+      }
 
       if (error) throw error;
 
       if (get().user?.id !== authId) return null;
 
-      const empleadoData = data || null;
+      let empleadoData = data || null;
+
+      if (empleadoData && esDoctorExterno(empleadoData.rol) && !empleadoData.id_doctor) {
+        const { data: doctorExterno } = await supabase
+          .from('doctores')
+          .select('id_doctor, nombre, auth_uuid')
+          .eq('auth_uuid', authId)
+          .maybeSingle();
+
+        if (get().user?.id !== authId) return null;
+
+        empleadoData = {
+          ...empleadoData,
+          id_doctor: doctorExterno?.id_doctor || null,
+          doctor_nombre: doctorExterno?.nombre || null,
+        };
+      }
+
       set({ empleadoData, empleadoLoading: false });
       return empleadoData;
     } catch (error) {
