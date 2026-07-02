@@ -29,6 +29,13 @@ describe("sucursal del empleado", () => {
 		});
 	});
 
+	test("regresa una sucursal vacia cuando el empleado no existe", () => {
+		expect(resolverSucursalEmpleado(null, sucursales)).toEqual({
+			id_sucursal: null,
+			sucursal: "",
+		});
+	});
+
 	test("agrega los campos de sucursal a un payload existente", () => {
 		expect(
 			agregarSucursalEmpleadoPayload(

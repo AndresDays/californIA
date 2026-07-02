@@ -1,0 +1,383 @@
+.cal-page {
+	width: 100%;
+	min-height: calc(100vh - 80px);
+	padding: 28px 28px 32px 108px;
+	box-sizing: border-box;
+	background:
+		radial-gradient(circle at top right, rgba(83, 185, 219, 0.08), transparent 34%),
+		#071724;
+}
+
+.cal-shell {
+	width: min(100%, 1480px);
+	margin: 0 auto;
+	background: rgba(9, 25, 39, 0.98);
+	border: 1px solid rgba(83, 185, 219, 0.22);
+	border-radius: 8px;
+	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+	overflow: hidden;
+}
+
+.cal-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px;
+	padding: 20px 24px;
+	border-bottom: 1px solid rgba(83, 185, 219, 0.22);
+	background: linear-gradient(180deg, #0e2a42 0%, #0a1f31 100%);
+}
+
+.cal-title-block {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-width: 0;
+}
+
+.cal-title-icon {
+	width: 42px;
+	height: 42px;
+	object-fit: contain;
+	padding: 8px;
+	border-radius: 8px;
+	background: rgba(83, 185, 219, 0.16);
+	box-shadow: inset 0 0 0 1px rgba(83, 185, 219, 0.35);
+}
+
+.cal-title-block h1 {
+	margin: 0;
+	color: #eaf7ff;
+	font-size: 25px;
+	font-weight: 800;
+	line-height: 1.1;
+}
+
+.cal-title-block p {
+	margin: 4px 0 0;
+	color: #94b8cc;
+	font-size: 14px;
+}
+
+.cal-controls {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	padding: 6px;
+	border: 1px solid rgba(83, 185, 219, 0.28);
+	border-radius: 8px;
+	background: rgba(5, 18, 30, 0.85);
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.cal-controls .cal-icon-button {
+	width: 34px;
+	height: 34px;
+	border: 1px solid transparent;
+	background: rgba(83, 185, 219, 0.12);
+	color: #c9f0ff;
+	border-radius: 6px;
+}
+
+.cal-controls .cal-icon-button:hover {
+	background: rgba(83, 185, 219, 0.24);
+	border-color: rgba(83, 185, 219, 0.55);
+}
+
+.cal-controls .cal-icon-button.today {
+	color: #eaf7ff;
+	background: rgba(36, 129, 166, 0.42);
+}
+
+.cal-controls .cal-icon-button.today:hover {
+	background: rgba(36, 129, 166, 0.58);
+	border-color: rgba(119, 214, 246, 0.52);
+}
+
+.cal-controls strong {
+	color: #e2f4ff;
+	font-size: 16px;
+	min-width: 166px;
+	text-align: right;
+	padding: 0 6px 0 10px;
+}
+
+.cal-board {
+	overflow: auto;
+	background: #071724;
+	max-height: calc(100vh - 198px);
+	scrollbar-color: #2f6f8b #071724;
+}
+
+.cal-grid {
+	display: grid;
+	grid-template-columns: 78px repeat(8, minmax(188px, 1fr));
+	min-width: 1582px;
+}
+
+.cal-corner,
+.cal-study-header {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	min-height: 76px;
+	background: #0c2235;
+	border-right: 1px solid rgba(83, 185, 219, 0.18);
+	border-bottom: 1px solid rgba(83, 185, 219, 0.24);
+}
+
+.cal-corner {
+	left: 0;
+	z-index: 5;
+}
+
+.cal-study-header {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 5px;
+	padding: 0 14px 0 18px;
+	color: #d8f2ff;
+	text-transform: uppercase;
+	font-size: 13px;
+	font-weight: 800;
+	box-shadow: inset 4px 0 0 #94a3b8;
+}
+
+.cal-study-header small {
+	width: fit-content;
+	color: #9ac8dd;
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: none;
+	padding: 3px 8px;
+	border-radius: 999px;
+	background: rgba(83, 185, 219, 0.12);
+}
+
+.cal-row-fragment {
+	display: contents;
+}
+
+.cal-hour {
+	position: sticky;
+	left: 0;
+	z-index: 2;
+	min-height: 84px;
+	padding: 12px 8px;
+	background: #0c2235;
+	border-right: 1px solid rgba(83, 185, 219, 0.18);
+	border-bottom: 1px solid rgba(83, 185, 219, 0.12);
+	color: #a7c9db;
+	font-size: 13px;
+	font-weight: 800;
+	box-sizing: border-box;
+}
+
+.cal-slot {
+	min-height: 84px;
+	padding: 7px;
+	border-right: 1px solid rgba(83, 185, 219, 0.1);
+	border-bottom: 1px solid rgba(83, 185, 219, 0.1);
+	box-sizing: border-box;
+	background:
+		linear-gradient(transparent 50%, rgba(83, 185, 219, 0.05) 50%) 0 0 / 100% 42px,
+		#081a29;
+}
+
+.cal-card {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 8px 9px 9px;
+	border-radius: 6px;
+	border-left: 5px solid #64748b;
+	background: rgba(23, 50, 66, 0.96);
+	color: #d7edf8;
+	font-size: 11px;
+	line-height: 1.25;
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+	transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.cal-card:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+}
+
+.cal-card + .cal-card {
+	margin-top: 6px;
+}
+
+.cal-card strong {
+	color: #eaf7ff;
+	font-size: 11.5px;
+	text-transform: uppercase;
+}
+
+.cal-card span {
+	color: #c3dce9;
+	font-weight: 700;
+}
+
+.cal-card small {
+	width: fit-content;
+	margin-top: 2px;
+	padding: 2px 6px;
+	border-radius: 999px;
+	background: rgba(6, 20, 32, 0.55);
+	color: #a9d5e8;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.cal-card-time {
+	width: fit-content;
+	padding: 2px 6px;
+	border-radius: 999px;
+	background: rgba(4, 16, 27, 0.72);
+	color: #d9f3ff;
+	font-size: 10.5px;
+	font-weight: 900;
+	letter-spacing: 0;
+}
+
+.cal-empty-slot {
+	display: block;
+	width: 100%;
+	height: 100%;
+	min-height: 48px;
+	border-radius: 6px;
+}
+
+.cal-empty-slot:hover {
+	background: rgba(83, 185, 219, 0.07);
+}
+
+.cal-study-header.tipo-lab,
+.cal-card.tipo-lab {
+	background: #114b3a;
+	border-left-color: #10b981;
+	box-shadow: inset 4px 0 0 #10b981;
+}
+
+.cal-study-header.tipo-ultrasonido,
+.cal-card.tipo-ultrasonido {
+	background: #4b3a00;
+	border-left-color: #eab308;
+	box-shadow: inset 4px 0 0 #eab308;
+}
+
+.cal-study-header.tipo-rayos-x,
+.cal-card.tipo-rayos-x {
+	background: #202426;
+	border-left-color: #0284c7;
+	box-shadow: inset 4px 0 0 #0284c7;
+}
+
+.cal-study-header.tipo-tac,
+.cal-card.tipo-tac {
+	background: #0b4250;
+	border-left-color: #06b6d4;
+	box-shadow: inset 4px 0 0 #06b6d4;
+}
+
+.cal-study-header.tipo-resonancia,
+.cal-card.tipo-resonancia {
+	background: #0f6334;
+	border-left-color: #22c55e;
+	box-shadow: inset 4px 0 0 #22c55e;
+}
+
+.cal-study-header.tipo-mastografia,
+.cal-card.tipo-mastografia {
+	background: #5b0730;
+	border-left-color: #db2777;
+	box-shadow: inset 4px 0 0 #db2777;
+}
+
+.cal-study-header.tipo-densitometria,
+.cal-card.tipo-densitometria {
+	background: #773a00;
+	border-left-color: #f97316;
+	box-shadow: inset 4px 0 0 #f97316;
+}
+
+.cal-study-header.tipo-otros,
+.cal-card.tipo-otros {
+	background: #2f3b4a;
+	border-left-color: #64748b;
+	box-shadow: inset 4px 0 0 #64748b;
+}
+
+.cal-card.tipo-lab,
+.cal-card.tipo-ultrasonido,
+.cal-card.tipo-rayos-x,
+.cal-card.tipo-tac,
+.cal-card.tipo-resonancia,
+.cal-card.tipo-mastografia,
+.cal-card.tipo-densitometria,
+.cal-card.tipo-otros {
+	box-shadow:
+		inset 5px 0 0 currentColor,
+		0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.cal-card.tipo-lab { color: #10b981; }
+.cal-card.tipo-ultrasonido { color: #eab308; }
+.cal-card.tipo-rayos-x { color: #0284c7; }
+.cal-card.tipo-tac { color: #06b6d4; }
+.cal-card.tipo-resonancia { color: #22c55e; }
+.cal-card.tipo-mastografia { color: #db2777; }
+.cal-card.tipo-densitometria { color: #f97316; }
+.cal-card.tipo-otros { color: #94a3b8; }
+
+.cal-card.tipo-lab strong,
+.cal-card.tipo-ultrasonido strong,
+.cal-card.tipo-rayos-x strong,
+.cal-card.tipo-tac strong,
+.cal-card.tipo-resonancia strong,
+.cal-card.tipo-mastografia strong,
+.cal-card.tipo-densitometria strong,
+.cal-card.tipo-otros strong,
+.cal-card.tipo-lab span,
+.cal-card.tipo-ultrasonido span,
+.cal-card.tipo-rayos-x span,
+.cal-card.tipo-tac span,
+.cal-card.tipo-resonancia span,
+.cal-card.tipo-mastografia span,
+.cal-card.tipo-densitometria span,
+.cal-card.tipo-otros span {
+	color: #dceef7;
+}
+
+.cal-state {
+	margin: 24px;
+	padding: 18px;
+	border-radius: 8px;
+	background: rgba(83, 185, 219, 0.12);
+	color: #bfeeff;
+	font-weight: 700;
+}
+
+.cal-state.error {
+	background: #fef2f2;
+	color: #b91c1c;
+}
+
+@media (max-width: 1023px) {
+	.cal-page {
+		padding: 22px 14px 24px;
+	}
+
+	.cal-toolbar {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.cal-controls {
+		justify-content: flex-start;
+	}
+}

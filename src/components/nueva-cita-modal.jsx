@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
@@ -7,6 +8,7 @@ import './nueva-cita-modal.css';
 const DEFAULT_PRECIO = 150;
 
 const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     nombreCompleto: '',
     telefono: '',
@@ -231,6 +233,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
 
       if (errorCita) throw errorCita;
 
+      queryClient.invalidateQueries({ queryKey: ['citas'] });
       onCitaCreada?.(nuevaCita);
 
       setFormData({ nombreCompleto: '', telefono: '', fecha: '', hora: '' });

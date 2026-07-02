@@ -116,6 +116,11 @@ jest.mock('./pages/laboratorio/nuevo-paciente', () => ({
   default: () => <div data-testid="nuevo-paciente-page">Nuevo Paciente Page</div>,
 }));
 
+jest.mock('./pages/laboratorio/calendario-citas', () => ({
+  __esModule: true,
+  default: () => <div data-testid="calendario-citas-page">Calendario Citas Page</div>,
+}));
+
 jest.mock('./pages/laboratorio/captura', () => ({
   __esModule: true,
   default: () => <div data-testid="captura-page">Captura Page</div>,
@@ -341,6 +346,7 @@ describe('App — Laboratorio', () => {
   const cases = [
     ['/laboratorio',        'laboratorio-page'],
     ['/nuevo-paciente',     'nuevo-paciente-page'],
+    ['/calendario',         'calendario-citas-page'],
     ['/captura',            'captura-page'],
     ['/entrega-resultados', 'entrega-resultados-page'],
     ['/cierre-caja',        'cierre-caja-page'],

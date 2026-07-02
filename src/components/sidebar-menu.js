@@ -1,4 +1,5 @@
 import configuracionIcono from "../assets/configuracionIcono.png";
+import calendarioIcono from "../assets/calendarioIcono.png";
 import entregaIcono from "../assets/entregaIcono.png";
 import imprimirIcono from "../assets/imprimirIcono.png";
 import inicioIcono from "../assets/inicioIcono.png";
@@ -21,6 +22,12 @@ export const sidebarItems = [
 		label: "Nuevo Paciente",
 		icon: nuevoPacienteIcono,
 		path: "/nuevo-paciente",
+	},
+	{
+		id: "calendario",
+		label: "Calendario",
+		icon: calendarioIcono,
+		path: "/calendario",
 	},
 	{
 		id: "captura",
@@ -77,6 +84,12 @@ export const sidebarItems = [
 				label: "Ventas",
 				icon: subIcon,
 				path: "/reporte-ventas",
+			},
+			{
+				id: "cortes-dia",
+				label: "Cortes del día",
+				icon: subIcon,
+				path: "/cortes-dia",
 			},
 			{
 				id: "reporte-administrativo",

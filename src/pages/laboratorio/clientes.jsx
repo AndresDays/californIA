@@ -2,9 +2,14 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/page-layout.jsx';
+import ModalConfirmarEliminacion from '../../components/ModalConfirmarEliminacion.jsx';
 import { useAuth } from '../../context/auth-context';
 import { supabase } from '../../lib/supabase-client';
 import { useClientes } from '../../hooks/use-clientes';
+import {
+  buscarDuplicadoRegistro,
+  crearMensajeRegistroDuplicado,
+} from '../../utils/duplicados-registro.js';
 import './clientes.css';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente.jsx';
 
@@ -17,6 +22,7 @@ const Clientes = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);
+  const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
   const [empleadoData, setEmpleadoData] = useState(null);
   const clientesPorPagina = 500;
 
@@ -110,6 +116,17 @@ const Clientes = () => {
   };
 
   const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
+    const insertarPaciente = async () => {
+      const { error } = await supabase
+        .from('pacientes')
+        .insert([pacienteData]);
+
+      if (error) throw error;
+      alert('Cliente guardado correctamente');
+      refrescarClientes();
+      setModalAgregarPacienteOpen(false);
+    };
+
     try {
       if (isEditMode) {
         const { error } = await supabase
@@ -135,16 +152,27 @@ const Clientes = () => {
         if (error) throw error;
         alert('Cliente actualizado correctamente');
       } else {
-        const { error } = await supabase
-          .from('pacientes')
-          .insert([pacienteData]);
+        const duplicado = await buscarDuplicadoRegistro({
+          supabase,
+          tabla: 'pacientes',
+          registro: pacienteData,
+          idCampo: 'id_paciente',
+        });
+        if (duplicado) {
+          setDuplicadoPendiente({
+            mensaje: crearMensajeRegistroDuplicado({ tipo: 'paciente', duplicado }),
+            onConfirm: insertarPaciente,
+          });
+          return;
+        }
 
-        if (error) throw error;
-        alert('Cliente guardado correctamente');
+        await insertarPaciente();
       }
 
-      refrescarClientes();
-      setModalAgregarPacienteOpen(false);
+      if (isEditMode) {
+        refrescarClientes();
+        setModalAgregarPacienteOpen(false);
+      }
     } catch (error) {
       console.error('Error al guardar cliente:', error);
       alert('Error al guardar cliente: ' + error.message);
@@ -283,6 +311,16 @@ const Clientes = () => {
           onClose={() => setModalAgregarPacienteOpen(false)}
           onGuardar={handleGuardarPacienteModal}
           pacienteEditar={pacienteEditar}
+        />
+        <ModalConfirmarEliminacion
+          isOpen={Boolean(duplicadoPendiente)}
+          onClose={() => setDuplicadoPendiente(null)}
+          onConfirm={() => duplicadoPendiente?.onConfirm?.()}
+          titulo="Registro duplicado"
+          mensaje={duplicadoPendiente?.mensaje}
+          textoConfirmar="Agregar de todos modos"
+          textoCancelar="Cancelar"
+          mostrarAdvertencia={false}
         />
       </div>
 

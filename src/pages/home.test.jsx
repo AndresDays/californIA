@@ -1,8 +1,10 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from './home';
 
 let mockEmpleadoData = null;
+let mockInvalidateQueries = jest.fn();
 
 // Mock useAuth
 jest.mock('../context/auth-context', () => ({
@@ -49,6 +51,14 @@ jest.mock('../lib/supabase-client', () => ({
         getPublicUrl: () => ({ data: { publicUrl: 'public-foto.jpg' } })
       })
     },
+    channel: () => ({
+      on: () => ({
+        on: () => ({
+          subscribe: () => ({ unsubscribe: jest.fn() }),
+        }),
+      }),
+    }),
+    removeChannel: jest.fn(),
     auth: {
       updateUser: () => Promise.resolve({ error: null })
     }
@@ -59,14 +69,32 @@ jest.mock('../lib/supabase-client', () => ({
 jest.mock('../components/header-principal', () => () => <div>MockHeader</div>);
 jest.mock('../components/sidebar-home', () => () => <div>MockSidebar</div>);
 jest.mock('../components/editar-cita-modal', () => () => <div>MockEditarCitaModal</div>);
-jest.mock('../components/nueva-cita-modal', () => () => <div>MockNuevaCitaModal</div>);
+jest.mock('../components/nueva-cita-modal', () => ({ isOpen, onCitaCreada }) =>
+  isOpen ? <button type="button" onClick={onCitaCreada}>MockNuevaCitaModal</button> : null
+);
 
 beforeEach(() => {
   mockEmpleadoData = null;
+  mockInvalidateQueries.mockClear();
 });
 
+const renderDashboard = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+  mockInvalidateQueries = jest.spyOn(queryClient, 'invalidateQueries');
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <Dashboard />
+    </QueryClientProvider>
+  );
+};
+
 test('renders Dashboard with welcome and stats', () => {
-  render(<Dashboard />);
+  renderDashboard();
   expect(screen.getByText(/Bienvenido/)).toBeInTheDocument();
   expect(screen.getAllByText(/MockHeader/)[0]).toBeInTheDocument();
   expect(screen.getAllByText(/MockSidebar/)[0]).toBeInTheDocument();
@@ -76,7 +104,7 @@ test('renders Dashboard with welcome and stats', () => {
 });
 
 test('uses the dashboard module space for radiology and quick actions', () => {
-  render(<Dashboard />);
+  renderDashboard();
 
   expect(screen.getByRole('button', { name: /Abrir Radiología/i })).toBeInTheDocument();
   expect(screen.queryByAltText(/Laboratorio/i)).not.toBeInTheDocument();
@@ -87,10 +115,20 @@ test('uses the dashboard module space for radiology and quick actions', () => {
   expect(within(quickActions).getByRole('button', { name: /Entrega/i })).toBeInTheDocument();
 });
 
+test('invalidates calendar appointment queries after creating a new appointment', () => {
+  renderDashboard();
+
+  const quickActions = screen.getByRole('group', { name: /Acciones rápidas/i });
+  fireEvent.click(within(quickActions).getByRole('button', { name: /Nueva cita/i }));
+  fireEvent.click(screen.getByRole('button', { name: /MockNuevaCitaModal/i }));
+
+  expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['citas'] });
+});
+
 test('hides income access for receptionist role', () => {
   mockEmpleadoData = { nombre: 'Recepcion Uno', rol: 'recepcionista' };
 
-  render(<Dashboard />);
+  renderDashboard();
 
   expect(screen.queryByText(/Ingresos del Mes/i)).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Abrir Radiolog/i })).not.toBeInTheDocument();
@@ -107,7 +145,7 @@ test('hides income access for receptionist role', () => {
 test('uses restricted dashboard layout for quimico role', () => {
   mockEmpleadoData = { nombre: 'Quimico Uno', rol: 'quimico' };
 
-  render(<Dashboard />);
+  renderDashboard();
 
   expect(screen.queryByText(/Ingresos del Mes/i)).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Abrir Radiolog/i })).not.toBeInTheDocument();
@@ -121,7 +159,7 @@ test.each(['tecnico_radiologia', 'tecnico', 'medico'])(
   (rol) => {
     mockEmpleadoData = { nombre: 'Rayos Uno', rol };
 
-    render(<Dashboard />);
+    renderDashboard();
 
     expect(screen.queryByText(/Ingresos del Mes/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Módulos Principales/i)).toBeInTheDocument();
