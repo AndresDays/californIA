@@ -39,10 +39,11 @@ jest.mock('../lib/supabase-client', () => ({
 
 // Componente consumidor del contexto
 function AuthConsumer() {
-  const { user, loading, error, signIn, signOut, resetPassword } = useAuth();
+  const { user, empleadoData, loading, error, signIn, signOut, resetPassword } = useAuth();
   return (
     <div>
       <span data-testid="user">{user ? user.email : 'no-user'}</span>
+      <span data-testid="empleado-rol">{empleadoData?.rol || 'no-rol'}</span>
       <span data-testid="loading">{loading ? 'loading' : 'ready'}</span>
       <span data-testid="error">{error || 'no-error'}</span>
       <button onClick={() => signIn('test@example.com', 'password123')}>
@@ -147,6 +148,44 @@ describe('AuthContext — Sesión activa', () => {
     await waitFor(() => {
       expect(screen.getByTestId('loading').textContent).toBe('ready');
     });
+  });
+
+  test('carga empleado aunque la base remota aun no tenga id_doctor', async () => {
+    const empleadosQueryConIdDoctor = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() =>
+        Promise.resolve({
+          data: null,
+          error: {
+            code: '42703',
+            message: 'column empleados.id_doctor does not exist',
+          },
+        }),
+      ),
+    };
+    const empleadosQueryBase = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() =>
+        Promise.resolve({
+          data: { nombre: 'Admin', rol: 'admin' },
+          error: null,
+        }),
+      ),
+    };
+
+    supabase.from
+      .mockReturnValueOnce(empleadosQueryConIdDoctor)
+      .mockReturnValueOnce(empleadosQueryBase);
+
+    await renderWithProvider();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('empleado-rol').textContent).toBe('admin');
+    });
+    expect(empleadosQueryConIdDoctor.select).toHaveBeenCalledWith('nombre, rol, id_doctor');
+    expect(empleadosQueryBase.select).toHaveBeenCalledWith('nombre, rol');
   });
 });
 

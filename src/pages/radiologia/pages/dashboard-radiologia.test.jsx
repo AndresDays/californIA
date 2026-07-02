@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import DashboardRadiologia from './dashboard-radiologia';
 
 const mockNavigate = jest.fn();
+const mockEqEstudios = jest.fn();
 const mockUpdate = jest.fn(() => ({
   eq: jest.fn().mockResolvedValue({ error: null }),
 }));
@@ -16,6 +17,8 @@ let mockSidebarState = {
   setSidebarOpen: mockSetSidebarOpen,
   isMobile: false,
 };
+let mockEmpleadoData = null;
+let mockDoctorData = null;
 
 jest.mock('../../../context/auth-context', () => ({
   useAuth: () => ({
@@ -37,9 +40,11 @@ jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onCl
     <button type="button" onClick={onClick}>
       {nombrePaciente} {estado}
     </button>
-    <button type="button" onClick={onSubirImagen}>
-      Subir imagen {nombrePaciente}
-    </button>
+    {onSubirImagen && (
+      <button type="button" onClick={onSubirImagen}>
+        Subir imagen {nombrePaciente}
+      </button>
+    )}
     <button type="button" onClick={onVerDetalles} aria-label={`Detalles ${nombrePaciente}`}>
       ⋮
     </button>
@@ -59,7 +64,17 @@ jest.mock('../../../lib/supabase-client', () => ({
           select: jest.fn().mockReturnThis(),
           eq: jest.fn().mockReturnThis(),
           maybeSingle: jest.fn().mockResolvedValue({
-            data: null,
+            data: mockEmpleadoData,
+            error: null,
+          }),
+        };
+      }
+      if (table === 'doctores') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          maybeSingle: jest.fn().mockResolvedValue({
+            data: mockDoctorData,
             error: null,
           }),
         };
@@ -72,6 +87,7 @@ jest.mock('../../../lib/supabase-client', () => ({
 
       return {
         select: jest.fn().mockReturnThis(),
+        eq: mockEqEstudios.mockReturnThis(),
         update: mockUpdate,
         order: jest.fn().mockResolvedValue({
           data: [
@@ -112,6 +128,12 @@ jest.mock('../../../lib/supabase-client', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockEmpleadoData = {
+    id_empleado: 7,
+    nombre: 'Tecnico Rayos',
+    rol: 'tecnico_radiologia',
+  };
+  mockDoctorData = null;
   mockSidebarState = {
     sidebarOpen: false,
     setSidebarOpen: mockSetSidebarOpen,
@@ -250,4 +272,27 @@ test('uploads multiple DICOM files and records every image for the study', async
       storage_path: expect.stringMatching(/^1\/\d+-1-serie-001\.dcm$/),
     })
   );
+});
+
+test('filters studies by assigned doctor and hides assignment/upload actions for external doctors', async () => {
+  mockEmpleadoData = {
+    id_empleado: 88,
+    nombre: 'Doctor Externo',
+    rol: 'doctor_externo',
+  };
+  mockDoctorData = {
+    id_doctor: 42,
+    nombre: 'Doctor Externo',
+    auth_uuid: 'user-1',
+  };
+
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+
+  expect(mockEqEstudios).toHaveBeenCalledWith('id_doctor', 42);
+  expect(screen.queryByRole('button', { name: /Subir imagen Maria Gomez/i })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
+  expect(screen.queryByRole('button', { name: /Subir imagen/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Asignar estudio/i })).not.toBeInTheDocument();
 });

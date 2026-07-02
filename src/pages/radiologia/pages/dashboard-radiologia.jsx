@@ -14,6 +14,12 @@ import {
   registrarEventoSolicitud,
 } from '../../../utils/solicitud-auditoria';
 import { normalizarModalidadVisor } from '../../../utils/dicom-series';
+import {
+  esDoctorExterno,
+  obtenerRestriccionDoctorExterno,
+  puedeAsignarRadiologia,
+  puedeSubirImagenRadiologia,
+} from '../../../utils/radiologia-permisos';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -88,6 +94,7 @@ const DashboardRadiologia = () => {
     tipo: 'exito'
   });
   const [loading, setLoading] = useState(true);
+  const [empleadoCargado, setEmpleadoCargado] = useState(false);
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
@@ -96,7 +103,7 @@ const DashboardRadiologia = () => {
       try {
         const { data: empleado, error } = await supabase
           .from('empleados')
-          .select('id_empleado, nombre, rol')
+          .select('id_empleado, nombre, rol, id_doctor')
           .eq('auth_uuid', user.id)
           .maybeSingle();
 
@@ -106,10 +113,25 @@ const DashboardRadiologia = () => {
         }
 
         if (empleado) {
+          if (esDoctorExterno(empleado.rol) && !empleado.id_doctor) {
+            const { data: doctorExterno } = await supabase
+              .from('doctores')
+              .select('id_doctor, nombre, auth_uuid')
+              .eq('auth_uuid', user.id)
+              .maybeSingle();
+            setEmpleadoData({
+              ...empleado,
+              id_doctor: doctorExterno?.id_doctor || null,
+              doctor_nombre: doctorExterno?.nombre || null,
+            });
+            return;
+          }
           setEmpleadoData(empleado);
         }
       } catch (error) {
         console.error('Error al obtener datos del empleado:', error);
+      } finally {
+        setEmpleadoCargado(true);
       }
     };
 
@@ -117,13 +139,16 @@ const DashboardRadiologia = () => {
   }, [user]);
 
   useEffect(() => {
+    if (!user?.id) return;
+    if (!empleadoCargado) return;
     cargarEstudios();
-  }, []);
+  }, [user?.id, empleadoCargado, empleadoData?.rol, empleadoData?.id_doctor]);
 
   const cargarEstudios = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const restriccionDoctorExterno = obtenerRestriccionDoctorExterno(empleadoData);
+      let query = supabase
         .from('estudios_radiologia')
         .select(`
           id_estudio,
@@ -143,8 +168,16 @@ const DashboardRadiologia = () => {
             nombre,
             telefono
           )
-        `)
-        .order('fecha_estudio', { ascending: false });
+        `);
+
+      if (restriccionDoctorExterno?.valor) {
+        query = query.eq(restriccionDoctorExterno.columna, restriccionDoctorExterno.valor);
+      } else if (restriccionDoctorExterno) {
+        setEstudios([]);
+        return;
+      }
+
+      const { data, error } = await query.order('fecha_estudio', { ascending: false });
 
       if (error) throw error;
 
@@ -353,6 +386,8 @@ const DashboardRadiologia = () => {
   const tiposEstudio = Array.from(
     new Set(estudios.map(estudio => estudio.tipoEstudio).filter(Boolean))
   );
+  const puedeSubirImagen = puedeSubirImagenRadiologia(empleadoData);
+  const puedeAsignar = puedeAsignarRadiologia(empleadoData);
 
   const conteosPorEstado = ESTADOS_FILTRO.reduce((conteos, estado) => {
     conteos[estado.id] = estado.id === 'todos'
@@ -386,6 +421,7 @@ const DashboardRadiologia = () => {
       'radiologo': 'Radiólogo - Director',
       'doctor': 'Médico',
       'medico': 'Médico',
+      'doctor_externo': 'Doctor externo Rayos X',
       'tecnico_radiologia': 'Técnico en Radiología',
       'tecnico': 'Técnico',
       'quimico': 'Químico',
@@ -505,8 +541,8 @@ const DashboardRadiologia = () => {
                 tieneImagen={estudio.tieneImagen}
                 subiendoImagen={subiendoImagenId === estudio.id}
                 onVerDetalles={() => handleVerDetalles(estudio)}
-                onSubirImagen={() => handleSeleccionarImagen(estudio)}
-                onAsignar={() => handleAsignar(estudio)}
+                onSubirImagen={puedeSubirImagen ? () => handleSeleccionarImagen(estudio) : undefined}
+                onAsignar={puedeAsignar ? () => handleAsignar(estudio) : undefined}
                 onClick={() => handleVerEstudio(estudio)}
               />
             ))
@@ -562,20 +598,24 @@ const DashboardRadiologia = () => {
             </div>
 
             <div className="radiologia-detalle-acciones">
-              <button
-                type="button"
-                className="radiologia-btn-secundario"
-                onClick={() => handleSeleccionarImagen(estudioSeleccionado)}
-              >
-                {estudioSeleccionado.tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
-              </button>
-              <button
-                type="button"
-                className="radiologia-btn-secundario"
-                onClick={() => handleAsignar(estudioSeleccionado)}
-              >
-                Asignar estudio
-              </button>
+              {puedeSubirImagen && (
+                <button
+                  type="button"
+                  className="radiologia-btn-secundario"
+                  onClick={() => handleSeleccionarImagen(estudioSeleccionado)}
+                >
+                  {estudioSeleccionado.tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
+                </button>
+              )}
+              {puedeAsignar && (
+                <button
+                  type="button"
+                  className="radiologia-btn-secundario"
+                  onClick={() => handleAsignar(estudioSeleccionado)}
+                >
+                  Asignar estudio
+                </button>
+              )}
               <button
                 type="button"
                 className="radiologia-btn-principal"

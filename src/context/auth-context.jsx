@@ -1,8 +1,13 @@
 import React from 'react';
 import { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../lib/supabase-client'
+import { esDoctorExterno } from '../utils/radiologia-permisos'
 
 const AuthContext = createContext({})
+
+const esColumnaInexistente = (error, columna) =>
+  error?.code === '42703' &&
+  String(error?.message || '').toLowerCase().includes(String(columna).toLowerCase())
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -49,13 +54,38 @@ export const AuthProvider = ({ children }) => {
 
       setEmpleadoLoading(true)
       try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('empleados')
-          .select('nombre, rol')
+          .select('nombre, rol, id_doctor')
           .eq('auth_uuid', user.id)
           .maybeSingle()
 
+        if (esColumnaInexistente(error, 'id_doctor')) {
+          const respuestaBase = await supabase
+            .from('empleados')
+            .select('nombre, rol')
+            .eq('auth_uuid', user.id)
+            .maybeSingle()
+          data = respuestaBase.data
+          error = respuestaBase.error
+        }
+
         if (error) throw error
+        if (data && esDoctorExterno(data.rol) && !data.id_doctor) {
+          const { data: doctorExterno } = await supabase
+            .from('doctores')
+            .select('id_doctor, nombre, auth_uuid')
+            .eq('auth_uuid', user.id)
+            .maybeSingle()
+          if (!cancelado) {
+            setEmpleadoData({
+              ...data,
+              id_doctor: doctorExterno?.id_doctor || null,
+              doctor_nombre: doctorExterno?.nombre || null,
+            })
+          }
+          return
+        }
         if (!cancelado) setEmpleadoData(data || null)
       } catch (error) {
         console.error('Error al cargar empleado autenticado:', error)

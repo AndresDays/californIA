@@ -194,17 +194,17 @@
 	padding: 8px 9px 9px;
 	border-radius: 6px;
 	border-left: 5px solid #64748b;
-	background: #f8fafc;
-	color: #1f2937;
+	background: rgba(23, 50, 66, 0.96);
+	color: #d7edf8;
 	font-size: 11px;
 	line-height: 1.25;
-	box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
 	transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
 .cal-card:hover {
 	transform: translateY(-1px);
-	box-shadow: 0 12px 22px rgba(15, 23, 42, 0.16);
+	box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
 }
 
 .cal-card + .cal-card {
@@ -212,13 +212,13 @@
 }
 
 .cal-card strong {
-	color: #12263a;
+	color: #eaf7ff;
 	font-size: 11.5px;
 	text-transform: uppercase;
 }
 
 .cal-card span {
-	color: #27384a;
+	color: #c3dce9;
 	font-weight: 700;
 }
 
@@ -227,8 +227,8 @@
 	margin-top: 2px;
 	padding: 2px 6px;
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.6);
-	color: #475569;
+	background: rgba(6, 20, 32, 0.55);
+	color: #a9d5e8;
 	font-weight: 800;
 	text-transform: uppercase;
 }
@@ -237,8 +237,8 @@
 	width: fit-content;
 	padding: 2px 6px;
 	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.75);
-	color: #26394d;
+	background: rgba(4, 16, 27, 0.72);
+	color: #d9f3ff;
 	font-size: 10.5px;
 	font-weight: 900;
 	letter-spacing: 0;
@@ -256,14 +256,61 @@
 	background: rgba(83, 185, 219, 0.07);
 }
 
-.tipo-lab { background: #dff7ef; border-left-color: #10b981; box-shadow: inset 4px 0 0 #10b981; }
-.tipo-ultrasonido { background: #fff2bf; border-left-color: #eab308; box-shadow: inset 4px 0 0 #eab308; }
-.tipo-rayos-x { background: #e0f2fe; border-left-color: #0284c7; box-shadow: inset 4px 0 0 #0284c7; }
-.tipo-tac { background: #d9f3fb; border-left-color: #06b6d4; box-shadow: inset 4px 0 0 #06b6d4; }
-.tipo-resonancia { background: #bbf7d0; border-left-color: #22c55e; box-shadow: inset 4px 0 0 #22c55e; }
-.tipo-mastografia { background: #fce7f3; border-left-color: #db2777; box-shadow: inset 4px 0 0 #db2777; }
-.tipo-densitometria { background: #fed7aa; border-left-color: #f97316; box-shadow: inset 4px 0 0 #f97316; }
-.tipo-otros { background: #e2e8f0; border-left-color: #64748b; box-shadow: inset 4px 0 0 #64748b; }
+.cal-study-header.tipo-lab,
+.cal-card.tipo-lab {
+	background: #114b3a;
+	border-left-color: #10b981;
+	box-shadow: inset 4px 0 0 #10b981;
+}
+
+.cal-study-header.tipo-ultrasonido,
+.cal-card.tipo-ultrasonido {
+	background: #4b3a00;
+	border-left-color: #eab308;
+	box-shadow: inset 4px 0 0 #eab308;
+}
+
+.cal-study-header.tipo-rayos-x,
+.cal-card.tipo-rayos-x {
+	background: #202426;
+	border-left-color: #0284c7;
+	box-shadow: inset 4px 0 0 #0284c7;
+}
+
+.cal-study-header.tipo-tac,
+.cal-card.tipo-tac {
+	background: #0b4250;
+	border-left-color: #06b6d4;
+	box-shadow: inset 4px 0 0 #06b6d4;
+}
+
+.cal-study-header.tipo-resonancia,
+.cal-card.tipo-resonancia {
+	background: #0f6334;
+	border-left-color: #22c55e;
+	box-shadow: inset 4px 0 0 #22c55e;
+}
+
+.cal-study-header.tipo-mastografia,
+.cal-card.tipo-mastografia {
+	background: #5b0730;
+	border-left-color: #db2777;
+	box-shadow: inset 4px 0 0 #db2777;
+}
+
+.cal-study-header.tipo-densitometria,
+.cal-card.tipo-densitometria {
+	background: #773a00;
+	border-left-color: #f97316;
+	box-shadow: inset 4px 0 0 #f97316;
+}
+
+.cal-study-header.tipo-otros,
+.cal-card.tipo-otros {
+	background: #2f3b4a;
+	border-left-color: #64748b;
+	box-shadow: inset 4px 0 0 #64748b;
+}
 
 .cal-card.tipo-lab,
 .cal-card.tipo-ultrasonido,
@@ -273,7 +320,37 @@
 .cal-card.tipo-mastografia,
 .cal-card.tipo-densitometria,
 .cal-card.tipo-otros {
-	box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+	box-shadow:
+		inset 5px 0 0 currentColor,
+		0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.cal-card.tipo-lab { color: #10b981; }
+.cal-card.tipo-ultrasonido { color: #eab308; }
+.cal-card.tipo-rayos-x { color: #0284c7; }
+.cal-card.tipo-tac { color: #06b6d4; }
+.cal-card.tipo-resonancia { color: #22c55e; }
+.cal-card.tipo-mastografia { color: #db2777; }
+.cal-card.tipo-densitometria { color: #f97316; }
+.cal-card.tipo-otros { color: #94a3b8; }
+
+.cal-card.tipo-lab strong,
+.cal-card.tipo-ultrasonido strong,
+.cal-card.tipo-rayos-x strong,
+.cal-card.tipo-tac strong,
+.cal-card.tipo-resonancia strong,
+.cal-card.tipo-mastografia strong,
+.cal-card.tipo-densitometria strong,
+.cal-card.tipo-otros strong,
+.cal-card.tipo-lab span,
+.cal-card.tipo-ultrasonido span,
+.cal-card.tipo-rayos-x span,
+.cal-card.tipo-tac span,
+.cal-card.tipo-resonancia span,
+.cal-card.tipo-mastografia span,
+.cal-card.tipo-densitometria span,
+.cal-card.tipo-otros span {
+	color: #dceef7;
 }
 
 .cal-state {

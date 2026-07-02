@@ -76,17 +76,19 @@ const TarjetaEstudio = ({
         </div>
 
         <div className="tarjeta-acciones">
-          <button
-            type="button"
-            className={`btn-subir-imagen ${tieneImagen ? 'con-imagen' : ''}`}
-            disabled={subiendoImagen}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onSubirImagen) onSubirImagen();
-            }}
-          >
-            {subiendoImagen ? 'Subiendo...' : tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
-          </button>
+          {onSubirImagen && (
+            <button
+              type="button"
+              className={`btn-subir-imagen ${tieneImagen ? 'con-imagen' : ''}`}
+              disabled={subiendoImagen}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSubirImagen();
+              }}
+            >
+              {subiendoImagen ? 'Subiendo...' : tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
+            </button>
+          )}
           <button 
             className="btn-menu-estudio"
             onClick={(e) => {

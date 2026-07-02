@@ -116,6 +116,7 @@ jest.mock('./VisorDicom.css', () => ({}));
 
 // Mock de React Router
 const mockNavigate = jest.fn();
+let mockEmpleadoVisor = null;
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -145,14 +146,22 @@ jest.mock('../../../context/auth-context', () => ({
 // Mock de Supabase
 jest.mock('../../../lib/supabase-client', () => ({
   supabase: {
-    from: jest.fn(() => ({
+    from: jest.fn((table) => ({
       select:      jest.fn().mockReturnThis(),
       eq:          jest.fn().mockReturnThis(),
       neq:         jest.fn().mockReturnThis(),
       order:       jest.fn().mockReturnThis(),
       limit:       jest.fn().mockReturnThis(),
-      single:      jest.fn(() => Promise.resolve({ data: { url_archivo: 'mock.dcm' }, error: null })),
-      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      single:      jest.fn(() => Promise.resolve({
+        data: table === 'estudios_radiologia'
+          ? { url_archivo: 'mock.dcm', id_doctor: mockEmpleadoVisor?.id_doctor || null }
+          : { url_archivo: 'mock.dcm' },
+        error: null,
+      })),
+      maybeSingle: jest.fn(() => Promise.resolve({
+        data: table === 'empleados' ? mockEmpleadoVisor : null,
+        error: null,
+      })),
       insert:      jest.fn().mockReturnThis(),
       update:      jest.fn().mockReturnThis(),
       delete:      jest.fn().mockReturnThis(),
@@ -182,7 +191,7 @@ jest.mock('../../../components/ModalNotificacion', () => ({
 }));
 jest.mock('../componentes/ModalAsignar', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ config }) => config ? <div data-testid="mock-modal-asignar">{config.titulo}</div> : null,
 }));
 
 // Helper
@@ -199,7 +208,10 @@ const renderVisor = async () => {
 
 // SUITE 1 — Renderizado general
 describe('VisorDicom — Renderizado general', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+  });
 
   test('renderiza sin errores', async () => {
     await renderVisor();
@@ -238,7 +250,10 @@ describe('VisorDicom — Renderizado general', () => {
 
 // SUITE 2 — Toolbar: herramientas
 describe('VisorDicom — Toolbar herramientas', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+  });
 
   test.each([
     'Scroll', 'Ampliar', 'W/L', 'Mover',
@@ -265,7 +280,10 @@ describe('VisorDicom — Toolbar herramientas', () => {
 
 // SUITE 3 — Toolbar: acciones
 describe('VisorDicom — Toolbar acciones', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+  });
 
   test.each([
     'Restaurar', 'CINE', 'Más', 'Detalle',
@@ -319,11 +337,40 @@ describe('VisorDicom — Toolbar acciones', () => {
     // Clicking Detalle closes Más submenu
     expect(screen.queryByTitle('Lupa')).not.toBeInTheDocument();
   });
+
+  test('doctor externo puede usar herramientas pero no ve reporte para interpretar', async () => {
+    mockEmpleadoVisor = {
+      nombre: 'Doctor Externo',
+      rol: 'doctor_externo',
+      id_doctor: 42,
+    };
+
+    await renderVisor();
+
+    expect(screen.getByTitle('Ampliar')).toBeInTheDocument();
+    expect(screen.getByTitle('Longitud')).toBeInTheDocument();
+    expect(screen.queryByTitle('Abrir reporte')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Opciones de reporte')).not.toBeInTheDocument();
+  });
+
+  test('permite abrir asignacion desde detalle cuando el permiso aun no esta cargado', async () => {
+    mockEmpleadoVisor = null;
+
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Detalle')); });
+    await act(async () => { fireEvent.click(screen.getByText('Referente')); });
+
+    expect(screen.queryByText('No tienes permiso para modificar este estudio')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mock-modal-asignar')).toHaveTextContent('Asignar estudio a doctor externo');
+  });
 });
 
 // SUITE 4 — Navegación
 describe('VisorDicom — Navegación', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+  });
 
   test('clic en Atrás llama a navigate(-1)', async () => {
     await renderVisor();

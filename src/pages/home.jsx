@@ -19,7 +19,7 @@ import '../components/nueva-cita-modal.css';
 import PageLayout from '../components/page-layout';
 import { useAuth } from '../context/auth-context';
 import { supabase } from '../lib/supabase-client';
-import { esDashboardRayosX, esQuimico, esRecepcionista } from '../utils/role-permissions';
+import { esDashboardRayosX, esDoctorExternoPermisos, esQuimico, esRecepcionista } from '../utils/role-permissions';
 import './CalifornIA.css';
 
 const Dashboard = () => {
@@ -73,6 +73,14 @@ const Dashboard = () => {
 	const cargarBandejasTrabajo = useCallback(async () => {
 		setBandejasLoading(true);
 		try {
+			const rolActual = normalizarRol(empleadoData?.rol);
+			const esDoctorExterno = esDoctorExternoPermisos(rolActual);
+			const idDoctorExterno = empleadoData?.id_doctor || null;
+			const limitarDoctorExterno = (consulta) => {
+				if (!esDoctorExterno) return consulta;
+				return consulta.eq("id_doctor", idDoctorExterno || -1);
+			};
+
 			const resultados = await Promise.allSettled([
 				obtenerConteo(
 					supabase
@@ -87,16 +95,16 @@ const Dashboard = () => {
 						.eq("estado_validacion", "guardado"),
 				),
 				obtenerConteo(
-					supabase
+					limitarDoctorExterno(supabase
 						.from("estudios_radiologia")
 						.select("id_estudio", { count: "exact", head: true })
-						.in("estado", ["POR ASIGNAR", "ASIGNADO"]),
+						.in("estado", ["POR ASIGNAR", "ASIGNADO"])),
 				),
 				obtenerConteo(
-					supabase
+					limitarDoctorExterno(supabase
 						.from("estudios_radiologia")
 						.select("id_estudio", { count: "exact", head: true })
-						.in("estado", ["EN PROCESO"]),
+						.in("estado", ["EN PROCESO"])),
 				),
 				obtenerConteo(
 					supabase
@@ -106,10 +114,10 @@ const Dashboard = () => {
 						.eq("entregado", false),
 				),
 				obtenerConteo(
-					supabase
+					limitarDoctorExterno(supabase
 						.from("estudios_radiologia")
 						.select("id_estudio", { count: "exact", head: true })
-						.eq("listo_entrega", true),
+						.eq("listo_entrega", true)),
 				),
 			]);
 			const valor = (index) =>
@@ -126,7 +134,7 @@ const Dashboard = () => {
 		} finally {
 			setBandejasLoading(false);
 		}
-	}, []);
+	}, [empleadoData?.id_doctor, empleadoData?.rol]);
 
 	const cargarBandejasDespues = useCallback(() => {
 		clearTimeout(debounceRef.current);
@@ -176,6 +184,7 @@ const Dashboard = () => {
 			radiologo: "Radiólogo - Director",
 			doctor: "Médico",
 			medico: "Médico",
+			doctor_externo: "Doctor externo Rayos X",
 			tecnico_radiologia: "Técnico en Radiología",
 			tecnico: "Técnico",
 			quimico: "Químico",
@@ -198,6 +207,7 @@ const Dashboard = () => {
 	const rolEmpleado = normalizarRol(empleadoData?.rol);
 	const esRolRecepcionista = esRecepcionista(rolEmpleado);
 	const esRolDashboardRayosX = esDashboardRayosX(rolEmpleado);
+	const esRolDoctorExterno = esDoctorExternoPermisos(rolEmpleado);
 	const esDashboardRestringido =
 		esRolRecepcionista || esQuimico(rolEmpleado) || esRolDashboardRayosX;
 	const mostrarModuloRadiologia = !esDashboardRestringido || esRolDashboardRayosX;
@@ -234,11 +244,11 @@ const Dashboard = () => {
 		},
 		{
 			id: "radiologo-interpretar",
-			titulo: "Radiologo",
-			descripcion: "Pendientes de interpretar",
+			titulo: esRolDoctorExterno ? "Rayos X" : "Radiologo",
+			descripcion: esRolDoctorExterno ? "Estudios asignados" : "Pendientes de interpretar",
 			conteo: bandejasTrabajo.radiologiaInterpretar,
 			ruta: "/radiologia",
-			roles: ["radiologo"],
+			roles: ["radiologo", "doctor_externo", "medico_externo", "doctor_particular", "medico_particular", "institucion_externa"],
 		},
 		{
 			id: "entrega-lista",

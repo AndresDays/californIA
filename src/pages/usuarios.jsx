@@ -70,6 +70,7 @@ const Usuarios = () => {
 			radiologo: "Radiólogo - Director",
 			doctor: "Médico",
 			medico: "Médico",
+			doctor_externo: "Doctor externo Rayos X",
 			tecnico_radiologia: "Técnico en Radiología",
 			tecnico: "Técnico",
 			quimico: "Químico",
