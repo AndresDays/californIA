@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase-client';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
 import './modal-agregar-doctor.css';
 import '../../../components/admin-entity-modal.css';
@@ -20,6 +19,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   
   const [usuario, setUsuario] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [tipoDoctor, setTipoDoctor] = useState('particular');
+  const [institucion, setInstitucion] = useState('');
 
   const isEditMode = !!doctorEditar;
 
@@ -41,6 +42,12 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       setTelefono(normalizarTelefono10(doctorEditar.telefono || ''));
       setUsuario(doctorEditar.usuario || '');
       setContrasena(doctorEditar.contrasena || '');
+      setTipoDoctor(
+        ['particular', 'institucion'].includes(doctorEditar.tipoDoctor || doctorEditar.tipo_doctor)
+          ? (doctorEditar.tipoDoctor || doctorEditar.tipo_doctor)
+          : 'particular'
+      );
+      setInstitucion(doctorEditar.institucion || '');
       
       if (doctorEditar.fechaNacimiento) {
         const fecha = new Date(doctorEditar.fechaNacimiento);
@@ -94,6 +101,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
     setTelefono('');
     setUsuario('');
     setContrasena('');
+    setTipoDoctor('particular');
+    setInstitucion('');
   };
 
   const handleGuardar = async () => {
@@ -132,6 +141,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       telefono: telefono || null,
       usuario: usuario || null,
       contrasena: contrasena || null,
+      tipo_doctor: ['particular', 'institucion'].includes(tipoDoctor) ? tipoDoctor : 'particular',
+      institucion: institucion || null,
       activo: true
     };
 
@@ -297,6 +308,33 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
                 className="modal-input"
                 maxLength="10"
                 inputMode="numeric"
+              />
+            </div>
+          </div>
+
+          <div className="form-section-modal">
+            <div className="form-group-modal">
+              <label htmlFor="tipo-doctor-externo">Tipo de doctor</label>
+              <select
+                id="tipo-doctor-externo"
+                value={tipoDoctor}
+                onChange={(e) => setTipoDoctor(e.target.value)}
+                className="modal-select"
+              >
+                <option value="particular">Particular externo</option>
+                <option value="institucion">Institución externa</option>
+              </select>
+            </div>
+
+            <div className="form-group-modal">
+              <label htmlFor="institucion-doctor-externo">Institución</label>
+              <input
+                id="institucion-doctor-externo"
+                type="text"
+                value={institucion}
+                onChange={(e) => setInstitucion(e.target.value)}
+                placeholder="IMSS, ISSSTE, Particular..."
+                className="modal-input"
               />
             </div>
           </div>

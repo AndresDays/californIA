@@ -37,7 +37,7 @@ const puedeVerCortes = (rol) =>
 	["admin", "administrador", "desarrollador"].includes(normalizarRolPermisos(rol));
 
 const CortesDia = () => {
-	const { user, empleadoData } = useAuth();
+	const { user, empleadoData, loading, empleadoLoading } = useAuth();
 	const [fecha, setFecha] = useState(hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState("");
@@ -162,6 +162,16 @@ const CortesDia = () => {
 		};
 		return roles[normalizarRolPermisos(rol)] || rol || "Usuario";
 	};
+
+	if (loading || empleadoLoading) {
+		return (
+			<PageLayout empleadoData={empleadoData} formatRol={formatRol} getPrimerNombre={getPrimerNombre}>
+				<div className="cortes-wrapper">
+					<div className="cortes-loading-page">Cargando cortes...</div>
+				</div>
+			</PageLayout>
+		);
+	}
 
 	if (!puedeVerCortes(empleadoData?.rol)) {
 		return (
@@ -292,6 +302,11 @@ const CortesDia = () => {
 									{corteActual && transaccionesEmpleado.length === 0 && (
 										<tr>
 											<td colSpan="8" className="cortes-empty-row">Sin transacciones para este empleado.</td>
+										</tr>
+									)}
+									{!corteActual && !cargandoMovimientos && !cargandoVentas && (
+										<tr>
+											<td colSpan="8" className="cortes-empty-row">No hay cortes registrados para esta fecha.</td>
 										</tr>
 									)}
 								</tbody>

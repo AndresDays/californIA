@@ -2,8 +2,10 @@
 	min-height: 100vh;
 	box-sizing: border-box;
 	padding: 26px 34px 34px 122px;
-	color: #d7d2cc;
-	background: rgba(13, 16, 17, 0.9);
+	color: #eaf7ff;
+	background:
+		radial-gradient(circle at top right, rgba(83, 185, 219, 0.09), transparent 34%),
+		#071724;
 }
 
 .cortes-header {
@@ -24,7 +26,7 @@
 .cortes-header p,
 .cortes-empty p {
 	margin: 5px 0 0;
-	color: #a39d96;
+	color: #94b8cc;
 }
 
 .cortes-filtros {
@@ -38,7 +40,7 @@
 .cortes-filtros select {
 	height: 40px;
 	border: 1px solid rgba(73, 178, 212, 0.24);
-	background: rgba(18, 21, 22, 0.88);
+	background: rgba(5, 18, 30, 0.88);
 	border-radius: 8px;
 	display: inline-flex;
 	align-items: center;
@@ -57,7 +59,7 @@
 	outline: 0;
 	font: inherit;
 	background: transparent;
-	color: #d7d2cc;
+	color: #d8f2ff;
 }
 
 .cortes-metricas {
@@ -70,10 +72,10 @@
 .cortes-metricas div,
 .cortes-empleados,
 .cortes-detalle {
-	background: rgba(18, 21, 22, 0.88);
+	background: rgba(9, 25, 39, 0.94);
 	border: 1px solid rgba(73, 178, 212, 0.24);
 	border-radius: 8px;
-	box-shadow: none;
+	box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
 }
 
 .cortes-metricas div {
@@ -83,7 +85,7 @@
 .cortes-metricas span {
 	display: block;
 	font-size: 12px;
-	color: #a39d96;
+	color: #94b8cc;
 	text-transform: uppercase;
 	font-weight: 700;
 }
@@ -92,7 +94,7 @@
 	display: block;
 	margin-top: 6px;
 	font-size: 20px;
-	color: #d7d2cc;
+	color: #eaf7ff;
 }
 
 .cortes-layout {
@@ -109,7 +111,7 @@
 .cortes-panel-title {
 	font-size: 13px;
 	font-weight: 800;
-	color: #a39d96;
+	color: #94b8cc;
 	text-transform: uppercase;
 	margin: 4px 6px 10px;
 }
@@ -125,13 +127,13 @@
 	border-radius: 8px;
 	padding: 12px;
 	cursor: pointer;
-	color: #d7d2cc;
+	color: #d8f2ff;
 }
 
 .cortes-empleado:hover,
 .cortes-empleado.activo {
-	background: rgba(15, 90, 112, 0.45);
-	border-color: rgba(73, 178, 212, 0.45);
+	background: rgba(16, 78, 111, 0.58);
+	border-color: rgba(83, 185, 219, 0.48);
 }
 
 .cortes-empleado span {
@@ -139,7 +141,7 @@
 }
 
 .cortes-empleado small {
-	color: #a39d96;
+	color: #94b8cc;
 }
 
 .cortes-detalle {
@@ -162,7 +164,7 @@
 
 .cortes-detalle-header p {
 	margin: 4px 0 0;
-	color: #a39d96;
+	color: #94b8cc;
 }
 
 .cortes-empleado-totales {
@@ -175,15 +177,15 @@
 
 .cortes-empleado-totales span,
 .cortes-empleado-totales strong {
-	background: rgba(255, 255, 255, 0.04);
+	background: rgba(83, 185, 219, 0.09);
 	border-radius: 8px;
 	padding: 8px 10px;
 	font-size: 13px;
 }
 
 .cortes-empleado-totales strong {
-	background: #103d5b;
-	color: #fff;
+	background: #0f4e72;
+	color: #eaf7ff;
 }
 
 .cortes-tabla-wrap {
@@ -200,8 +202,8 @@
 	text-align: left;
 	font-size: 12px;
 	text-transform: uppercase;
-	color: #a39d96;
-	background: rgba(17, 19, 20, 0.96);
+	color: #94b8cc;
+	background: rgba(6, 20, 32, 0.98);
 	padding: 12px;
 	border-bottom: 1px solid rgba(73, 178, 212, 0.22);
 }
@@ -217,8 +219,8 @@
 	align-items: center;
 	height: 24px;
 	border-radius: 999px;
-	background: rgba(24, 118, 72, 0.34);
-	color: #81e1ad;
+	background: rgba(34, 197, 94, 0.2);
+	color: #8af0b4;
 	font-size: 12px;
 	font-weight: 800;
 	padding: 0 9px;
@@ -232,7 +234,7 @@
 
 .cortes-link {
 	border: 0;
-	background: rgba(255, 255, 255, 0.05);
+	background: rgba(83, 185, 219, 0.1);
 	color: #80d6ff;
 	border-radius: 7px;
 	padding: 7px 10px;
@@ -246,11 +248,19 @@
 
 .cortes-empty,
 .cortes-loading,
+.cortes-loading-page,
 .cortes-empty-small,
 .cortes-empty-row,
 .cortes-error {
 	padding: 18px;
-	color: #a39d96;
+	color: #94b8cc;
+}
+
+.cortes-loading-page {
+	border: 1px solid rgba(73, 178, 212, 0.24);
+	border-radius: 8px;
+	background: rgba(9, 25, 39, 0.94);
+	width: fit-content;
 }
 
 .cortes-error {
@@ -278,8 +288,8 @@
 	max-height: min(760px, calc(100vh - 2.5rem));
 	display: flex;
 	flex-direction: column;
-	background: linear-gradient(180deg, rgba(25, 35, 45, 0.98) 0%, rgba(15, 25, 35, 0.98) 100%);
-	color: #ffffff;
+	background: linear-gradient(180deg, rgba(11, 35, 54, 0.98) 0%, rgba(6, 20, 32, 0.98) 100%);
+	color: #eaf7ff;
 	border: 1px solid rgba(73, 178, 212, 0.28);
 	border-radius: 12px;
 	box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
@@ -293,7 +303,7 @@
 	justify-content: space-between;
 	gap: 1rem;
 	padding: 1rem 1.5rem;
-	background: linear-gradient(135deg, rgba(52, 108, 145, 0.95) 0%, rgba(41, 128, 185, 0.95) 100%);
+	background: linear-gradient(135deg, rgba(14, 59, 88, 0.98) 0%, rgba(17, 94, 130, 0.96) 100%);
 	border-bottom: 1px solid rgba(111, 179, 210, 0.3);
 }
 
@@ -376,8 +386,8 @@
 }
 
 .cortes-modal-grid div {
-	background: rgba(40, 50, 60, 0.5);
-	border: 1px solid rgba(80, 90, 100, 0.5);
+	background: rgba(7, 25, 39, 0.7);
+	border: 1px solid rgba(83, 185, 219, 0.18);
 	border-radius: 8px;
 	padding: 0.75rem;
 }

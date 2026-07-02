@@ -20,6 +20,10 @@ import {
 	buscarDuplicadoRegistro,
 	crearMensajeRegistroDuplicado,
 } from "../../utils/duplicados-registro.js";
+import {
+	esErrorColumnaDoctoresNoCacheada,
+	quitarColumnasDoctoresExternos,
+} from "../../utils/doctores-schema.js";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 
 const Doctores = () => {
@@ -86,7 +90,11 @@ const Doctores = () => {
 		email: doctor.email || "",
 		usuario: doctor.usuario || "",
 		contrasena: doctor.contrasena || "",
-		fechaRegistro: new Date(doctor.created_at || Date.now()).toLocaleString("es-MX", {
+			tipoDoctor: ["particular", "institucion"].includes(doctor.tipo_doctor)
+				? doctor.tipo_doctor
+				: "particular",
+			institucion: doctor.institucion || "",
+			fechaRegistro: new Date(doctor.created_at || Date.now()).toLocaleString("es-MX", {
 			day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
 		}),
 	}));
@@ -97,7 +105,16 @@ const Doctores = () => {
 
 	const handleGuardarDoctor = async (doctorData, isEditMode) => {
 		const insertarDoctor = async () => {
-			const { error } = await supabase.from("doctores").insert([doctorData]);
+			let { error } = await supabase.from("doctores").insert([doctorData]);
+			if (
+				esErrorColumnaDoctoresNoCacheada(error, "institucion") ||
+				esErrorColumnaDoctoresNoCacheada(error, "tipo_doctor") ||
+				esErrorColumnaDoctoresNoCacheada(error, "activo")
+			) {
+				({ error } = await supabase
+					.from("doctores")
+					.insert([quitarColumnasDoctoresExternos(doctorData)]));
+			}
 			if (error) throw error;
 			mostrarNotificacion("Doctor agregado correctamente", "exito");
 			refrescarDoctores();
@@ -106,23 +123,35 @@ const Doctores = () => {
 
 		try {
 			if (isEditMode) {
-				const { error } = await supabase
+				const payloadDoctor = {
+					nombre: doctorData.nombre,
+					apellido_paterno: doctorData.apellido_paterno,
+					apellido_materno: doctorData.apellido_materno,
+					primer_nombre: doctorData.primer_nombre,
+					fecha_nacimiento: doctorData.fecha_nacimiento,
+					edad: doctorData.edad,
+					sexo: doctorData.sexo,
+					email: doctorData.email,
+					telefono: doctorData.telefono,
+					usuario: doctorData.usuario,
+					contrasena: doctorData.contrasena,
+					tipo_doctor: doctorData.tipo_doctor,
+					institucion: doctorData.institucion,
+					updated_at: new Date().toISOString(),
+				};
+				let { error } = await supabase
 					.from("doctores")
-					.update({
-						nombre: doctorData.nombre,
-						apellido_paterno: doctorData.apellido_paterno,
-						apellido_materno: doctorData.apellido_materno,
-						primer_nombre: doctorData.primer_nombre,
-						fecha_nacimiento: doctorData.fecha_nacimiento,
-						edad: doctorData.edad,
-						sexo: doctorData.sexo,
-						email: doctorData.email,
-						telefono: doctorData.telefono,
-						usuario: doctorData.usuario,
-						contrasena: doctorData.contrasena,
-						updated_at: new Date().toISOString(),
-					})
+					.update(payloadDoctor)
 					.eq("id_doctor", doctorData.id);
+				if (
+					esErrorColumnaDoctoresNoCacheada(error, "institucion") ||
+					esErrorColumnaDoctoresNoCacheada(error, "tipo_doctor")
+				) {
+					({ error } = await supabase
+						.from("doctores")
+						.update(quitarColumnasDoctoresExternos(payloadDoctor))
+						.eq("id_doctor", doctorData.id));
+				}
 				if (error) throw error;
 				mostrarNotificacion("Doctor actualizado correctamente", "exito");
 			} else {

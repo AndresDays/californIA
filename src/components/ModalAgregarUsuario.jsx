@@ -206,6 +206,7 @@ const ModalAgregarUsuario = ({
                   <option value="admin">Administrador</option>
                   <option value="radiologo">Radiólogo - Director</option>
                   <option value="medico">Médico</option>
+                  <option value="doctor_externo">Doctor externo Rayos X</option>
                   <option value="tecnico_radiologia">Técnico en Radiología</option>
                   <option value="quimico">Químico</option>
                   <option value="recepcionista">Recepcionista</option>
