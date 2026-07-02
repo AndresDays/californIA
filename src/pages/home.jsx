@@ -23,8 +23,7 @@ import { esDashboardRayosX, esQuimico, esRecepcionista } from '../utils/role-per
 import './CalifornIA.css';
 
 const Dashboard = () => {
-	const { user, empleadoData: empleadoContext } = useAuth();
-	const [empleadoData, setEmpleadoData] = useState(empleadoContext || null);
+	const { user, empleadoData } = useAuth();
 	// — estados primero —
 	const [bandejasTrabajo, setBandejasTrabajo] = useState({
 		capturaPendiente: 0,
@@ -49,10 +48,6 @@ const Dashboard = () => {
 
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-
-	useEffect(() => {
-		if (empleadoContext) setEmpleadoData(empleadoContext);
-	}, [empleadoContext]);
 
 	const debounceRef = useRef(null);
 
