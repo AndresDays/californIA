@@ -1,9 +1,65 @@
 import React from 'react';
-import { createContext, useContext, useEffect } from 'react';
-import { supabase } from '../lib/supabase-client';
-import { useSessionStore } from '../store/session-store';
+import { createContext, useState, useEffect, useContext } from 'react'
+import { supabase } from '../lib/supabase-client'
+import { esDoctorExterno } from '../utils/radiologia-permisos'
 
 const AuthContext = createContext({});
+
+const seleccionarDoctorExterno = async (aplicarFiltro) => {
+  let { data, error } = await aplicarFiltro(
+    supabase
+      .from('doctores')
+      .select('id_doctor, nombre, auth_uuid, es_radiologo, especialidad'),
+  )
+    .maybeSingle()
+
+  if (
+    esColumnaInexistente(error, 'auth_uuid') ||
+    esColumnaInexistente(error, 'es_radiologo') ||
+    esColumnaInexistente(error, 'especialidad') ||
+    error?.code === 'PGRST204'
+  ) {
+    const respuestaBase = await aplicarFiltro(
+      supabase
+        .from('doctores')
+        .select('id_doctor, nombre, auth_uuid'),
+    )
+      .maybeSingle()
+    data = respuestaBase.data
+    error = respuestaBase.error
+  }
+
+  if (
+    esColumnaInexistente(error, 'auth_uuid') ||
+    error?.code === 'PGRST204'
+  ) {
+    const respuestaMinima = await aplicarFiltro(
+      supabase
+        .from('doctores')
+        .select('id_doctor, nombre'),
+    )
+      .maybeSingle()
+    data = respuestaMinima.data
+    error = respuestaMinima.error
+  }
+
+  if (error) throw error
+  return data
+}
+
+const cargarDoctorExternoAuth = (authUuid) =>
+  seleccionarDoctorExterno(
+    (query) => query.eq('auth_uuid', authUuid),
+  )
+
+const crearEmpleadoDoctorExterno = (doctor) => ({
+  nombre: doctor.nombre,
+  rol: 'doctor_externo',
+  id_doctor: doctor.id_doctor,
+  doctor_nombre: doctor.nombre,
+  es_radiologo: doctor.es_radiologo === true,
+  especialidad: doctor.especialidad || null,
+})
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -40,21 +96,77 @@ export const AuthProvider = ({ children }) => {
   }, [setLoading, setUser]);
 
   useEffect(() => {
-    if (!user?.id) return;
-    fetchEmpleadoActual(user.id);
-  }, [fetchEmpleadoActual, user?.id]);
+    let cancelado = false
 
+    const cargarEmpleado = async () => {
+      if (!user?.id) {
+        setEmpleadoData(null)
+        setEmpleadoLoading(false)
+        return
+      }
+
+      setEmpleadoLoading(true)
+      try {
+        let { data, error } = await supabase
+          .from('empleados')
+          .select('nombre, rol, id_doctor')
+          .eq('auth_uuid', user.id)
+          .maybeSingle()
+
+        if (esColumnaInexistente(error, 'id_doctor')) {
+          const respuestaBase = await supabase
+            .from('empleados')
+            .select('nombre, rol')
+            .eq('auth_uuid', user.id)
+            .maybeSingle()
+          data = respuestaBase.data
+          error = respuestaBase.error
+        }
+
+        if (error) throw error
+        if (data && esDoctorExterno(data.rol) && !data.id_doctor) {
+          const { data: doctorExterno } = await supabase
+            .from('doctores')
+            .select('id_doctor, nombre, auth_uuid')
+            .eq('auth_uuid', user.id)
+            .maybeSingle()
+          if (!cancelado) {
+            setEmpleadoData({
+              ...data,
+              id_doctor: doctorExterno?.id_doctor || null,
+              doctor_nombre: doctorExterno?.nombre || null,
+            })
+          }
+          return
+        }
+        if (!cancelado) setEmpleadoData(data || null)
+      } catch (error) {
+        console.error('Error al cargar empleado autenticado:', error)
+        if (!cancelado) setEmpleadoData(null)
+      } finally {
+        if (!cancelado) setEmpleadoLoading(false)
+      }
+    }
+
+    cargarEmpleado()
+
+    return () => {
+      cancelado = true
+    }
+  }, [user])
+
+  // Login con email y contraseña
   const signIn = async (email, password) => {
     try {
       setError(null);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      });
-
-      if (error) throw error;
-
-      return { data, error: null };
+      })
+      
+      if (error) throw error
+      
+      return { data, error: null }
     } catch (error) {
       setError(error.message);
       return { data: null, error };

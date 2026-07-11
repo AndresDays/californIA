@@ -21,6 +21,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   const [contrasena, setContrasena] = useState('');
   const [tipoDoctor, setTipoDoctor] = useState('particular');
   const [institucion, setInstitucion] = useState('');
+  const [esRadiologo, setEsRadiologo] = useState(false);
+  const [especialidad, setEspecialidad] = useState('');
 
   const isEditMode = !!doctorEditar;
 
@@ -41,13 +43,15 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       setEmail(doctorEditar.email || '');
       setTelefono(normalizarTelefono10(doctorEditar.telefono || ''));
       setUsuario(doctorEditar.usuario || '');
-      setContrasena(doctorEditar.contrasena || '');
+      setContrasena('');
       setTipoDoctor(
         ['particular', 'institucion'].includes(doctorEditar.tipoDoctor || doctorEditar.tipo_doctor)
           ? (doctorEditar.tipoDoctor || doctorEditar.tipo_doctor)
           : 'particular'
       );
       setInstitucion(doctorEditar.institucion || '');
+      setEsRadiologo(Boolean(doctorEditar.esRadiologo ?? doctorEditar.es_radiologo));
+      setEspecialidad(doctorEditar.especialidad || '');
       
       if (doctorEditar.fechaNacimiento) {
         const fecha = new Date(doctorEditar.fechaNacimiento);
@@ -103,6 +107,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
     setContrasena('');
     setTipoDoctor('particular');
     setInstitucion('');
+    setEsRadiologo(false);
+    setEspecialidad('');
   };
 
   const handleGuardar = async () => {
@@ -116,8 +122,18 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       return;
     }
 
+    if (!isEditMode && (!email.trim() || !contrasena.trim())) {
+      alert('El correo y la contraseña son requeridos para crear el acceso del doctor');
+      return;
+    }
+
     if (telefono && !esTelefono10Digitos(telefono)) {
       alert('El teléfono debe contener exactamente 10 dígitos numéricos');
+      return;
+    }
+
+    if (!esRadiologo && !especialidad.trim()) {
+      alert('Por favor ingresa la especialidad del doctor');
       return;
     }
 
@@ -143,8 +159,13 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       contrasena: contrasena || null,
       tipo_doctor: ['particular', 'institucion'].includes(tipoDoctor) ? tipoDoctor : 'particular',
       institucion: institucion || null,
+      es_radiologo: esRadiologo,
       activo: true
     };
+
+    if (!esRadiologo) {
+      doctorData.especialidad = especialidad.trim();
+    }
 
     if (isEditMode && doctorEditar.id) {
       doctorData.id = doctorEditar.id;
@@ -288,7 +309,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
 
           <div className="form-section-modal">
             <div className="form-group-modal">
-              <label>Email</label>
+              <label>Email {!isEditMode && '*'}</label>
               <input
                 type="email"
                 value={email}
@@ -341,6 +362,35 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
 
           <div className="form-section-modal">
             <div className="form-group-modal">
+              <label htmlFor="doctor-es-radiologo">¿Es radiólogo?</label>
+              <select
+                id="doctor-es-radiologo"
+                value={esRadiologo ? 'si' : 'no'}
+                onChange={(e) => setEsRadiologo(e.target.value === 'si')}
+                className="modal-select"
+              >
+                <option value="no">No</option>
+                <option value="si">Sí</option>
+              </select>
+            </div>
+
+            {!esRadiologo && (
+              <div className="form-group-modal">
+                <label htmlFor="especialidad-doctor-externo">Especialidad *</label>
+                <input
+                  id="especialidad-doctor-externo"
+                  type="text"
+                  value={especialidad}
+                  onChange={(e) => setEspecialidad(e.target.value)}
+                  placeholder="Cardiología, Traumatología..."
+                  className="modal-input"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="form-section-modal">
+            <div className="form-group-modal">
               <label>Usuario</label>
               <input
                 type="text"
@@ -352,7 +402,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
 
             <div className="form-group-modal">
-              <label>Contraseña</label>
+              <label>Contraseña {!isEditMode && '*'}</label>
               <input
                 type="password"
                 value={contrasena}

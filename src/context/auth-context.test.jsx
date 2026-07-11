@@ -13,6 +13,7 @@ jest.mock('../lib/supabase-client', () => ({
   supabase: {
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
+      ilike: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
     })),
@@ -70,7 +71,10 @@ const renderWithProvider = async () => {
 
 // SUITE 1 — Inicialización del contexto
 describe('AuthContext — Inicialización', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
 
   test('renderiza sin errores con AuthProvider', async () => {
     await renderWithProvider();
@@ -122,12 +126,14 @@ describe('AuthContext — Inicialización', () => {
     unmount();
     expect(unsubscribeMock).toHaveBeenCalledTimes(1);
   });
+
 });
 
 // SUITE 2 — Sesión activa
 describe('AuthContext — Sesión activa', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
     supabase.auth.getSession.mockResolvedValue({
       data: {
         session: { user: { email: 'activo@example.com', id: 'xyz-789' } },
@@ -150,20 +156,7 @@ describe('AuthContext — Sesión activa', () => {
     });
   });
 
-  test('carga empleado aunque la base remota aun no tenga id_doctor', async () => {
-    const empleadosQueryConIdDoctor = {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      maybeSingle: jest.fn(() =>
-        Promise.resolve({
-          data: null,
-          error: {
-            code: '42703',
-            message: 'column empleados.id_doctor does not exist',
-          },
-        }),
-      ),
-    };
+  test('carga empleado sin consultar columnas de doctor que no existen en empleados', async () => {
     const empleadosQueryBase = {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
@@ -175,8 +168,13 @@ describe('AuthContext — Sesión activa', () => {
       ),
     };
 
+    const doctoresQueryBase = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    };
     supabase.from
-      .mockReturnValueOnce(empleadosQueryConIdDoctor)
+      .mockReturnValueOnce(doctoresQueryBase)
       .mockReturnValueOnce(empleadosQueryBase);
 
     await renderWithProvider();
@@ -184,16 +182,28 @@ describe('AuthContext — Sesión activa', () => {
     await waitFor(() => {
       expect(screen.getByTestId('empleado-rol').textContent).toBe('admin');
     });
-    expect(empleadosQueryConIdDoctor.select).toHaveBeenCalledWith('nombre, rol, id_doctor');
     expect(empleadosQueryBase.select).toHaveBeenCalledWith('nombre, rol');
+    expect(empleadosQueryBase.select).not.toHaveBeenCalledWith('nombre, rol, id_doctor');
   });
 });
 
 // SUITE 3 — signIn
 describe('AuthContext — signIn', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+  });
 
   test('signIn llama a supabase.auth.signInWithPassword', async () => {
+    supabase.from.mockReturnValueOnce({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    });
     await renderWithProvider();
     await act(async () => {
       fireEvent.click(screen.getByText('Login'));
@@ -205,6 +215,11 @@ describe('AuthContext — signIn', () => {
   });
 
   test('signIn exitoso no genera error en el contexto', async () => {
+    supabase.from.mockReturnValueOnce({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    });
     await renderWithProvider();
     await act(async () => {
       fireEvent.click(screen.getByText('Login'));
@@ -219,7 +234,6 @@ describe('AuthContext — signIn', () => {
       data: null,
       error: { message: 'Credenciales inválidas' },
     });
-
     await renderWithProvider();
     await act(async () => {
       fireEvent.click(screen.getByText('Login'));
@@ -228,11 +242,69 @@ describe('AuthContext — signIn', () => {
       expect(screen.getByTestId('error').textContent).toBe('Credenciales inválidas');
     });
   });
+
+  test('signIn rechaza credenciales que solo existen en la tabla doctores', async () => {
+    supabase.auth.signInWithPassword.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Credenciales inválidas' },
+    });
+    await renderWithProvider();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Login'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user').textContent).toBe('no-user');
+      expect(screen.getByTestId('error').textContent).toBe('Credenciales inválidas');
+    });
+  });
+
+  test('signIn detecta doctor externo autenticado por Supabase Auth', async () => {
+    supabase.auth.signInWithPassword.mockResolvedValueOnce({
+      data: { user: { email: 'doc1@gmail.com', id: 'auth-doctor-3' } },
+      error: null,
+    });
+    const doctoresQuery = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() =>
+        Promise.resolve({
+          data: {
+            id_doctor: 3,
+            nombre: 'PRUEBA1 RADIOLOGO',
+            auth_uuid: 'auth-doctor-3',
+            es_radiologo: true,
+            especialidad: null,
+          },
+          error: null,
+        }),
+      ),
+    };
+    supabase.from.mockReturnValueOnce(doctoresQuery);
+
+    await renderWithProvider();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Login'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user').textContent).toBe('doc1@gmail.com');
+      expect(screen.getByTestId('empleado-rol').textContent).toBe('doctor_externo');
+    });
+    expect(doctoresQuery.eq).toHaveBeenCalledWith('auth_uuid', 'auth-doctor-3');
+  });
 });
 
 // SUITE 4 — signOut
 describe('AuthContext — signOut', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+  });
 
   test('signOut llama a supabase.auth.signOut', async () => {
     await renderWithProvider();
@@ -269,7 +341,14 @@ describe('AuthContext — signOut', () => {
 
 // SUITE 5 — resetPassword
 describe('AuthContext — resetPassword', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+  });
 
   test('resetPassword llama a supabase.auth.resetPasswordForEmail', async () => {
     await renderWithProvider();

@@ -1,6 +1,7 @@
 import {
 	esErrorColumnaDoctoresNoCacheada,
 	quitarColumnasDoctoresExternos,
+	quitarColumnasDoctoresLegacy,
 } from "./doctores-schema";
 
 describe("doctores-schema", () => {
@@ -17,8 +18,25 @@ describe("doctores-schema", () => {
 			tipo_doctor: "institucion",
 			institucion: "IMSS",
 			activo: true,
+			es_radiologo: true,
+			especialidad: "Radiología",
 		})).toEqual({
 			nombre: "PEREZ JUAN",
+		});
+	});
+
+	test("quita columnas legacy sin perder el flag de radiologo", () => {
+		expect(quitarColumnasDoctoresLegacy({
+			nombre: "PEREZ JUAN",
+			tipo_doctor: "institucion",
+			institucion: "IMSS",
+			activo: true,
+			es_radiologo: true,
+			updated_at: "2026-07-10T00:00:00.000Z",
+		})).toEqual({
+			nombre: "PEREZ JUAN",
+			es_radiologo: true,
+			updated_at: "2026-07-10T00:00:00.000Z",
 		});
 	});
 });

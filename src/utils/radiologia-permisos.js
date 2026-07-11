@@ -46,10 +46,14 @@ export const obtenerRestriccionDoctorExterno = (empleado = {}) => {
 };
 
 export const puedeInterpretarRadiologia = (empleado = {}) =>
-	ROLES_PUEDEN_INTERPRETAR.has(normalizarRolRadiologia(empleado?.rol));
+	ROLES_PUEDEN_INTERPRETAR.has(normalizarRolRadiologia(empleado?.rol)) ||
+	(esDoctorExterno(empleado?.rol) && empleado?.es_radiologo === true);
 
 export const puedeEditarReporteRadiologia = (empleado = {}) =>
 	puedeInterpretarRadiologia(empleado);
+
+export const puedeVerReporteRadiologia = (empleado = {}) =>
+	puedeEditarReporteRadiologia(empleado) || esDoctorExterno(empleado?.rol);
 
 export const puedeSubirImagenRadiologia = (empleado = {}) =>
 	ROLES_PUEDEN_SUBIR_IMAGEN.has(normalizarRolRadiologia(empleado?.rol));
@@ -59,6 +63,7 @@ export const puedeAsignarRadiologia = (empleado = {}) =>
 	ROLES_PUEDEN_INTERPRETAR.has(normalizarRolRadiologia(empleado?.rol));
 
 export const esDoctorAsignableRadiologia = (doctor = {}) => {
+	if (doctor?.activo === false) return false;
 	const tipo = normalizarRolPermisos(doctor?.tipo_doctor || doctor?.tipo || "");
-	return ["particular", "institucion", "institucion_externa"].includes(tipo);
+	return !tipo || ["particular", "institucion", "institucion_externa"].includes(tipo);
 };
