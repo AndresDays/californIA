@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase-client';
 import { useAuth } from '../context/auth-context';
+import { useSessionStore } from '../store/session-store';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import Header from '../components/header-principal';
 import Sidebar from '../components/sidebar';
@@ -20,6 +21,7 @@ const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
 const Perfil = () => {
   const { user, signOut } = useAuth();
+  const setEmpleadoGlobal = useSessionStore((state) => state.setEmpleadoData);
   const navigate = useNavigate();
   const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
   const canvasRef = useRef(null);
@@ -96,6 +98,7 @@ const Perfil = () => {
 
       if (empleado) {
         setEmpleadoData(empleado);
+        setEmpleadoGlobal(empleado);
         setFormData({
           nombre: empleado.nombre?.split(' ')[0] || '',
           apellido: empleado.nombre?.split(' ').slice(1).join(' ') || '',
