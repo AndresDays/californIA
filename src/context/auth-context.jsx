@@ -1,13 +1,68 @@
 import React from 'react';
 import { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../lib/supabase-client'
-import { esDoctorExterno } from '../utils/radiologia-permisos'
 
 const AuthContext = createContext({})
 
 const esColumnaInexistente = (error, columna) =>
   error?.code === '42703' &&
   String(error?.message || '').toLowerCase().includes(String(columna).toLowerCase())
+
+const seleccionarDoctorExterno = async (aplicarFiltro) => {
+  let { data, error } = await aplicarFiltro(
+    supabase
+      .from('doctores')
+      .select('id_doctor, nombre, auth_uuid, es_radiologo, especialidad'),
+  )
+    .maybeSingle()
+
+  if (
+    esColumnaInexistente(error, 'auth_uuid') ||
+    esColumnaInexistente(error, 'es_radiologo') ||
+    esColumnaInexistente(error, 'especialidad') ||
+    error?.code === 'PGRST204'
+  ) {
+    const respuestaBase = await aplicarFiltro(
+      supabase
+        .from('doctores')
+        .select('id_doctor, nombre, auth_uuid'),
+    )
+      .maybeSingle()
+    data = respuestaBase.data
+    error = respuestaBase.error
+  }
+
+  if (
+    esColumnaInexistente(error, 'auth_uuid') ||
+    error?.code === 'PGRST204'
+  ) {
+    const respuestaMinima = await aplicarFiltro(
+      supabase
+        .from('doctores')
+        .select('id_doctor, nombre'),
+    )
+      .maybeSingle()
+    data = respuestaMinima.data
+    error = respuestaMinima.error
+  }
+
+  if (error) throw error
+  return data
+}
+
+const cargarDoctorExternoAuth = (authUuid) =>
+  seleccionarDoctorExterno(
+    (query) => query.eq('auth_uuid', authUuid),
+  )
+
+const crearEmpleadoDoctorExterno = (doctor) => ({
+  nombre: doctor.nombre,
+  rol: 'doctor_externo',
+  id_doctor: doctor.id_doctor,
+  doctor_nombre: doctor.nombre,
+  es_radiologo: doctor.es_radiologo === true,
+  especialidad: doctor.especialidad || null,
+})
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -54,39 +109,20 @@ export const AuthProvider = ({ children }) => {
 
       setEmpleadoLoading(true)
       try {
-        let { data, error } = await supabase
+        const doctorExterno = await cargarDoctorExternoAuth(user.id)
+        if (doctorExterno) {
+          if (!cancelado) setEmpleadoData(crearEmpleadoDoctorExterno(doctorExterno))
+          return
+        }
+
+        const { data, error } = await supabase
           .from('empleados')
-          .select('nombre, rol, id_doctor')
+          .select('nombre, rol')
           .eq('auth_uuid', user.id)
           .maybeSingle()
 
-        if (esColumnaInexistente(error, 'id_doctor')) {
-          const respuestaBase = await supabase
-            .from('empleados')
-            .select('nombre, rol')
-            .eq('auth_uuid', user.id)
-            .maybeSingle()
-          data = respuestaBase.data
-          error = respuestaBase.error
-        }
-
         if (error) throw error
-        if (data && esDoctorExterno(data.rol) && !data.id_doctor) {
-          const { data: doctorExterno } = await supabase
-            .from('doctores')
-            .select('id_doctor, nombre, auth_uuid')
-            .eq('auth_uuid', user.id)
-            .maybeSingle()
-          if (!cancelado) {
-            setEmpleadoData({
-              ...data,
-              id_doctor: doctorExterno?.id_doctor || null,
-              doctor_nombre: doctorExterno?.nombre || null,
-            })
-          }
-          return
-        }
-        if (!cancelado) setEmpleadoData(data || null)
+        if (!cancelado) setEmpleadoData((actual) => data || actual || null)
       } catch (error) {
         console.error('Error al cargar empleado autenticado:', error)
         if (!cancelado) setEmpleadoData(null)
@@ -112,8 +148,24 @@ export const AuthProvider = ({ children }) => {
       })
       
       if (error) throw error
+
+      const doctorExternoAuth = await cargarDoctorExternoAuth(data.user.id).catch(() => null)
+      if (doctorExternoAuth) {
+        const empleadoDoctor = crearEmpleadoDoctorExterno(doctorExternoAuth)
+        setEmpleadoData(empleadoDoctor)
+        setUser(data.user)
+        setEmpleadoLoading(false)
+        return {
+          data: {
+            ...data,
+            empleadoData: empleadoDoctor,
+            redirectTo: '/radiologia',
+          },
+          error: null,
+        }
+      }
       
-      return { data, error: null }
+      return { data: { ...data, redirectTo: '/dashboard' }, error: null }
     } catch (error) {
       setError(error.message)
       return { data: null, error }

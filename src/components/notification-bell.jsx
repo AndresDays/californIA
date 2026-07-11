@@ -30,6 +30,10 @@ const NotificationBell = ({ user, navigate }) => {
 	useEffect(() => {
 		const cargarEmpleado = async () => {
 			if (!user?.id) return;
+			if (String(user.id).startsWith("doctor:")) {
+				setEmpleado(null);
+				return;
+			}
 			const { data, error } = await supabase
 				.from("empleados")
 				.select("auth_uuid, rol")

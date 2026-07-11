@@ -2182,6 +2182,29 @@
 	margin-bottom: 1rem;
 }
 
+.vd-modal-search {
+	width: 100%;
+	background: rgba(2, 15, 35, 0.8);
+	border: 1px solid rgba(83, 185, 219, 0.28);
+	border-radius: 8px;
+	color: #fff;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.9rem;
+	padding: 0.65rem 0.85rem;
+	margin-bottom: 0.85rem;
+	outline: none;
+	transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.vd-modal-search:focus {
+	border-color: rgba(83, 185, 219, 0.65);
+	box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.1);
+}
+
+.vd-modal-search::placeholder {
+	color: rgba(205, 221, 238, 0.45);
+}
+
 /* ── Modal — lista de items ─────────────────────────────────────────────── */
 .vd-modal-list {
 	max-height: 320px;

@@ -47,6 +47,13 @@ const obtenerNumeroInstanciaDesdeNombre = (nombre = '') => {
   return coincidencia ? Number(coincidencia[1]) : null;
 };
 
+const obtenerIdDoctorSesionLocal = (user) => {
+  const match = String(user?.id || '').match(/^doctor:(\d+)$/);
+  if (!match) return null;
+  const idDoctor = Number(match[1]);
+  return Number.isFinite(idDoctor) ? idDoctor : null;
+};
+
 const leerMetadatosDicom = async (archivo) => {
   try {
     const dicomParserModule = await import('dicom-parser');
@@ -73,7 +80,7 @@ const leerMetadatosDicom = async (archivo) => {
 };
 
 const DashboardRadiologia = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, empleadoData: authEmpleadoData } = useAuth();
   const navigate = useNavigate();
   const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
   const menuRef = useRef(null);
@@ -101,11 +108,41 @@ const DashboardRadiologia = () => {
       if (!user?.id) return;
 
       try {
-        const { data: empleado, error } = await supabase
+        if (String(user.id).startsWith('doctor:')) {
+          setEmpleadoData({
+            nombre: authEmpleadoData?.nombre || user.email || 'Doctor externo',
+            rol: 'doctor_externo',
+            ...authEmpleadoData,
+            id_doctor: authEmpleadoData?.id_doctor || obtenerIdDoctorSesionLocal(user),
+          });
+          setEmpleadoCargado(true);
+          return;
+        }
+
+        if (esDoctorExterno(authEmpleadoData?.rol)) {
+          setEmpleadoData(authEmpleadoData);
+          setEmpleadoCargado(true);
+          return;
+        }
+
+        let { data: empleado, error } = await supabase
           .from('empleados')
-          .select('id_empleado, nombre, rol, id_doctor')
+          .select('id_empleado, nombre, rol, id_doctor, especialidad')
           .eq('auth_uuid', user.id)
           .maybeSingle();
+
+        if (
+          (error?.code === '42703' || error?.code === 'PGRST204') &&
+          String(error?.message || '').toLowerCase().includes('id_doctor')
+        ) {
+          const respuestaBase = await supabase
+            .from('empleados')
+            .select('id_empleado, nombre, rol, especialidad')
+            .eq('auth_uuid', user.id)
+            .maybeSingle();
+          empleado = respuestaBase.data;
+          error = respuestaBase.error;
+        }
 
         if (error) {
           console.error('Error al obtener empleado:', error);
@@ -113,16 +150,33 @@ const DashboardRadiologia = () => {
         }
 
         if (empleado) {
-          if (esDoctorExterno(empleado.rol) && !empleado.id_doctor) {
-            const { data: doctorExterno } = await supabase
+          if (esDoctorExterno(empleado.rol)) {
+            let doctorQuery = supabase
               .from('doctores')
-              .select('id_doctor, nombre, auth_uuid')
-              .eq('auth_uuid', user.id)
-              .maybeSingle();
+              .select('id_doctor, nombre, auth_uuid, es_radiologo, especialidad');
+            doctorQuery = empleado.id_doctor
+              ? doctorQuery.eq('id_doctor', empleado.id_doctor)
+              : doctorQuery.eq('auth_uuid', user.id);
+            let { data: doctorExterno, error: doctorError } = await doctorQuery.maybeSingle();
+            if (
+              (doctorError?.code === '42703' || doctorError?.code === 'PGRST204') &&
+              (String(doctorError?.message || '').toLowerCase().includes('es_radiologo') ||
+              String(doctorError?.message || '').toLowerCase().includes('especialidad'))
+            ) {
+              let doctorBaseQuery = supabase
+                .from('doctores')
+                .select('id_doctor, nombre, auth_uuid');
+              doctorBaseQuery = empleado.id_doctor
+                ? doctorBaseQuery.eq('id_doctor', empleado.id_doctor)
+                : doctorBaseQuery.eq('auth_uuid', user.id);
+              ({ data: doctorExterno } = await doctorBaseQuery.maybeSingle());
+            }
             setEmpleadoData({
               ...empleado,
-              id_doctor: doctorExterno?.id_doctor || null,
+              id_doctor: empleado.id_doctor || doctorExterno?.id_doctor || null,
               doctor_nombre: doctorExterno?.nombre || null,
+              es_radiologo: doctorExterno?.es_radiologo === true,
+              especialidad: doctorExterno?.especialidad || empleado.especialidad || null,
             });
             return;
           }
@@ -136,7 +190,7 @@ const DashboardRadiologia = () => {
     };
 
     fetchEmpleadoData();
-  }, [user]);
+  }, [user, authEmpleadoData]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -147,7 +201,10 @@ const DashboardRadiologia = () => {
   const cargarEstudios = async () => {
     setLoading(true);
     try {
-      const restriccionDoctorExterno = obtenerRestriccionDoctorExterno(empleadoData);
+      const idDoctorSesionLocal = obtenerIdDoctorSesionLocal(user);
+      const restriccionDoctorExterno = idDoctorSesionLocal
+        ? { columna: 'id_doctor', valor: idDoctorSesionLocal }
+        : obtenerRestriccionDoctorExterno(empleadoData);
       let query = supabase
         .from('estudios_radiologia')
         .select(`
@@ -156,6 +213,8 @@ const DashboardRadiologia = () => {
           descripcion,
           estado,
           storage_path,
+          id_doctor,
+          id_radiologo,
           id_venta,
           id_estudio_venta,
           sucursal,
@@ -218,7 +277,9 @@ const DashboardRadiologia = () => {
           telefonoPaciente: paciente?.telefono || '',
           folio: estudio.ventas?.folio || '',
           idVenta: estudio.id_venta,
-          idEstudioVenta: estudio.id_estudio_venta
+          idEstudioVenta: estudio.id_estudio_venta,
+          idDoctor: estudio.id_doctor,
+          idRadiologo: estudio.id_radiologo
         };
       }) || [];
 

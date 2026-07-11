@@ -17,12 +17,15 @@ let mockSidebarState = {
   setSidebarOpen: mockSetSidebarOpen,
   isMobile: false,
 };
+let mockAuthUser = { id: 'user-1', email: 'radiologia@test.com' };
 let mockEmpleadoData = null;
 let mockDoctorData = null;
+let mockAuthEmpleadoData = null;
 
 jest.mock('../../../context/auth-context', () => ({
   useAuth: () => ({
-    user: { id: 'user-1', email: 'radiologia@test.com' },
+    user: mockAuthUser,
+    empleadoData: mockAuthEmpleadoData,
     signOut: jest.fn(),
   }),
 }));
@@ -128,6 +131,8 @@ jest.mock('../../../lib/supabase-client', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockAuthUser = { id: 'user-1', email: 'radiologia@test.com' };
+  mockAuthEmpleadoData = null;
   mockEmpleadoData = {
     id_empleado: 7,
     nombre: 'Tecnico Rayos',
@@ -295,4 +300,45 @@ test('filters studies by assigned doctor and hides assignment/upload actions for
   fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
   expect(screen.queryByRole('button', { name: /Subir imagen/i })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Asignar estudio/i })).not.toBeInTheDocument();
+});
+
+test('loads assigned studies for local external doctor sessions', async () => {
+  mockAuthUser = { id: 'doctor:42', email: 'doctor@test.com' };
+  mockAuthEmpleadoData = {
+    nombre: 'Doctor Externo',
+    rol: 'doctor_externo',
+    id_doctor: 42,
+  };
+
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+
+  expect(mockEqEstudios).toHaveBeenCalledWith('id_doctor', 42);
+  expect(screen.queryByRole('button', { name: /Subir imagen Maria Gomez/i })).not.toBeInTheDocument();
+});
+
+test('derives assigned doctor id from local doctor session when profile data is stale', async () => {
+  mockAuthUser = { id: 'doctor:42', email: 'doctor@test.com' };
+  mockAuthEmpleadoData = {
+    nombre: 'Doctor Externo',
+    rol: 'doctor_externo',
+  };
+
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+
+  expect(mockEqEstudios).toHaveBeenCalledWith('id_doctor', 42);
+});
+
+test('filters by local doctor session even before doctor profile is hydrated', async () => {
+  mockAuthUser = { id: 'doctor:3', email: 'doctor@test.com' };
+  mockAuthEmpleadoData = null;
+
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+
+  expect(mockEqEstudios).toHaveBeenCalledWith('id_doctor', 3);
 });

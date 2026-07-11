@@ -113,7 +113,7 @@ test("limits external doctor to radiology and profile routes", () => {
 	const filtrado = filtrarMenuPorRol(menu, "doctor_externo");
 
 	expect(filtrado.map((item) => item.id)).toEqual(["inicio"]);
-	expect(puedeAccederRuta("doctor_externo", "/dashboard")).toBe(true);
+	expect(puedeAccederRuta("doctor_externo", "/dashboard")).toBe(false);
 	expect(puedeAccederRuta("doctor_externo", "/radiologia")).toBe(true);
 	expect(puedeAccederRuta("doctor_externo", "/visor-dicom/123")).toBe(true);
 	expect(puedeAccederRuta("doctor_externo", "/perfil")).toBe(true);

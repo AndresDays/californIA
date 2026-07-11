@@ -1,19 +1,30 @@
+import { useMemo, useState } from "react";
 import "../pages/VisorDicom.css";
 
 const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar }) => {
-	if (!config) return null;
-
+	const [busqueda, setBusqueda] = useState("");
 	const {
 		titulo,
-		items,
+		items = [],
 		idKey,
 		labelKey,
 		sublabelKey,
 		actual,
 		seleccionado,
 		loading,
-	} = config;
+	} = config || {};
 	const chipItem = actual ? items.find((i) => i[idKey] == actual) : null;
+	const itemsFiltrados = useMemo(() => {
+		const termino = busqueda.trim().toLowerCase();
+		if (!termino) return items;
+		return items.filter((item) => {
+			const label = String(item[labelKey] || "").toLowerCase();
+			const sublabel = String(sublabelKey ? item[sublabelKey] || "" : "").toLowerCase();
+			return label.includes(termino) || sublabel.includes(termino);
+		});
+	}, [busqueda, items, labelKey, sublabelKey]);
+
+	if (!config) return null;
 
 	return (
 		<div className="vd-modal-backdrop" onClick={onCerrar}>
@@ -40,8 +51,15 @@ const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar }) => {
 					) : (
 						<>
 							{chipItem && <div className="vd-modal-chip">{chipItem[labelKey]}</div>}
+							<input
+								className="vd-modal-search"
+								type="search"
+								value={busqueda}
+								onChange={(event) => setBusqueda(event.target.value)}
+								placeholder="Buscar doctor..."
+							/>
 							<div className="vd-modal-list">
-								{items.map((item) => {
+								{itemsFiltrados.map((item) => {
 									const id = item[idKey];
 									const lbl =
 										sublabelKey && item[sublabelKey]
@@ -56,7 +74,7 @@ const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar }) => {
 										</div>
 									);
 								})}
-								{items.length === 0 && (
+								{itemsFiltrados.length === 0 && (
 									<div
 										style={{
 											padding: "1rem",
@@ -64,7 +82,7 @@ const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar }) => {
 											textAlign: "center",
 											fontSize: "0.88rem",
 										}}>
-										Sin resultados
+										{items.length === 0 ? "Sin resultados" : "No se encontraron coincidencias"}
 									</div>
 								)}
 							</div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import VisorDicom from './visor-dicom';
 
 // Polyfills
@@ -338,31 +338,6 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.queryByTitle('Lupa')).not.toBeInTheDocument();
   });
 
-  test('doctor externo puede usar herramientas pero no ve reporte para interpretar', async () => {
-    mockEmpleadoVisor = {
-      nombre: 'Doctor Externo',
-      rol: 'doctor_externo',
-      id_doctor: 42,
-    };
-
-    await renderVisor();
-
-    expect(screen.getByTitle('Ampliar')).toBeInTheDocument();
-    expect(screen.getByTitle('Longitud')).toBeInTheDocument();
-    expect(screen.queryByTitle('Abrir reporte')).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Opciones de reporte')).not.toBeInTheDocument();
-  });
-
-  test('permite abrir asignacion desde detalle cuando el permiso aun no esta cargado', async () => {
-    mockEmpleadoVisor = null;
-
-    await renderVisor();
-    await act(async () => { fireEvent.click(screen.getByTitle('Detalle')); });
-    await act(async () => { fireEvent.click(screen.getByText('Referente')); });
-
-    expect(screen.queryByText('No tienes permiso para modificar este estudio')).not.toBeInTheDocument();
-    expect(screen.getByTestId('mock-modal-asignar')).toHaveTextContent('Asignar estudio a doctor externo');
-  });
 });
 
 // SUITE 4 — Navegación

@@ -70,7 +70,7 @@ const QUIMICO_PATHS_BLOQUEADOS = [
 
 export const puedeAccederRuta = (rol, pathname = "") => {
 	if (esDoctorExternoPermisos(rol)) {
-		return ["/dashboard", "/radiologia", "/visor-dicom", "/perfil"].some(
+		return ["/radiologia", "/visor-dicom", "/perfil"].some(
 			(path) => pathname === path || pathname.startsWith(`${path}/`),
 		);
 	}

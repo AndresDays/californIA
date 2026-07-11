@@ -25,11 +25,11 @@ import {
 	normalizarStoragePathDicom,
 } from "../../../utils/dicom-series";
 import {
-	esDoctorAsignableRadiologia,
 	esDoctorExterno,
 	obtenerIdDoctorExterno,
 	puedeAsignarRadiologia,
 	puedeEditarReporteRadiologia,
+	puedeVerReporteRadiologia,
 } from "../../../utils/radiologia-permisos";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
@@ -84,6 +84,38 @@ const esErrorColumnaFaltante = (error, columna) => {
 		(error?.code === "42703" || error?.code === "PGRST204") &&
 		mensaje.includes(columnaNormalizada)
 	);
+};
+
+const normalizarRolAsignacionRadiologia = (rol = "") =>
+	String(rol)
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.trim();
+
+const esRolRadiologoAsignable = (rol = "") => {
+	const rolNormalizado = normalizarRolAsignacionRadiologia(rol);
+	return rolNormalizado.includes("radiologo") || rolNormalizado.includes("radiologa");
+};
+
+const esRolTecnicoRadiologiaAsignable = (rol = "") => {
+	const rolNormalizado = normalizarRolAsignacionRadiologia(rol);
+	return rolNormalizado.includes("tecnico");
+};
+
+const crearItemAsignacionRadiologia = (item, tipo) => {
+	const esEmpleado = tipo === "empleado";
+	const id = esEmpleado ? item.id_empleado : item.id_doctor;
+	return {
+		...item,
+		__asignacion_id: `${tipo}:${id}`,
+		__target_col: esEmpleado ? "id_radiologo" : "id_doctor",
+		__target_value: id,
+		nombre: item.nombre || "Sin nombre",
+		especialidad: esEmpleado
+			? item.especialidad || item.rol || "Empleado radiólogo"
+			: item.especialidad || item.institucion || "Doctor externo",
+	};
 };
 
 const normalizarTextoEstudio = (valor = "") =>
@@ -2398,7 +2430,7 @@ const PanelDicom = ({
 };
 
 const VisorDicom = () => {
-	const { user, signOut } = useAuth();
+	const { user, signOut, empleadoData: authEmpleadoData } = useAuth();
 	const navigate = useNavigate();
 	const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
 	const { estudioId } = useParams();
@@ -2411,6 +2443,12 @@ const VisorDicom = () => {
 	const [seriesDicom, setSeriesDicom] = useState([]);
 	const [serieActivaId, setSerieActivaId] = useState(null);
 	const [panelActivo, setPanelActivo] = useState(0);
+	const [estudioAsignacion, setEstudioAsignacion] = useState({
+		id_doctor: null,
+		id_radiologo: null,
+		doctorNombre: "",
+		radiologoNombre: "",
+	});
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
 	const [formatoGrid, setFormatoGrid] = useState(FORMATOS[0]);
@@ -2554,6 +2592,18 @@ const VisorDicom = () => {
 		useEffect(() => {
 			const fetchEmpleado = async () => {
 				if (!user?.id) return;
+				if (String(user.id).startsWith("doctor:")) {
+					if (esDoctorExterno(authEmpleadoData?.rol)) {
+						setEmpleadoData(authEmpleadoData);
+						setEmpleadoCargado(true);
+					}
+					return;
+				}
+				if (esDoctorExterno(authEmpleadoData?.rol)) {
+					setEmpleadoData(authEmpleadoData);
+					setEmpleadoCargado(true);
+					return;
+				}
 				let { data, error } = await supabase
 					.from("empleados")
 					.select("nombre, rol, cedula, especialidad, firma_url, firma_digital, id_sucursal, sucursal, id_doctor")
@@ -2567,16 +2617,32 @@ const VisorDicom = () => {
 						.maybeSingle());
 				}
 				if (data) {
-				if (esDoctorExterno(data.rol) && !data.id_doctor) {
-					const { data: doctorExterno } = await supabase
+				if (esDoctorExterno(data.rol)) {
+					let doctorQuery = supabase
 						.from("doctores")
-						.select("id_doctor, nombre, auth_uuid")
-						.eq("auth_uuid", user.id)
-						.maybeSingle();
+						.select("id_doctor, nombre, auth_uuid, es_radiologo, especialidad");
+					doctorQuery = data.id_doctor
+						? doctorQuery.eq("id_doctor", data.id_doctor)
+						: doctorQuery.eq("auth_uuid", user.id);
+					let { data: doctorExterno, error: doctorError } = await doctorQuery.maybeSingle();
+					if (
+						esErrorColumnaFaltante(doctorError, "es_radiologo") ||
+						esErrorColumnaFaltante(doctorError, "especialidad")
+					) {
+						let doctorBaseQuery = supabase
+							.from("doctores")
+							.select("id_doctor, nombre, auth_uuid");
+						doctorBaseQuery = data.id_doctor
+							? doctorBaseQuery.eq("id_doctor", data.id_doctor)
+							: doctorBaseQuery.eq("auth_uuid", user.id);
+						({ data: doctorExterno } = await doctorBaseQuery.maybeSingle());
+					}
 					setEmpleadoData({
 						...data,
-						id_doctor: doctorExterno?.id_doctor || null,
+						id_doctor: data.id_doctor || doctorExterno?.id_doctor || null,
 						doctor_nombre: doctorExterno?.nombre || null,
+						es_radiologo: doctorExterno?.es_radiologo === true,
+						especialidad: doctorExterno?.especialidad || data.especialidad || null,
 					});
 				} else {
 					setEmpleadoData(data);
@@ -2585,7 +2651,7 @@ const VisorDicom = () => {
 			setEmpleadoCargado(true);
 		};
 		fetchEmpleado();
-	}, [user]);
+	}, [user, authEmpleadoData]);
 
 	useEffect(() => {
 		const generarQrReporte = async () => {
@@ -2702,17 +2768,33 @@ const VisorDicom = () => {
 			const idEstudio = estudioId || estudioData?.id;
 				let { data: estudio, error: errEst } = await supabase
 					.from("estudios_radiologia")
-					.select("storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_doctor")
+					.select(`
+						storage_path,
+						reporte,
+						tipo_estudio,
+						descripcion,
+						fecha_estudio,
+						id_doctor,
+						id_radiologo,
+						doctor:doctores!estudios_radiologia_id_doctor_fkey(nombre),
+						radiologo:empleados!estudios_radiologia_id_radiologo_fkey(nombre)
+					`)
 					.eq("id_estudio", idEstudio)
 					.single();
-				if (esErrorColumnaFaltante(errEst, "id_doctor")) {
+				if (errEst) {
 					({ data: estudio, error: errEst } = await supabase
 						.from("estudios_radiologia")
-						.select("storage_path, reporte, tipo_estudio, descripcion, fecha_estudio")
+						.select("storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_doctor, id_radiologo")
 						.eq("id_estudio", idEstudio)
 						.single());
 				}
 				if (errEst) throw errEst;
+				setEstudioAsignacion({
+					id_doctor: estudio?.id_doctor || null,
+					id_radiologo: estudio?.id_radiologo || null,
+					doctorNombre: estudio?.doctor?.nombre || "",
+					radiologoNombre: estudio?.radiologo?.nombre || "",
+				});
 				if (
 					esDoctorExterno(empleadoData?.rol) &&
 					"id_doctor" in (estudio || {}) &&
@@ -2925,8 +3007,8 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "reporte") {
-			if (!puedeEditarReporteRadiologia(empleadoData)) {
-				showNotif("No tienes permiso para interpretar este estudio", "error");
+			if (!puedeVerReporteRadiologia(empleadoData)) {
+				showNotif("No tienes permiso para ver este reporte", "error");
 				return;
 			}
 			setPanelDerecho((panel) => (panel === "reporte" ? null : "reporte"));
@@ -3010,40 +3092,85 @@ const VisorDicom = () => {
 
 	const MODAL_CONFIG = {
 		radiologo: {
-			titulo: "Asignar estudio a médico radiólogo",
-			tabla: "empleados",
-			select: "id_empleado, nombre",
-			filtro: { col: "rol", val: "Radiologo" },
-			idKey: "id_empleado",
+			titulo: "Asignar estudio a doctor",
+			tabla: "doctores",
+			select: "id_doctor, nombre, especialidad, tipo_doctor, institucion, es_radiologo, activo",
+			filtro: null,
+			idKey: "__asignacion_id",
 			labelKey: "nombre",
+			sublabelKey: "especialidad",
 			col: "id_radiologo",
-			notifOk: "Radiólogo asignado",
-			notifErr: "Error al asignar radiólogo",
+			tipoAsignacion: "doctor_o_radiologo",
+			notifOk: "Estudio asignado",
+			notifErr: "Error al asignar estudio",
 		},
 		tecnico: {
 			titulo: "Asignar estudio a técnico radiólogo",
 			tabla: "empleados",
-			select: "id_empleado, nombre",
-			filtro: { col: "rol", val: "Tecnico" },
+			select: "id_empleado, nombre, rol",
+			filtro: null,
 			idKey: "id_empleado",
 			labelKey: "nombre",
 			col: "id_tecnico",
+			tipoAsignacion: "tecnico",
 			notifOk: "Técnico asignado",
 			notifErr: "Error al asignar técnico",
 		},
 		referente: {
-			titulo: "Asignar estudio a doctor externo",
+			titulo: "Asignar estudio a doctor",
 			tabla: "doctores",
-			select: "id_doctor, nombre, especialidad, tipo_doctor, institucion, activo",
+			select: "id_doctor, nombre, especialidad, tipo_doctor, institucion, es_radiologo, activo",
 			filtro: null,
-			idKey: "id_doctor",
+			idKey: "__asignacion_id",
 			labelKey: "nombre",
 			sublabelKey: "especialidad",
 			col: "id_doctor",
-			notifOk: "Doctor externo asignado",
-			notifErr: "Error al asignar doctor externo",
+			tipoAsignacion: "doctor_o_radiologo",
+			notifOk: "Estudio asignado",
+			notifErr: "Error al asignar estudio",
 		},
 	};
+
+	const cargarDoctoresYRadiologosAsignables = async (cfg) => {
+		const [doctoresBaseResponse, empleadosResponse] = await Promise.all([
+			supabase
+				.from("doctores")
+				.select("id_doctor, nombre")
+				.order("nombre"),
+			supabase
+				.from("empleados")
+				.select("id_empleado, nombre, rol, especialidad")
+				.order("nombre"),
+		]);
+
+		if (doctoresBaseResponse.error) throw doctoresBaseResponse.error;
+		if (empleadosResponse.error) throw empleadosResponse.error;
+
+		let doctores = doctoresBaseResponse.data || [];
+		const doctoresMetaResponse = await supabase
+			.from("doctores")
+			.select(cfg.select)
+			.order("nombre");
+		if (!doctoresMetaResponse.error) {
+			const doctoresMetaPorId = new Map(
+				(doctoresMetaResponse.data || []).map((doctor) => [doctor.id_doctor, doctor]),
+			);
+			doctores = doctores.map((doctor) => ({
+				...doctor,
+				...(doctoresMetaPorId.get(doctor.id_doctor) || {}),
+			}));
+		}
+
+		const radiologosAsignables = (empleadosResponse.data || []).filter((empleado) =>
+			esRolRadiologoAsignable(empleado.rol),
+		);
+
+		return [
+			...doctores.map((doctor) => crearItemAsignacionRadiologia(doctor, "doctor")),
+			...radiologosAsignables.map((empleado) => crearItemAsignacionRadiologia(empleado, "empleado")),
+		];
+	};
+
 
 		const abrirModalAsignar = (id) => {
 			const cfg = MODAL_CONFIG[id];
@@ -3055,73 +3182,107 @@ const VisorDicom = () => {
 			actual: null,
 			seleccionado: null,
 			loading: true,
-			});
-			const idEstudio = estudioId || estudioData?.id;
-			let itemsQuery = supabase.from(cfg.tabla).select(cfg.select);
-			if (cfg.filtro) itemsQuery = itemsQuery.eq(cfg.filtro.col, cfg.filtro.val);
-			Promise.all([
-				itemsQuery.order("nombre"),
-				supabase
-					.from("estudios_radiologia")
-					.select(cfg.col)
-					.eq("id_estudio", idEstudio)
-					.single(),
-			]).then(async ([itemsResponse, estudioResponse]) => {
-				let items = itemsResponse.data;
-				let estudio = estudioResponse.data;
-				let errorEstudio = estudioResponse.error;
-				let usarFiltroDoctoresExternos = true;
+		});
+		const idEstudio = estudioId || estudioData?.id;
+		const estudioSelect = cfg.tipoAsignacion === "doctor_o_radiologo"
+			? "id_doctor, id_radiologo"
+			: cfg.col;
+		const cargarItems = async () => {
+			if (cfg.tipoAsignacion === "doctor_o_radiologo") {
+				return cargarDoctoresYRadiologosAsignables(cfg);
+			}
+			const { data, error } = await supabase
+				.from(cfg.tabla)
+				.select(cfg.select)
+				.order("nombre");
+			if (error) throw error;
+			if (cfg.tipoAsignacion === "radiologo") return (data || []).filter((item) => esRolRadiologoAsignable(item.rol));
+			if (cfg.tipoAsignacion === "tecnico") return (data || []).filter((item) => esRolTecnicoRadiologiaAsignable(item.rol));
+			return data || [];
+		};
 
-				if (
-					cfg.col === "id_doctor" &&
-					(esErrorColumnaFaltante(itemsResponse.error, "tipo_doctor") ||
-						esErrorColumnaFaltante(itemsResponse.error, "institucion"))
-				) {
-					const respuestaItems = await supabase
-						.from(cfg.tabla)
-						.select("id_doctor, nombre, especialidad")
-						.order("nombre");
-					items = respuestaItems.data;
-					usarFiltroDoctoresExternos = false;
-				}
+		Promise.all([
+			cargarItems(),
+			supabase
+				.from("estudios_radiologia")
+				.select(estudioSelect)
+				.eq("id_estudio", idEstudio)
+				.single(),
+		]).then(([itemsAsignables, estudioResponse]) => {
+			let estudio = estudioResponse.data;
+			let errorEstudio = estudioResponse.error;
 
-				if (esErrorColumnaFaltante(errorEstudio, cfg.col)) {
-					errorEstudio = null;
-					estudio = {};
-				}
-				if (errorEstudio) throw errorEstudio;
+			if (
+				esErrorColumnaFaltante(errorEstudio, cfg.col) ||
+				(cfg.tipoAsignacion === "doctor_o_radiologo" && esErrorColumnaFaltante(errorEstudio, "id_doctor"))
+			) {
+				errorEstudio = null;
+				estudio = {};
+			}
+			if (errorEstudio) throw errorEstudio;
 
-				const itemsAsignables = cfg.col === "id_doctor"
-					? (usarFiltroDoctoresExternos ? (items || []).filter(esDoctorAsignableRadiologia) : items || [])
-					: items || [];
+			const actual = cfg.tipoAsignacion === "doctor_o_radiologo"
+				? estudio?.id_doctor
+					? `doctor:${estudio.id_doctor}`
+					: estudio?.id_radiologo
+						? `empleado:${estudio.id_radiologo}`
+						: null
+				: estudio?.[cfg.col] || null;
+
 			setModalAsignar((m) => ({
 				...m,
 				items: itemsAsignables,
-				actual: estudio?.[cfg.col] || null,
-				seleccionado: estudio?.[cfg.col] || null,
-					loading: false,
-				}));
-			}).catch((error) => {
-				console.error("Error al abrir modal de asignación:", error);
-				showNotif(cfg.notifErr, "error");
-				setModalAsignar(null);
-			});
+				actual,
+				seleccionado: actual,
+				loading: false,
+			}));
+		}).catch((error) => {
+			console.error("Error al abrir modal de asignación:", error);
+			showNotif(cfg.notifErr, "error");
+			setModalAsignar(null);
+		});
 		};
 
 	const handleAsignarConfirmar = async () => {
 		if (!modalAsignar?.seleccionado) return;
 		const idEstudio = estudioId || estudioData?.id;
-			const { error } = await supabase
-				.from("estudios_radiologia")
-				.update({
-					[modalAsignar.col]: modalAsignar.seleccionado,
-					updated_at: new Date().toISOString(),
-				})
-				.eq("id_estudio", idEstudio);
-			if (esErrorColumnaFaltante(error, modalAsignar.col)) {
-				showNotif("Falta aplicar la migración para asignar doctores externos", "error");
-			} else if (error) showNotif(modalAsignar.notifErr, "error");
-			else {
+		const itemSeleccionado = modalAsignar.items?.find(
+			(item) => item[modalAsignar.idKey] == modalAsignar.seleccionado,
+		);
+		const payload = modalAsignar.tipoAsignacion === "doctor_o_radiologo" && itemSeleccionado
+			? {
+				[itemSeleccionado.__target_col]: itemSeleccionado.__target_value,
+				[itemSeleccionado.__target_col === "id_doctor" ? "id_radiologo" : "id_doctor"]: null,
+				estado: "ASIGNADO",
+				updated_at: new Date().toISOString(),
+			}
+			: {
+				[modalAsignar.col]: modalAsignar.seleccionado,
+				estado: "ASIGNADO",
+				updated_at: new Date().toISOString(),
+			};
+		const { data: estudioActualizado, error } = await supabase
+			.from("estudios_radiologia")
+			.update(payload)
+			.eq("id_estudio", idEstudio)
+			.select("id_estudio, id_doctor, id_radiologo, estado")
+			.maybeSingle();
+		if (
+			esErrorColumnaFaltante(error, modalAsignar.col) ||
+			(modalAsignar.tipoAsignacion === "doctor_o_radiologo" && esErrorColumnaFaltante(error, "id_doctor"))
+		) {
+			showNotif("Falta aplicar la migración para asignar doctores externos", "error");
+		} else if (error) showNotif(modalAsignar.notifErr, "error");
+		else if (!estudioActualizado) showNotif("No se pudo confirmar la asignación del estudio", "error");
+		else {
+			if (modalAsignar.tipoAsignacion === "doctor_o_radiologo" && itemSeleccionado) {
+				setEstudioAsignacion({
+					id_doctor: estudioActualizado.id_doctor || null,
+					id_radiologo: estudioActualizado.id_radiologo || null,
+					doctorNombre: itemSeleccionado.__target_col === "id_doctor" ? itemSeleccionado.nombre : "",
+					radiologoNombre: itemSeleccionado.__target_col === "id_radiologo" ? itemSeleccionado.nombre : "",
+				});
+			}
 			showNotif(modalAsignar.notifOk, "exito");
 			setModalAsignar(null);
 		}
@@ -3698,9 +3859,10 @@ const VisorDicom = () => {
 	const totalPaneles = formatoGrid.cols * formatoGrid.rows;
 	const accionesVista = ACTIONS.filter((a) => VIEW_ACTION_IDS.includes(a.id));
 	const puedeEditarReporte = !empleadoData || puedeEditarReporteRadiologia(empleadoData);
+	const puedeVerReporte = !empleadoData || puedeVerReporteRadiologia(empleadoData);
 	const puedeAsignarEstudio = !empleadoData || puedeAsignarRadiologia(empleadoData);
 	const accionesFlujo = ACTIONS.filter((a) =>
-		WORKFLOW_ACTION_IDS.includes(a.id) && (puedeEditarReporte || a.id !== "reporte"),
+		WORKFLOW_ACTION_IDS.includes(a.id) && (puedeVerReporte || a.id !== "reporte"),
 	);
 	const herramientaActiva =
 		TOOLS.find((t) => t.id === herramienta)?.label ||
@@ -3717,8 +3879,12 @@ const VisorDicom = () => {
 		imagenActivaIndex >= 0 ? `${imagenActivaIndex + 1}/${imageIds.length}` : "0/0";
 	const mostrarMiniaturaReporte = Boolean(reporteTexto.trim()) || panelDerecho === "reporte";
 	const totalImagenesDicom = seriesDicom.reduce((total, serie) => total + serie.imagenes.length, 0);
+	const nombreDoctorAsignado =
+		estudioAsignacion.doctorNombre ||
+		estudioAsignacion.radiologoNombre ||
+		"Sin asignar";
 	const detalleResumen = [
-		{ label: "Radiólogo", value: empleadoData?.nombre || "Sin asignar", action: "radiologo" },
+		{ label: "Doctor asignado", value: nombreDoctorAsignado, action: "radiologo" },
 		{ label: "Técnico", value: "Pendiente", action: "tecnico" },
 		{ label: "Referente", value: "Pendiente", action: "referente" },
 		{ label: "Prioridad", value: estudioData?.altaPrioridad ? "Alta" : "Normal", action: "prioridad" },
@@ -3837,14 +4003,16 @@ const VisorDicom = () => {
 										{a.icon ? <img src={a.icon} alt="" /> : <span>⊞</span>}
 										<span>{a.label}</span>
 									</button>
-									<button
-										type="button"
-										className="vd-split-toggle"
-										onClick={toggleMenuReporte}
-										aria-label="Opciones de reporte"
-										title="Opciones de reporte">
-										⌄
-									</button>
+									{puedeEditarReporte && (
+										<button
+											type="button"
+											className="vd-split-toggle"
+											onClick={toggleMenuReporte}
+											aria-label="Opciones de reporte"
+											title="Opciones de reporte">
+											⌄
+										</button>
+									)}
 								</div>
 							) : (
 								<button
@@ -4133,7 +4301,7 @@ const VisorDicom = () => {
 						ref={sidePanelRef}
 						className={`vd-side-panel vd-side-panel-${panelDerecho}`}>
 						<div className="vd-side-tabs">
-							{puedeEditarReporte && (
+							{puedeVerReporte && (
 								<button
 									type="button"
 									className={panelDerecho === "reporte" ? "activo" : ""}
@@ -4156,10 +4324,10 @@ const VisorDicom = () => {
 							</button>
 						</div>
 
-						{panelDerecho === "reporte" && puedeEditarReporte && (
+						{panelDerecho === "reporte" && puedeVerReporte && (
 							<div className="vd-reporte">
 								<h2 className="vd-sr-only">Documento de interpretación</h2>
-								<div className="vd-doc-topbar">
+								{puedeEditarReporte && <div className="vd-doc-topbar">
 									<button
 										type="button"
 										className="vd-doc-ghost"
@@ -4186,8 +4354,8 @@ const VisorDicom = () => {
 											⌄
 										</button>
 									</div>
-								</div>
-								<div className="vd-doc-formatbar" aria-label="Herramientas del documento">
+								</div>}
+								{puedeEditarReporte && <div className="vd-doc-formatbar" aria-label="Herramientas del documento">
 									<button type="button" className="is-strong" title="Negritas">
 										B
 									</button>
@@ -4230,7 +4398,7 @@ const VisorDicom = () => {
 									<button type="button" onClick={() => handleReporteItem("nueva-pestana")}>
 										Abrir
 									</button>
-								</div>
+								</div>}
 								<div className="vd-doc-scroll">
 									<div className="rr-page-wrapper vd-rr-page-wrapper">
 										<div className="rr-page vd-rr-page">
@@ -4261,7 +4429,7 @@ const VisorDicom = () => {
 												<div
 													ref={reporteEditorRef}
 													className="rr-editor vd-rr-editor"
-													contentEditable
+													contentEditable={puedeEditarReporte}
 													suppressContentEditableWarning
 													spellCheck={false}
 													role="textbox"

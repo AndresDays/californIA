@@ -43,7 +43,7 @@ const Login = () => {
       setErrorMessage('Correo o contraseña incorrectos')
       setLoading(false)
     } else {
-      navigate('/dashboard')
+      navigate(data?.redirectTo || '/dashboard')
     }
   }
 
