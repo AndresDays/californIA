@@ -6,6 +6,40 @@ const esColumnaInexistente = (error, columna) =>
   error?.code === '42703' &&
   String(error?.message || '').toLowerCase().includes(String(columna).toLowerCase());
 
+const cargarDoctorExternoAuth = async (authId) => {
+  let { data, error } = await supabase
+    .from('doctores')
+    .select('id_doctor, nombre, auth_uuid, es_radiologo, especialidad')
+    .eq('auth_uuid', authId)
+    .maybeSingle();
+
+  if (
+    esColumnaInexistente(error, 'es_radiologo') ||
+    esColumnaInexistente(error, 'especialidad') ||
+    error?.code === 'PGRST204'
+  ) {
+    const respuestaBase = await supabase
+      .from('doctores')
+      .select('id_doctor, nombre, auth_uuid')
+      .eq('auth_uuid', authId)
+      .maybeSingle();
+    data = respuestaBase.data;
+    error = respuestaBase.error;
+  }
+
+  if (error) throw error;
+  return data;
+};
+
+const crearPerfilDoctorExterno = (doctor) => ({
+  nombre: doctor.nombre,
+  rol: 'doctor_externo',
+  id_doctor: doctor.id_doctor,
+  doctor_nombre: doctor.nombre,
+  es_radiologo: doctor.es_radiologo === true,
+  especialidad: doctor.especialidad || null,
+});
+
 export const useSessionStore = create((set, get) => ({
   user: null,
   empleadoData: null,
@@ -61,12 +95,14 @@ export const useSessionStore = create((set, get) => ({
 
       let empleadoData = data || null;
 
+      if (!empleadoData) {
+        const doctorExterno = await cargarDoctorExternoAuth(authId);
+        if (get().user?.id !== authId) return null;
+        if (doctorExterno) empleadoData = crearPerfilDoctorExterno(doctorExterno);
+      }
+
       if (empleadoData && esDoctorExterno(empleadoData.rol) && !empleadoData.id_doctor) {
-        const { data: doctorExterno } = await supabase
-          .from('doctores')
-          .select('id_doctor, nombre, auth_uuid')
-          .eq('auth_uuid', authId)
-          .maybeSingle();
+        const doctorExterno = await cargarDoctorExternoAuth(authId);
 
         if (get().user?.id !== authId) return null;
 
@@ -74,6 +110,8 @@ export const useSessionStore = create((set, get) => ({
           ...empleadoData,
           id_doctor: doctorExterno?.id_doctor || null,
           doctor_nombre: doctorExterno?.nombre || null,
+          es_radiologo: doctorExterno?.es_radiologo === true,
+          especialidad: doctorExterno?.especialidad || null,
         };
       }
 

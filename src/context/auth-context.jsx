@@ -2,6 +2,7 @@ import React from 'react';
 import { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../lib/supabase-client'
 import { useSessionStore } from '../store/session-store'
+import { esDoctorExterno } from '../utils/radiologia-permisos'
 
 const AuthContext = createContext({});
 
@@ -113,8 +114,16 @@ export const AuthProvider = ({ children }) => {
       })
       
       if (error) throw error
-      
-      return { data, error: null }
+
+      setUser(data.user)
+      const perfil = await fetchEmpleadoActual(data.user.id)
+      return {
+        data: {
+          ...data,
+          redirectTo: esDoctorExterno(perfil?.rol) ? '/radiologia' : '/dashboard',
+        },
+        error: null,
+      }
     } catch (error) {
       setError(error.message);
       return { data: null, error };
