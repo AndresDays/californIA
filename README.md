@@ -28,3 +28,21 @@ El proyecto de staging usa su propio proyecto de Supabase y nunca debe reutiliza
    ```
 
    El verificador no imprime la URL ni la guarda en archivos.
+
+## Monitoreo de errores
+
+Sentry es opcional en desarrollo local y se activa solo cuando existe
+`VITE_SENTRY_DSN`. Configura estas variables en Vercel, sin agregarlas a
+archivos versionados:
+
+| Entorno de Vercel | Variable | Valor |
+| --- | --- | --- |
+| Preview, rama `staging` | `VITE_SENTRY_DSN` | DSN del proyecto o entorno de staging en Sentry |
+| Preview, rama `staging` | `VITE_APP_ENV` | `staging` |
+| Production | `VITE_SENTRY_DSN` | DSN del proyecto o entorno de produccion en Sentry |
+| Production | `VITE_APP_ENV` | `production` |
+| Ambos, opcional | `VITE_APP_RELEASE` | SHA del commit publicado |
+
+La aplicacion desactiva la recoleccion de PII, trazas y breadcrumbs. Antes de
+enviar un evento elimina solicitudes, usuarios, datos extra y breadcrumbs. No
+habilites Session Replay, captura de red ni adjuntos para esta aplicacion.
