@@ -12,6 +12,10 @@ jest.mock('../context/auth-context', () => ({
   useAuth: jest.fn()
 }))
 
+jest.mock('./app-boundary', () => ({
+  LoadingSpinner: () => <div>Cargando...</div>,
+}))
+
 const { useAuth } = require('../context/auth-context')
 
 describe('ProtectedRoute', () => {

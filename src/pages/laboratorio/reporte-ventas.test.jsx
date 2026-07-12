@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mocks
 jest.mock('./reporte-ventas.css', () => ({}));
@@ -40,7 +41,10 @@ jest.mock('../../assets/calendarioIcono.png', () => 'calendarioIcono.png');
 import ReporteVentas from './reporte-ventas';
 
 const renderReporte = async () => {
-  await act(async () => { render(<ReporteVentas />); });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  await act(async () => {
+    render(<QueryClientProvider client={queryClient}><ReporteVentas /></QueryClientProvider>);
+  });
 };
 
 // ReporteVentas — Renderizado

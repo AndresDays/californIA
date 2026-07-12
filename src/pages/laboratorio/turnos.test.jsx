@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Turnos from "./turnos";
 
 const hoy = new Date();
@@ -102,8 +103,13 @@ describe("Turnos", () => {
 		];
 	});
 
+	const renderTurnos = () => {
+		const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+		return render(<QueryClientProvider client={queryClient}><Turnos /></QueryClientProvider>);
+	};
+
 	it("crea un turno desde una cita con destino seleccionable", async () => {
-		render(<Turnos />);
+		renderTurnos();
 
 		expect(await screen.findByText("Juan Andres Diaz Rodriguez")).toBeInTheDocument();
 
@@ -145,7 +151,7 @@ describe("Turnos", () => {
 		];
 		citasData = [];
 
-		render(<Turnos />);
+		renderTurnos();
 
 		expect(await screen.findByText("Maria L.")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Llamar" }));

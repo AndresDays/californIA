@@ -80,6 +80,12 @@ jest.mock('cornerstone-tools', () => ({
 
 jest.mock('dicom-parser', () => ({}));
 
+// Mock de la generacion de PDF del reporte (jspdf es ESM y jest no lo transforma)
+jest.mock('../../../utils/reporte-pdf', () => ({
+  generarReportePdf: jest.fn().mockResolvedValue(undefined),
+  crearNombreArchivoReporte: jest.fn(() => 'reporte_test.pdf'),
+}));
+
 // Mock de Assets
 jest.mock('../../../assets/anguloIcono.png',      () => 'mock-img');
 jest.mock('../../../assets/anotarIcono.png',      () => 'mock-img');
