@@ -1,12 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { esOrigenAdminPermitido, headersCorsAdmin } from "../_shared/admin-cors.js";
 
-const corsHeaders = {
-	"Access-Control-Allow-Origin": "*",
-	"Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-	"Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-const json = (body: unknown, status = 200) =>
+const json = (body: unknown, corsHeaders: HeadersInit, status = 200) =>
 	new Response(JSON.stringify(body), {
 		status,
 		headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -85,18 +80,25 @@ const esColumnaDoctorNoDisponible = (error: { code?: string } | null) =>
 	error?.code === "PGRST204";
 
 Deno.serve(async (req) => {
+	const origen = req.headers.get("Origin");
+	const origenesPermitidos = Deno.env.get("ADMIN_USERS_ALLOWED_ORIGINS") || "";
+	if (!esOrigenAdminPermitido(origen, origenesPermitidos)) {
+		return new Response("Origen no permitido", { status: 403 });
+	}
+	const corsHeaders = headersCorsAdmin(origen, origenesPermitidos);
+	const responder = (body: unknown, status = 200) => json(body, corsHeaders, status);
 	if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-	if (req.method !== "POST") return json({ error: "Metodo no permitido" }, 405);
+	if (req.method !== "POST") return responder({ error: "Metodo no permitido" }, 405);
 
 	const supabaseUrl = Deno.env.get("SUPABASE_URL");
 	const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 	if (!supabaseUrl || !serviceRoleKey) {
-		return json({ error: "Faltan variables de entorno de Supabase" }, 500);
+		return responder({ error: "Faltan variables de entorno de Supabase" }, 500);
 	}
 
 	const authHeader = req.headers.get("Authorization") || "";
 	const token = authHeader.replace("Bearer ", "");
-	if (!token) return json({ error: "Sesion requerida" }, 401);
+	if (!token) return responder({ error: "Sesion requerida" }, 401);
 
 	const adminClient = createClient(supabaseUrl, serviceRoleKey, {
 		auth: { autoRefreshToken: false, persistSession: false },
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
 		data: { user: requester },
 		error: requesterError,
 	} = await adminClient.auth.getUser(token);
-	if (requesterError || !requester) return json({ error: "Sesion invalida" }, 401);
+	if (requesterError || !requester) return responder({ error: "Sesion invalida" }, 401);
 
 	const { data: empleadoAdmin, error: empleadoAdminError } = await adminClient
 		.from("empleados")
@@ -115,24 +117,24 @@ Deno.serve(async (req) => {
 		.maybeSingle();
 
 	if (empleadoAdminError) {
-		return json({ error: empleadoAdminError.message }, 500);
+		return responder({ error: empleadoAdminError.message }, 500);
 	}
 
 	if (!empleadoAdmin?.activo || !isAdminRole(empleadoAdmin.rol)) {
-		return json({ error: "No tienes permiso para administrar usuarios" }, 403);
+		return responder({ error: "No tienes permiso para administrar usuarios" }, 403);
 	}
 
 	const body = await req.json();
 
 	if (body.action === "updatePassword" || body.action === "updateDoctorPassword") {
 		if (!body.auth_uuid || !body.password) {
-			return json({ error: "Falta auth_uuid o password" }, 400);
+			return responder({ error: "Falta auth_uuid o password" }, 400);
 		}
 		const { error } = await adminClient.auth.admin.updateUserById(body.auth_uuid, {
 			password: body.password,
 		});
-		if (error) return json({ error: error.message }, 400);
-		return json({ ok: true });
+		if (error) return responder({ error: error.message }, 400);
+		return responder({ ok: true });
 	}
 
 	if (body.action === "createDoctor") {
@@ -143,7 +145,7 @@ Deno.serve(async (req) => {
 			"doctor_externo",
 		);
 		if (authError || !authUser) {
-			return json({ error: authError || "No se pudo crear el usuario" }, 400);
+			return responder({ error: authError || "No se pudo crear el usuario" }, 400);
 		}
 
 		const { data: doctorCreado, error: doctorError } = await adminClient
@@ -154,17 +156,17 @@ Deno.serve(async (req) => {
 
 		if (doctorError) {
 			await adminClient.auth.admin.deleteUser(authUser.id);
-			return json({ error: doctorError.message }, 400);
+			return responder({ error: doctorError.message }, 400);
 		}
 
-		return json({ user: authUser, doctor: doctorCreado });
+		return responder({ user: authUser, doctor: doctorCreado });
 	}
 
 	if (body.action === "updateDoctor") {
 		const doctor = body.doctor || {};
 		const idDoctor = Number(doctor.id || doctor.id_doctor);
 		if (!Number.isInteger(idDoctor) || idDoctor <= 0) {
-			return json({ error: "Falta id_doctor" }, 400);
+			return responder({ error: "Falta id_doctor" }, 400);
 		}
 
 		const payload = buildDoctorUpdatePayload(doctor);
@@ -185,10 +187,10 @@ Deno.serve(async (req) => {
 				.single());
 		}
 		if (doctorError || !doctorActualizado) {
-			return json({ error: doctorError?.message || "No se pudo actualizar el doctor" }, 400);
+			return responder({ error: doctorError?.message || "No se pudo actualizar el doctor" }, 400);
 		}
 
-		if (!clean(doctor.contrasena)) return json({ doctor: doctorActualizado });
+		if (!clean(doctor.contrasena)) return responder({ doctor: doctorActualizado });
 
 		const { data: doctorAuth, error: doctorAuthError } = await adminClient
 			.from("doctores")
@@ -196,7 +198,7 @@ Deno.serve(async (req) => {
 			.eq("id_doctor", idDoctor)
 			.maybeSingle();
 		if (doctorAuthError || !doctorAuth) {
-			return json({ error: doctorAuthError?.message || "Doctor no encontrado" }, 400);
+			return responder({ error: doctorAuthError?.message || "Doctor no encontrado" }, 400);
 		}
 
 		if (doctorAuth.auth_uuid) {
@@ -204,8 +206,8 @@ Deno.serve(async (req) => {
 				doctorAuth.auth_uuid,
 				{ password: clean(doctor.contrasena) },
 			);
-			if (passwordError) return json({ error: passwordError.message }, 400);
-			return json({ doctor: doctorActualizado });
+			if (passwordError) return responder({ error: passwordError.message }, 400);
+			return responder({ doctor: doctorActualizado });
 		}
 
 		const { user: authUser, error: authError } = await createAuthUser(
@@ -214,7 +216,7 @@ Deno.serve(async (req) => {
 			"doctor_externo",
 		);
 		if (authError || !authUser) {
-			return json({ error: authError || "No se pudo crear el usuario" }, 400);
+			return responder({ error: authError || "No se pudo crear el usuario" }, 400);
 		}
 
 		const { data: doctorVinculado, error: vinculoError } = await adminClient
@@ -225,17 +227,17 @@ Deno.serve(async (req) => {
 			.single();
 		if (vinculoError) {
 			await adminClient.auth.admin.deleteUser(authUser.id);
-			return json({ error: vinculoError.message }, 400);
+			return responder({ error: vinculoError.message }, 400);
 		}
 
-		return json({ user: authUser, doctor: doctorVinculado });
+		return responder({ user: authUser, doctor: doctorVinculado });
 	}
 
 	if (body.action === "provisionDoctorAuth") {
 		const doctor = body.doctor || {};
 		const idDoctor = Number(doctor.id || doctor.id_doctor);
 		if (!Number.isInteger(idDoctor) || idDoctor <= 0) {
-			return json({ error: "Falta id_doctor" }, 400);
+			return responder({ error: "Falta id_doctor" }, 400);
 		}
 
 		const { data: doctorExistente, error: doctorExistenteError } = await adminClient
@@ -243,15 +245,15 @@ Deno.serve(async (req) => {
 			.select("id_doctor, auth_uuid")
 			.eq("id_doctor", idDoctor)
 			.maybeSingle();
-		if (doctorExistenteError) return json({ error: doctorExistenteError.message }, 400);
-		if (!doctorExistente) return json({ error: "Doctor no encontrado" }, 404);
+		if (doctorExistenteError) return responder({ error: doctorExistenteError.message }, 400);
+		if (!doctorExistente) return responder({ error: "Doctor no encontrado" }, 404);
 		if (doctorExistente.auth_uuid) {
 			const { error: passwordError } = await adminClient.auth.admin.updateUserById(
 				doctorExistente.auth_uuid,
 				{ password: clean(doctor.contrasena) },
 			);
-			if (passwordError) return json({ error: passwordError.message }, 400);
-			return json({ doctor: doctorExistente, existing: true });
+			if (passwordError) return responder({ error: passwordError.message }, 400);
+			return responder({ doctor: doctorExistente, existing: true });
 		}
 
 		const { user: authUser, error: authError } = await createAuthUser(
@@ -260,7 +262,7 @@ Deno.serve(async (req) => {
 			"doctor_externo",
 		);
 		if (authError || !authUser) {
-			return json({ error: authError || "No se pudo crear el usuario" }, 400);
+			return responder({ error: authError || "No se pudo crear el usuario" }, 400);
 		}
 
 		const { data: doctorVinculado, error: doctorError } = await adminClient
@@ -271,19 +273,19 @@ Deno.serve(async (req) => {
 			.single();
 		if (doctorError) {
 			await adminClient.auth.admin.deleteUser(authUser.id);
-			return json({ error: doctorError.message }, 400);
+			return responder({ error: doctorError.message }, 400);
 		}
 
-		return json({ user: authUser, doctor: doctorVinculado });
+		return responder({ user: authUser, doctor: doctorVinculado });
 	}
 
-	if (body.action !== "create") return json({ error: "Accion no soportada" }, 400);
+	if (body.action !== "create") return responder({ error: "Accion no soportada" }, 400);
 
 	const usuario = body.usuario || {};
 	const email = clean(usuario.email);
 	const password = clean(usuario.contrasena);
 	if (!email || !password) {
-		return json({ error: "Email y contrasena son requeridos" }, 400);
+		return responder({ error: "Email y contrasena son requeridos" }, 400);
 	}
 
 	const { user: authUser, error: authError } = await createAuthUser(
@@ -293,7 +295,7 @@ Deno.serve(async (req) => {
 	);
 
 	if (authError || !authUser) {
-		return json({ error: authError || "No se pudo crear el usuario" }, 400);
+		return responder({ error: authError || "No se pudo crear el usuario" }, 400);
 	}
 
 	const empleadoPayload = {
@@ -315,8 +317,8 @@ Deno.serve(async (req) => {
 
 	if (empleadoError) {
 		await adminClient.auth.admin.deleteUser(authUser.id);
-		return json({ error: empleadoError.message }, 400);
+		return responder({ error: empleadoError.message }, 400);
 	}
 
-	return json({ user: authUser, empleado });
+	return responder({ user: authUser, empleado });
 });

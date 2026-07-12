@@ -146,6 +146,20 @@ describe("VisorPaciente", () => {
 		expect(screen.getByText("Imagen 2")).toBeInTheDocument();
 	});
 
+	test("carga cada imagen DICOM mediante una URL firmada", async () => {
+		const storage = {
+			getPublicUrl: jest.fn(() => ({ data: { publicUrl: "https://public.example/imagen.dcm" } })),
+			createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: "https://signed.example/imagen.dcm" }, error: null }),
+		};
+		supabase.storage.from.mockReturnValue(storage);
+
+		renderVisor();
+		await screen.findByText("Serie AP");
+
+		expect(storage.createSignedUrl).toHaveBeenCalledWith("123/img-1.dcm", 900);
+		expect(storage.createSignedUrl).toHaveBeenCalledWith("123/img-2.dcm", 900);
+	});
+
 	test("muestra la toolbar simplificada de herramientas", async () => {
 		renderVisor();
 		await screen.findByText("Serie AP");

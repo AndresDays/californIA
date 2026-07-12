@@ -13,7 +13,7 @@ alter table public.estudios_imagen_catalogo
 		'urgencias_otros',
 		'veterinaria',
 		'otro'
-	));
+	)) not valid;
 
 insert into public.estudios_imagen_catalogo (
 	clave,

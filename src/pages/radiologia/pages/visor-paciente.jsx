@@ -91,13 +91,25 @@ const VisorPaciente = () => {
 		document.title = "Estudio · CalifornIA";
 	}, []);
 
-	const crearImagenesConUrlPublica = (imagenes = []) =>
-		imagenes.map((imagen) => {
-			const bucket = imagen.bucket || "radiologia";
-			const storagePath = normalizarStoragePathDicom(imagen.storage_path, bucket);
-			const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-			return { ...imagen, bucket, storage_path: storagePath, imageId: `wadouri:${urlData.publicUrl}` };
-		});
+	const crearImagenesConUrlFirmada = async (imagenes = []) =>
+		Promise.all(
+			imagenes.map(async (imagen) => {
+				const bucket = imagen.bucket || "radiologia";
+				const storagePath = normalizarStoragePathDicom(imagen.storage_path, bucket);
+				const { data, error } = await supabase.storage
+					.from(bucket)
+					.createSignedUrl(storagePath, 900);
+				if (error || !data?.signedUrl) {
+					throw error || new Error("No se pudo autorizar la imagen del estudio");
+				}
+				return {
+					...imagen,
+					bucket,
+					storage_path: storagePath,
+					imageId: `wadouri:${data.signedUrl}`,
+				};
+			}),
+		);
 
 	const cargarImagen = async (imageId) => {
 		const cs = csRef.current;
@@ -166,7 +178,7 @@ const VisorPaciente = () => {
 				}
 				if (imagenesDicom.length === 0) throw new Error("Este estudio no tiene imagenes disponibles");
 
-				const imagenesConUrl = crearImagenesConUrlPublica(imagenesDicom);
+				const imagenesConUrl = await crearImagenesConUrlFirmada(imagenesDicom);
 				const seriesAgrupadas = agruparImagenesDicomPorSerie(imagenesConUrl, est);
 				if (cancelado) return;
 				setSeries(seriesAgrupadas);

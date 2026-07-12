@@ -1,7 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validarFirmaTwilio } from "../_shared/twilio-signature.js";
 
-const twiml = (message = "") =>
+const twiml = (message = "", status = 200) =>
 	new Response(`<Response>${message ? `<Message>${message}</Message>` : ""}</Response>`, {
+		status,
 		headers: { "Content-Type": "text/xml" },
 	});
 
@@ -54,22 +56,29 @@ Deno.serve(async (req) => {
 
 	const supabaseUrl = Deno.env.get("SUPABASE_URL");
 	const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+	const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+	const twilioWebhookUrl = Deno.env.get("TWILIO_WEBHOOK_URL");
 	const codigoPais = Deno.env.get("WHATSAPP_DEFAULT_COUNTRY_CODE") || "52";
 
-	if (!supabaseUrl || !serviceRoleKey) {
+	if (!supabaseUrl || !serviceRoleKey || !twilioAuthToken || !twilioWebhookUrl) {
 		return twiml("No pudimos procesar tu respuesta en este momento.");
 	}
 
 	const rawBody = await req.text();
 	const params = new URLSearchParams(rawBody);
+	const firma = req.headers.get("X-Twilio-Signature");
+	if (!(await validarFirmaTwilio(twilioAuthToken, firma, twilioWebhookUrl, params))) {
+		return twiml("", 403);
+	}
 	const from = params.get("From");
 	const body = params.get("Body");
 	const buttonPayload = params.get("ButtonPayload") || params.get("ButtonText");
+	const messageSid = params.get("MessageSid") || params.get("SmsSid");
 
 	const telefono = normalizarTelefonoDesdeWhatsapp(from, codigoPais);
 	const accion = obtenerAccionConfirmacionWhatsapp({ buttonPayload, body });
 
-	if (!telefono || !accion) return twiml();
+	if (!telefono || !accion || !messageSid) return twiml();
 
 	const supabase = createClient(supabaseUrl, serviceRoleKey, {
 		auth: { autoRefreshToken: false, persistSession: false },
@@ -80,7 +89,8 @@ Deno.serve(async (req) => {
 		.select("id_cita")
 		.eq("telefono_paciente", telefono)
 		.not("whatsapp_recordatorio_enviado_at", "is", null)
-		.in("whatsapp_confirmacion_estado", ["pendiente", "error_envio"])
+		.eq("whatsapp_confirmacion_estado", "pendiente")
+		.is("whatsapp_respuesta_sid", null)
 		.order("fecha_estudio", { ascending: true })
 		.limit(1)
 		.maybeSingle();
@@ -96,8 +106,10 @@ Deno.serve(async (req) => {
 			whatsapp_confirmacion_estado: accion.estadoWhatsapp,
 			whatsapp_confirmacion_respuesta: buttonPayload || body || null,
 			whatsapp_confirmacion_at: new Date().toISOString(),
+			whatsapp_respuesta_sid: messageSid,
 		})
-		.eq("id_cita", cita.id_cita);
+		.eq("id_cita", cita.id_cita)
+		.is("whatsapp_respuesta_sid", null);
 
 	if (updateError) {
 		return twiml("No pudimos procesar tu respuesta en este momento.");

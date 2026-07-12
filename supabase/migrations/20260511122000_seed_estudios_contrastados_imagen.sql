@@ -11,7 +11,7 @@ alter table public.estudios_imagen_catalogo
 		'mastografia',
 		'estudios_contrastados',
 		'otro'
-	));
+	)) not valid;
 
 insert into public.estudios_imagen_catalogo (
 	clave,

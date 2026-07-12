@@ -12,6 +12,7 @@ supabase secrets set TWILIO_AUTH_TOKEN="..."
 supabase secrets set TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
 supabase secrets set TWILIO_CONTENT_SID="HX..."
 supabase secrets set WHATSAPP_DEFAULT_COUNTRY_CODE="52"
+supabase secrets set REMINDERS_CRON_SECRET="<genera-un-secreto-largo-aleatorio>"
 ```
 
 `TWILIO_WHATSAPP_FROM` must be the WhatsApp sender configured in Twilio.
@@ -29,7 +30,8 @@ supabase functions deploy whatsapp-reminders --no-verify-jwt
 Run the function every 5 minutes from Supabase Scheduled Functions or any cron service:
 
 ```bash
-curl -X POST "https://<project-ref>.functions.supabase.co/whatsapp-reminders"
+curl -X POST "https://<project-ref>.functions.supabase.co/whatsapp-reminders" \
+  -H "Authorization: Bearer $REMINDERS_CRON_SECRET"
 ```
 
-The function only sends reminders for appointments in the 24-hour window and skips rows that already have `whatsapp_recordatorio_enviado_at`.
+La funcion solo acepta `POST` autenticado con `REMINDERS_CRON_SECRET`. Configura ese encabezado en el programador que ejecute la llamada cada cinco minutos. Solo envia recordatorios para citas en la ventana de 24 horas y omite filas con `whatsapp_recordatorio_enviado_at`.

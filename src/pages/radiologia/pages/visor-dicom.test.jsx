@@ -176,6 +176,7 @@ jest.mock('../../../lib/supabase-client', () => ({
       from: jest.fn(() => ({
         upload:       jest.fn(() => Promise.resolve({ error: null })),
         getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://mock.url/file.dcm' } })),
+        createSignedUrl: jest.fn(() => Promise.resolve({ data: { signedUrl: 'https://mock.url/signed-file.dcm' }, error: null })),
       })),
     },
   },

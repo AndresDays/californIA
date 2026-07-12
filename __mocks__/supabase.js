@@ -28,6 +28,10 @@ export const supabase = {
       getPublicUrl: jest.fn().mockReturnValue({ 
         data: { publicUrl: 'http://example.com/image.jpg' } 
       }),
+      createSignedUrl: jest.fn().mockResolvedValue({
+        data: { signedUrl: 'http://example.com/signed-image.jpg' },
+        error: null,
+      }),
       download: jest.fn().mockResolvedValue({ data: new Blob(), error: null }),
       remove: jest.fn().mockResolvedValue({ data: {}, error: null }),
     })),

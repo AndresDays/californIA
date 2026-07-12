@@ -12,7 +12,7 @@ alter table public.estudios_imagen_catalogo
 		'estudios_contrastados',
 		'urgencias_otros',
 		'otro'
-	));
+	)) not valid;
 
 insert into public.estudios_imagen_catalogo (
 	clave,
