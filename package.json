@@ -24,6 +24,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.1.1",
     "@mui/material": "^9.0.1",
+    "@sentry/react": "^10.65.0",
     "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-query": "^5.101.0",
     "cornerstone-core": "^2.6.1",
