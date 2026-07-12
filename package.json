@@ -15,7 +15,8 @@
     "test": "jest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "bootstrap:staging": "node scripts/bootstrap-staging.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
