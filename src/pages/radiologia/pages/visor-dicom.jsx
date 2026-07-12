@@ -13,6 +13,10 @@ import {
 	normalizarTelefono10,
 } from "../../../utils/form-validations";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import {
+	crearNombreArchivoReporte,
+	generarReportePdf,
+} from "../../../utils/reporte-pdf";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
 	EVENTOS_SOLICITUD,
@@ -2485,6 +2489,7 @@ const VisorDicom = () => {
 		`data:image/jpeg;base64,${MEMBRETE_B64}`,
 	);
 	const [panelDerecho, setPanelDerecho] = useState(null);
+	const [reporteExpandido, setReporteExpandido] = useState(false);
 	const [seriesContraidas, setSeriesContraidas] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -2657,13 +2662,12 @@ const VisorDicom = () => {
 		const generarQrReporte = async () => {
 			try {
 				const id = estudioId || estudioData?.id || "";
-				const qrData =
-					estudioData?.folio && estudioData?.telefonoPaciente
-						? crearUrlPortalResultados({
-								folio: estudioData.folio,
-								telefono: estudioData.telefonoPaciente,
-							})
-						: `${window.location.origin}/reporte?idEstudio=${id}`;
+				const qrData = id
+					? `${window.location.origin}/visor-paciente/${id}`
+					: crearUrlPortalResultados({
+							folio: estudioData?.folio,
+							telefono: estudioData?.telefonoPaciente,
+						});
 				const dataUrl = await QRCode.toDataURL(
 					qrData,
 					{
@@ -3011,6 +3015,7 @@ const VisorDicom = () => {
 				showNotif("No tienes permiso para ver este reporte", "error");
 				return;
 			}
+			setReporteExpandido(false);
 			setPanelDerecho((panel) => (panel === "reporte" ? null : "reporte"));
 			setMostrarFormatos(false);
 			setMostrarMas(false);
@@ -3019,7 +3024,11 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "descargar") {
-			descargarArchivo();
+			if (panelDerecho === "reporte" && reporteExpandido) {
+				descargarReportePdf();
+			} else {
+				descargarArchivo();
+			}
 			return;
 		}
 		if (id === "captura") {
@@ -3506,6 +3515,7 @@ const VisorDicom = () => {
 		}
 		setMostrarReporte(false);
 		if (id === "plantillas") {
+			setReporteExpandido(false);
 			setPanelDerecho("reporte");
 			return;
 		}
@@ -3590,6 +3600,26 @@ const VisorDicom = () => {
 		else {
 			navigator.clipboard.writeText(window.location.href);
 			alert("URL copiada");
+		}
+	};
+
+	const descargarReportePdf = async () => {
+		const id = estudioId || estudioData?.id || "";
+		const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
+		try {
+			await generarReportePdf({
+				nombrePaciente: pacienteInfo.nombre,
+				doctorNombre: estudioAsignacion?.doctorNombre,
+				estudioDescripcion: pacienteInfo.tipoEstudio,
+				fechaEncabezado: fechaReporteEncabezado,
+				reporteTexto: texto,
+				membreteSrc: membreteReporteSrc,
+				qrData: id ? `${window.location.origin}/visor-paciente/${id}` : "",
+				nombreArchivo: crearNombreArchivoReporte(pacienteInfo.nombre),
+			});
+		} catch (err) {
+			console.error("Error al generar PDF del reporte:", err);
+			showNotif("No fue posible generar el PDF del reporte", "error");
 		}
 	};
 
@@ -3952,6 +3982,7 @@ const VisorDicom = () => {
 					</div>
 				</div>
 
+				{!(panelDerecho === "reporte" && reporteExpandido) && (
 				<div className="vd-toolbar-section vd-toolbar-section-tools">
 					<span className="vd-toolbar-label">Herramientas</span>
 					<div className="vd-tools-group">
@@ -3967,7 +3998,9 @@ const VisorDicom = () => {
 						))}
 					</div>
 				</div>
+				)}
 
+				{!(panelDerecho === "reporte" && reporteExpandido) && (
 				<div className="vd-toolbar-section">
 					<span className="vd-toolbar-label">Vista</span>
 					<div className="vd-actions-group">
@@ -3983,6 +4016,7 @@ const VisorDicom = () => {
 						))}
 					</div>
 				</div>
+				)}
 
 				<div className="vd-toolbar-section">
 					<span className="vd-toolbar-label">Flujo</span>
@@ -4095,7 +4129,7 @@ const VisorDicom = () => {
 				</div>
 			)}
 
-			<div className={`vd-body ${panelDerecho === "reporte" ? "vd-body-reporte" : ""}`}>
+			<div className={`vd-body ${panelDerecho === "reporte" ? "vd-body-reporte" : ""} ${panelDerecho === "reporte" && reporteExpandido ? "vd-body-reporte-expandido" : ""}`}>
 				<div className={`vd-sidebar ${seriesContraidas ? "contraida" : ""}`}>
 					<div className="vd-sidebar-header">
 						<div>
@@ -4161,7 +4195,10 @@ const VisorDicom = () => {
 							<button
 								type="button"
 								className={`vd-miniatura vd-miniatura-reporte ${panelDerecho === "reporte" ? "activa" : ""}`}
-								onClick={() => setPanelDerecho("reporte")}
+								onClick={() => {
+									setReporteExpandido(true);
+									setPanelDerecho("reporte");
+								}}
 								aria-label="Abrir reporte">
 								<div className="vd-mini-img vd-mini-reporte-img">
 									<span className="vd-mini-reporte-icon">REP</span>
@@ -4299,13 +4336,16 @@ const VisorDicom = () => {
 				{panelDerecho && (
 					<div
 						ref={sidePanelRef}
-						className={`vd-side-panel vd-side-panel-${panelDerecho}`}>
+						className={`vd-side-panel vd-side-panel-${panelDerecho}${panelDerecho === "reporte" && reporteExpandido ? " vd-side-panel-expandido" : ""}`}>
 						<div className="vd-side-tabs">
 							{puedeVerReporte && (
 								<button
 									type="button"
 									className={panelDerecho === "reporte" ? "activo" : ""}
-									onClick={() => setPanelDerecho("reporte")}>
+									onClick={() => {
+										setReporteExpandido(false);
+										setPanelDerecho("reporte");
+									}}>
 									Reporte
 								</button>
 							)}

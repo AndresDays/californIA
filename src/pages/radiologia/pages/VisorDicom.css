@@ -1557,6 +1557,26 @@
 	display: none;
 }
 
+/* Reporte abierto desde la miniatura: documento centrado a pantalla completa */
+.vd-body-reporte-expandido .vd-viewer {
+	display: none;
+}
+
+.vd-side-panel-reporte.vd-side-panel-expandido {
+	position: static;
+	flex: 1;
+	width: auto;
+	min-width: 0;
+	border-left: none;
+	box-shadow: none;
+}
+
+.vd-side-panel-expandido .vd-rr-page,
+.vd-side-panel-expandido .vd-doc-page {
+	margin-left: auto;
+	margin-right: auto;
+}
+
 @keyframes vd-side-panel-in {
 	from {
 		opacity: 0;
@@ -1942,7 +1962,7 @@
 	z-index: 199;
 }
 
-/* ── Barra secundaria Más ────────────────────────────────────────── */
+/* â”€â”€ Barra secundaria MÃ¡s â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-mas-bar {
 	position: fixed;
 	top: var(--toolbar-bottom, 112px);
@@ -2015,7 +2035,7 @@
 	opacity: 1;
 }
 
-/* ── Toast notificación ──────────────────────────────────────────── */
+/* â”€â”€ Toast notificaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-toast {
 	position: fixed;
 	bottom: 32px;
@@ -2046,7 +2066,7 @@
 	}
 }
 
-/* ── Modal genérico (Referente, etc.) ───────────────────────────────────── */
+/* â”€â”€ Modal genÃ©rico (Referente, etc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-backdrop {
 	position: fixed;
 	inset: 0;
@@ -2170,7 +2190,7 @@
 	cursor: not-allowed;
 }
 
-/* ── Modal — chip radiólogo actual ─────────────────────────────────────── */
+/* â”€â”€ Modal â€” chip radiÃ³logo actual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-chip {
 	display: inline-block;
 	background: rgba(16, 109, 160, 0.35);
@@ -2205,7 +2225,7 @@
 	color: rgba(205, 221, 238, 0.45);
 }
 
-/* ── Modal — lista de items ─────────────────────────────────────────────── */
+/* â”€â”€ Modal â€” lista de items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-list {
 	max-height: 320px;
 	overflow-y: auto;
@@ -2240,7 +2260,7 @@
 	font-weight: 600;
 }
 
-/* ── Modal Prioridad — overlay/box/toggle ───────────────────────────────── */
+/* â”€â”€ Modal Prioridad â€” overlay/box/toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-overlay {
 	position: fixed;
 	inset: 0;
@@ -2271,7 +2291,7 @@
 	font-size: 0.9rem;
 }
 
-/* "Aceptar" azul — alias de btn-primary */
+/* "Aceptar" azul â€” alias de btn-primary */
 .vd-modal-btn-ok {
 	background: #106DA0;
 	border: none;
@@ -2294,7 +2314,7 @@
 	cursor: not-allowed;
 }
 
-/* ── Toggle switch prioridad ────────────────────────────────────────────── */
+/* â”€â”€ Toggle switch prioridad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-prioridad-row {
 	display: flex;
 	align-items: center;
@@ -2343,7 +2363,7 @@
 	transform: translateX(20px);
 }
 
-/* ── Modal Comentarios ───────────────────────────────────────────────────── */
+/* â”€â”€ Modal Comentarios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-comentarios {
 	width: min(560px, 94vw);
 	max-height: 80vh;
@@ -2467,7 +2487,7 @@
 	background: rgba(220, 60, 60, 0.15);
 }
 
-/* Acciones dentro del modo edición */
+/* Acciones dentro del modo ediciÃ³n */
 .vd-coment-edit-actions {
 	display: flex;
 	gap: 0.5rem;
@@ -2503,7 +2523,7 @@
 	opacity: 1;
 }
 
-/* ── MODAL ETIQUETAS ──────────────────────────────────────────── */
+/* â”€â”€ MODAL ETIQUETAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-etiquetas {
 	width: min(620px, 94vw);
 	min-height: unset;
@@ -2660,7 +2680,7 @@
 	color: #49B2D4;
 }
 
-/* ── BRILLO ICONOS COMENTARIOS (fix) ────────────────────────────── */
+/* â”€â”€ BRILLO ICONOS COMENTARIOS (fix) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-coment-icon {
 	opacity: 0.85 !important;
 	filter: brightness(0) invert(1) !important;
@@ -2679,7 +2699,7 @@
 	opacity: 1 !important;
 }
 
-/* ── MODAL MÉTRICAS ────────────────────────────────────────────── */
+/* â”€â”€ MODAL MÃ‰TRICAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-metricas {
 	width: min(560px, 94vw);
 }
@@ -2727,7 +2747,7 @@
 	text-overflow: ellipsis;
 }
 
-/* ── MODAL FICHA CLÍNICA ───────────────────────────────────────── */
+/* â”€â”€ MODAL FICHA CLÃNICA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .vd-modal-ficha {
 	width: min(640px, 96vw);
 	max-height: 88vh;
@@ -2753,7 +2773,7 @@
 	font-weight: 400;
 }
 
-/* ── Scroll body ── */
+/* â”€â”€ Scroll body â”€â”€ */
 .vd-ficha-body {
 	flex: 1;
 	overflow-y: auto;
@@ -2771,7 +2791,7 @@
 	border-radius: 4px;
 }
 
-/* ── Sección colapsable ── */
+/* â”€â”€ SecciÃ³n colapsable â”€â”€ */
 .vd-ficha-seccion {
 	border-bottom: 1px solid rgba(83, 185, 219, 0.08);
 }
@@ -2809,7 +2829,7 @@
 	transition: transform 0.2s;
 }
 
-/* ── Grid de campos ── */
+/* â”€â”€ Grid de campos â”€â”€ */
 .vd-ficha-grid {
 	padding: 1rem 1.6rem 1.1rem;
 	display: flex;
@@ -2873,7 +2893,7 @@ select.vd-ficha-input option {
 	color: #fff;
 }
 
-/* ── Footer botones (Reiniciar / Guardar) ── */
+/* â”€â”€ Footer botones (Reiniciar / Guardar) â”€â”€ */
 .vd-ficha-footer {
 	display: flex;
 	gap: 0.6rem;
@@ -2884,7 +2904,7 @@ select.vd-ficha-input option {
 	justify-content: flex-end;
 }
 
-/* ── Tabla historial ── */
+/* â”€â”€ Tabla historial â”€â”€ */
 .vd-ficha-tabla-wrap {
 	padding: 0.6rem 1.6rem 1rem;
 	overflow-x: auto;
@@ -2926,7 +2946,7 @@ select.vd-ficha-input option {
 	padding: 1.2rem 1.6rem;
 }
 
-/* ── Sección solicitud ── */
+/* â”€â”€ SecciÃ³n solicitud â”€â”€ */
 .vd-ficha-solicitud {
 	padding: 0.75rem 1.6rem 1.1rem;
 }
@@ -2976,7 +2996,7 @@ select.vd-ficha-input option {
 	margin-top: 0.3rem;
 }
 
-/* ── Sección comentarios (dentro de ficha) ── */
+/* â”€â”€ SecciÃ³n comentarios (dentro de ficha) â”€â”€ */
 .vd-ficha-coment-item {
 	display: flex;
 	align-items: flex-start;
