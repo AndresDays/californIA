@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import { reportException } from '../lib/observability';
 import './app-boundary.css';
 
 export const LoadingSpinner = ({ texto = 'Cargando...' }) => (
@@ -20,6 +21,7 @@ class AppBoundary extends Component {
 
 	componentDidCatch(error, info) {
 		this.setState({ info });
+		reportException(error, { componentStack: info?.componentStack });
 		console.error('[ErrorBoundary]', error, info?.componentStack);
 	}
 
@@ -42,7 +44,7 @@ class AppBoundary extends Component {
 
 		if (fallback) return fallback(error, this.handleReload);
 
-		const isDev = import.meta.env.DEV;
+		const isDev = process.env.NODE_ENV === 'development';
 
 		return (
 			<div className="app-error" role="alert">
