@@ -105,10 +105,9 @@ const ReporteRadiologia = () => {
 	useEffect(() => {
 		const generarQr = async () => {
 			try {
-				const qrData =
-					folio && telefono
-						? crearUrlPortalResultados({ folio, telefono })
-						: `${window.location.origin}/reporte?idEstudio=${idEstudio || ""}`;
+				const qrData = idEstudio
+					? `${window.location.origin}/visor-paciente/${idEstudio}`
+					: crearUrlPortalResultados({ folio, telefono });
 				const dataUrl = await QRCode.toDataURL(qrData, {
 					margin: 1,
 					width: 132,

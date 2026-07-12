@@ -42,6 +42,7 @@ const DashboardRadiologia = lazy(() => import('./pages/radiologia/pages/dashboar
 const PlantillasRadiologia = lazy(() => import('./pages/radiologia/pages/plantillas-radiologia'));
 const ReporteRadiologia = lazy(() => import('./pages/radiologia/pages/ReporteRadiologia'));
 const VisorDicom = lazy(() => import('./pages/radiologia/pages/visor-dicom'));
+const VisorPaciente = lazy(() => import('./pages/radiologia/pages/visor-paciente'));
 const SalaEspera = lazy(() => import('./pages/sala-espera'));
 const Usuarios = lazy(() => import('./pages/usuarios'));
 
@@ -64,6 +65,7 @@ function App() {
 						<Route path="/login" element={<B><Login /></B>} />
 						<Route path="/forgot-password" element={<B><ForgotPassword /></B>} />
 						<Route path="/resultados" element={<B><PortalResultados /></B>} />
+						<Route path="/visor-paciente/:estudioId" element={<B><VisorPaciente /></B>} />
 						<Route path="/sala-espera" element={<B><SalaEspera /></B>} />
 
 						<Route path="/dashboard" element={<P><Dashboard /></P>} />

@@ -1,0 +1,71 @@
+/* Ajustes propios del visor publico de pacientes; el resto del diseno
+   proviene de VisorDicom.css y ReporteRadiologia.css */
+
+.vp-header {
+	height: 56px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #080d18;
+	border-bottom: 1px solid rgba(73, 178, 212, 0.15);
+}
+
+.vp-logo {
+	height: 34px;
+	object-fit: contain;
+}
+
+.vp-visor-area {
+	position: absolute;
+	inset: 0;
+}
+
+.vp-canvas {
+	position: absolute;
+	inset: 0;
+	background: #000;
+	cursor: crosshair;
+}
+
+.vp-canvas canvas {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+.vp-status-bar {
+	position: absolute;
+	left: 0.9rem;
+	bottom: 0.8rem;
+	display: flex;
+	gap: 0.45rem;
+	flex-wrap: wrap;
+	pointer-events: none;
+}
+
+.vp-status-bar span {
+	padding: 0.28rem 0.65rem;
+	border-radius: 999px;
+	background: rgba(13, 21, 38, 0.85);
+	border: 1px solid rgba(73, 178, 212, 0.25);
+	color: #7fd2ef;
+	font-size: 0.7rem;
+}
+
+.vp-reporte-scroll {
+	position: absolute;
+	inset: 0;
+	overflow: auto;
+	background: #080f14;
+}
+
+.vp-reporte-scroll .rr-page,
+.vp-reporte-scroll .vd-rr-page {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.vp-reporte-texto p {
+	margin: 0 0 0.35rem;
+}
