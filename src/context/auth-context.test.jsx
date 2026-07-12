@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from './auth-context';
 import { supabase } from '../lib/supabase-client';
+import { useSessionStore } from '../store/session-store';
 
 // Polyfills para Node 
 import { TextEncoder, TextDecoder } from 'util';
@@ -68,6 +69,19 @@ const renderWithProvider = async () => {
   });
   return result;
 };
+
+const resetSessionStore = () => {
+  useSessionStore.setState({
+    user: null,
+    empleadoData: null,
+    loading: true,
+    empleadoLoading: false,
+    error: null,
+    sucursalActual: null,
+  });
+};
+
+beforeEach(() => resetSessionStore());
 
 // SUITE 1 — Inicialización del contexto
 describe('AuthContext — Inicialización', () => {
@@ -174,16 +188,15 @@ describe('AuthContext — Sesión activa', () => {
       maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
     };
     supabase.from
-      .mockReturnValueOnce(doctoresQueryBase)
-      .mockReturnValueOnce(empleadosQueryBase);
+      .mockReturnValueOnce(empleadosQueryBase)
+      .mockReturnValueOnce(doctoresQueryBase);
 
     await renderWithProvider();
 
     await waitFor(() => {
       expect(screen.getByTestId('empleado-rol').textContent).toBe('admin');
     });
-    expect(empleadosQueryBase.select).toHaveBeenCalledWith('nombre, rol');
-    expect(empleadosQueryBase.select).not.toHaveBeenCalledWith('nombre, rol, id_doctor');
+    expect(empleadosQueryBase.select).toHaveBeenCalledWith('nombre, rol, id_doctor');
   });
 });
 
@@ -260,7 +273,8 @@ describe('AuthContext — signIn', () => {
   });
 
   test('signIn detecta doctor externo autenticado por Supabase Auth', async () => {
-    supabase.auth.signInWithPassword.mockResolvedValueOnce({
+    supabase.auth.signInWithPassword.mockReset();
+    supabase.auth.signInWithPassword.mockResolvedValue({
       data: { user: { email: 'doc1@gmail.com', id: 'auth-doctor-3' } },
       error: null,
     });
@@ -280,7 +294,15 @@ describe('AuthContext — signIn', () => {
         }),
       ),
     };
-    supabase.from.mockReturnValueOnce(doctoresQuery);
+    const empleadosQuery = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    };
+    supabase.from.mockReset();
+    supabase.from.mockImplementation((tabla) =>
+      tabla === 'empleados' ? empleadosQuery : doctoresQuery,
+    );
 
     await renderWithProvider();
     await act(async () => {

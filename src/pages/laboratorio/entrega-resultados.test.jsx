@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mocks
 jest.mock('./entrega-resultados.css', () => ({}));
@@ -47,7 +48,10 @@ jest.mock('../../lib/supabase-client', () => {
 import EntregaResultados from './entrega-resultados';
 
 const renderEntrega = async () => {
-  await act(async () => { render(<EntregaResultados />); });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  await act(async () => {
+    render(<QueryClientProvider client={queryClient}><EntregaResultados /></QueryClientProvider>);
+  });
 };
 
 // EntregaResultados — Renderizado

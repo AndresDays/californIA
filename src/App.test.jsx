@@ -2,6 +2,17 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 
+jest.mock('./components/app-boundary', () => ({
+  __esModule: true,
+  default: ({ children }) => <>{children}</>,
+  LoadingSpinner: () => <div>Cargando...</div>,
+}));
+
+jest.mock('./components/pwa-update-prompt', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 // Polyfills para Node 
 import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;

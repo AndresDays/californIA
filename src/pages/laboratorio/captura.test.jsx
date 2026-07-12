@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mocks
 jest.mock('./captura.css', () => ({}));
@@ -44,7 +45,10 @@ jest.mock('../../lib/supabase-client', () => {
 import Captura from './captura';
 
 const renderCaptura = async () => {
-  await act(async () => { render(<Captura />); });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  await act(async () => {
+    render(<QueryClientProvider client={queryClient}><Captura /></QueryClientProvider>);
+  });
 };
 
 // Captura — Renderizado

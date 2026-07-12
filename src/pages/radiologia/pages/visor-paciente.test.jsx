@@ -1,0 +1,208 @@
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { supabase } from "../../../lib/supabase-client";
+import { generarReportePdf } from "../../../utils/reporte-pdf";
+import VisorPaciente from "./visor-paciente";
+
+// Polyfills
+import { TextEncoder, TextDecoder } from "util";
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+jest.mock("cornerstone-core", () => ({
+	enable: jest.fn(),
+	disable: jest.fn(),
+	loadAndCacheImage: jest.fn(() =>
+		Promise.resolve({ imageId: "mock-id", width: 512, height: 512 }),
+	),
+	displayImage: jest.fn(),
+	getViewport: jest.fn(() => ({
+		scale: 1,
+		voi: { windowWidth: 400, windowCenter: 40 },
+		translation: { x: 0, y: 0 },
+	})),
+	setViewport: jest.fn(),
+	updateImage: jest.fn(),
+	reset: jest.fn(),
+	resize: jest.fn(),
+	getEnabledElement: jest.fn(() => ({ canvas: {} })),
+	events: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
+}));
+
+jest.mock("cornerstone-wado-image-loader", () => ({
+	external: { cornerstone: null, dicomParser: null },
+	configure: jest.fn(),
+}));
+
+jest.mock("dicom-parser", () => ({}));
+
+jest.mock("../../../utils/reporte-pdf", () => ({
+	generarReportePdf: jest.fn().mockResolvedValue(undefined),
+	crearNombreArchivoReporte: jest.fn(() => "reporte_test.pdf"),
+}));
+
+jest.mock("./reporte-radiologia-template", () => ({
+	MEMBRETE_B64: "MEMBRETEMOCK",
+}));
+
+const ESTUDIO = {
+	id_estudio: 123,
+	storage_path: "123/imagen.dcm",
+	reporte: "Hallazgos sin alteraciones.",
+	tipo_estudio: "DX",
+	descripcion: "Rodillas AP y Lateral",
+	fecha_estudio: "2026-07-10",
+	id_paciente: 7,
+	doctor: { nombre: "Odile Desage" },
+};
+
+const PACIENTE = {
+	nombre: "Maria Rosalia",
+	apellido_paterno: "Lopez",
+	apellido_materno: "",
+	fecha_nacimiento: "1947-10-07",
+	sexo: "F",
+};
+
+const IMAGENES = [
+	{
+		id_imagen: 1,
+		id_estudio: 123,
+		bucket: "radiologia",
+		storage_path: "123/img-1.dcm",
+		file_name: "img-1.dcm",
+		instance_number: 1,
+		modality: "DX",
+		series_description: "Serie AP",
+	},
+	{
+		id_imagen: 2,
+		id_estudio: 123,
+		bucket: "radiologia",
+		storage_path: "123/img-2.dcm",
+		file_name: "img-2.dcm",
+		instance_number: 2,
+		modality: "DX",
+		series_description: "Serie AP",
+	},
+];
+
+const configurarSupabase = ({ estudio = ESTUDIO, imagenes = IMAGENES } = {}) => {
+	supabase.from.mockImplementation((tabla) => {
+		if (tabla === "estudios_radiologia") {
+			return {
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				single: jest.fn().mockResolvedValue(
+					estudio
+						? { data: estudio, error: null }
+						: { data: null, error: { message: "not found" } },
+				),
+			};
+		}
+		if (tabla === "pacientes") {
+			return {
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				maybeSingle: jest.fn().mockResolvedValue({ data: PACIENTE, error: null }),
+			};
+		}
+		if (tabla === "estudio_dicom_imagenes") {
+			return {
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				order: jest.fn().mockResolvedValue({ data: imagenes, error: null }),
+			};
+		}
+		return {
+			select: jest.fn().mockReturnThis(),
+			eq: jest.fn().mockReturnThis(),
+			maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+		};
+	});
+};
+
+const renderVisor = () =>
+	render(
+		<MemoryRouter initialEntries={["/visor-paciente/123"]}>
+			<Routes>
+				<Route path="/visor-paciente/:estudioId" element={<VisorPaciente />} />
+			</Routes>
+		</MemoryRouter>,
+	);
+
+describe("VisorPaciente", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		configurarSupabase();
+	});
+
+	test("muestra los datos del paciente y las series al cargar", async () => {
+		renderVisor();
+		expect(await screen.findByText("Serie AP")).toBeInTheDocument();
+		expect(screen.getAllByText("Maria Rosalia Lopez").length).toBeGreaterThan(0);
+		expect(screen.getByText("Imagen 1")).toBeInTheDocument();
+		expect(screen.getByText("Imagen 2")).toBeInTheDocument();
+	});
+
+	test("muestra la toolbar simplificada de herramientas", async () => {
+		renderVisor();
+		await screen.findByText("Serie AP");
+		["Scroll", "Ampliar", "W/L", "Mover", "Restaurar", "Descargar"].forEach(
+			(etiqueta) => {
+				expect(screen.getByText(etiqueta)).toBeInTheDocument();
+			},
+		);
+		// Sin herramientas de edicion del visor interno
+		expect(screen.queryByText("Anotar")).not.toBeInTheDocument();
+		expect(screen.queryByText("Reporte")).toBeInTheDocument(); // solo miniatura
+	});
+
+	test("muestra la miniatura REP cuando el estudio tiene reporte", async () => {
+		renderVisor();
+		await screen.findByText("Serie AP");
+		expect(screen.getByLabelText("Abrir reporte")).toBeInTheDocument();
+	});
+
+	test("no muestra la miniatura REP sin reporte", async () => {
+		configurarSupabase({ estudio: { ...ESTUDIO, reporte: "" } });
+		renderVisor();
+		await screen.findByText("Serie AP");
+		expect(screen.queryByLabelText("Abrir reporte")).not.toBeInTheDocument();
+	});
+
+	test("al abrir el reporte muestra el documento con membrete y datos", async () => {
+		renderVisor();
+		await screen.findByText("Serie AP");
+		fireEvent.click(screen.getByLabelText("Abrir reporte"));
+		expect(screen.getByAltText("membrete")).toBeInTheDocument();
+		expect(screen.getByText("PACIENTE:")).toBeInTheDocument();
+		expect(screen.getByText("DOCTOR:")).toBeInTheDocument();
+		expect(screen.getByText("Odile Desage")).toBeInTheDocument();
+		expect(screen.getByText("Hallazgos sin alteraciones.")).toBeInTheDocument();
+	});
+
+	test("en la vista de reporte Descargar genera el PDF con el QR al visor", async () => {
+		renderVisor();
+		await screen.findByText("Serie AP");
+		fireEvent.click(screen.getByLabelText("Abrir reporte"));
+		fireEvent.click(screen.getByText("Descargar"));
+		await waitFor(() => expect(generarReportePdf).toHaveBeenCalled());
+		expect(generarReportePdf).toHaveBeenCalledWith(
+			expect.objectContaining({
+				nombrePaciente: "Maria Rosalia Lopez",
+				doctorNombre: "Odile Desage",
+				qrData: expect.stringContaining("/visor-paciente/123"),
+			}),
+		);
+	});
+
+	test("muestra error cuando el estudio no existe", async () => {
+		configurarSupabase({ estudio: null, imagenes: [] });
+		renderVisor();
+		expect(
+			await screen.findByText("No encontramos el estudio solicitado"),
+		).toBeInTheDocument();
+	});
+});
