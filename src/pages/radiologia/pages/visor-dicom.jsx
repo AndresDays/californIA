@@ -2737,21 +2737,26 @@ const VisorDicom = () => {
 		reporteEditorRef.current.innerHTML = (reporteTexto || "").replace(/\n/g, "<br>");
 	}, [panelDerecho]);
 
-	const crearImagenesConUrlPublica = (imagenes = []) =>
-		imagenes.map((imagen) => {
-			const bucket = imagen.bucket || "radiologia";
-			const storagePath = normalizarStoragePathDicom(imagen.storage_path, bucket);
-			const { data: urlData } = supabase.storage
-				.from(bucket)
-				.getPublicUrl(storagePath);
+	const crearImagenesConUrlFirmada = async (imagenes = []) =>
+		Promise.all(
+			imagenes.map(async (imagen) => {
+				const bucket = imagen.bucket || "radiologia";
+				const storagePath = normalizarStoragePathDicom(imagen.storage_path, bucket);
+				const { data, error } = await supabase.storage
+					.from(bucket)
+					.createSignedUrl(storagePath, 900);
+				if (error || !data?.signedUrl) {
+					throw error || new Error("No se pudo autorizar la imagen del estudio");
+				}
 
-			return {
-				...imagen,
-				bucket,
-				storage_path: storagePath,
-				imageId: `wadouri:${urlData.publicUrl}`,
-			};
-		});
+				return {
+					...imagen,
+					bucket,
+					storage_path: storagePath,
+					imageId: `wadouri:${data.signedUrl}`,
+				};
+			}),
+		);
 
 	const seleccionarSerieDicom = (serie, panelObjetivo = panelActivo) => {
 		if (!serie?.imageIds?.length) return;
@@ -2826,7 +2831,7 @@ const VisorDicom = () => {
 
 			if (imagenesDicom.length === 0) throw new Error("Sin archivo");
 
-			const imagenesConUrl = crearImagenesConUrlPublica(imagenesDicom);
+				const imagenesConUrl = await crearImagenesConUrlFirmada(imagenesDicom);
 			const series = agruparImagenesDicomPorSerie(imagenesConUrl, estudio);
 			const primeraSerie = series[0];
 

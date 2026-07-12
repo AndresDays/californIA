@@ -29,16 +29,23 @@ create index if not exists idx_notificaciones_rol_destino
 
 alter table public.notificaciones enable row level security;
 
-create policy notificaciones_select_authenticated
-  on public.notificaciones for select
-  to authenticated using (true);
+-- Sustituye las politicas genericas de una version anterior; las politicas
+-- por destinatario se crean en 20260510162000_notificaciones_internas.sql.
+drop policy if exists notificaciones_select_authenticated on public.notificaciones;
+drop policy if exists notificaciones_insert_authenticated on public.notificaciones;
+drop policy if exists notificaciones_update_authenticated on public.notificaciones;
 
-create policy notificaciones_insert_authenticated
-  on public.notificaciones for insert
-  to authenticated with check (true);
-
-create policy notificaciones_update_authenticated
-  on public.notificaciones for update
-  to authenticated using (true) with check (true);
-
-alter publication supabase_realtime add table public.notificaciones;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notificaciones'
+  ) then
+    alter publication supabase_realtime add table public.notificaciones;
+  end if;
+exception
+  when undefined_object then null;
+end $$;

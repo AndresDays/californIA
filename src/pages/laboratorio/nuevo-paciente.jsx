@@ -57,6 +57,10 @@ import {
 	normalizarTelefono10,
 } from "../../utils/form-validations";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
+import {
+	actualizarDoctorConAuthentication,
+	crearDoctorConAuthentication,
+} from "../../utils/doctores-auth";
 import ModalAgregarPaciente from "./componentes/modal-agregar-paciente";
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion.jsx";
 import {
@@ -969,40 +973,14 @@ const NuevoPaciente = () => {
 
 	const handleGuardarDoctorModal = async (doctorData, isEditMode) => {
 		const insertarDoctor = async () => {
-			const { data, error } = await supabase
-				.from("doctores")
-				.insert([doctorData])
-				.select()
-				.single();
-
-			if (error) throw error;
+			const data = await crearDoctorConAuthentication(supabase, doctorData);
 			alert("Doctor guardado correctamente");
-			seleccionarDoctor(data);
+			seleccionarDoctor(data.doctor || data);
 		};
 
 		try {
 			if (isEditMode) {
-				const { error } = await supabase
-					.from("doctores")
-					.update({
-						nombre: doctorData.nombre,
-						apellido_paterno: doctorData.apellido_paterno,
-						apellido_materno: doctorData.apellido_materno,
-						primer_nombre: doctorData.primer_nombre,
-						fecha_nacimiento: doctorData.fecha_nacimiento,
-						edad: doctorData.edad,
-						sexo: doctorData.sexo,
-						email: doctorData.email,
-						telefono: doctorData.telefono,
-						usuario: doctorData.usuario,
-						contrasena: doctorData.contrasena,
-						rol: doctorData.rol,
-						activo: doctorData.activo,
-						updated_at: new Date().toISOString(),
-					})
-					.eq("id_empleado", doctorData.id);
-
-				if (error) throw error;
+				await actualizarDoctorConAuthentication(supabase, doctorData);
 				alert("Doctor actualizado correctamente");
 			} else {
 				const duplicado = await buscarDuplicadoRegistro({

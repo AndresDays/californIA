@@ -63,9 +63,11 @@ as $$
 		select
 			e.auth_uuid,
 			public.normalizar_texto_notificacion(e.rol) as rol,
-			e.id_sucursal,
+			s.id_sucursal,
 			public.normalizar_texto_notificacion(e.sucursal) as sucursal
 		from public.empleados e
+		left join public.sucursales s
+			on public.normalizar_texto_notificacion(s.nombre) = public.normalizar_texto_notificacion(e.sucursal)
 		where e.auth_uuid = auth.uid()
 			and coalesce(e.activo, true) = true
 		limit 1
@@ -190,4 +192,3 @@ exception
 end $$;
 
 notify pgrst, 'reload schema';
-

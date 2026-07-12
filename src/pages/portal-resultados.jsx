@@ -81,7 +81,7 @@ const PortalResultados = () => {
 		}
 
 		setCargando(true);
-		const { data, error: rpcError } = await supabase.rpc("buscar_resultados_portal", {
+		const { data, error: rpcError } = await supabase.rpc("buscar_resultados_portal_seguro", {
 			p_folio: folio.trim(),
 			p_telefono: telefono,
 		});

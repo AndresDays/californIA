@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { esSecretoBearerValido } from "../_shared/request-auth.js";
 
 const CINCO_MINUTOS_MS = 5 * 60 * 1000;
 const VEINTICUATRO_HORAS_MS = 24 * 60 * 60 * 1000;
@@ -160,8 +161,16 @@ const enviarWhatsappTwilio = async ({
 };
 
 Deno.serve(async (req) => {
-	if (!["POST", "GET"].includes(req.method)) {
+	if (req.method !== "POST") {
 		return json({ error: "Metodo no permitido" }, 405);
+	}
+
+	const remindersCronSecret = Deno.env.get("REMINDERS_CRON_SECRET");
+	if (!remindersCronSecret) {
+		return json({ error: "Falta configurar el secreto de recordatorios" }, 500);
+	}
+	if (!esSecretoBearerValido(req.headers.get("Authorization"), remindersCronSecret)) {
+		return json({ error: "No autorizado" }, 401);
 	}
 
 	const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -204,7 +213,7 @@ Deno.serve(async (req) => {
 
 	if (error) return json({ error: error.message }, 500);
 
-	const resultados = [];
+	const resumen = { enviados: 0, sin_telefono: 0, errores: 0 };
 
 	for (const cita of citas || []) {
 		const paciente = Array.isArray(cita.pacientes) ? cita.pacientes[0] : cita.pacientes;
@@ -218,7 +227,7 @@ Deno.serve(async (req) => {
 				.from("citas")
 				.update({ whatsapp_confirmacion_estado: "sin_telefono" })
 				.eq("id_cita", cita.id_cita);
-			resultados.push({ id_cita: cita.id_cita, estado: "sin_telefono" });
+			resumen.sin_telefono += 1;
 			continue;
 		}
 
@@ -244,11 +253,12 @@ Deno.serve(async (req) => {
 				.update({
 					whatsapp_recordatorio_enviado_at: new Date().toISOString(),
 					whatsapp_confirmacion_estado: "pendiente",
-					whatsapp_confirmacion_respuesta: twilio.sid || null,
+					whatsapp_recordatorio_sid: twilio.sid || null,
+					whatsapp_confirmacion_respuesta: null,
 				})
 				.eq("id_cita", cita.id_cita);
 
-			resultados.push({ id_cita: cita.id_cita, estado: "enviado", sid: twilio.sid });
+			resumen.enviados += 1;
 		} catch (err) {
 			await supabase
 				.from("citas")
@@ -257,18 +267,14 @@ Deno.serve(async (req) => {
 					whatsapp_confirmacion_respuesta: err instanceof Error ? err.message : String(err),
 				})
 				.eq("id_cita", cita.id_cita);
-			resultados.push({
-				id_cita: cita.id_cita,
-				estado: "error_envio",
-				error: err instanceof Error ? err.message : String(err),
-			});
+			console.error("No se pudo enviar recordatorio", { id_cita: cita.id_cita });
+			resumen.errores += 1;
 		}
 	}
 
 	return json({
 		ok: true,
-		ventana: { inicio, fin },
-		procesadas: resultados.length,
-		resultados,
+		procesadas: resumen.enviados + resumen.sin_telefono + resumen.errores,
+		resumen,
 	});
 });
