@@ -26,6 +26,25 @@ backup_root="/tmp/backup/$backup_date"
 rclone_config="$(mktemp)"
 trap 'rm -rf "$backup_root" "$rclone_config"' EXIT
 
+retain_prefix_until() {
+  local prefix="$1"
+  local retain_until="$2"
+
+  aws s3api list-objects-v2 \
+    --bucket "$BACKUP_BUCKET" \
+    --prefix "$prefix/" \
+    --query 'Contents[].Key' \
+    --output text \
+    | tr '\t' '\n' \
+    | while IFS= read -r key; do
+      test -n "$key" || continue
+      aws s3api put-object-retention \
+        --bucket "$BACKUP_BUCKET" \
+        --key "$key" \
+        --retention "Mode=COMPLIANCE,RetainUntilDate=$retain_until"
+    done
+}
+
 mkdir -p "$backup_root/storage"
 cat > "$rclone_config" <<EOF
 [supabase]
@@ -57,6 +76,10 @@ aws s3 cp "$backup_root" "s3://$BACKUP_BUCKET/$upload_prefix/" \
   --recursive --only-show-errors --sse aws:kms --sse-kms-key-id "$BACKUP_KMS_KEY_ID"
 
 if [ "$(date -u +%d)" = "01" ]; then
-  aws s3 cp "$backup_root" "s3://$BACKUP_BUCKET/monthly/${backup_date:0:7}/" \
+  monthly_prefix="monthly/${backup_date:0:7}"
+  monthly_retain_until="$(date -u -d "$backup_date + 397 days" '+%Y-%m-%dT%H:%M:%SZ')"
+
+  aws s3 cp "$backup_root" "s3://$BACKUP_BUCKET/$monthly_prefix/" \
     --recursive --only-show-errors --sse aws:kms --sse-kms-key-id "$BACKUP_KMS_KEY_ID"
+  retain_prefix_until "$monthly_prefix" "$monthly_retain_until"
 fi

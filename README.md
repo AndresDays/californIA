@@ -46,3 +46,12 @@ archivos versionados:
 La aplicacion desactiva la recoleccion de PII, trazas y breadcrumbs. Antes de
 enviar un evento elimina solicitudes, usuarios, datos extra y breadcrumbs. No
 habilites Session Replay, captura de red ni adjuntos para esta aplicacion.
+
+## Respaldos
+
+Los respaldos de produccion deben ejecutarse fuera de Vercel, desde AWS Fargate,
+y guardarse cifrados en S3 con KMS y Object Lock. La configuracion vive en
+`infra/aws-backups` y la guia operativa esta en `docs/operations/backups.md`.
+
+No subas URLs de base de datos, credenciales S3-compatible de Supabase, claves
+privadas de `age` ni secretos de AWS al repositorio.
