@@ -1,0 +1,20 @@
+aws_region = "us-west-2"
+
+name_prefix        = "california-production"
+backup_bucket_name = "california-production-encrypted-backups"
+
+supabase_storage_buckets = "radiologia"
+
+# Default: daily at 08:00 UTC. Keep disabled until the image and secret are ready.
+backup_schedule_expression = "cron(0 8 * * ? *)"
+schedule_enabled           = false
+
+subnet_ids = [
+  "subnet-replace-me"
+]
+
+security_group_ids = [
+  "sg-replace-me"
+]
+
+alert_email = "admin@californiadiagnostica.com"
