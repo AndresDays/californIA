@@ -24,6 +24,13 @@ dist-ssr
 .claude
 supabase/.temp
 
+# Terraform local state and runtime secrets
+infra/aws-backups/.terraform/
+infra/aws-backups/*.tfstate
+infra/aws-backups/*.tfstate.*
+infra/aws-backups/terraform.tfvars
+infra/aws-backups/backup-runtime.json
+
 # Playwright E2E
 test-results/
 playwright-report/
