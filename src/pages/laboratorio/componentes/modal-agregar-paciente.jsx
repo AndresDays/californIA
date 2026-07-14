@@ -107,13 +107,14 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       let edadCalculada = 0;
       
       switch(unidadEdad) {
-        case 'Años':
+        case 'Años': {
           edadCalculada = hoy.getFullYear() - fechaNac.getFullYear();
           const m = hoy.getMonth() - fechaNac.getMonth();
           if (m < 0 || (m === 0 && hoy.getDate() < fechaNac.getDate())) {
             edadCalculada--;
           }
           break;
+        }
         case 'Meses':
           edadCalculada = (hoy.getFullYear() - fechaNac.getFullYear()) * 12;
           edadCalculada += hoy.getMonth() - fechaNac.getMonth();

@@ -26,7 +26,7 @@ const FASES = [
 ];
 
 const DEPLOYED_API_URL = "https://b23824620eb08e.lhr.life";
-const API_URL = process.env.VITE_CALIFORNIA_API || DEPLOYED_API_URL;
+const API_URL = import.meta.env.VITE_CALIFORNIA_API || DEPLOYED_API_URL;
 const THRESHOLD = 0.5;
 
 export default function PanelIA({ activo, imageId, onClose }) {

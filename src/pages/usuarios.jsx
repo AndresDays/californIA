@@ -189,7 +189,7 @@ const Usuarios = () => {
 	};
 
 	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
+		if (!nombreCompleto) return empleadoData?.email?.split("@")[0] || "Usuario";
 		return nombreCompleto;
 	};
 
