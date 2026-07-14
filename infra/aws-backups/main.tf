@@ -406,6 +406,26 @@ resource "aws_sns_topic_subscription" "backup_email" {
   endpoint  = var.alert_email
 }
 
+resource "aws_sns_topic_policy" "backup_alerts" {
+  arn    = aws_sns_topic.backup_alerts.arn
+  policy = data.aws_iam_policy_document.backup_alerts_topic.json
+}
+
+data "aws_iam_policy_document" "backup_alerts_topic" {
+  statement {
+    sid    = "AllowEventBridgeBackupAlerts"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.backup_alerts.arn]
+  }
+}
+
 resource "aws_cloudwatch_metric_alarm" "backup_failure" {
   alarm_name          = "${var.name_prefix}-backup-failure"
   alarm_description   = "EventBridge failed to invoke the backup task."
@@ -425,4 +445,30 @@ resource "aws_cloudwatch_metric_alarm" "backup_failure" {
   alarm_actions = [aws_sns_topic.backup_alerts.arn]
 
   tags = local.common_tags
+}
+
+resource "aws_cloudwatch_event_rule" "backup_task_failed" {
+  name        = "${var.name_prefix}-backup-task-failed"
+  description = "Detects backup ECS tasks that stop with a non-zero backup container exit code."
+
+  event_pattern = jsonencode({
+    source        = ["aws.ecs"]
+    "detail-type" = ["ECS Task State Change"]
+    detail = {
+      clusterArn = [aws_ecs_cluster.backups.arn]
+      lastStatus = ["STOPPED"]
+      containers = {
+        name     = ["backup"]
+        exitCode = [{ "anything-but" = 0 }]
+      }
+    }
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_cloudwatch_event_target" "backup_task_failed" {
+  rule      = aws_cloudwatch_event_rule.backup_task_failed.name
+  target_id = "backup-failure-sns"
+  arn       = aws_sns_topic.backup_alerts.arn
 }
