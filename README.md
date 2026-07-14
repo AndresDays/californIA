@@ -55,3 +55,10 @@ y guardarse cifrados en S3 con KMS y Object Lock. La configuracion vive en
 
 No subas URLs de base de datos, credenciales S3-compatible de Supabase, claves
 privadas de `age` ni secretos de AWS al repositorio.
+
+## Preparacion comercial
+
+Antes de vender o entregar la plataforma a una clinica, revisa
+`docs/operations/production-readiness.md`. Esa guia concentra los criterios de
+ambientes, restore, monitoreo, seguridad, onboarding, soporte y documentos
+legales minimos.
