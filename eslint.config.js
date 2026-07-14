@@ -4,6 +4,12 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
+const reactCompilerRuleOverrides = Object.fromEntries(
+  Object.keys(reactHooks.configs.recommended.rules)
+    .filter((ruleName) => ruleName !== 'react-hooks/rules-of-hooks')
+    .map((ruleName) => [ruleName, 'warn']),
+)
+
 export default defineConfig([
   globalIgnores([
     'dist',
@@ -32,8 +38,21 @@ export default defineConfig([
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      ...reactCompilerRuleOverrides,
       ...reactRefresh.configs.vite.rules,
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+      'no-empty': 'warn',
+      'no-unused-vars': [
+        'warn',
+        {
+          varsIgnorePattern: '^[A-Z_]',
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   {
