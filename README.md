@@ -62,3 +62,9 @@ Antes de vender o entregar la plataforma a una clinica, revisa
 `docs/operations/production-readiness.md`. Esa guia concentra los criterios de
 ambientes, restore, monitoreo, seguridad, onboarding, soporte y documentos
 legales minimos.
+
+Documentos operativos relacionados:
+
+- `docs/operations/backup-verification-log.md`
+- `docs/operations/clinic-onboarding.md`
+- `docs/operations/support-runbook.md`

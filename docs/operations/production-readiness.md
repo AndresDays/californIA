@@ -38,7 +38,8 @@ La continuidad depende de poder restaurar, no solo de tener backups.
 - Documentar el resultado en un registro operativo.
 - Rotar cualquier secreto expuesto durante pruebas manuales.
 
-La guia paso a paso vive en `docs/operations/backups.md`.
+La guia paso a paso vive en `docs/operations/backups.md`. El registro operativo
+para pruebas vive en `docs/operations/backup-verification-log.md`.
 
 ## Monitoreo y respuesta
 
@@ -80,6 +81,8 @@ Para vender sin depender del desarrollador en cada instalacion, preparar:
 - Prueba de punta a punta: cita, pago, estudio, reporte, entrega.
 - Capacitación corta para recepcion, laboratorio/radiologia y administrador.
 
+La plantilla completa vive en `docs/operations/clinic-onboarding.md`.
+
 ## Legal y privacidad
 
 Antes de cobrar a clientes reales:
@@ -101,6 +104,8 @@ Define un soporte basico vendible:
 - Tiempos objetivo de respuesta.
 - Procedimiento de escalamiento tecnico.
 - Registro de cambios por version.
+
+El runbook operativo vive en `docs/operations/support-runbook.md`.
 
 ## Criterios de salida antes de vender
 
