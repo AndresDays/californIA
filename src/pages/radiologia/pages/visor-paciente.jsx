@@ -214,8 +214,7 @@ const VisorPaciente = () => {
 		return () => {
 			cancelado = true;
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [estudioId]);
+		}, [estudioId]);
 
 	useEffect(() => {
 		if (loading || error || vistaReporte) return;
@@ -228,8 +227,7 @@ const VisorPaciente = () => {
 			} catch {}
 			cargarImagen(imageIdsRef.current[indiceRef.current]);
 		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [loading, error, vistaReporte]);
+		}, [loading, error, vistaReporte]);
 
 	const irAImagen = (indice) => {
 		const ids = imageIdsRef.current;

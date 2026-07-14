@@ -44,7 +44,7 @@ class AppBoundary extends Component {
 
 		if (fallback) return fallback(error, this.handleReload);
 
-		const isDev = process.env.NODE_ENV === 'development';
+		const isDev = import.meta.env.DEV;
 
 		return (
 			<div className="app-error" role="alert">

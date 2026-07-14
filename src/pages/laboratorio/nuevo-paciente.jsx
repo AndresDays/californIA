@@ -97,7 +97,7 @@ const esEstudioRadiologia = (estudio = {}) => {
 };
 
 const NuevoPaciente = () => {
-	const { user } = useAuth();
+	const { user, signOut } = useAuth();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [menuOpen, setMenuOpen] = useState(false);
@@ -1363,7 +1363,6 @@ const NuevoPaciente = () => {
 	};
 
 	const handleLogout = async () => {
-		const { signOut } = useAuth();
 		await signOut();
 		navigate("/login");
 	};
