@@ -55,6 +55,11 @@ y solo usarse durante restauraciones controladas.
    ```
 
 4. Confirma la suscripcion SNS que llega al correo configurado en `alert_email`.
+   Ese topic recibe dos tipos de alerta:
+   - `FailedInvocations` del schedule diario cuando EventBridge no puede invocar
+     el task.
+   - `ECS Task State Change` cuando el contenedor `backup` termina con exit code
+     distinto de `0`.
 
 5. Carga el valor del secreto `backup_runtime` desde AWS Console o AWS CLI. No lo
    pongas como `aws_secretsmanager_secret_version` en Terraform para evitar que
@@ -88,6 +93,8 @@ terraform apply -var="schedule_enabled=true"
   bucket de Storage configurado.
 - Si CloudWatch marca `FailedInvocations`, revisa los logs en
   `/ecs/california-production-backup`.
+- Si llega una alerta de `backup-task-failed`, revisa el task detenido en ECS,
+  su `exitCode` y los logs del contenedor en `/ecs/california-production-backup`.
 
 ## Restauracion mensual validada
 
