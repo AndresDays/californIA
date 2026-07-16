@@ -66,5 +66,6 @@ legales minimos.
 Documentos operativos relacionados:
 
 - `docs/operations/backup-verification-log.md`
+- `docs/operations/access-control.md`
 - `docs/operations/clinic-onboarding.md`
 - `docs/operations/support-runbook.md`

@@ -106,6 +106,8 @@ Define un soporte basico vendible:
 - Registro de cambios por version.
 
 El runbook operativo vive en `docs/operations/support-runbook.md`.
+El registro de responsables y accesos operativos vive en
+`docs/operations/access-control.md`.
 
 ## Criterios de salida antes de vender
 
@@ -116,5 +118,6 @@ No vender a una clinica nueva hasta que se cumpla:
 - Backups diarios estan activos y alertando.
 - Sentry recibe errores reales de staging y produccion.
 - Hay usuario admin, recepcion, radiologia/doctor externo probados por rol.
+- Hay responsable y accesos operativos documentados.
 - Hay documentos legales minimos revisados.
 - Existe runbook de soporte y restauracion.
