@@ -67,19 +67,47 @@ const Historial = () => {
 
 	const cargarHistorialVisitas = async (idPaciente) => {
 		try {
-			const { data, error } = await supabase
-				.from("ventas")
-				.select(
-					`
+			const [ventasResp, radiologiaResp] = await Promise.all([
+				supabase
+					.from("ventas")
+					.select(
+						`
 				id_venta, folio, fecha_venta, total, pago_recibido,
 				estudios_venta (id_estudio_venta, descripcion_estudio, estado_validacion)
 			`,
-				)
-				.eq("id_paciente", idPaciente)
-				.eq("estado", "activo")
-				.order("fecha_venta", { ascending: false });
-			if (error) throw error;
-			setHistorialVisitas(data || []);
+					)
+					.eq("id_paciente", idPaciente)
+					.eq("estado", "activo")
+					.order("fecha_venta", { ascending: false }),
+				supabase
+					.from("estudios_radiologia")
+					.select("id_estudio, id_venta, tipo_estudio, descripcion, estado, fecha_estudio")
+					.eq("id_paciente", idPaciente)
+					.order("fecha_estudio", { ascending: false }),
+			]);
+			if (ventasResp.error) throw ventasResp.error;
+			if (radiologiaResp.error) throw radiologiaResp.error;
+
+			const ventas = (ventasResp.data || []).map((venta) => ({
+				...venta,
+				tipo_historial: "venta",
+			}));
+			const idsVentas = new Set(ventas.map((venta) => venta.id_venta).filter(Boolean));
+			const visitasRadiologia = (radiologiaResp.data || [])
+				.filter((estudio) => !estudio.id_venta || !idsVentas.has(estudio.id_venta))
+				.map((estudio) => ({
+					id_venta: `radiologia-${estudio.id_estudio}`,
+					folio: `IMG-${estudio.id_estudio}`,
+					fecha_venta: estudio.fecha_estudio,
+					tipo_historial: "radiologia",
+					estudios_radiologia: [estudio],
+				}));
+
+			setHistorialVisitas(
+				[...ventas, ...visitasRadiologia].sort(
+					(a, b) => new Date(b.fecha_venta || 0) - new Date(a.fecha_venta || 0),
+				),
+			);
 		} catch (err) {
 			console.error("Error al cargar historial:", err);
 			setHistorialVisitas([]);
@@ -88,6 +116,21 @@ const Historial = () => {
 
 	const seleccionarVisita = async (venta) => {
 		setVisitaSeleccionada(venta);
+		if (venta.tipo_historial === "radiologia") {
+			setEstudiosVisita(
+				(venta.estudios_radiologia || []).map((estudio) => ({
+					...estudio,
+					id_estudio_venta: `radiologia-${estudio.id_estudio}`,
+					tipo_origen: "radiologia",
+					descripcion_estudio:
+						[estudio.tipo_estudio, estudio.descripcion].filter(Boolean).join(" - ") ||
+						"Estudio de imagen",
+					estado_validacion: estudio.estado,
+					analitos: [],
+				})),
+			);
+			return;
+		}
 		await cargarEstudiosConAnalitos(venta.id_venta);
 	};
 
@@ -99,6 +142,12 @@ const Historial = () => {
 				.eq("id_venta", idVenta)
 				.order("id_estudio_venta");
 			if (errorEstudios) throw errorEstudios;
+			const { data: estudiosRadiologia, error: errorRadiologia } = await supabase
+				.from("estudios_radiologia")
+				.select("id_estudio, tipo_estudio, descripcion, estado, fecha_estudio")
+				.eq("id_venta", idVenta)
+				.order("fecha_estudio", { ascending: false });
+			if (errorRadiologia) throw errorRadiologia;
 			const estudiosConAnalitos = await Promise.all(
 				estudiosVenta.map(async (estudio) => {
 					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
@@ -141,7 +190,17 @@ const Historial = () => {
 					};
 				}),
 			);
-			setEstudiosVisita(estudiosConAnalitos);
+			const estudiosImagen = (estudiosRadiologia || []).map((estudio) => ({
+				...estudio,
+				id_estudio_venta: `radiologia-${estudio.id_estudio}`,
+				tipo_origen: "radiologia",
+				descripcion_estudio:
+					[estudio.tipo_estudio, estudio.descripcion].filter(Boolean).join(" - ") ||
+					"Estudio de imagen",
+				estado_validacion: estudio.estado,
+				analitos: [],
+			}));
+			setEstudiosVisita([...estudiosConAnalitos, ...estudiosImagen]);
 		} catch (err) {
 			console.error("Error al cargar estudios:", err);
 			setEstudiosVisita([]);
@@ -212,6 +271,14 @@ const Historial = () => {
 			default:
 				return "🕐";
 		}
+	};
+
+	const obtenerTextoEstado = (estado) => {
+		if (estado === "validado") return "Validado";
+		if (estado === "guardado") return "Guardado";
+		if (estado === "interpretado") return "Interpretado";
+		if (estado === "subido" || estado === "recibido") return "Recibido";
+		return "En Captura";
 	};
 
 	return (
@@ -390,16 +457,27 @@ const Historial = () => {
 																		</span>
 																		<span
 																			className={`badge-estado-hist estado-${estudio.estado_validacion || "captura"}`}>
-																			{estudio.estado_validacion === "validado"
-																				? "Validado"
-																				: estudio.estado_validacion === "guardado"
-																					? "Guardado"
-																					: "En Captura"}
+																			{obtenerTextoEstado(estudio.estado_validacion)}
 																		</span>
+																		{estudio.tipo_origen === "radiologia" && estudio.id_estudio && (
+																			<a
+																				className="link-visor-hist"
+																				href={`/visor-paciente/${estudio.id_estudio}`}
+																				target="_blank"
+																				rel="noopener noreferrer">
+																				Abrir visor
+																			</a>
+																		)}
 																	</div>
 																</td>
 															</tr>
-															{estudio.analitos.length > 0 ? (
+															{estudio.tipo_origen === "radiologia" ? (
+																<tr>
+																	<td colSpan="6" className="sin-analitos">
+																		Estudio de imagen registrado en radiología
+																	</td>
+																</tr>
+															) : estudio.analitos.length > 0 ? (
 																estudio.analitos.map((analito) =>
 																	analito.tipo_resultado === "Subtitulo" ? (
 																		<tr
