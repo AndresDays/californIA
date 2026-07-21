@@ -23,6 +23,19 @@ const numberOrNull = (value) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const normalizeText = (value = "") =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
+
+const sameLocalDate = (a, b) => {
+  if (!a || !b) return false;
+  return String(a).slice(0, 10) === String(b).slice(0, 10);
+};
+
 export const getTag = (tags = {}, key) => {
   const value = tags[key];
   if (Array.isArray(value)) return value[0] ?? null;
@@ -148,6 +161,32 @@ export const buildImageRow = ({ idEstudio, storagePath, fileSize, tags }) => ({
   frame_count: numberOrNull(getTag(tags, "NumberOfFrames")),
 });
 
+export const findBestPendingStudyMatch = ({ candidates = [], studyRow = {} } = {}) => {
+  const modality = normalizeModality(studyRow.tipo_estudio);
+  const description = normalizeText(studyRow.descripcion);
+  const compatibleByCore = candidates.filter((candidate) => {
+    if (!candidate?.id_estudio) return false;
+    if (candidate.storage_path) return false;
+    if (normalizeModality(candidate.tipo_estudio) !== modality) return false;
+    if (!sameLocalDate(candidate.fecha_estudio, studyRow.fecha_estudio)) return false;
+    return true;
+  });
+
+  if (compatibleByCore.length === 1) return compatibleByCore[0].id_estudio;
+
+  const compatibleByDescription = compatibleByCore.filter((candidate) => {
+    const candidateDescription = normalizeText(candidate.descripcion);
+    if (!description || !candidateDescription) return true;
+    return (
+      description.includes(candidateDescription) ||
+      candidateDescription.includes(description) ||
+      description.split(" ").some((part) => part.length >= 3 && candidateDescription.includes(part))
+    );
+  });
+
+  return compatibleByDescription.length === 1 ? compatibleByDescription[0].id_estudio : null;
+};
+
 class OrthancClient {
   constructor({ baseUrl, user, password }) {
     this.baseUrl = trimSlash(baseUrl || DEFAULT_ORTHANC_URL);
@@ -250,6 +289,21 @@ class SupabaseClient {
     return rows[0]?.id_estudio ?? null;
   }
 
+  async findPendingStudyForDicom({ idPaciente, studyRow }) {
+    if (!idPaciente || !studyRow?.tipo_estudio) return null;
+    const modality = normalizeModality(studyRow.tipo_estudio);
+    const url =
+      `${this.restUrl}/estudios_radiologia?` +
+      `id_paciente=eq.${encodeURIComponent(idPaciente)}` +
+      `&tipo_estudio=eq.${encodeURIComponent(modality)}` +
+      `&storage_path=is.null` +
+      `&select=id_estudio,tipo_estudio,descripcion,fecha_estudio,storage_path,estado` +
+      `&order=fecha_estudio.desc` +
+      `&limit=10`;
+    const candidates = await this.request(url).then((response) => response.json());
+    return findBestPendingStudyMatch({ candidates, studyRow });
+  }
+
   async countImagesByUid(studyInstanceUid) {
     if (!studyInstanceUid) return 0;
     const url = `${this.restUrl}/estudio_dicom_imagenes?study_instance_uid=eq.${encodeURIComponent(
@@ -323,6 +377,22 @@ class SupabaseClient {
     });
   }
 
+  async updateStudyFromDicom(idEstudio, row) {
+    if (!idEstudio) return;
+    await this.request(`${this.restUrl}/estudios_radiologia?id_estudio=eq.${idEstudio}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tipo_estudio: row.tipo_estudio,
+        fecha_estudio: row.fecha_estudio,
+        estado: row.estado,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  }
+
   async uploadDicom(storagePath, buffer) {
     await this.request(`${this.storageUrl}/${DEFAULT_BUCKET}/${storagePath}`, {
       method: "POST",
@@ -370,6 +440,15 @@ export const syncStudy = async ({ orthanc, supabase, studyId, dryRun = false }) 
   const instances = await orthanc.instancesForStudy(studyId);
   const firstInstanceId = instances[0]?.ID || instances[0];
   const firstInstanceTags = firstInstanceId ? await orthanc.instanceTags(firstInstanceId) : {};
+  const studyRow = buildStudyRow(studyTags, firstInstanceTags);
+
+  if (!idEstudio) {
+    idEstudio = await supabase.findPendingStudyForDicom({ idPaciente, studyRow });
+    if (idEstudio && !dryRun) {
+      console.log(`Linking Orthanc study ${studyId} to pending radiology study ${idEstudio}`);
+      await supabase.updateStudyFromDicom(idEstudio, studyRow);
+    }
+  }
 
   if (!idEstudio) {
     if (dryRun) {
@@ -377,7 +456,7 @@ export const syncStudy = async ({ orthanc, supabase, studyId, dryRun = false }) 
       return { studyId, created: true, instances: 0 };
     }
     idEstudio = await supabase.createStudy({
-      ...buildStudyRow(studyTags, firstInstanceTags),
+      ...studyRow,
       ...(idPaciente ? { id_paciente: idPaciente } : {}),
     });
   } else if (idPaciente) {
