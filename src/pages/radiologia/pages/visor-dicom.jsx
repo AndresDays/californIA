@@ -29,6 +29,11 @@ import {
 	normalizarStoragePathDicom,
 } from "../../../utils/dicom-series";
 import {
+	crearClaveImagenDicom,
+	crearEstadoVistaDicom,
+	leerEstadoVistaDicom,
+} from "../../../utils/dicom-view-state";
+import {
 	esDoctorExterno,
 	obtenerIdDoctorExterno,
 	puedeAsignarRadiologia,
@@ -234,6 +239,10 @@ const WORKFLOW_ACTION_IDS = [
 
 const PanelDicom = ({
 	imageId,
+	imagenDicom,
+	estadoVista,
+	onGuardarEstadoVista,
+	onEliminarEstadoVista,
 	stackImageIds,
 	onStackScroll,
 	herramienta,
@@ -258,6 +267,7 @@ const PanelDicom = ({
 	const herramientaRef = useRef(herramienta);
 	const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
 	const lastStackWheelRef = useRef(0);
+	const guardadoTimerRef = useRef(null);
 	const lupaActivaRef = useRef(false);
 	const medicionRef = useRef({
 		dibujando: false,
@@ -398,6 +408,16 @@ const PanelDicom = ({
 		try {
 			const image = await cs.loadAndCacheImage(id);
 			cs.displayImage(el, image);
+			const estado = leerEstadoVistaDicom(estadoVista);
+			if (estado) {
+				cs.setViewport(el, estado.viewport);
+				medicionRef.current.lineas = estado.overlays.lineas || [];
+				anotacionRef.current.anotaciones = estado.overlays.anotaciones || [];
+				anguloRef.current.angulos = estado.overlays.angulos || [];
+				elipseRef.current.elipses = estado.overlays.elipses || [];
+				rectRef.current.rects = estado.overlays.rects || [];
+				bidiRef.current.bidis = estado.overlays.bidis || [];
+			}
 			const vp = cs.getViewport(el);
 			if (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1) {
 				cs.setViewport(el, { ...vp, voi: { windowWidth: 2000, windowCenter: 0 } });
@@ -416,7 +436,7 @@ const PanelDicom = ({
 			await cargarImagen(imageId);
 		};
 		intentar();
-	}, [imageId]);
+	}, [imageId, estadoVista]);
 
 	useEffect(() => {
 		if (!capturaClip) return;
@@ -504,9 +524,13 @@ const PanelDicom = ({
 			anotacionRef.current.anotaciones = [];
 			anguloRef.current.angulos = [];
 			anguloRef.current.fase = 0;
+			elipseRef.current.elipses = [];
+			rectRef.current.rects = [];
+			bidiRef.current.bidis = [];
 			const overlay = overlayRef.current;
 			if (overlay)
 				overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+			onEliminarEstadoVista?.();
 		} catch (err) {}
 	}, [resetCounter]);
 
@@ -530,6 +554,25 @@ const PanelDicom = ({
 		overlay.height = canvas.height;
 		overlay.style.width = canvas.style.width || canvas.width + "px";
 		overlay.style.height = canvas.style.height || canvas.height + "px";
+	};
+
+	const guardarEstadoActual = (inmediato = false) => {
+		if (!imagenDicom || !onGuardarEstadoVista) return;
+		const persistir = () =>
+			onGuardarEstadoVista(
+				crearEstadoVistaDicom({
+					viewport: csRef.current?.getViewport(divRef.current),
+					lineas: medicionRef.current.lineas,
+					anotaciones: anotacionRef.current.anotaciones,
+					angulos: anguloRef.current.angulos,
+					elipses: elipseRef.current.elipses,
+					rects: rectRef.current.rects,
+					bidis: bidiRef.current.bidis,
+				}),
+			);
+		if (inmediato) return persistir();
+		clearTimeout(guardadoTimerRef.current);
+		guardadoTimerRef.current = setTimeout(persistir, 500);
 	};
 
 	const getCanvasPos = (e) => {
@@ -805,6 +848,7 @@ const PanelDicom = ({
 		if (bDib && Math.hypot(bEx - bCx, bEy - bCy) > 5) {
 			dibujarBidiShape(ctx, { cx: bCx, cy: bCy, ex: bEx, ey: bEy }, "preview");
 		}
+		guardarEstadoActual();
 	};
 
 	const dibujarLinea = (ctx, l, mode) => {
@@ -1938,6 +1982,19 @@ const PanelDicom = ({
 		} catch (err) {}
 	};
 
+	useEffect(() => {
+		const panel = wrapperRef.current;
+		if (!panel) return undefined;
+		const capturarRueda = (event) => {
+			if (herramientaRef.current !== "StackScroll") return;
+			event.preventDefault();
+			event.stopPropagation();
+			handleWheel(event);
+		};
+		panel.addEventListener("wheel", capturarRueda, { passive: false });
+		return () => panel.removeEventListener("wheel", capturarRueda);
+	}, [stackImageIds, onStackScroll]);
+
 	const handleReset = (e) => {
 		e.stopPropagation();
 		const cs = csRef.current,
@@ -1950,9 +2007,13 @@ const PanelDicom = ({
 			anotacionRef.current.anotaciones = [];
 			anguloRef.current.angulos = [];
 			anguloRef.current.fase = 0;
+			elipseRef.current.elipses = [];
+			rectRef.current.rects = [];
+			bidiRef.current.bidis = [];
 			const overlay = overlayRef.current;
 			if (overlay)
 				overlay.getContext("2d").clearRect(0, 0, overlay.width, overlay.height);
+			onEliminarEstadoVista?.();
 		} catch (err) {}
 	};
 
@@ -2456,6 +2517,7 @@ const VisorDicom = () => {
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [imageIds, setImageIds] = useState([]);
+	const [imagenesDicomPorId, setImagenesDicomPorId] = useState({});
 	const [seriesDicom, setSeriesDicom] = useState([]);
 	const [serieActivaId, setSerieActivaId] = useState(null);
 	const [panelActivo, setPanelActivo] = useState(0);
@@ -2797,6 +2859,36 @@ const VisorDicom = () => {
 		});
 	};
 
+	const guardarEstadoVista = async (imagen, estado) => {
+		try {
+			const { error } = await supabase.from("estudio_dicom_estados_vista").upsert(
+				{
+					id_estudio: Number(estudioId || estudioData?.id),
+					id_imagen: imagen.id_imagen || null,
+					storage_path: crearClaveImagenDicom(imagen),
+					estado,
+				},
+				{ onConflict: "id_estudio,storage_path" },
+			);
+			if (error) throw error;
+		} catch {
+			showNotif("No se pudieron guardar las ediciones de la imagen", "error");
+		}
+	};
+
+	const eliminarEstadoVista = async (imagen) => {
+		try {
+			const { error } = await supabase
+				.from("estudio_dicom_estados_vista")
+				.delete()
+				.eq("id_estudio", Number(estudioId || estudioData?.id))
+				.eq("storage_path", crearClaveImagenDicom(imagen));
+			if (error) throw error;
+		} catch {
+			showNotif("No se pudieron borrar las ediciones de la imagen", "error");
+		}
+	};
+
 	const cargarImagenes = async () => {
 		setLoading(true);
 		setError(null);
@@ -2859,7 +2951,20 @@ const VisorDicom = () => {
 
 			if (imagenesDicom.length === 0) throw new Error("Sin archivo");
 
-				const imagenesConUrl = await crearImagenesConUrlFirmada(imagenesDicom);
+			const { data: estadosVista, error: estadosError } = await supabase
+				.from("estudio_dicom_estados_vista")
+				.select("storage_path, estado")
+				.eq("id_estudio", idEstudio);
+			if (estadosError) throw estadosError;
+			const estadosPorRuta = new Map(
+				(estadosVista || []).map((fila) => [fila.storage_path, fila.estado]),
+			);
+			const imagenesConUrl = (await crearImagenesConUrlFirmada(imagenesDicom)).map(
+				(imagen) => ({ ...imagen, estadoVista: estadosPorRuta.get(imagen.storage_path) || null }),
+			);
+			setImagenesDicomPorId(
+				Object.fromEntries(imagenesConUrl.map((imagen) => [imagen.imageId, imagen])),
+			);
 			const series = agruparImagenesDicomPorSerie(imagenesConUrl, estudio);
 			const primeraSerie = series[0];
 
@@ -4318,6 +4423,14 @@ const VisorDicom = () => {
 								<PanelDicom
 									key={`${formatoGrid.id}-${i}`}
 									imageId={panelImageIds[i] || null}
+									imagenDicom={imagenesDicomPorId[panelImageIds[i]] || null}
+									estadoVista={imagenesDicomPorId[panelImageIds[i]]?.estadoVista || null}
+									onGuardarEstadoVista={(estado) =>
+										guardarEstadoVista(imagenesDicomPorId[panelImageIds[i]], estado)
+									}
+									onEliminarEstadoVista={() =>
+										eliminarEstadoVista(imagenesDicomPorId[panelImageIds[i]])
+									}
 									stackImageIds={imageIds}
 									onStackScroll={(direccion) => navegarImagenSerie(i, direccion)}
 									herramienta={herramienta}
