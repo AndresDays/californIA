@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import VisorDicom from './visor-dicom';
 
 // Polyfills
@@ -36,7 +36,7 @@ beforeAll(() => {
 });
 
 // Mock de Cornerstone
-jest.mock('cornerstone-core', () => ({
+const mockCornerstone = {
   enable: jest.fn(),
   disable: jest.fn(),
   loadAndCacheImage: jest.fn(() => Promise.resolve({
@@ -57,10 +57,12 @@ jest.mock('cornerstone-core', () => ({
   reset: jest.fn(),
   resize: jest.fn(),
   getImage: jest.fn(() => ({})),
-  getEnabledElement: jest.fn(() => ({ canvas: {} })),
+  getEnabledElement: jest.fn(() => { throw new Error('not enabled'); }),
   events: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
   registerImageLoader: jest.fn(),
-}));
+};
+
+jest.mock('cornerstone-core', () => mockCornerstone);
 
 jest.mock('cornerstone-wado-image-loader', () => ({
   external: { cornerstone: null, dicomParser: null },
@@ -123,6 +125,7 @@ jest.mock('./VisorDicom.css', () => ({}));
 // Mock de React Router
 const mockNavigate = jest.fn();
 let mockEmpleadoVisor = null;
+let mockDicomImages = [];
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -156,7 +159,10 @@ jest.mock('../../../lib/supabase-client', () => ({
       select:      jest.fn().mockReturnThis(),
       eq:          jest.fn().mockReturnThis(),
       neq:         jest.fn().mockReturnThis(),
-      order:       jest.fn().mockReturnThis(),
+      order:       jest.fn(() => Promise.resolve({
+        data: table === 'estudio_dicom_imagenes' ? mockDicomImages : [],
+        error: null,
+      })),
       limit:       jest.fn().mockReturnThis(),
       single:      jest.fn(() => Promise.resolve({
         data: table === 'estudios_radiologia'
@@ -176,7 +182,7 @@ jest.mock('../../../lib/supabase-client', () => ({
       from: jest.fn(() => ({
         upload:       jest.fn(() => Promise.resolve({ error: null })),
         getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://mock.url/file.dcm' } })),
-        createSignedUrl: jest.fn(() => Promise.resolve({ data: { signedUrl: 'https://mock.url/signed-file.dcm' }, error: null })),
+        createSignedUrl: jest.fn((path) => Promise.resolve({ data: { signedUrl: `https://mock.url/${path}` }, error: null })),
       })),
     },
   },
@@ -199,6 +205,10 @@ jest.mock('../../../components/ModalNotificacion', () => ({
 jest.mock('../componentes/ModalAsignar', () => ({
   __esModule: true,
   default: ({ config }) => config ? <div data-testid="mock-modal-asignar">{config.titulo}</div> : null,
+}));
+jest.mock('./Panelia', () => ({
+  __esModule: true,
+  default: () => null,
 }));
 
 // Helper
@@ -358,5 +368,97 @@ describe('VisorDicom — Navegación', () => {
     await renderVisor();
     fireEvent.click(screen.getByText(/Atrás/));
     expect(mockNavigate).toHaveBeenCalledWith(-1);
+  });
+});
+
+describe('VisorDicom — Scroll de serie', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'serie/1.dcm', series_instance_uid: 'serie-1', instance_number: 1 },
+      { id_imagen: 2, storage_path: 'serie/2.dcm', series_instance_uid: 'serie-1', instance_number: 2 },
+      { id_imagen: 3, storage_path: 'serie/3.dcm', series_instance_uid: 'serie-1', instance_number: 3 },
+    ];
+  });
+
+  afterEach(() => {
+    mockDicomImages = [];
+  });
+
+  test('Scroll hacia abajo avanza a la siguiente imagen de la serie activa', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+
+    fireEvent.click(screen.getByTitle('Scroll'));
+    fireEvent.wheel(document.querySelector('.panel-imagen.activo'), { deltaY: 120 });
+
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenLastCalledWith(
+        'wadouri:https://mock.url/serie/2.dcm',
+      ),
+    );
+  });
+
+  test('Scroll hacia arriba retrocede y se detiene en los extremos de la serie', async () => {
+    const nowSpy = jest.spyOn(Date, 'now');
+    nowSpy.mockReturnValue(1000);
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+
+    fireEvent.click(screen.getByTitle('Scroll'));
+    const panel = document.querySelector('.panel-imagen.activo');
+    await act(async () => {
+      fireEvent.wheel(panel, { deltaY: -120 });
+    });
+    expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledTimes(1);
+
+    nowSpy.mockReturnValue(1121);
+    await act(async () => {
+      fireEvent.wheel(panel, { deltaY: 120 });
+    });
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenLastCalledWith(
+        'wadouri:https://mock.url/serie/2.dcm',
+      ),
+    );
+
+    nowSpy.mockReturnValue(1242);
+    await act(async () => {
+      fireEvent.wheel(panel, { deltaY: -120 });
+    });
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenLastCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+  });
+
+  test('Ampliar conserva el zoom con la rueda', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+    mockCornerstone.setViewport.mockClear();
+
+    fireEvent.click(screen.getByTitle('Ampliar'));
+    await act(async () => {
+      fireEvent.wheel(document.querySelector('.panel-imagen.activo'), { deltaY: -120 });
+    });
+
+    expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ scale: 1.1 }),
+    );
   });
 });

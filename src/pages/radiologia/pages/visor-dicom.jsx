@@ -234,6 +234,8 @@ const WORKFLOW_ACTION_IDS = [
 
 const PanelDicom = ({
 	imageId,
+	stackImageIds,
+	onStackScroll,
 	herramienta,
 	isActive,
 	resetCounter,
@@ -255,6 +257,7 @@ const PanelDicom = ({
 	const enabledRef = useRef(false);
 	const herramientaRef = useRef(herramienta);
 	const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
+	const lastStackWheelRef = useRef(0);
 	const lupaActivaRef = useRef(false);
 	const medicionRef = useRef({
 		dibujando: false,
@@ -1913,6 +1916,15 @@ const PanelDicom = ({
 
 	const handleWheel = (e) => {
 		e.preventDefault();
+		if (herramientaRef.current === "StackScroll") {
+			if (stackImageIds.length < 2 || e.deltaY === 0) return;
+			const now = Date.now();
+			if (now - lastStackWheelRef.current < 120) return;
+			lastStackWheelRef.current = now;
+			onStackScroll?.(e.deltaY > 0 ? 1 : -1);
+			return;
+		}
+		if (herramientaRef.current !== "Zoom") return;
 		const cs = csRef.current,
 			el = divRef.current;
 		if (!enabledRef.current || !cs || !el) return;
@@ -2766,6 +2778,22 @@ const VisorDicom = () => {
 			const n = [...prev];
 			n[panelObjetivo] = serie.imageIds[0];
 			return n;
+		});
+	};
+
+	const navegarImagenSerie = (panelObjetivo, direccion) => {
+		if (imageIds.length < 2) return;
+		setPanelImageIds((prev) => {
+			const indiceActual = imageIds.indexOf(prev[panelObjetivo]);
+			if (indiceActual < 0) return prev;
+			const siguienteIndice = Math.max(
+				0,
+				Math.min(indiceActual + direccion, imageIds.length - 1),
+			);
+			if (siguienteIndice === indiceActual) return prev;
+			const siguiente = [...prev];
+			siguiente[panelObjetivo] = imageIds[siguienteIndice];
+			return siguiente;
 		});
 	};
 
@@ -4290,6 +4318,8 @@ const VisorDicom = () => {
 								<PanelDicom
 									key={`${formatoGrid.id}-${i}`}
 									imageId={panelImageIds[i] || null}
+									stackImageIds={imageIds}
+									onStackScroll={(direccion) => navegarImagenSerie(i, direccion)}
 									herramienta={herramienta}
 									isActive={panelActivo === i}
 									resetCounter={resetCounter}
