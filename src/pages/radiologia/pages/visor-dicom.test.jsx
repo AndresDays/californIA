@@ -404,6 +404,18 @@ describe('VisorDicom — Scroll de serie', () => {
     );
   });
 
+  test('Scroll registra una captura nativa no pasiva de la rueda', async () => {
+    const addEventListenerSpy = jest.spyOn(HTMLElement.prototype, 'addEventListener');
+    await renderVisor();
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith(
+      'wheel',
+      expect.any(Function),
+      expect.objectContaining({ passive: false }),
+    );
+    addEventListenerSpy.mockRestore();
+  });
+
   test('Scroll hacia arriba retrocede y se detiene en los extremos de la serie', async () => {
     const nowSpy = jest.spyOn(Date, 'now');
     nowSpy.mockReturnValue(1000);
