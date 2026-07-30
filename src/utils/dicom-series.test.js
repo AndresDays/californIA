@@ -2,6 +2,8 @@ import {
   agruparImagenesDicomPorSerie,
   normalizarModalidadVisor,
   normalizarStoragePathDicom,
+  obtenerSerieFuenteMpr,
+  ordenarSeriesParaMpr,
   ordenarImagenesDicom,
 } from "./dicom-series";
 
@@ -39,4 +41,29 @@ test("ordena con fecha y path cuando no hay instance_number", () => {
       { storage_path: "1.dcm", created_at: "2026-01-01T00:00:00Z" },
     ]).map((imagen) => imagen.storage_path),
   ).toEqual(["1.dcm", "2.dcm"]);
+});
+
+test("prioriza las reconstrucciones sagital y coronal para MPR", () => {
+  const series = [
+    { id: "localizador", label: "SCOUT" },
+    { id: "abd", label: "ABD/PELVIS W/" },
+    { id: "sag", label: "SAG 2X2 ABD" },
+    { id: "cor", label: "COR 2X2 ABD" },
+  ];
+
+  expect(ordenarSeriesParaMpr(series, "abd").slice(0, 3).map((serie) => serie.id)).toEqual([
+    "abd",
+    "sag",
+    "cor",
+  ]);
+});
+
+test("elige la serie axial fuente para MPR y descarta reconstrucciones", () => {
+  const fuente = obtenerSerieFuenteMpr([
+    { id: "abd", label: "ABD/PELVIS W/", imageIds: Array(95).fill("ax") },
+    { id: "sag", label: "SAG 2X2 ABD", imageIds: Array(211).fill("sag") },
+    { id: "cor", label: "COR 2X2 ABD", imageIds: Array(211).fill("cor") },
+  ]);
+
+  expect(fuente?.id).toBe("abd");
 });

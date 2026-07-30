@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import VisorDicom from './visor-dicom';
 
 // Polyfills
@@ -126,14 +126,15 @@ jest.mock('./VisorDicom.css', () => ({}));
 const mockNavigate = jest.fn();
 let mockEmpleadoVisor = null;
 let mockDicomImages = [];
+let mockEstudioId = '123';
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
-  useParams:   () => ({ estudioId: '123' }),
+  useParams:   () => ({ estudioId: mockEstudioId }),
   useLocation: () => ({
     state: {
       estudio: {
-        id: 123,
+        id: mockEstudioId,
         nombrePaciente: 'Juan Pérez',
         tipoEstudio: 'RX',
         sucursal: 'Norte',
@@ -207,8 +208,12 @@ jest.mock('../componentes/ModalAsignar', () => ({
   default: ({ config }) => config ? <div data-testid="mock-modal-asignar">{config.titulo}</div> : null,
 }));
 jest.mock('./Panelia', () => ({
+	__esModule: true,
+	default: () => null,
+}));
+jest.mock('../componentes/Mpr2dViewer', () => ({
   __esModule: true,
-  default: () => null,
+  default: ({ resetCounter, seriesSeleccionadas = [], indicesIniciales = [], restaurarIndices, modoReconstruccion }) => <div data-testid="mock-mpr-viewer" data-reset={resetCounter} data-indices={indicesIniciales.join('|')} data-restaurar-indices={String(restaurarIndices)} data-modo-reconstruccion={modoReconstruccion}>MPR restaurado: {seriesSeleccionadas.join('|')}</div>,
 }));
 
 // Helper
@@ -223,11 +228,14 @@ const renderVisor = async () => {
   return result;
 };
 
+afterEach(cleanup);
+
 // SUITE 1 — Renderizado general
 describe('VisorDicom — Renderizado general', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockEmpleadoVisor = null;
+    mockEstudioId = '123';
   });
 
   test('renderiza sin errores', async () => {
@@ -384,6 +392,7 @@ describe('VisorDicom — Scroll de serie', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockEmpleadoVisor = null;
+    mockEstudioId = '123';
     mockDicomImages = [
       { id_imagen: 1, storage_path: 'serie/1.dcm', series_instance_uid: 'serie-1', instance_number: 1 },
       { id_imagen: 2, storage_path: 'serie/2.dcm', series_instance_uid: 'serie-1', instance_number: 2 },
@@ -527,4 +536,80 @@ describe('VisorDicom — Scroll de serie', () => {
       expect.objectContaining({ scale: 1.1 }),
     );
   });
+});
+
+describe('VisorDicom — restauración de MPR', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'serie/1.dcm', series_instance_uid: 'serie-1', instance_number: 1, modality: 'MR' },
+      { id_imagen: 2, storage_path: 'serie/2.dcm', series_instance_uid: 'serie-1', instance_number: 2, modality: 'MR' },
+      { id_imagen: 3, storage_path: 'serie/3.dcm', series_instance_uid: 'serie-1', instance_number: 3, modality: 'MR' },
+    ];
+    sessionStorage.setItem('california:mpr:123', JSON.stringify({
+      mprActivo: true,
+      mprPanelActivo: 1,
+      mprSeries: ['serie-1', 'serie-1', 'serie-1'],
+      mprGrosorCorte: 189.3,
+      mprIndices: [20, 40, 60],
+      mprModoReconstruccion: 'MinIP',
+    }));
+  });
+
+  afterEach(() => {
+    mockDicomImages = [];
+    sessionStorage.clear();
+  });
+
+  test('restaura MPR guardado sin sobrescribirlo al montar el visor', async () => {
+    await renderVisor();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('mock-mpr-viewer')).toBeInTheDocument(),
+    );
+    expect(screen.getByTitle('Punto de mira')).toBeInTheDocument();
+    expect(screen.getByTitle('WWWC')).toBeInTheDocument();
+    expect(screen.getByLabelText('Grosor de corte MPR')).toBeInTheDocument();
+    expect(screen.getByLabelText('Grosor de corte MPR')).toHaveValue('189.3');
+    expect(screen.getByLabelText('Modo de reconstrucción MPR')).toHaveValue('MinIP');
+    expect(screen.getByTestId('mock-mpr-viewer')).toHaveAttribute('data-indices', '20|40|60');
+    expect(screen.getByTestId('mock-mpr-viewer')).toHaveAttribute('data-restaurar-indices', 'true');
+    expect(screen.getByTestId('mock-mpr-viewer')).toHaveAttribute('data-modo-reconstruccion', 'MinIP');
+    expect(screen.queryByTitle('Scroll')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Restaurar'));
+    expect(screen.getByTestId('mock-mpr-viewer')).toHaveAttribute('data-reset', '1');
+  });
+
+  test('guarda el modo de reconstrucción al cambiarlo', async () => {
+    await renderVisor();
+    await waitFor(() => expect(screen.getByTestId('mock-mpr-viewer')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText('Modo de reconstrucción MPR'), { target: { value: 'Promedio' } });
+
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('california:mpr:123'))).toEqual(
+      expect.objectContaining({ mprModoReconstruccion: 'Promedio' }),
+    ));
+  });
+
+  test('una apertura nueva de MPR no reutiliza los índices de una sesión anterior', async () => {
+    mockEstudioId = 'nuevo-mpr';
+    sessionStorage.setItem('california:mpr:nuevo-mpr', JSON.stringify({
+      mprActivo: false,
+      mprIndices: [20, 40, 60],
+    }));
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'serie/1.dcm', series_instance_uid: 'serie-1', instance_number: 1, modality: 'CT' },
+      { id_imagen: 2, storage_path: 'serie/2.dcm', series_instance_uid: 'serie-1', instance_number: 2, modality: 'CT' },
+      { id_imagen: 3, storage_path: 'serie/3.dcm', series_instance_uid: 'serie-1', instance_number: 3, modality: 'CT' },
+    ];
+
+    await renderVisor();
+    await waitFor(() => expect(screen.getByTitle('2D MPR')).toBeInTheDocument());
+    fireEvent.click(screen.getByTitle('2D MPR'));
+
+    expect(screen.getByTestId('mock-mpr-viewer')).toHaveAttribute('data-indices', '');
+    expect(screen.getByTestId('mock-mpr-viewer')).toHaveAttribute('data-restaurar-indices', 'false');
+  });
+
 });

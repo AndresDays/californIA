@@ -161,6 +161,51 @@
 	gap: 0.18rem;
 }
 
+.vd-mpr-toolbar .vd-tools-group {
+	align-items: flex-end;
+}
+
+.vd-mpr-cut-control,
+.vd-mpr-reconstruction,
+.vd-mpr-mode-toggle {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.12rem;
+	color: #53B9DB;
+	font-size: 0.65rem;
+	white-space: nowrap;
+	padding: 0 0.35rem;
+}
+
+.vd-mpr-cut-control small {
+	font-size: 0.63rem;
+	color: #53B9DB;
+}
+
+.vd-mpr-cut-control input {
+	width: 94px;
+	accent-color: #53B9DB;
+}
+
+.vd-mpr-mode-toggle {
+	flex-direction: row;
+	padding-bottom: 0.36rem;
+}
+
+.vd-mpr-mode-toggle input {
+	accent-color: #53B9DB;
+}
+
+.vd-mpr-reconstruction select {
+	background: #0d1526;
+	border: 1px solid rgba(83, 185, 219, 0.48);
+	border-radius: 4px;
+	color: #53B9DB;
+	font: inherit;
+	padding: 0.16rem 0.35rem;
+}
+
 .vd-wl-menu-wrap {
 	position: relative;
 	display: flex;
@@ -254,6 +299,12 @@
 .vd-tool-btn span:first-child {
 	font-size: 0.95rem;
 	line-height: 1;
+}
+
+.vd-mpr-exit-icon {
+	width: 22px !important;
+	height: 22px !important;
+	color: #53B9DB;
 }
 
 .vd-tool-btn:hover {
