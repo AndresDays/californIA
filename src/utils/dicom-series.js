@@ -48,6 +48,38 @@ export const ordenarImagenesDicom = (imagenes = []) =>
     return String(a.storage_path || "").localeCompare(String(b.storage_path || ""));
   });
 
+export const ordenarSeriesParaMpr = (series = [], idSerieActiva) => {
+  const activa = series.find((serie) => serie.id === idSerieActiva) || series[0];
+  const restantes = series.filter((serie) => serie.id !== activa?.id);
+  const encontrarOrientacion = (patron) =>
+    restantes.find((serie) => patron.test(textoBusqueda(serie.label, serie.descripcion)));
+  const sagital = encontrarOrientacion(/\bsag(?:ital)?\b/);
+  const coronal = encontrarOrientacion(/\bcor(?:onal)?\b/);
+  const priorizadas = [activa, sagital, coronal].filter(Boolean);
+  const idsPriorizados = new Set(priorizadas.map((serie) => serie.id));
+
+  return [...priorizadas, ...restantes.filter((serie) => !idsPriorizados.has(serie.id))];
+};
+
+export const obtenerSerieFuenteMpr = (series = []) => {
+  const esReconstruccion = (serie) =>
+    /\b(sag(?:ital)?|cor(?:onal)?|mpr|scout|localiz(?:er|ador)?|topogram)\b/.test(
+      textoBusqueda(serie.label, serie.descripcion),
+    );
+  const candidatas = series.filter(
+    (serie) => (serie.imageIds?.length || 0) >= 3 && !esReconstruccion(serie),
+  );
+  if (!candidatas.length) return null;
+
+  return [...candidatas].sort((a, b) => {
+    const textoA = textoBusqueda(a.label, a.descripcion);
+    const textoB = textoBusqueda(b.label, b.descripcion);
+    const puntajeA = (/\b(ax|axial|tra|transvers)/.test(textoA) ? 10000 : 0) + (a.imageIds?.length || 0);
+    const puntajeB = (/\b(ax|axial|tra|transvers)/.test(textoB) ? 10000 : 0) + (b.imageIds?.length || 0);
+    return puntajeB - puntajeA;
+  })[0];
+};
+
 export const agruparImagenesDicomPorSerie = (imagenes = [], estudio = {}) => {
   const grupos = new Map();
 
