@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import QRCode from "qrcode";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -28,7 +29,10 @@ import {
 	agruparImagenesDicomPorSerie,
 	crearImagenDicomFallback,
 	normalizarStoragePathDicom,
+	obtenerSerieFuenteMpr,
+	ordenarSeriesParaMpr,
 } from "../../../utils/dicom-series";
+import { crearColaInicialMpr } from "../../../utils/mpr-loader";
 import {
 	crearClaveImagenDicom,
 	crearEstadoVistaDicom,
@@ -43,6 +47,7 @@ import {
 } from "../../../utils/radiologia-permisos";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
+import Mpr2dViewer from "../componentes/Mpr2dViewer";
 import PanelIA from "./Panelia";
 import { MEMBRETE_B64 } from "./reporte-radiologia-template";
 import "./ReporteRadiologia.css";
@@ -87,6 +92,18 @@ let csInitPromise = null;
 const BUCKET_ADJUNTOS_REPORTE = "reportes-radiologia-adjuntos";
 const REPORTE_ADJUNTO_MAX_SIZE = 25 * 1024 * 1024;
 const cacheSesionVisorDicom = new Map();
+const precargasInicialesMpr = new Set();
+
+const claveSesionMpr = (idEstudio) => `california:mpr:${idEstudio}`;
+const leerSesionMpr = (idEstudio) => {
+	try { return JSON.parse(sessionStorage.getItem(claveSesionMpr(idEstudio)) || "null"); } catch { return null; }
+};
+const guardarSesionMpr = (idEstudio, estado) => {
+	try {
+		const actual = leerSesionMpr(idEstudio) || {};
+		sessionStorage.setItem(claveSesionMpr(idEstudio), JSON.stringify({ ...actual, ...estado }));
+	} catch {}
+};
 
 const esErrorColumnaFaltante = (error, columna) => {
 	const mensaje = String(error?.message || "").toLowerCase();
@@ -164,6 +181,35 @@ const initCornerstone = () => {
 		return csModules;
 	})();
 	return csInitPromise;
+};
+
+const programarPrecargaInicialMpr = (idEstudio, series = []) => {
+	const modalidadesMpr = ["TOMOGRAFIA", "RESONANCIA MAGNETICA", "CT", "MR", "RM"];
+	if (precargasInicialesMpr.has(String(idEstudio))) return;
+	if (!series.some((serie) => modalidadesMpr.includes(String(serie.modalidad || "").toUpperCase()))) return;
+	const serieFuente = obtenerSerieFuenteMpr(series);
+	if (!serieFuente) return;
+	const seriesPriorizadas = ordenarSeriesParaMpr(series, serieFuente.id);
+	const cola = crearColaInicialMpr(seriesPriorizadas);
+	if (!cola.length) return;
+	precargasInicialesMpr.add(String(idEstudio));
+	const precargar = async () => {
+		const { cornerstone } = await initCornerstone();
+		let siguiente = 0;
+		const worker = async () => {
+			while (siguiente < cola.length) {
+				const imageId = cola[siguiente++];
+				try { await cornerstone.loadAndCacheImage(imageId); } catch {}
+			}
+		};
+		await Promise.all(Array.from({ length: 3 }, worker));
+	};
+	const iniciarCuandoEsteLibre = () => { void precargar(); };
+	if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+		window.requestIdleCallback(iniciarCuandoEsteLibre, { timeout: 350 });
+	} else {
+		setTimeout(iniciarCuandoEsteLibre, 150);
+	}
 };
 
 const TOOLS = [
@@ -2697,6 +2743,33 @@ const VisorDicom = () => {
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
 	const [formatoGrid, setFormatoGrid] = useState(FORMATOS[0]);
+	const [mprActivo, setMprActivo] = useState(false);
+	const [mprPanelActivo, setMprPanelActivo] = useState(0);
+	const [mprSeries, setMprSeries] = useState([]);
+	const [mprGrosorCorte, setMprGrosorCorte] = useState(0.1);
+	const [mprIndices, setMprIndices] = useState([]);
+	const [mprRestaurarIndices, setMprRestaurarIndices] = useState(false);
+	const [mprModoReconstruccion, setMprModoReconstruccion] = useState("MIP");
+	const [mprModoActivado, setMprModoActivado] = useState(false);
+	const mprSesionEstudioRef = useRef(null);
+
+	useEffect(() => {
+		const idEstudio = estudioId || estudioData?.id;
+		if (!idEstudio) return;
+		if (mprSesionEstudioRef.current !== String(idEstudio)) return;
+		guardarSesionMpr(idEstudio, { mprActivo, mprPanelActivo, mprSeries, mprGrosorCorte, mprIndices, mprModoReconstruccion });
+		const sesion = cacheSesionVisorDicom.get(String(idEstudio));
+		if (!sesion) return;
+		cacheSesionVisorDicom.set(String(idEstudio), {
+			...sesion,
+			mprActivo,
+			mprPanelActivo,
+			mprSeries,
+			mprGrosorCorte,
+			mprIndices,
+			mprModoReconstruccion,
+		});
+	}, [estudioId, estudioData?.id, mprActivo, mprPanelActivo, mprSeries, mprGrosorCorte, mprIndices, mprModoReconstruccion]);
 	const [mostrarFormatos, setMostrarFormatos] = useState(false);
 	const [mostrarPresetsVentana, setMostrarPresetsVentana] = useState(false);
 	const [presetsVentanaPorSerie, setPresetsVentanaPorSerie] = useState({});
@@ -3062,12 +3135,21 @@ const VisorDicom = () => {
 		const idEstudio = estudioId || estudioData?.id;
 		const sesionGuardada = cacheSesionVisorDicom.get(String(idEstudio));
 		if (sesionGuardada) {
+			const sesionMpr = leerSesionMpr(idEstudio) || sesionGuardada;
+			mprSesionEstudioRef.current = String(idEstudio);
 			setSeriesDicom(sesionGuardada.seriesDicom);
 			setImageIds(sesionGuardada.imageIds);
 			setSerieActivaId(sesionGuardada.serieActivaId);
 			setPanelImageIds(sesionGuardada.panelImageIds);
 			setImagenesDicomPorId(sesionGuardada.imagenesDicomPorId);
 			setFormatoGrid(sesionGuardada.formatoGrid);
+			setMprActivo(Boolean(sesionMpr.mprActivo));
+			setMprRestaurarIndices(Boolean(sesionMpr.mprActivo));
+			setMprPanelActivo(sesionMpr.mprPanelActivo || 0);
+			setMprSeries(sesionMpr.mprSeries || []);
+			setMprGrosorCorte(Number(sesionMpr.mprGrosorCorte) || 0.1);
+			setMprIndices(sesionMpr.mprIndices || []);
+			setMprModoReconstruccion(sesionMpr.mprModoReconstruccion || "MIP");
 			setLoading(false);
 			return;
 		}
@@ -3147,6 +3229,8 @@ const VisorDicom = () => {
 			);
 			const series = agruparImagenesDicomPorSerie(imagenesConUrl, estudio);
 			const primeraSerie = series[0];
+			const sesionMpr = leerSesionMpr(idEstudio);
+			mprSesionEstudioRef.current = String(idEstudio);
 
 			setSeriesDicom(series);
 			const primerImageId = primeraSerie?.imageIds?.[0] || null;
@@ -3159,8 +3243,22 @@ const VisorDicom = () => {
 				panelImageIds: panelesIniciales,
 				imagenesDicomPorId: Object.fromEntries(imagenesConUrl.map((imagen) => [imagen.imageId, imagen])),
 				formatoGrid,
+				mprActivo: Boolean(sesionMpr?.mprActivo),
+				mprPanelActivo: sesionMpr?.mprPanelActivo || 0,
+				mprSeries: sesionMpr?.mprSeries || [],
+				mprGrosorCorte: Number(sesionMpr?.mprGrosorCorte) || 0.1,
+				mprIndices: sesionMpr?.mprIndices || [],
+				mprModoReconstruccion: sesionMpr?.mprModoReconstruccion || "MIP",
 			});
+			setMprActivo(Boolean(sesionMpr?.mprActivo));
+			setMprRestaurarIndices(Boolean(sesionMpr?.mprActivo));
+			setMprPanelActivo(sesionMpr?.mprPanelActivo || 0);
+			setMprSeries(sesionMpr?.mprSeries || []);
+			setMprGrosorCorte(Number(sesionMpr?.mprGrosorCorte) || 0.1);
+			setMprIndices(sesionMpr?.mprIndices || []);
+			setMprModoReconstruccion(sesionMpr?.mprModoReconstruccion || "MIP");
 			seleccionarSerieDicom(primeraSerie, 0);
+			programarPrecargaInicialMpr(idEstudio, series);
 		} catch (e) {
 			setError(e.message);
 		} finally {
@@ -3316,6 +3414,25 @@ const VisorDicom = () => {
 		setFichaSeccion((s) => ({ ...s, [key]: !s[key] }));
 
 	const handleAction = (id) => {
+		if (id === "mpr") {
+			const idEstudio = estudioId || estudioData?.id;
+			const serieFuente = obtenerSerieFuenteMpr(seriesDicom);
+			const seriesOrdenadas = ordenarSeriesParaMpr(seriesDicom, serieFuente?.id || serieActivaId);
+			const seriesIniciales = Array.from(
+				{ length: 3 },
+				(_, indice) => seriesOrdenadas[indice]?.id || seriesOrdenadas[0]?.id,
+			);
+			setMprPanelActivo(0);
+			setMprSeries(seriesIniciales);
+			setMprRestaurarIndices(false);
+			// Una apertura nueva debe partir del mismo centro que Restaurar. Los
+			// índices sólo se conservan cuando el MPR ya estaba activo al volver.
+			setMprIndices([]);
+			const sesion = cacheSesionVisorDicom.get(String(idEstudio));
+			if (sesion) cacheSesionVisorDicom.set(String(idEstudio), { ...sesion, mprActivo: true, mprPanelActivo: 0, mprSeries: seriesIniciales, mprIndices: [], mprModoReconstruccion });
+			guardarSesionMpr(idEstudio, { mprActivo: true, mprPanelActivo: 0, mprSeries: seriesIniciales, mprGrosorCorte, mprIndices: [], mprModoReconstruccion });
+			setMprActivo(true); return;
+		}
 		if (id === "restaurar") {
 			setResetCounter((c) => c + 1);
 			return;
@@ -4222,6 +4339,7 @@ const VisorDicom = () => {
 	const esSerieCt = ["CT", "TOMOGRAFIA"].includes(modalidadSerieActiva);
 	const esSerieRm = ["MR", "RM", "RESONANCIA MAGNETICA"].includes(modalidadSerieActiva);
 	const esSerieCtRm = esSerieCt || esSerieRm;
+	const serieFuenteMpr = obtenerSerieFuenteMpr(seriesDicom);
 	const presetsVentanaDisponibles = PRESETS_VENTANA.filter((preset) =>
 		preset.modalidad === "MR"
 			? esSerieRm
@@ -4234,6 +4352,24 @@ const VisorDicom = () => {
 		setMostrarPresetsVentana(false);
 	};
 	const accionesVista = ACTIONS.filter((a) => VIEW_ACTION_IDS.includes(a.id));
+	if (esSerieCtRm && serieActiva?.id === serieFuenteMpr?.id) accionesVista.unshift({ id: "mpr", icon: formatoIcon, label: "2D MPR" });
+	const seleccionarSerieMpr = (serie) => {
+		setMprSeries((actual) => {
+			const siguiente = actual.map((id, indice) => indice === mprPanelActivo ? serie.id : id);
+			const idEstudio = estudioId || estudioData?.id;
+			const sesion = cacheSesionVisorDicom.get(String(idEstudio));
+			if (sesion) cacheSesionVisorDicom.set(String(idEstudio), { ...sesion, mprActivo: true, mprPanelActivo, mprSeries: siguiente, mprModoReconstruccion });
+			guardarSesionMpr(idEstudio, { mprActivo: true, mprPanelActivo, mprSeries: siguiente, mprModoReconstruccion });
+			return siguiente;
+		});
+	};
+	const salirMpr = () => {
+		const idEstudio = estudioId || estudioData?.id;
+		const sesion = cacheSesionVisorDicom.get(String(idEstudio));
+		if (sesion) cacheSesionVisorDicom.set(String(idEstudio), { ...sesion, mprActivo: false, mprModoReconstruccion });
+		guardarSesionMpr(idEstudio, { mprActivo: false, mprPanelActivo, mprSeries, mprGrosorCorte, mprIndices, mprModoReconstruccion });
+		setMprActivo(false);
+	};
 	const puedeEditarReporte = !empleadoData || puedeEditarReporteRadiologia(empleadoData);
 	const puedeVerReporte = !empleadoData || puedeVerReporteRadiologia(empleadoData);
 	const puedeAsignarEstudio = !empleadoData || puedeAsignarRadiologia(empleadoData);
@@ -4241,7 +4377,7 @@ const VisorDicom = () => {
 		WORKFLOW_ACTION_IDS.includes(a.id) && (puedeVerReporte || a.id !== "reporte"),
 	);
 	const herramientaActiva =
-		TOOLS.find((t) => t.id === herramienta)?.label ||
+		(mprActivo && herramienta === "Wwwc" ? "WWWC" : TOOLS.find((t) => t.id === herramienta)?.label) ||
 		MAS_ITEMS.find(
 			(item) =>
 				(item.id === "lupa" && lupaGlobal) ||
@@ -4317,7 +4453,7 @@ const VisorDicom = () => {
 						‹ Atrás
 					</button>
 
-					<div className="vd-paciente-chip">
+					{!mprActivo && <div className="vd-paciente-chip">
 						<span className="vd-chip-tipo">{pacienteInfo.tipoEstudio}</span>
 						<span className="vd-chip-nombre">{pacienteInfo.nombre}</span>
 						<span className="vd-chip-fecha">{pacienteInfo.horaFecha}</span>
@@ -4325,10 +4461,39 @@ const VisorDicom = () => {
 							className={`vd-chip-estado estado-${pacienteInfo.estado?.toLowerCase().replace(/ /g, "-")}`}>
 							{pacienteInfo.estado}
 						</span>
-					</div>
+					</div>}
 				</div>
+				{mprActivo && (
+					<div className="vd-toolbar-section vd-toolbar-section-tools vd-mpr-toolbar">
+						<span className="vd-toolbar-label">MPR 2D</span>
+						<div className="vd-tools-group">
+							<button className="vd-tool-btn" onClick={() => handleAction("descargar")} title="Descargar">
+								<img src={descargarIcon} alt="" /><span>Descargar</span>
+							</button>
+							<button className="vd-tool-btn" onClick={salirMpr} title="Salir de MPR 2D">
+								<CloseIcon className="vd-mpr-exit-icon" /><span>Salir de MPR 2D</span>
+							</button>
+							<button className="vd-tool-btn" onClick={() => handleAction("centrar")} title="Punto de mira">
+								<img src={centrarIcon} alt="" /><span>Punto de mira</span>
+							</button>
+							<button className={`vd-tool-btn ${herramienta === "Wwwc" ? "activo" : ""}`} onClick={() => handleTool("Wwwc")} title="WWWC">
+								<img src={contrasteIcono} alt="" /><span>WWWC</span>
+							</button>
+							<button className="vd-tool-btn" onClick={() => handleAction("restaurar")} title="Restaurar">
+								<img src={restaurarIcon} alt="" /><span>Restaurar</span>
+							</button>
+							<label className="vd-mpr-cut-control">
+								<small>{mprGrosorCorte.toFixed(1)} mm</small>
+								<input aria-label="Grosor de corte MPR" type="range" min="0.1" max="500" step="0.1" value={mprGrosorCorte} onChange={(event) => setMprGrosorCorte(Number(event.target.value))} />
+								<span>Grosor de corte</span>
+							</label>
+							<label className="vd-mpr-mode-toggle"><input type="checkbox" checked={mprModoActivado} onChange={(event) => setMprModoActivado(event.target.checked)} /> Modo</label>
+							<label className="vd-mpr-reconstruction"><span>Reconstrucción</span><select aria-label="Modo de reconstrucción MPR" value={mprModoReconstruccion} onChange={(event) => setMprModoReconstruccion(event.target.value)}><option>MIP</option><option>MinIP</option><option>Promedio</option></select></label>
+						</div>
+					</div>
+				)}
 
-				{!(panelDerecho === "reporte" && reporteExpandido) && (
+				{!mprActivo && !(panelDerecho === "reporte" && reporteExpandido) && (
 				<div className="vd-toolbar-section vd-toolbar-section-tools">
 					<span className="vd-toolbar-label">Herramientas</span>
 					<div className="vd-tools-group">
@@ -4370,7 +4535,7 @@ const VisorDicom = () => {
 				</div>
 				)}
 
-				{!(panelDerecho === "reporte" && reporteExpandido) && (
+				{!mprActivo && !(panelDerecho === "reporte" && reporteExpandido) && (
 				<div className="vd-toolbar-section">
 					<span className="vd-toolbar-label">Vista</span>
 					<div className="vd-actions-group">
@@ -4530,11 +4695,11 @@ const VisorDicom = () => {
 									<button
 										type="button"
 										className={`vd-serie-titulo ${serieActivaId === serie.id ? "activa" : ""}`}
-										onClick={() => seleccionarSerieDicom(serie)}>
+										onClick={() => mprActivo ? seleccionarSerieMpr(serie) : seleccionarSerieDicom(serie)}>
 										<span>{serie.label || `Serie ${serieIndex + 1}`}</span>
 										<small>{serie.imagenes.length}</small>
 									</button>
-									<button type="button" className={`vd-serie-card ${serieActivaId === serie.id ? "activa" : ""}`} onClick={() => seleccionarSerieDicom(serie)}>
+									<button type="button" className={`vd-serie-card ${mprActivo ? mprSeries[mprPanelActivo] === serie.id : serieActivaId === serie.id ? "activa" : ""}`} onClick={() => mprActivo ? seleccionarSerieMpr(serie) : seleccionarSerieDicom(serie)}>
 										<MiniaturaSerieDicom imageId={serie.imageIds[0]} label={serie.label} />
 										<div className="vd-serie-card-info"><strong>{serie.label || `Serie ${serieIndex + 1}`}</strong><span>S: {serieIndex + 1}</span><small>{serie.imagenes.length} imágenes</small></div>
 									</button>
@@ -4564,7 +4729,7 @@ const VisorDicom = () => {
 				</div>
 
 				<div className="vd-viewer">
-					{mostrarInfo && (
+					{mostrarInfo && !mprActivo && (
 						<div className="vd-overlay-paciente">
 							<div>
 								<p className="vd-ov-nombre">{pacienteInfo.nombre}</p>
@@ -4623,7 +4788,7 @@ const VisorDicom = () => {
 						</div>
 					)}
 
-					<div
+					{mprActivo ? <Mpr2dViewer imageIds={imageIds} series={seriesDicom} seriesSeleccionadas={mprSeries} indicesIniciales={mprIndices} restaurarIndices={mprRestaurarIndices} panelActivo={mprPanelActivo} herramientaActiva={herramienta} resetCounter={resetCounter} grosorCorte={mprGrosorCorte} modoReconstruccion={mprModoReconstruccion} onIndicesChange={setMprIndices} onPanelSeleccionado={(panel) => { setMprPanelActivo(panel); const idEstudio = estudioId || estudioData?.id; const sesion = cacheSesionVisorDicom.get(String(idEstudio)); if (sesion) cacheSesionVisorDicom.set(String(idEstudio), { ...sesion, mprActivo: true, mprPanelActivo: panel, mprSeries, mprModoReconstruccion }); guardarSesionMpr(idEstudio, { mprActivo: true, mprPanelActivo: panel, mprSeries, mprGrosorCorte, mprIndices, mprModoReconstruccion }); }} /> : <div
 						className="vd-grid"
 						style={{
 							gridTemplateColumns: `repeat(${formatoGrid.cols},1fr)`,
@@ -4664,7 +4829,7 @@ const VisorDicom = () => {
 									onClick={() => setPanelActivo(i)}
 								/>
 							))}
-					</div>
+					</div>}
 					<PanelIA
 						activo={iaActiva}
 						imageId={panelImageIds[panelActivo] || null}
