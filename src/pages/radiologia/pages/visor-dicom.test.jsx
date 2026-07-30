@@ -338,6 +338,15 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.getByTitle('Nueva pestaña')).toBeInTheDocument();
   });
 
+  test('Usar plantilla abre el selector de plantillas guardadas', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo' };
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Usar plantilla')); });
+
+    expect(screen.getByRole('dialog', { name: 'Elegir plantilla' })).toBeInTheDocument();
+  });
+
   test('clic en Formato muestra el popup de formatos de grid', async () => {
     await renderVisor();
     await act(async () => { fireEvent.click(screen.getByTitle('Formato')); });
@@ -416,6 +425,49 @@ describe('VisorDicom — Scroll de serie', () => {
     addEventListenerSpy.mockRestore();
   });
 
+  test('muestra una barra lateral para navegar los cortes de una serie', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(screen.getByRole('slider', { name: 'Posición de imagen en la serie' })).toBeInTheDocument(),
+    );
+
+    const barra = screen.getByRole('slider', { name: 'Posición de imagen en la serie' });
+    jest.spyOn(barra, 'getBoundingClientRect').mockReturnValue({ top: 100, height: 200 });
+    fireEvent.mouseDown(barra, { clientY: 300 });
+    await waitFor(() =>
+      expect(screen.getByRole('slider', { name: 'Posición de imagen en la serie' })).toHaveAttribute(
+        'aria-valuenow',
+        '3',
+      ),
+    );
+  });
+
+  test('los atajos directos activan Scroll, W/L y Zoom sólo mientras se sostiene el clic derecho', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+    const panel = document.querySelector('.panel-imagen.activo');
+
+    fireEvent.wheel(panel, { deltaY: 120 });
+    expect(screen.getByTitle('Scroll')).toHaveClass('activo');
+
+    fireEvent.mouseDown(panel, { button: 0 });
+    expect(screen.getByTitle('W/L')).toHaveClass('activo');
+
+    fireEvent.mouseDown(panel, { button: 2 });
+    expect(screen.getByTitle('Ampliar')).toHaveClass('activo');
+
+    mockCornerstone.setViewport.mockClear();
+    fireEvent.wheel(panel, { deltaY: -120, buttons: 2 });
+    expect(mockCornerstone.setViewport).toHaveBeenCalled();
+
+    fireEvent.mouseUp(panel, { button: 2 });
+    expect(screen.getByTitle('Scroll')).toHaveClass('activo');
+  });
+
   test('Scroll hacia arriba retrocede y se detiene en los extremos de la serie', async () => {
     const nowSpy = jest.spyOn(Date, 'now');
     nowSpy.mockReturnValue(1000);
@@ -428,10 +480,11 @@ describe('VisorDicom — Scroll de serie', () => {
 
     fireEvent.click(screen.getByTitle('Scroll'));
     const panel = document.querySelector('.panel-imagen.activo');
+    const cargasIniciales = mockCornerstone.loadAndCacheImage.mock.calls.length;
     await act(async () => {
       fireEvent.wheel(panel, { deltaY: -120 });
     });
-    expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledTimes(1);
+    expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledTimes(cargasIniciales);
 
     nowSpy.mockReturnValue(1121);
     await act(async () => {
@@ -454,7 +507,7 @@ describe('VisorDicom — Scroll de serie', () => {
     );
   });
 
-  test('Ampliar conserva el zoom con la rueda', async () => {
+  test('Zoom con clic derecho sostenido usa la rueda sin cambiar de imagen', async () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
@@ -462,12 +515,13 @@ describe('VisorDicom — Scroll de serie', () => {
       ),
     );
     mockCornerstone.setViewport.mockClear();
-
-    fireEvent.click(screen.getByTitle('Ampliar'));
+    const panel = document.querySelector('.panel-imagen.activo');
+    fireEvent.mouseDown(panel, { button: 2 });
     await act(async () => {
-      fireEvent.wheel(document.querySelector('.panel-imagen.activo'), { deltaY: -120 });
+      fireEvent.wheel(panel, { deltaY: -120, buttons: 2 });
     });
 
+    expect(screen.getByTitle('Ampliar')).toHaveClass('activo');
     expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ scale: 1.1 }),
