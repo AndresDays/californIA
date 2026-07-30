@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import "../pages/VisorDicom.css";
 
-const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar }) => {
+const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar, backdropClassName = "" }) => {
 	const [busqueda, setBusqueda] = useState("");
 	const {
 		titulo,
@@ -27,7 +27,7 @@ const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar }) => {
 	if (!config) return null;
 
 	return (
-		<div className="vd-modal-backdrop" onClick={onCerrar}>
+		<div className={`vd-modal-backdrop ${backdropClassName}`.trim()} onClick={onCerrar}>
 			<div className="vd-modal" onClick={(e) => e.stopPropagation()}>
 				<div className="vd-modal-header">
 					<span>{titulo}</span>

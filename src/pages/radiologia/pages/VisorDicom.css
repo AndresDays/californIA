@@ -41,7 +41,9 @@
 	gap: 0.6rem;
 	padding: 0.45rem 0.75rem;
 	flex-shrink: 0;
-	overflow-x: auto;
+	overflow: visible;
+	position: relative;
+	z-index: 200;
 }
 
 .vd-toolbar::-webkit-scrollbar {
@@ -157,6 +159,62 @@
 .vd-actions-group {
 	display: flex;
 	gap: 0.18rem;
+}
+
+.vd-wl-menu-wrap {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+}
+
+.vd-wl-menu-wrap .vd-tool-btn {
+	border-radius: 5px 0 0 5px;
+}
+
+.vd-wl-preset-toggle {
+	width: 18px;
+	border: 0;
+	border-left: 1px solid rgba(73, 178, 212, 0.26);
+	border-radius: 0 5px 5px 0;
+	background: rgba(73, 178, 212, 0.1);
+	color: #53B9DB;
+	cursor: pointer;
+	display: grid;
+	place-items: center;
+}
+
+.vd-wl-preset-toggle:hover {
+	background: rgba(73, 178, 212, 0.22);
+}
+
+.vd-wl-preset-menu {
+	position: absolute;
+	top: calc(100% + 0.45rem);
+	left: 0;
+	z-index: 300;
+	min-width: 235px;
+	padding: 0.35rem;
+	border: 1px solid #1686ff;
+	border-radius: 10px;
+	background: #02070b;
+	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+
+.vd-wl-preset-menu button {
+	width: 100%;
+	padding: 0.48rem 0.65rem;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: #1686ff;
+	font: inherit;
+	font-size: 0.84rem;
+	text-align: left;
+	cursor: pointer;
+}
+
+.vd-wl-preset-menu button:hover {
+	background: rgba(22, 134, 255, 0.15);
 }
 
 .vd-separator {
@@ -460,6 +518,25 @@
 	background: rgba(83, 185, 219, 0.12);
 }
 
+.vd-serie-card {
+	width: 100%;
+	padding: 0;
+	border: 2px solid rgba(73, 178, 212, 0.22);
+	border-radius: 14px;
+	overflow: hidden;
+	background: #03070d;
+	color: #53B9DB;
+	cursor: pointer;
+	text-align: left;
+}
+
+.vd-serie-card.activa { border-color: #1686ff; }
+.vd-serie-preview { width: 100%; aspect-ratio: 4 / 3; background: #000; }
+.vd-serie-preview canvas { width: 100% !important; height: 100% !important; }
+.vd-serie-card-info { padding: 0.5rem 0.65rem 0.6rem; display: grid; gap: 0.18rem; }
+.vd-serie-card-info strong { font-size: 0.82rem; color: #1686ff; }
+.vd-serie-card-info span, .vd-serie-card-info small { font-size: 0.72rem; color: #53B9DB; }
+
 .vd-mini-img {
 	width: 100%;
 	aspect-ratio: 1;
@@ -735,6 +812,26 @@
 
 .cornerstone-element canvas {
 	display: block;
+}
+
+.vd-stack-slider {
+	position: absolute;
+	right: 0.35rem;
+	top: 22%;
+	z-index: 12;
+	height: 56%;
+	width: 0.65rem;
+	cursor: pointer;
+}
+
+.vd-stack-slider-thumb {
+	position: absolute;
+	left: 0;
+	width: 0.65rem;
+	border-radius: 999px;
+	background: #1f5965;
+	box-shadow: 0 0 0 1px rgba(83, 185, 219, 0.28);
+	pointer-events: none;
 }
 
 .panel-vacio {

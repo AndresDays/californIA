@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import QRCode from "qrcode";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion";
@@ -85,6 +86,7 @@ let csModules = null;
 let csInitPromise = null;
 const BUCKET_ADJUNTOS_REPORTE = "reportes-radiologia-adjuntos";
 const REPORTE_ADJUNTO_MAX_SIZE = 25 * 1024 * 1024;
+const cacheSesionVisorDicom = new Map();
 
 const esErrorColumnaFaltante = (error, columna) => {
 	const mensaje = String(error?.message || "").toLowerCase();
@@ -176,6 +178,15 @@ const TOOLS = [
 	{ id: "centrar", icon: centrarIcon, label: "Centrar" },
 ];
 
+const PRESETS_VENTANA = [
+	{ id: "ct-tejido-blando", modalidad: "CT", label: "CT - Tejido blando", ancho: 400, nivel: 40 },
+	{ id: "ct-hueso", modalidad: "CT", label: "CT - Hueso", ancho: 1500, nivel: 600 },
+	{ id: "ct-cerebro", modalidad: "CT", label: "CT - Cerebro", ancho: 80, nivel: 40 },
+	{ id: "ct-pulmon", modalidad: "CT", label: "CT - Pulmón", ancho: 1500, nivel: -600 },
+	{ id: "ct-higado", modalidad: "CT", label: "CT - Hígado", ancho: 150, nivel: 70 },
+	{ id: "mr-alto-contraste", modalidad: "MR", label: "MR - Alto contraste", ancho: 500, nivel: 100 },
+];
+
 const ACTIONS = [
 	{ id: "restaurar", icon: restaurarIcon, label: "Restaurar" },
 	{ id: "cine", icon: cineIcon, label: "CINE" },
@@ -255,6 +266,8 @@ const PanelDicom = ({
 	elipseExterna,
 	rectExterna,
 	bidiExterna,
+	presetVentanaId,
+	onShortcutTool,
 	onCapturaOk,
 	onCapturaFail,
 	onClick,
@@ -264,9 +277,13 @@ const PanelDicom = ({
 	const overlayRef = useRef(null);
 	const csRef = useRef(null);
 	const enabledRef = useRef(false);
+	const requestedImageIdRef = useRef(null);
+	const imageIdRef = useRef(imageId);
 	const herramientaRef = useRef(herramienta);
 	const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
 	const lastStackWheelRef = useRef(0);
+	const zoomTemporalRef = useRef(false);
+	const arrastrandoBarraRef = useRef(false);
 	const guardadoTimerRef = useRef(null);
 	const lupaActivaRef = useRef(false);
 	const medicionRef = useRef({
@@ -321,6 +338,7 @@ const PanelDicom = ({
 
 	const [zoom, setZoom] = useState(null);
 	const [wl, setWl] = useState(null);
+	const [cornerstoneListo, setCornerstoneListo] = useState(false);
 	const [ctxMenu, setCtxMenu] = useState(null);
 	const [labelEdit, setLabelEdit] = useState(null);
 	const [elipseLabelEdit, setElipseLabelEdit] = useState(null);
@@ -335,6 +353,14 @@ const PanelDicom = ({
 	useEffect(() => {
 		herramientaRef.current = herramienta;
 	}, [herramienta]);
+
+	useEffect(() => {
+		imageIdRef.current = imageId;
+	}, [imageId]);
+
+	useEffect(() => {
+		lastStackWheelRef.current = 0;
+	}, [stackImageIds]);
 
 	useEffect(() => {
 		lupaActivaRef.current = !!lupaExterna;
@@ -377,6 +403,7 @@ const PanelDicom = ({
 					cornerstone.enable(divRef.current);
 					enabledRef.current = true;
 					csRef.current = cornerstone;
+					setCornerstoneListo(true);
 					cornerstone.events.addEventListener("cornerstoneimagerendered", (ev) => {
 						if (ev.detail.element !== divRef.current) return;
 						const vp = cornerstone.getViewport(divRef.current);
@@ -393,7 +420,7 @@ const PanelDicom = ({
 					return;
 				}
 			}
-			if (imageId) await cargarImagen(imageId);
+			if (imageIdRef.current) await cargarImagen(imageIdRef.current);
 		};
 		init();
 		return () => {
@@ -405,8 +432,10 @@ const PanelDicom = ({
 		const cs = csRef.current;
 		const el = divRef.current;
 		if (!enabledRef.current || !cs || !el) return;
+		requestedImageIdRef.current = id;
 		try {
 			const image = await cs.loadAndCacheImage(id);
+			if (requestedImageIdRef.current !== id) return;
 			cs.displayImage(el, image);
 			const estado = leerEstadoVistaDicom(estadoVista);
 			if (estado) {
@@ -430,6 +459,26 @@ const PanelDicom = ({
 	};
 
 	useEffect(() => {
+		if (!cornerstoneListo || !imageId || stackImageIds.length < 2 || !csRef.current) return;
+		const indice = stackImageIds.indexOf(imageId);
+		if (indice < 0) return;
+		let cancelado = false;
+		const pendientes = stackImageIds
+			.map((id, i) => ({ id, distancia: Math.abs(i - indice) }))
+			.filter(({ id }) => id !== imageId)
+			.sort((a, b) => a.distancia - b.distancia)
+			.slice(0, 24);
+		const precargar = async () => {
+				while (!cancelado && pendientes.length) {
+					const siguiente = pendientes.shift();
+					try { await csRef.current?.loadAndCacheImage(siguiente.id); } catch {}
+				}
+			};
+		Promise.all([precargar(), precargar(), precargar()]);
+		return () => { cancelado = true; };
+	}, [cornerstoneListo, imageId, stackImageIds]);
+
+	useEffect(() => {
 		if (!imageId) return;
 		const intentar = async () => {
 			if (!enabledRef.current) await new Promise((r) => setTimeout(r, 200));
@@ -437,6 +486,22 @@ const PanelDicom = ({
 		};
 		intentar();
 	}, [imageId, estadoVista]);
+
+	useEffect(() => {
+		const preset = PRESETS_VENTANA.find((item) => item.id === presetVentanaId);
+		const cs = csRef.current;
+		const el = divRef.current;
+		if (!preset || !imageId || !enabledRef.current || !cs || !el) return;
+		try {
+			const vp = cs.getViewport(el);
+			if (!vp) return;
+			cs.setViewport(el, {
+				...vp,
+				voi: { ...vp.voi, windowWidth: preset.ancho, windowCenter: preset.nivel },
+			});
+			cs.updateImage(el);
+		} catch {}
+	}, [imageId, presetVentanaId]);
 
 	useEffect(() => {
 		if (!capturaClip) return;
@@ -1333,8 +1398,26 @@ const PanelDicom = ({
 	};
 
 	const getCursor = () => "crosshair";
+	const esSerieNavegable = () => imageId && stackImageIds.length > 1;
+	const indiceImagenActual = Math.max(0, stackImageIds.indexOf(imageId));
+	const porcentajeThumbStack = Math.max(6, Math.min(100, 100 / stackImageIds.length));
+	const posicionThumbStack =
+		stackImageIds.length > 1
+			? (indiceImagenActual / (stackImageIds.length - 1)) * (100 - porcentajeThumbStack)
+			: 0;
+	const activarAtajo = (tool) => {
+		herramientaRef.current = tool;
+		onShortcutTool?.(tool);
+	};
 
 	const onMouseDown = (e) => {
+		if (esSerieNavegable() && e.button === 2) {
+			e.preventDefault();
+			zoomTemporalRef.current = true;
+			activarAtajo("Zoom");
+			return;
+		}
+		if (esSerieNavegable() && e.button === 0) activarAtajo("Wwwc");
 		const tool = herramientaRef.current;
 
 		if (tool === "Length") {
@@ -1534,8 +1617,20 @@ const PanelDicom = ({
 			return;
 		}
 	};
+	const seleccionarImagenDesdeBarra = (e) => {
+		e.stopPropagation();
+		const rect = e.currentTarget.getBoundingClientRect();
+		const proporcion = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+		const indiceDestino = Math.round(proporcion * (stackImageIds.length - 1));
+		if (Number.isNaN(indiceDestino) || indiceDestino === indiceImagenActual) return;
+		onStackScroll?.(indiceDestino - indiceImagenActual);
+	};
 
 	const onContextMenu = (e) => {
+		if (esSerieNavegable()) {
+			e.preventDefault();
+			return;
+		}
 		e.preventDefault();
 		const pos = getCanvasPos(e);
 		const overlay = overlayRef.current;
@@ -1818,6 +1913,11 @@ const PanelDicom = ({
 	};
 
 	const onMouseUp = (e) => {
+		if (esSerieNavegable() && e.button === 2 && zoomTemporalRef.current) {
+			zoomTemporalRef.current = false;
+			activarAtajo("StackScroll");
+			return;
+		}
 		const tool = herramientaRef.current;
 		if (tool === "Angle") {
 			const ar = anguloRef.current;
@@ -1960,6 +2060,11 @@ const PanelDicom = ({
 
 	const handleWheel = (e) => {
 		e.preventDefault();
+		const zoomTemporalActivo = zoomTemporalRef.current && (e.buttons & 2) === 2;
+		if (zoomTemporalRef.current && !zoomTemporalActivo) zoomTemporalRef.current = false;
+		if (esSerieNavegable() && !zoomTemporalActivo) {
+			activarAtajo("StackScroll");
+		}
 		if (herramientaRef.current === "StackScroll") {
 			if (stackImageIds.length < 2 || e.deltaY === 0) return;
 			const now = Date.now();
@@ -1986,7 +2091,7 @@ const PanelDicom = ({
 		const panel = wrapperRef.current;
 		if (!panel) return undefined;
 		const capturarRueda = (event) => {
-			if (herramientaRef.current !== "StackScroll") return;
+			if (!esSerieNavegable() && herramientaRef.current !== "StackScroll") return;
 			event.preventDefault();
 			event.stopPropagation();
 			handleWheel(event);
@@ -2059,6 +2164,10 @@ const PanelDicom = ({
 			onMouseMove={onMouseMove}
 			onMouseUp={onMouseUp}
 			onMouseLeave={() => {
+				if (zoomTemporalRef.current) {
+					zoomTemporalRef.current = false;
+					activarAtajo("StackScroll");
+				}
 				dragRef.current.active = false;
 				medicionRef.current.hoveredIdx = -1;
 				anotacionRef.current.hoveredIdx = -1;
@@ -2086,6 +2195,38 @@ const PanelDicom = ({
 			)}
 			{imageId && (
 				<>
+					{esSerieNavegable() && (
+						<div
+							className="vd-stack-slider"
+							role="slider"
+							tabIndex="0"
+							aria-label="Posición de imagen en la serie"
+							aria-valuemin="1"
+							aria-valuemax={stackImageIds.length}
+							aria-valuenow={indiceImagenActual + 1}
+							aria-valuetext={`${indiceImagenActual + 1} de ${stackImageIds.length}`}
+							onMouseDown={(e) => {
+								arrastrandoBarraRef.current = true;
+								seleccionarImagenDesdeBarra(e);
+							}}
+							onMouseMove={(e) => {
+								if (arrastrandoBarraRef.current) seleccionarImagenDesdeBarra(e);
+							}}
+							onMouseUp={(e) => {
+								arrastrandoBarraRef.current = false;
+								e.stopPropagation();
+							}}
+							onClick={(e) => e.stopPropagation()}
+							>
+							<span
+								className="vd-stack-slider-thumb"
+								style={{
+									top: `${posicionThumbStack}%`,
+									height: `${porcentajeThumbStack}%`,
+								}}
+							/>
+						</div>
+					)}
 					<div className="overlay-acciones-imagen">
 						<button
 							className="btn-overlay-accion"
@@ -2506,6 +2647,32 @@ const PanelDicom = ({
 	);
 };
 
+const MiniaturaSerieDicom = ({ imageId, label }) => {
+	const ref = useRef(null);
+	useEffect(() => {
+		let cancelled = false;
+		const cargar = async () => {
+			if (!ref.current || !imageId) return;
+			const { cornerstone } = await initCornerstone();
+			if (cancelled || !ref.current) return;
+			try {
+				cornerstone.enable(ref.current);
+				const image = await cornerstone.loadAndCacheImage(imageId);
+				if (!cancelled && ref.current) {
+					cornerstone.displayImage(ref.current, image);
+					cornerstone.resize(ref.current, true);
+				}
+			} catch (error) {}
+		};
+		cargar();
+		return () => {
+			cancelled = true;
+			try { if (ref.current) csModules?.cornerstone?.disable(ref.current); } catch (error) {}
+		};
+	}, [imageId]);
+	return <div ref={ref} className="vd-serie-preview" data-testid="preview-serie" aria-label={`Preview ${label}`} />;
+};
+
 const VisorDicom = () => {
 	const { user, signOut, empleadoData: authEmpleadoData } = useAuth();
 	const navigate = useNavigate();
@@ -2531,6 +2698,8 @@ const VisorDicom = () => {
 	const [herramienta, setHerramienta] = useState("Wwwc");
 	const [formatoGrid, setFormatoGrid] = useState(FORMATOS[0]);
 	const [mostrarFormatos, setMostrarFormatos] = useState(false);
+	const [mostrarPresetsVentana, setMostrarPresetsVentana] = useState(false);
+	const [presetsVentanaPorSerie, setPresetsVentanaPorSerie] = useState({});
 	const [mostrarMas, setMostrarMas] = useState(false);
 	const [mostrarDetalle, setMostrarDetalle] = useState(false);
 	const [modalAsignar, setModalAsignar] = useState(null);
@@ -2685,7 +2854,7 @@ const VisorDicom = () => {
 				}
 				let { data, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol, cedula, especialidad, firma_url, firma_digital, id_sucursal, sucursal, id_doctor")
+					.select("nombre, rol, cedula, especialidad, firma_url, firma_digital, sucursal, id_doctor")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 				if (esErrorColumnaFaltante(error, "id_doctor")) {
@@ -2890,11 +3059,22 @@ const VisorDicom = () => {
 	};
 
 	const cargarImagenes = async () => {
+		const idEstudio = estudioId || estudioData?.id;
+		const sesionGuardada = cacheSesionVisorDicom.get(String(idEstudio));
+		if (sesionGuardada) {
+			setSeriesDicom(sesionGuardada.seriesDicom);
+			setImageIds(sesionGuardada.imageIds);
+			setSerieActivaId(sesionGuardada.serieActivaId);
+			setPanelImageIds(sesionGuardada.panelImageIds);
+			setImagenesDicomPorId(sesionGuardada.imagenesDicomPorId);
+			setFormatoGrid(sesionGuardada.formatoGrid);
+			setLoading(false);
+			return;
+		}
 		setLoading(true);
 		setError(null);
 		try {
 			await initCornerstone();
-			const idEstudio = estudioId || estudioData?.id;
 				let { data: estudio, error: errEst } = await supabase
 					.from("estudios_radiologia")
 					.select(`
@@ -2969,6 +3149,17 @@ const VisorDicom = () => {
 			const primeraSerie = series[0];
 
 			setSeriesDicom(series);
+			const primerImageId = primeraSerie?.imageIds?.[0] || null;
+			const panelesIniciales = Array(6).fill(null);
+			panelesIniciales[0] = primerImageId;
+			cacheSesionVisorDicom.set(String(idEstudio), {
+				seriesDicom: series,
+				imageIds: primeraSerie?.imageIds || [],
+				serieActivaId: primeraSerie?.id || null,
+				panelImageIds: panelesIniciales,
+				imagenesDicomPorId: Object.fromEntries(imagenesConUrl.map((imagen) => [imagen.imageId, imagen])),
+				formatoGrid,
+			});
 			seleccionarSerieDicom(primeraSerie, 0);
 		} catch (e) {
 			setError(e.message);
@@ -3655,6 +3846,7 @@ const VisorDicom = () => {
 		if (id === "plantillas") {
 			setReporteExpandido(false);
 			setPanelDerecho("reporte");
+			abrirSelectorPlantillas();
 			return;
 		}
 		if (id === "nueva-pestana") {
@@ -4025,6 +4217,22 @@ const VisorDicom = () => {
 	};
 
 	const totalPaneles = formatoGrid.cols * formatoGrid.rows;
+	const serieActiva = seriesDicom.find((serie) => serie.id === serieActivaId);
+	const modalidadSerieActiva = String(serieActiva?.modalidad || "").toUpperCase();
+	const esSerieCt = ["CT", "TOMOGRAFIA"].includes(modalidadSerieActiva);
+	const esSerieRm = ["MR", "RM", "RESONANCIA MAGNETICA"].includes(modalidadSerieActiva);
+	const esSerieCtRm = esSerieCt || esSerieRm;
+	const presetsVentanaDisponibles = PRESETS_VENTANA.filter((preset) =>
+		preset.modalidad === "MR"
+			? esSerieRm
+			: esSerieCt,
+	);
+	const aplicarPresetVentana = (preset) => {
+		if (!serieActiva) return;
+		setPresetsVentanaPorSerie((prev) => ({ ...prev, [serieActiva.id]: preset.id }));
+		setHerramienta("Wwwc");
+		setMostrarPresetsVentana(false);
+	};
 	const accionesVista = ACTIONS.filter((a) => VIEW_ACTION_IDS.includes(a.id));
 	const puedeEditarReporte = !empleadoData || puedeEditarReporteRadiologia(empleadoData);
 	const puedeVerReporte = !empleadoData || puedeVerReporteRadiologia(empleadoData);
@@ -4124,16 +4332,40 @@ const VisorDicom = () => {
 				<div className="vd-toolbar-section vd-toolbar-section-tools">
 					<span className="vd-toolbar-label">Herramientas</span>
 					<div className="vd-tools-group">
-						{TOOLS.map((t) => (
-							<button
-								key={t.id}
-								className={`vd-tool-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
-								onClick={() => handleTool(t.id)}
-								title={t.label}>
-								{t.icon ? <img src={t.icon} alt="" /> : <span>{t.label[0]}</span>}
-								<span>{t.label}</span>
-							</button>
-						))}
+						{TOOLS.map((t) => {
+							const boton = (
+								<button
+									className={`vd-tool-btn ${t.id === "Datos" ? (mostrarInfo ? "activo" : "") : herramienta === t.id ? "activo" : ""}`}
+									onClick={() => handleTool(t.id)}
+									title={t.label}>
+									{t.icon ? <img src={t.icon} alt="" /> : <span>{t.label[0]}</span>}
+									<span>{t.label}</span>
+								</button>
+							);
+							if (t.id !== "Wwwc" || !esSerieCtRm) return <span key={t.id}>{boton}</span>;
+							return (
+								<div className="vd-wl-menu-wrap" key={t.id}>
+									{boton}
+									<button
+										type="button"
+										className="vd-wl-preset-toggle"
+										title="Presets de ventana"
+										aria-label="Presets de ventana"
+										onClick={() => setMostrarPresetsVentana((visible) => !visible)}>
+										<KeyboardArrowDownIcon fontSize="small" />
+									</button>
+									{mostrarPresetsVentana && (
+										<div className="vd-wl-preset-menu" role="menu" aria-label="Vistas de ventana">
+											{presetsVentanaDisponibles.map((preset, indice) => (
+												<button key={preset.id} type="button" role="menuitem" onClick={() => aplicarPresetVentana(preset)}>
+													{indice + 1} - {preset.label}
+												</button>
+											))}
+										</div>
+									)}
+								</div>
+							);
+						})}
 					</div>
 				</div>
 				)}
@@ -4302,30 +4534,10 @@ const VisorDicom = () => {
 										<span>{serie.label || `Serie ${serieIndex + 1}`}</span>
 										<small>{serie.imagenes.length}</small>
 									</button>
-									{serie.imagenes.map((imagen, i) => (
-										<button
-											type="button"
-											key={imagen.id_imagen || imagen.storage_path || `${serie.id}-${i}`}
-											className={`vd-miniatura ${panelImageIds[panelActivo] === imagen.imageId ? "activa" : ""}`}
-											onClick={() => {
-												setSerieActivaId(serie.id);
-												setImageIds(serie.imageIds);
-												setPanelImageIds((prev) => {
-													const n = [...prev];
-													n[panelActivo] = imagen.imageId;
-													return n;
-												});
-											}}>
-											<div className="vd-mini-img">
-												<span className="vd-mini-dcm">{serie.modalidad || "DCM"}</span>
-												<span className="vd-mini-num">{imagen.numero || i + 1}</span>
-											</div>
-											<div className="vd-mini-footer">
-												<span>Imagen {i + 1}</span>
-												<small>{i + 1}/{serie.imagenes.length}</small>
-											</div>
-										</button>
-									))}
+									<button type="button" className={`vd-serie-card ${serieActivaId === serie.id ? "activa" : ""}`} onClick={() => seleccionarSerieDicom(serie)}>
+										<MiniaturaSerieDicom imageId={serie.imageIds[0]} label={serie.label} />
+										<div className="vd-serie-card-info"><strong>{serie.label || `Serie ${serieIndex + 1}`}</strong><span>S: {serieIndex + 1}</span><small>{serie.imagenes.length} imágenes</small></div>
+									</button>
 								</div>
 							))
 						)}
@@ -4443,6 +4655,8 @@ const VisorDicom = () => {
 									elipseExterna={panelActivo === i ? elipseGlobal : false}
 									rectExterna={panelActivo === i ? rectanguloGlobal : false}
 									bidiExterna={panelActivo === i ? bidiGlobal : false}
+									presetVentanaId={panelActivo === i ? presetsVentanaPorSerie[serieActivaId] : null}
+									onShortcutTool={handleTool}
 									onCapturaOk={() =>
 										showNotif("Captura copiada al portapapeles", "exito")
 									}

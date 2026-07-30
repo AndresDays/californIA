@@ -8,6 +8,7 @@ import SidebarHome from '../../../components/sidebar-home';
 import ModalNotificacion from '../../../components/ModalNotificacion';
 import useSidebar from '../../../utils/use-sidebar';
 import TarjetaEstudio from '../componentes/TarjetaEstudio';
+import ModalAsignar from '../componentes/ModalAsignar';
 import lupaIcono from '../../../assets/lupaIcono.png';
 import {
   EVENTOS_SOLICITUD,
@@ -20,6 +21,7 @@ import {
   puedeAsignarRadiologia,
   puedeSubirImagenRadiologia,
 } from '../../../utils/radiologia-permisos';
+import { normalizarRolPermisos } from '../../../utils/role-permissions';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -32,6 +34,48 @@ const ESTADOS_FILTRO = [
 
 const BUCKET_RADIOLOGIA = 'radiologia';
 const IMAGEN_MAX_SIZE = 500 * 1024 * 1024;
+
+const TIPOS_ASIGNACION = {
+  tecnico: {
+    titulo: 'Asignar estudio a técnico',
+    tabla: 'empleados',
+    select: 'id_empleado, nombre, rol, especialidad',
+    idKey: 'id_empleado',
+    labelKey: 'nombre',
+    sublabelKey: 'especialidad',
+    columna: 'id_tecnico',
+    actualKey: 'idTecnico',
+    mensajeExito: 'Técnico asignado correctamente',
+    filtrar: (persona) => normalizarRolPermisos(persona?.rol).includes('tecnico'),
+  },
+  referente: {
+    titulo: 'Asignar estudio a médico referente',
+    tabla: 'doctores',
+    select: 'id_doctor, nombre, especialidad, activo',
+    idKey: 'id_doctor',
+    labelKey: 'nombre',
+    sublabelKey: 'especialidad',
+    columna: 'id_doctor',
+    actualKey: 'idDoctor',
+    mensajeExito: 'Médico referente asignado correctamente',
+    filtrar: (persona) => persona?.activo !== false,
+  },
+  radiologo: {
+    titulo: 'Asignar estudio a radiólogo',
+    tabla: 'empleados',
+    select: 'id_empleado, nombre, rol, especialidad',
+    idKey: 'id_empleado',
+    labelKey: 'nombre',
+    sublabelKey: 'especialidad',
+    columna: 'id_radiologo',
+    actualKey: 'idRadiologo',
+    mensajeExito: 'Radiólogo asignado correctamente',
+    filtrar: (persona) => {
+      const rol = normalizarRolPermisos(persona?.rol);
+      return rol.includes('radiologo') || rol.includes('radiologa');
+    },
+  },
+};
 
 const limpiarNombreArchivo = (nombre = '') =>
   nombre
@@ -94,6 +138,7 @@ const DashboardRadiologia = () => {
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
+  const [modalAsignar, setModalAsignar] = useState(null);
   const [subiendoImagenId, setSubiendoImagenId] = useState(null);
   const [notificacion, setNotificacion] = useState({
     isOpen: false,
@@ -215,6 +260,7 @@ const DashboardRadiologia = () => {
           storage_path,
           id_doctor,
           id_radiologo,
+          id_tecnico,
           id_venta,
           id_estudio_venta,
           sucursal,
@@ -279,7 +325,8 @@ const DashboardRadiologia = () => {
           idVenta: estudio.id_venta,
           idEstudioVenta: estudio.id_estudio_venta,
           idDoctor: estudio.id_doctor,
-          idRadiologo: estudio.id_radiologo
+          idRadiologo: estudio.id_radiologo,
+          idTecnico: estudio.id_tecnico,
         };
       }) || [];
 
@@ -423,21 +470,61 @@ const DashboardRadiologia = () => {
     }
   };
 
-  const handleAsignar = async (estudio) => {
+  const abrirAsignacion = (estudio) => {
+    setModalAsignar({ paso: 'tipo', estudio });
+  };
+
+  const seleccionarTipoAsignacion = async (tipo) => {
+    const config = TIPOS_ASIGNACION[tipo];
+    const estudio = modalAsignar?.estudio;
+    if (!config || !estudio) return;
+
+    setModalAsignar({
+      ...config,
+      paso: 'persona',
+      estudio,
+      items: [],
+      actual: estudio[config.actualKey] || null,
+      seleccionado: estudio[config.actualKey] || null,
+      loading: true,
+    });
+
+    try {
+      const { data, error } = await supabase
+        .from(config.tabla)
+        .select(config.select)
+        .order('nombre');
+      if (error) throw error;
+
+      setModalAsignar((modal) => modal?.paso === 'persona' && modal.columna === config.columna
+        ? { ...modal, items: (data || []).filter(config.filtrar), loading: false }
+        : modal);
+    } catch (error) {
+      console.error('Error al cargar personas para asignar:', error);
+      mostrarNotificacion('Error al cargar personas para asignar', 'error');
+      setModalAsignar(null);
+    }
+  };
+
+  const confirmarAsignacion = async () => {
+    if (!modalAsignar?.seleccionado || !modalAsignar?.estudio) return;
+
     try {
       const { error } = await supabase
         .from('estudios_radiologia')
-        .update({ 
+        .update({
+          [modalAsignar.columna]: modalAsignar.seleccionado,
           estado: 'ASIGNADO',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id_estudio', estudio.id);
+        .eq('id_estudio', modalAsignar.estudio.id);
 
       if (error) throw error;
 
-      mostrarNotificacion('Estudio asignado correctamente', 'exito');
+      mostrarNotificacion(modalAsignar.mensajeExito, 'exito');
+      setModalAsignar(null);
       setEstudioSeleccionado(null);
-      cargarEstudios(); // Recargar lista
+      cargarEstudios();
     } catch (error) {
       console.error('Error al asignar estudio:', error);
       mostrarNotificacion('Error al asignar el estudio', 'error');
@@ -672,7 +759,7 @@ const DashboardRadiologia = () => {
                 <button
                   type="button"
                   className="radiologia-btn-secundario"
-                  onClick={() => handleAsignar(estudioSeleccionado)}
+                  onClick={() => abrirAsignacion(estudioSeleccionado)}
                 >
                   Asignar estudio
                 </button>
@@ -687,6 +774,35 @@ const DashboardRadiologia = () => {
             </div>
           </aside>
         </div>
+      )}
+
+      {modalAsignar?.paso === 'tipo' && (
+        <div className="radiologia-asignacion-overlay" onClick={() => setModalAsignar(null)}>
+          <section className="radiologia-asignacion-tipo" onClick={(event) => event.stopPropagation()}>
+            <div>
+              <h2>Asignar estudio a</h2>
+              <p>Elige el tipo de responsable que deseas asignar.</p>
+            </div>
+            <div className="radiologia-asignacion-opciones">
+              <button type="button" onClick={() => seleccionarTipoAsignacion('tecnico')}>Técnico</button>
+              <button type="button" onClick={() => seleccionarTipoAsignacion('referente')}>Médico referente</button>
+              <button type="button" onClick={() => seleccionarTipoAsignacion('radiologo')}>Radiólogo</button>
+            </div>
+            <button type="button" className="radiologia-asignacion-cancelar" onClick={() => setModalAsignar(null)}>
+              Cancelar
+            </button>
+          </section>
+        </div>
+      )}
+
+      {modalAsignar?.paso === 'persona' && (
+        <ModalAsignar
+          config={modalAsignar}
+          backdropClassName="radiologia-modal-asignar"
+          onSeleccionar={(id) => setModalAsignar((modal) => ({ ...modal, seleccionado: id }))}
+          onConfirmar={confirmarAsignacion}
+          onCerrar={() => setModalAsignar(null)}
+        />
       )}
 
       <ModalNotificacion
