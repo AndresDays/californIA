@@ -21,6 +21,9 @@ let mockAuthUser = { id: 'user-1', email: 'radiologia@test.com' };
 let mockEmpleadoData = null;
 let mockDoctorData = null;
 let mockAuthEmpleadoData = null;
+let mockTecnicosAsignables = [];
+let mockRadiologosAsignables = [];
+let mockMedicosReferentes = [];
 
 jest.mock('../../../context/auth-context', () => ({
   useAuth: () => ({
@@ -70,6 +73,10 @@ jest.mock('../../../lib/supabase-client', () => ({
             data: mockEmpleadoData,
             error: null,
           }),
+          order: jest.fn().mockResolvedValue({
+            data: [...mockTecnicosAsignables, ...mockRadiologosAsignables],
+            error: null,
+          }),
         };
       }
       if (table === 'doctores') {
@@ -78,6 +85,10 @@ jest.mock('../../../lib/supabase-client', () => ({
           eq: jest.fn().mockReturnThis(),
           maybeSingle: jest.fn().mockResolvedValue({
             data: mockDoctorData,
+            error: null,
+          }),
+          order: jest.fn().mockResolvedValue({
+            data: mockMedicosReferentes,
             error: null,
           }),
         };
@@ -135,10 +146,13 @@ beforeEach(() => {
   mockAuthEmpleadoData = null;
   mockEmpleadoData = {
     id_empleado: 7,
-    nombre: 'Tecnico Rayos',
-    rol: 'tecnico_radiologia',
+    nombre: 'Radiologo Principal',
+    rol: 'radiologo',
   };
   mockDoctorData = null;
+  mockTecnicosAsignables = [];
+  mockRadiologosAsignables = [];
+  mockMedicosReferentes = [];
   mockSidebarState = {
     sidebarOpen: false,
     setSidebarOpen: mockSetSidebarOpen,
@@ -218,6 +232,44 @@ test('shows operational filters and keeps card details behind the three-dot acti
   fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
 
   expect(screen.getByRole('heading', { name: /Detalle del estudio/i })).toBeInTheDocument();
+});
+
+test('lets an authorized user choose whether to assign a technician, referring doctor, or radiologist', async () => {
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Asignar estudio/i }));
+
+  expect(screen.getByRole('heading', { name: /Asignar estudio a/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Técnico/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Médico referente/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Radiólogo/i })).toBeInTheDocument();
+});
+
+test('assigns the selected technician to the study', async () => {
+  mockTecnicosAsignables = [{
+    id_empleado: 23,
+    nombre: 'Técnico Andrea',
+    rol: 'tecnico_radiologia',
+    especialidad: 'Tomografía',
+  }];
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Asignar estudio/i }));
+  fireEvent.click(screen.getByRole('button', { name: /Técnico/i }));
+
+  await waitFor(() => expect(screen.getByText(/Técnico Andrea/i)).toBeInTheDocument());
+  expect(document.querySelector('.radiologia-modal-asignar')).toBeInTheDocument();
+  fireEvent.click(screen.getByText(/Técnico Andrea/i));
+  fireEvent.click(screen.getByRole('button', { name: /^Asignar Estudio$/ }));
+
+  await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+    id_tecnico: 23,
+    estado: 'ASIGNADO',
+  })));
 });
 
 test('uploads an image file to the pending radiology study', async () => {
