@@ -6,11 +6,11 @@ Persist the visual edits and annotations made to every DICOM image of a radiolog
 
 ## Scope
 
-Each saved state is associated with the study and its individual `estudio_dicom_imagenes.id_imagen`. It includes viewport changes (window/level, zoom, pan, inversion, rotation, horizontal/vertical flips) and overlay content (lengths, text annotations, angles, ellipses, rectangles, and bidirectional measurements).
+Each saved state is associated with the study and its individual image key. The key is the DICOM metadata row when it exists and otherwise the image storage path, which also covers legacy single-file studies. It includes viewport changes (window/level, zoom, pan, inversion, rotation, horizontal/vertical flips) and overlay content (lengths, text annotations, angles, ellipses, rectangles, and bidirectional measurements).
 
 ## Storage
 
-Create a dedicated database table keyed by `id_estudio` and `id_imagen`. It stores one versioned JSON state document per image, along with timestamps and the user who last changed it. This avoids mixing many image states into the study record and keeps the image metadata table immutable.
+Create a dedicated database table keyed by `id_estudio` and a stable image storage path, with an optional `id_imagen` reference when DICOM metadata exists. It stores one versioned JSON state document per image, along with timestamps and the user who last changed it. This avoids mixing many image states into the study record and keeps the image metadata table immutable.
 
 ## User Interaction
 
