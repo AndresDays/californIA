@@ -33,6 +33,7 @@ export default function Mpr2dViewer({
 	const geometriasCacheRef = useRef(new Map());
 	const puntoAnatomicoRef = useRef(null);
 	const mprInicializadoRef = useRef(false);
+	const seriesInicializadasRef = useRef(false);
 	const indicesRef = useRef([]);
 	const navegacionRef = useRef(0);
 	const ruedaRef = useRef(null);
@@ -174,6 +175,18 @@ export default function Mpr2dViewer({
 		mprInicializadoRef.current = false;
 		puntoAnatomicoRef.current = null;
 		setPuntoAnatomico(null);
+		const seriesListas =
+			seriesSeleccionadas.length === vistas.length &&
+			seriesSeleccionadas.every((id) => series.some((serie) => serie.id === id));
+		if (!seriesListas) return;
+		if (!restaurarIndices && !seriesInicializadasRef.current) {
+			const iniciales = obtenerIndicesInicialesMpr(obtenerTotales());
+			seriesInicializadasRef.current = true;
+			indicesRef.current = iniciales;
+			setIndices(iniciales);
+			onIndicesChange?.(iniciales);
+			return;
+		}
 		setIndices((actual) =>
 			actual.map((indice, panel) =>
 				Math.min(indice, Math.max(0, (serieDe(panel).imageIds?.length || 1) - 1)),
