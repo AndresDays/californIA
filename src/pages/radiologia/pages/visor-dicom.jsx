@@ -475,6 +475,20 @@ const PanelDicom = ({
 		};
 	}, []);
 
+	const aplicarPresetVentana = () => {
+		const preset = PRESETS_VENTANA.find((item) => item.id === presetVentanaId);
+		const cs = csRef.current;
+		const el = divRef.current;
+		if (!preset || !enabledRef.current || !cs || !el) return;
+		const vp = cs.getViewport(el);
+		if (!vp) return;
+		cs.setViewport(el, {
+			...vp,
+			voi: { ...vp.voi, windowWidth: preset.ancho, windowCenter: preset.nivel },
+		});
+		cs.updateImage(el);
+	};
+
 	const cargarImagen = async (id) => {
 		const cs = csRef.current;
 		const el = divRef.current;
@@ -498,6 +512,7 @@ const PanelDicom = ({
 			if (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1) {
 				cs.setViewport(el, { ...vp, voi: { windowWidth: 2000, windowCenter: 0 } });
 			}
+			aplicarPresetVentana();
 			cs.resize(el, true);
 			sincronizarOverlay();
 		} catch (err) {
@@ -535,18 +550,9 @@ const PanelDicom = ({
 	}, [imageId, estadoVista]);
 
 	useEffect(() => {
-		const preset = PRESETS_VENTANA.find((item) => item.id === presetVentanaId);
-		const cs = csRef.current;
-		const el = divRef.current;
-		if (!preset || !imageId || !enabledRef.current || !cs || !el) return;
+		if (!imageId) return;
 		try {
-			const vp = cs.getViewport(el);
-			if (!vp) return;
-			cs.setViewport(el, {
-				...vp,
-				voi: { ...vp.voi, windowWidth: preset.ancho, windowCenter: preset.nivel },
-			});
-			cs.updateImage(el);
+			aplicarPresetVentana();
 		} catch {}
 	}, [imageId, presetVentanaId]);
 

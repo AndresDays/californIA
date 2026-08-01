@@ -552,6 +552,10 @@ describe('VisorDicom — W/L inicial por serie', () => {
   afterEach(() => {
     mockDicomImages = [];
     mockEstudioId = '123';
+    mockCornerstone.loadAndCacheImage.mockImplementation(() => Promise.resolve({
+      imageId: 'mock-id', columnPixelSpacing: 1, rowPixelSpacing: 1, width: 512, height: 512,
+    }));
+    mockCornerstone.displayImage.mockImplementation(() => {});
   });
 
   test('aplica CT - Pulmón al seleccionar una serie LUNG', async () => {
@@ -560,6 +564,31 @@ describe('VisorDicom — W/L inicial por serie', () => {
     mockCornerstone.setViewport.mockClear();
 
     fireEvent.click(screen.getAllByText('LUNG')[0].closest('button'));
+
+    await waitFor(() =>
+      expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          voi: expect.objectContaining({ windowWidth: 1500, windowCenter: -600 }),
+        }),
+      ),
+    );
+  });
+
+  test('aplica CT - Pulmón después de que termine de cargar la primera imagen', async () => {
+    let resolverCargaLung;
+    const imagenCargada = { imageId: 'mock-lung', width: 512, height: 512 };
+    const cargaLung = new Promise((resolve) => { resolverCargaLung = resolve; });
+    mockCornerstone.loadAndCacheImage.mockImplementation((imageId) =>
+      imageId.includes('/lung/') ? cargaLung : Promise.resolve(imagenCargada),
+    );
+    mockCornerstone.displayImage.mockImplementation(() => mockCornerstone.setViewport.mockClear());
+
+    await renderVisor();
+    await waitFor(() => expect(screen.getAllByText('LUNG')).not.toHaveLength(0));
+    fireEvent.click(screen.getAllByText('LUNG')[0].closest('button'));
+
+    await act(async () => { resolverCargaLung(imagenCargada); });
 
     await waitFor(() =>
       expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
