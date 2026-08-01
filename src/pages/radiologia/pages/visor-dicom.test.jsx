@@ -477,6 +477,53 @@ describe('VisorDicom — Scroll de serie', () => {
     expect(screen.getByTitle('Scroll')).toHaveClass('activo');
   });
 
+  test('el clic izquierdo conserva la herramienta fijada hasta volver a seleccionarla', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+    const panel = document.querySelector('.panel-imagen.activo');
+    const longitud = screen.getByTitle('Longitud');
+
+    fireEvent.click(longitud);
+    fireEvent.mouseDown(panel, { button: 0, clientX: 20, clientY: 20 });
+    expect(longitud).toHaveClass('activo');
+    expect(screen.getByTitle('W/L')).not.toHaveClass('activo');
+
+    fireEvent.mouseDown(panel, { button: 2, clientX: 20, clientY: 20 });
+    fireEvent.mouseUp(panel, { button: 2, clientX: 20, clientY: 20 });
+    expect(longitud).toHaveClass('activo');
+
+    fireEvent.click(longitud);
+    expect(longitud).not.toHaveClass('activo');
+    fireEvent.mouseDown(panel, { button: 0, clientX: 20, clientY: 20 });
+    expect(screen.getByTitle('W/L')).toHaveClass('activo');
+  });
+
+  test('la rueda navega la serie sin desactivar Longitud', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+    const panel = document.querySelector('.panel-imagen.activo');
+    const longitud = screen.getByTitle('Longitud');
+
+    fireEvent.click(longitud);
+    fireEvent.wheel(panel, { deltaY: 120 });
+
+    await waitFor(() =>
+      expect(screen.getByRole('slider', { name: 'Posición de imagen en la serie' })).toHaveAttribute(
+        'aria-valuenow',
+        '2',
+      ),
+    );
+    expect(longitud).toHaveClass('activo');
+  });
+
   test('Scroll hacia arriba retrocede y se detiene en los extremos de la serie', async () => {
     const nowSpy = jest.spyOn(Date, 'now');
     nowSpy.mockReturnValue(1000);
@@ -534,6 +581,100 @@ describe('VisorDicom — Scroll de serie', () => {
     expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ scale: 1.1 }),
+    );
+  });
+});
+
+describe('VisorDicom — W/L inicial por serie', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+    mockEstudioId = 'wl-inicial-lung';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'axial/1.dcm', series_instance_uid: 'axial', series_description: 'AXIAL 5 MM', instance_number: 1, modality: 'CT' },
+      { id_imagen: 2, storage_path: 'lung/1.dcm', series_instance_uid: 'lung', series_description: 'LUNG', instance_number: 1, modality: 'CT' },
+    ];
+  });
+
+  afterEach(() => {
+    mockDicomImages = [];
+    mockEstudioId = '123';
+    mockCornerstone.loadAndCacheImage.mockImplementation(() => Promise.resolve({
+      imageId: 'mock-id', columnPixelSpacing: 1, rowPixelSpacing: 1, width: 512, height: 512,
+    }));
+    mockCornerstone.displayImage.mockImplementation(() => {});
+    mockCornerstone.getViewport.mockImplementation(() => ({
+      scale: 1,
+      voi: { windowWidth: 400, windowCenter: 40 },
+      translation: { x: 0, y: 0 },
+    }));
+  });
+
+  test('aplica CT - Pulmón al seleccionar una serie LUNG', async () => {
+    await renderVisor();
+    await waitFor(() => expect(screen.getAllByText('LUNG')).not.toHaveLength(0));
+    mockCornerstone.setViewport.mockClear();
+
+    fireEvent.click(screen.getAllByText('LUNG')[0].closest('button'));
+
+    await waitFor(() =>
+      expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          voi: expect.objectContaining({ windowWidth: 1500, windowCenter: -600 }),
+        }),
+      ),
+    );
+  });
+
+  test('aplica CT - Pulmón después de que termine de cargar la primera imagen', async () => {
+    let resolverCargaLung;
+    const imagenCargada = { imageId: 'mock-lung', width: 512, height: 512 };
+    const cargaLung = new Promise((resolve) => { resolverCargaLung = resolve; });
+    mockCornerstone.loadAndCacheImage.mockImplementation((imageId) =>
+      imageId.includes('/lung/') ? cargaLung : Promise.resolve(imagenCargada),
+    );
+    mockCornerstone.displayImage.mockImplementation(() => mockCornerstone.setViewport.mockClear());
+
+    await renderVisor();
+    await waitFor(() => expect(screen.getAllByText('LUNG')).not.toHaveLength(0));
+    fireEvent.click(screen.getAllByText('LUNG')[0].closest('button'));
+
+    await act(async () => { resolverCargaLung(imagenCargada); });
+
+    await waitFor(() =>
+      expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          voi: expect.objectContaining({ windowWidth: 1500, windowCenter: -600 }),
+        }),
+      ),
+    );
+  });
+
+  test('conserva el W/L nativo al abrir la primera serie SCOUT', async () => {
+    mockEstudioId = 'wl-inicial-scout';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'scout/1.dcm', series_instance_uid: 'scout', series_description: 'SCOUT', instance_number: 1, modality: 'CT' },
+    ];
+    mockCornerstone.getViewport.mockImplementation(() => ({
+      scale: 1,
+      voi: { windowWidth: 0, windowCenter: 0 },
+      translation: { x: 0, y: 0 },
+    }));
+
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/scout/1.dcm',
+      ),
+    );
+
+    expect(mockCornerstone.setViewport).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        voi: expect.objectContaining({ windowWidth: 2000, windowCenter: 0 }),
+      }),
     );
   });
 });

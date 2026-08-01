@@ -2,6 +2,7 @@ import {
   agruparImagenesDicomPorSerie,
   normalizarModalidadVisor,
   normalizarStoragePathDicom,
+  obtenerPresetVentanaInicialSerie,
   obtenerSerieFuenteMpr,
   ordenarSeriesParaMpr,
   ordenarImagenesDicom,
@@ -16,6 +17,18 @@ test("normaliza rutas publicas de Supabase a storage_path", () => {
 test("detecta modalidades de resonancia y ultrasonido desde descripcion o DICOM", () => {
   expect(normalizarModalidadVisor({ dicomModality: "MR" })).toBe("Resonancia Magnetica");
   expect(normalizarModalidadVisor({ descripcion: "Ultrasonido obstetrico" })).toBe("Ultrasonido");
+});
+
+test("obtiene presets CT a partir de la etiqueta de una serie", () => {
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "Tomografia", label: "LUNG" })).toBe("ct-pulmon");
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "BONE" })).toBe("ct-hueso");
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "CEREBRO" })).toBe("ct-cerebro");
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "SCOUT" })).toBe("nativo");
+});
+
+test("no fuerza preset para series no CT o sin etiqueta clinica conocida", () => {
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "MR", label: "LUNG" })).toBeNull();
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "AXIAL 5 MM" })).toBeNull();
 });
 
 test("ordena imagenes por instancia y agrupa por serie", () => {
