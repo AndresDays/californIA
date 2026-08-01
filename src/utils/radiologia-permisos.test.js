@@ -45,6 +45,13 @@ describe("radiologia-permisos", () => {
 		expect(puedeSubirImagenRadiologia({ rol: "tecnico_radiologia" })).toBe(true);
 	});
 
+	test("radiologo clinico puede subir e interpretar sin asignar responsables", () => {
+		const radiologoClinico = { rol: "radiologo_clinico" };
+		expect(puedeSubirImagenRadiologia(radiologoClinico)).toBe(true);
+		expect(puedeInterpretarRadiologia(radiologoClinico)).toBe(true);
+		expect(puedeAsignarRadiologia(radiologoClinico)).toBe(false);
+	});
+
 	test("admin y radiologo pueden asignar responsables aunque el rol venga con texto de UI", () => {
 		expect(puedeAsignarRadiologia({ rol: "Administrador" })).toBe(true);
 		expect(puedeAsignarRadiologia({ rol: "Radiólogo - Director" })).toBe(true);

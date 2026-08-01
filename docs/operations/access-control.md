@@ -61,14 +61,14 @@ service role keys, recovery codes ni secretos.
   - La llave privada de Age para restauracion debe guardarse fuera del repo y
     tratarse como secreto critico.
 
-## Twilio
+## Infobip
 
 - Uso: WhatsApp para recordatorios y confirmacion/cancelacion de citas.
 - Responsable actual: Andres Diaz.
 - Notas:
-  - Los tokens de Twilio deben vivir como secretos de Supabase Edge Functions.
-  - No guardar credenciales de Twilio en el frontend.
-  - En sandbox, solo reciben mensajes los telefonos unidos al sandbox.
+  - La API key de Infobip debe vivir como secreto de Supabase Edge Functions y tener solo el alcance `whatsapp:message:send`.
+  - No guardar credenciales de Infobip ni secretos de webhook en el frontend.
+  - Los webhooks de Infobip deben incluir el encabezado de autorizacion configurado en `INFOBIP_WEBHOOK_SECRET`.
 
 ## Sentry
 
@@ -87,7 +87,7 @@ Cuando una persona deje de colaborar en el proyecto:
 1. Remover acceso de Vercel.
 2. Remover acceso de Supabase.
 3. Remover acceso de AWS IAM Identity Center.
-4. Remover acceso de Twilio.
+4. Remover acceso de Infobip.
 5. Remover acceso de Sentry.
 6. Rotar secretos si la persona tuvo acceso a llaves administrativas.
 7. Revisar que no queden sesiones o tokens personales activos.

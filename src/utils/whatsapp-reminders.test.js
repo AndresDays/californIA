@@ -1,6 +1,8 @@
 import {
 	construirMensajeRecordatorio,
+	construirPayloadTemplateInfobip,
 	construirVariablesTemplateRecordatorio,
+	obtenerIdMensajeInfobip,
 	obtenerVentanaRecordatorio,
 	normalizarTelefonoWhatsapp,
 } from "./whatsapp-reminders";
@@ -15,10 +17,10 @@ describe("whatsapp-reminders", () => {
 		});
 	});
 
-	test("normaliza telefonos mexicanos a formato whatsapp de Twilio", () => {
-		expect(normalizarTelefonoWhatsapp("322 123 4567")).toBe("whatsapp:+5213221234567");
-		expect(normalizarTelefonoWhatsapp("+52 322 123 4567")).toBe("whatsapp:+5213221234567");
-		expect(normalizarTelefonoWhatsapp("+521 322 123 4567")).toBe("whatsapp:+5213221234567");
+	test("normaliza telefonos mexicanos a formato E.164 de Infobip", () => {
+		expect(normalizarTelefonoWhatsapp("322 123 4567")).toBe("5213221234567");
+		expect(normalizarTelefonoWhatsapp("+52 322 123 4567")).toBe("5213221234567");
+		expect(normalizarTelefonoWhatsapp("+521 322 123 4567")).toBe("5213221234567");
 	});
 
 	test("regresa null cuando el telefono no tiene 10 digitos utiles", () => {
@@ -38,12 +40,45 @@ describe("whatsapp-reminders", () => {
 		);
 	});
 
-	test("construye variables para el template de Twilio", () => {
+	test("construye variables para el template de recordatorio", () => {
 		expect(
 			construirVariablesTemplateRecordatorio("2026-06-24 13:50:00"),
 		).toEqual({
 			1: "24/6",
 			2: "13:50",
 		});
+	});
+
+	test("construye el payload de plantilla Utility de Infobip", () => {
+		expect(
+			construirPayloadTemplateInfobip({
+				from: "5213221234567",
+				to: "5213227654321",
+				templateName: "recordatorio_cita",
+				language: "es_MX",
+				fechaEstudio: "2026-06-24 13:50:00",
+			}),
+		).toEqual({
+			messages: [{
+				from: "5213221234567",
+				to: "5213227654321",
+				content: {
+					templateName: "recordatorio_cita",
+					templateData: {
+						body: { placeholders: ["24/6", "13:50"] },
+						buttons: [
+							{ type: "QUICK_REPLY", parameter: "confirmar_cita" },
+							{ type: "QUICK_REPLY", parameter: "cancelar_cita" },
+						],
+					},
+					language: "es_MX",
+				},
+			}],
+		});
+	});
+
+	test("obtiene el identificador del mensaje encolado por Infobip", () => {
+		expect(obtenerIdMensajeInfobip({ messages: [{ messageId: "infobip-123" }] })).toBe("infobip-123");
+		expect(obtenerIdMensajeInfobip({ messages: [] })).toBeNull();
 	});
 });

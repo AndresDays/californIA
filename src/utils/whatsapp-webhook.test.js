@@ -1,4 +1,5 @@
 import {
+	extraerRespuestaInfobip,
 	normalizarTelefonoDesdeWhatsapp,
 	obtenerAccionConfirmacionWhatsapp,
 } from "./whatsapp-webhook";
@@ -30,5 +31,30 @@ describe("whatsapp-webhook", () => {
 
 	test("ignora respuestas no soportadas", () => {
 		expect(obtenerAccionConfirmacionWhatsapp({ body: "hola" })).toBeNull();
+	});
+
+	test("extrae una confirmacion de un webhook JSON de Infobip", () => {
+		expect(extraerRespuestaInfobip({
+			results: [{
+				from: "5213221939613",
+				messageId: "inbound-123",
+				message: {
+					type: "INTERACTIVE",
+					interactive: {
+						type: "BUTTON_REPLY",
+						buttonReply: { id: "confirmar_cita" },
+					},
+				},
+			}],
+		})).toEqual({
+			telefono: "3221939613",
+			messageId: "inbound-123",
+			buttonPayload: "confirmar_cita",
+			body: null,
+		});
+	});
+
+	test("ignora un webhook de Infobip sin resultados", () => {
+		expect(extraerRespuestaInfobip({ results: [] })).toBeNull();
 	});
 });

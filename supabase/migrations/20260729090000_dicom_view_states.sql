@@ -15,6 +15,9 @@ create index if not exists idx_estudio_dicom_estados_vista_estudio
 
 alter table public.estudio_dicom_estados_vista enable row level security;
 
+drop policy if exists estudio_dicom_estados_vista_operacion_interna
+  on public.estudio_dicom_estados_vista;
+
 create policy estudio_dicom_estados_vista_operacion_interna
   on public.estudio_dicom_estados_vista for all to authenticated
   using (public.es_empleado_interno_activo())
@@ -28,6 +31,9 @@ begin
   return new;
 end;
 $$;
+
+drop trigger if exists trg_actualizar_estudio_dicom_estado_vista
+  on public.estudio_dicom_estados_vista;
 
 create trigger trg_actualizar_estudio_dicom_estado_vista
   before insert or update on public.estudio_dicom_estados_vista

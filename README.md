@@ -20,7 +20,7 @@ El proyecto de staging usa su propio proyecto de Supabase y nunca debe reutiliza
 2. En Supabase, abre **Settings > API** del proyecto staging y toma su `Project URL` y publishable key.
 3. En Vercel, configura `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` para **Preview**, restringidas a la rama `staging`.
 4. En Supabase Auth agrega `https://staging.californiadiagnostica.com` a los Redirect URLs.
-5. Configura WhatsApp solo con sandbox de staging o deja sus secretos sin definir. Nunca copies las credenciales de Twilio de produccion.
+5. Configura WhatsApp solo con el remitente compartido de prueba de Infobip o deja sus secretos sin definir. Nunca copies credenciales de Infobip de produccion.
 6. Para revisar las tablas requeridas, usa una URL de conexion de staging solo en tu terminal:
 
    ```bash
