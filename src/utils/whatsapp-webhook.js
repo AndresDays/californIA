@@ -24,3 +24,16 @@ export const obtenerAccionConfirmacionWhatsapp = ({ buttonPayload, body } = {}) 
 	}
 	return null;
 };
+
+export const extraerRespuestaInfobip = (payload, codigoPais = "52") => {
+	const resultado = payload?.results?.[0];
+	if (!resultado?.from || !resultado?.messageId || !resultado?.message) return null;
+
+	const mensaje = resultado.message;
+	const buttonPayload = mensaje?.interactive?.buttonReply?.id || null;
+	const body = mensaje.type === "TEXT" ? mensaje.text || null : null;
+	const telefono = normalizarTelefonoDesdeWhatsapp(resultado.from, codigoPais);
+
+	if (!telefono || (!buttonPayload && !body)) return null;
+	return { telefono, messageId: resultado.messageId, buttonPayload, body };
+};

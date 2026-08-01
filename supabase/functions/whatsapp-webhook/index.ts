@@ -1,11 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { validarFirmaTwilio } from "../_shared/twilio-signature.js";
+import { esSecretoBearerValido } from "../_shared/request-auth.js";
 
-const twiml = (message = "", status = 200) =>
-	new Response(`<Response>${message ? `<Message>${message}</Message>` : ""}</Response>`, {
-		status,
-		headers: { "Content-Type": "text/xml" },
-	});
+const respuestaVacia = (status = 200) => new Response(null, { status });
 
 const normalizarTelefonoDesdeWhatsapp = (telefono: unknown, codigoPais = "52") => {
 	const digitos = String(telefono || "").replace(/\D/g, "");
@@ -51,34 +47,46 @@ const obtenerAccionConfirmacionWhatsapp = ({
 	return null;
 };
 
+const extraerRespuestaInfobip = (payload: unknown, codigoPais: string) => {
+	const resultado = (payload as { results?: Array<Record<string, unknown>> })?.results?.[0];
+	const mensaje = resultado?.message as {
+		type?: string;
+		text?: string;
+		interactive?: { buttonReply?: { id?: string } };
+	} | undefined;
+	const from = resultado?.from as string | undefined;
+	const messageId = resultado?.messageId as string | undefined;
+	if (!from || !messageId || !mensaje) return null;
+
+	const buttonPayload = mensaje.interactive?.buttonReply?.id || null;
+	const body = mensaje.type === "TEXT" ? mensaje.text || null : null;
+	const telefono = normalizarTelefonoDesdeWhatsapp(from, codigoPais);
+	if (!telefono || (!buttonPayload && !body)) return null;
+	return { telefono, messageId, buttonPayload, body };
+};
+
 Deno.serve(async (req) => {
-	if (req.method !== "POST") return twiml();
+	if (req.method !== "POST") return respuestaVacia(405);
 
 	const supabaseUrl = Deno.env.get("SUPABASE_URL");
 	const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-	const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-	const twilioWebhookUrl = Deno.env.get("TWILIO_WEBHOOK_URL");
+	const infobipWebhookSecret = Deno.env.get("INFOBIP_WEBHOOK_SECRET");
 	const codigoPais = Deno.env.get("WHATSAPP_DEFAULT_COUNTRY_CODE") || "52";
 
-	if (!supabaseUrl || !serviceRoleKey || !twilioAuthToken || !twilioWebhookUrl) {
-		return twiml("No pudimos procesar tu respuesta en este momento.");
+	if (!supabaseUrl || !serviceRoleKey || !infobipWebhookSecret) {
+		return respuestaVacia(500);
+	}
+	if (!esSecretoBearerValido(req.headers.get("Authorization"), infobipWebhookSecret)) {
+		return respuestaVacia(403);
 	}
 
-	const rawBody = await req.text();
-	const params = new URLSearchParams(rawBody);
-	const firma = req.headers.get("X-Twilio-Signature");
-	if (!(await validarFirmaTwilio(twilioAuthToken, firma, twilioWebhookUrl, params))) {
-		return twiml("", 403);
-	}
-	const from = params.get("From");
-	const body = params.get("Body");
-	const buttonPayload = params.get("ButtonPayload") || params.get("ButtonText");
-	const messageSid = params.get("MessageSid") || params.get("SmsSid");
+	const payload = await req.json().catch(() => null);
+	const respuesta = extraerRespuestaInfobip(payload, codigoPais);
+	if (!respuesta) return respuestaVacia();
 
-	const telefono = normalizarTelefonoDesdeWhatsapp(from, codigoPais);
-	const accion = obtenerAccionConfirmacionWhatsapp({ buttonPayload, body });
+	const accion = obtenerAccionConfirmacionWhatsapp(respuesta);
 
-	if (!telefono || !accion || !messageSid) return twiml();
+	if (!accion) return respuestaVacia();
 
 	const supabase = createClient(supabaseUrl, serviceRoleKey, {
 		auth: { autoRefreshToken: false, persistSession: false },
@@ -87,7 +95,7 @@ Deno.serve(async (req) => {
 	const { data: cita, error: citaError } = await supabase
 		.from("citas")
 		.select("id_cita")
-		.eq("telefono_paciente", telefono)
+		.eq("telefono_paciente", respuesta.telefono)
 		.not("whatsapp_recordatorio_enviado_at", "is", null)
 		.eq("whatsapp_confirmacion_estado", "pendiente")
 		.is("whatsapp_respuesta_sid", null)
@@ -96,7 +104,7 @@ Deno.serve(async (req) => {
 		.maybeSingle();
 
 	if (citaError || !cita?.id_cita) {
-		return twiml("No encontramos una cita pendiente para este telefono.");
+		return respuestaVacia();
 	}
 
 	const { error: updateError } = await supabase
@@ -104,16 +112,16 @@ Deno.serve(async (req) => {
 		.update({
 			estado: accion.estadoCita,
 			whatsapp_confirmacion_estado: accion.estadoWhatsapp,
-			whatsapp_confirmacion_respuesta: buttonPayload || body || null,
+			whatsapp_confirmacion_respuesta: respuesta.buttonPayload || respuesta.body,
 			whatsapp_confirmacion_at: new Date().toISOString(),
-			whatsapp_respuesta_sid: messageSid,
+			whatsapp_respuesta_sid: respuesta.messageId,
 		})
 		.eq("id_cita", cita.id_cita)
 		.is("whatsapp_respuesta_sid", null);
 
 	if (updateError) {
-		return twiml("No pudimos procesar tu respuesta en este momento.");
+		return respuestaVacia(500);
 	}
 
-	return twiml(accion.respuesta);
+	return respuestaVacia();
 });
