@@ -507,7 +507,7 @@ const PanelDicom = ({
 			cs.displayImage(el, image);
 			const estado = leerEstadoVistaDicom(estadoVista);
 			if (estado) {
-				cs.setViewport(el, estado.viewport);
+				if (presetVentanaId !== "nativo") cs.setViewport(el, estado.viewport);
 				medicionRef.current.lineas = estado.overlays.lineas || [];
 				anotacionRef.current.anotaciones = estado.overlays.anotaciones || [];
 				anguloRef.current.angulos = estado.overlays.angulos || [];
