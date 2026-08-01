@@ -122,3 +122,12 @@ test("limits external doctor to radiology and assigned-study viewer routes", () 
 	expect(puedeAccederRuta("doctor_externo", "/usuarios")).toBe(false);
 	expect(puedeAccederRuta("doctor_externo", "/reporte-ventas")).toBe(false);
 });
+
+test("limits radiologo clinico to radiology, viewer, and report routes", () => {
+	expect(filtrarMenuPorRol(menu, "radiologo_clinico")).toEqual([]);
+	expect(puedeAccederRuta("radiologo_clinico", "/radiologia")).toBe(true);
+	expect(puedeAccederRuta("radiologo_clinico", "/visor-dicom/123")).toBe(true);
+	expect(puedeAccederRuta("radiologo_clinico", "/reporte")).toBe(true);
+	expect(puedeAccederRuta("radiologo_clinico", "/dashboard")).toBe(false);
+	expect(puedeAccederRuta("radiologo_clinico", "/usuarios")).toBe(false);
+});

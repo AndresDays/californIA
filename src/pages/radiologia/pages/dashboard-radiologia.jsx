@@ -419,7 +419,16 @@ const DashboardRadiologia = () => {
 
       const archivoPathPrincipal = imagenesSubidas[0]?.storage_path;
 
-      if (imagenesSubidas.length > 0) {
+      const esRadiologoClinico = normalizarRolPermisos(empleadoData?.rol) === 'radiologo_clinico';
+
+      if (imagenesSubidas.length > 0 && esRadiologoClinico) {
+        const { error: registroError } = await supabase.rpc('registrar_imagenes_radiologo_clinico', {
+          p_id_estudio: estudio.id,
+          p_imagenes: imagenesSubidas,
+        });
+
+        if (registroError) throw registroError;
+      } else if (imagenesSubidas.length > 0) {
         const { error: insertImagenesError } = await supabase
           .from('estudio_dicom_imagenes')
           .insert(imagenesSubidas);
@@ -427,18 +436,20 @@ const DashboardRadiologia = () => {
         if (insertImagenesError) throw insertImagenesError;
       }
 
-      const { error: updateError } = await supabase
-        .from('estudios_radiologia')
-        .update({
-          storage_path: archivoPathPrincipal,
-          estado: 'EN PROCESO',
-          ...(empleadoData?.id_empleado ? { id_tecnico: empleadoData.id_empleado } : {}),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id_estudio', estudio.id);
+      if (!esRadiologoClinico) {
+        const { error: updateError } = await supabase
+          .from('estudios_radiologia')
+          .update({
+            storage_path: archivoPathPrincipal,
+            estado: 'EN PROCESO',
+            ...(empleadoData?.id_empleado ? { id_tecnico: empleadoData.id_empleado } : {}),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id_estudio', estudio.id);
 
-      if (updateError) throw updateError;
-      await registrarEventoSolicitud(supabase, {
+        if (updateError) throw updateError;
+      }
+      if (!esRadiologoClinico) await registrarEventoSolicitud(supabase, {
         id_venta: estudio.idVenta,
         evento: EVENTOS_SOLICITUD.IMAGEN_SUBIDA,
         descripcion: `Imagen subida para ${estudio.descripcionEstudio || estudio.tipoEstudio}`,

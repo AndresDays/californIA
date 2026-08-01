@@ -46,6 +46,7 @@ import {
 	puedeEditarReporteRadiologia,
 	puedeVerReporteRadiologia,
 } from "../../../utils/radiologia-permisos";
+import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import Mpr2dViewer from "../componentes/Mpr2dViewer";
@@ -4121,13 +4122,26 @@ const VisorDicom = () => {
 			return;
 		}
 		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
+		const idEstudio = estudioId || estudioData?.id;
+		if (esRadiologoClinicoPermisos(empleadoData?.rol)) {
+			const { error } = await supabase.rpc("actualizar_reporte_radiologo_clinico", {
+				p_id_estudio: Number(idEstudio),
+				p_reporte: textoReporte,
+				p_estado: "COMPLETADO",
+			});
+			if (error) showNotif("Error al guardar el reporte", "error");
+			else {
+				setReporteTexto(textoReporte);
+				showNotif("Reporte guardado", "success");
+			}
+			return;
+		}
 		const actualizarReporte = (payload) =>
 			supabase
 				.from("estudios_radiologia")
 				.update(payload)
 				.eq("id_estudio", estudioId || estudioData?.id);
 		const actualizadoEn = new Date().toISOString();
-		const idEstudio = estudioId || estudioData?.id;
 		let payloadReporte = {
 			reporte: textoReporte,
 			estado: "COMPLETADO",

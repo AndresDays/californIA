@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../../../context/auth-context";
+import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import "./ReporteRadiologia.css";
 
@@ -64,6 +66,7 @@ const Separator = () => <div className="rr-tool-sep" />;
 
 const ReporteRadiologia = () => {
 	const [searchParams] = useSearchParams();
+	const { empleadoData } = useAuth();
 	const editorRef = useRef(null);
 
 	const nombrePaciente = searchParams.get("nombrePaciente") || "";
@@ -190,10 +193,17 @@ const ReporteRadiologia = () => {
 	const guardar = async (borrador = false) => {
 		setGuardando(true);
 		const texto = editorRef.current?.innerText || "";
-		const { error } = await getSupabase()
-			.from("estudios_radiologia")
-			.update({ reporte: texto, updated_at: new Date().toISOString() })
-			.eq("id_estudio", idEstudio);
+		const cliente = getSupabase();
+		const { error } = esRadiologoClinicoPermisos(empleadoData?.rol)
+			? await cliente.rpc("actualizar_reporte_radiologo_clinico", {
+				p_id_estudio: Number(idEstudio),
+				p_reporte: texto,
+				p_estado: "COMPLETADO",
+			})
+			: await cliente
+				.from("estudios_radiologia")
+				.update({ reporte: texto, updated_at: new Date().toISOString() })
+				.eq("id_estudio", idEstudio);
 		setGuardando(false);
 		if (error) showNotif("Error al guardar", "err");
 		else showNotif(borrador ? "Borrador guardado" : "Reporte guardado", "ok");

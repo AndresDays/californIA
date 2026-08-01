@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
-import { esDoctorExternoPermisos, puedeAccederRuta } from '../utils/role-permissions'
+import { esDoctorExternoPermisos, esRadiologoClinicoPermisos, puedeAccederRuta } from '../utils/role-permissions'
 import { LoadingSpinner } from './app-boundary'
 
 const ProtectedRoute = ({ children }) => {
@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!puedeAccederRuta(empleadoData?.rol, pathname)) {
-    if (esDoctorExternoPermisos(empleadoData?.rol)) {
+    if (esDoctorExternoPermisos(empleadoData?.rol) || esRadiologoClinicoPermisos(empleadoData?.rol)) {
       return <Navigate to="/radiologia" replace />
     }
     return <Navigate to="/dashboard" replace />

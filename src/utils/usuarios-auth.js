@@ -13,6 +13,8 @@ export const normalizarRolUsuario = (rol) => {
 		administrador: "admin",
 		radiologo: "radiologo",
 		"radiologo director": "radiologo",
+		radiologo_clinico: "radiologo_clinico",
+		"radiologo clinico": "radiologo_clinico",
 		doctor: "medico",
 		medico: "medico",
 		"tecnico radiologia": "tecnico_radiologia",
