@@ -29,6 +29,7 @@ import {
 	agruparImagenesDicomPorSerie,
 	crearImagenDicomFallback,
 	normalizarStoragePathDicom,
+	obtenerPresetVentanaInicialSerie,
 	obtenerSerieFuenteMpr,
 	ordenarSeriesParaMpr,
 } from "../../../utils/dicom-series";
@@ -3076,8 +3077,13 @@ const VisorDicom = () => {
 
 	const seleccionarSerieDicom = (serie, panelObjetivo = panelActivo) => {
 		if (!serie?.imageIds?.length) return;
+		const presetInicial = obtenerPresetVentanaInicialSerie(serie);
 		setSerieActivaId(serie.id);
 		setImageIds(serie.imageIds);
+		setPresetsVentanaPorSerie((prev) => {
+			if (!presetInicial || prev[serie.id]) return prev;
+			return { ...prev, [serie.id]: presetInicial };
+		});
 		setPanelImageIds((prev) => {
 			const n = [...prev];
 			n[panelObjetivo] = serie.imageIds[0];

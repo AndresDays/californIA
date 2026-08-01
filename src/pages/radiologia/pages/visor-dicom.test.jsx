@@ -538,6 +538,43 @@ describe('VisorDicom — Scroll de serie', () => {
   });
 });
 
+describe('VisorDicom — W/L inicial por serie', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+    mockEstudioId = '123';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'axial/1.dcm', series_instance_uid: 'axial', series_description: 'AXIAL 5 MM', instance_number: 1, modality: 'CT' },
+      { id_imagen: 2, storage_path: 'lung/1.dcm', series_instance_uid: 'lung', series_description: 'LUNG', instance_number: 1, modality: 'CT' },
+    ];
+  });
+
+  afterEach(() => {
+    mockDicomImages = [];
+  });
+
+  test('aplica CT - Pulmón al seleccionar una serie LUNG', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/axial/1.dcm',
+      ),
+    );
+    mockCornerstone.setViewport.mockClear();
+
+    fireEvent.click(screen.getAllByText('LUNG')[0].closest('button'));
+
+    await waitFor(() =>
+      expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          voi: expect.objectContaining({ windowWidth: 1500, windowCenter: -600 }),
+        }),
+      ),
+    );
+  });
+});
+
 describe('VisorDicom — restauración de MPR', () => {
   beforeEach(() => {
     jest.clearAllMocks();
