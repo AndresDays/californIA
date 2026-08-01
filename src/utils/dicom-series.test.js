@@ -23,6 +23,7 @@ test("obtiene presets CT a partir de la etiqueta de una serie", () => {
   expect(obtenerPresetVentanaInicialSerie({ modalidad: "Tomografia", label: "LUNG" })).toBe("ct-pulmon");
   expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "BONE" })).toBe("ct-hueso");
   expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "CEREBRO" })).toBe("ct-cerebro");
+  expect(obtenerPresetVentanaInicialSerie({ modalidad: "CT", label: "SCOUT" })).toBe("nativo");
 });
 
 test("no fuerza preset para series no CT o sin etiqueta clinica conocida", () => {

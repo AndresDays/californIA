@@ -603,6 +603,11 @@ describe('VisorDicom — W/L inicial por serie', () => {
       imageId: 'mock-id', columnPixelSpacing: 1, rowPixelSpacing: 1, width: 512, height: 512,
     }));
     mockCornerstone.displayImage.mockImplementation(() => {});
+    mockCornerstone.getViewport.mockImplementation(() => ({
+      scale: 1,
+      voi: { windowWidth: 400, windowCenter: 40 },
+      translation: { x: 0, y: 0 },
+    }));
   });
 
   test('aplica CT - Pulmón al seleccionar una serie LUNG', async () => {
@@ -644,6 +649,32 @@ describe('VisorDicom — W/L inicial por serie', () => {
           voi: expect.objectContaining({ windowWidth: 1500, windowCenter: -600 }),
         }),
       ),
+    );
+  });
+
+  test('conserva el W/L nativo al abrir la primera serie SCOUT', async () => {
+    mockEstudioId = 'wl-inicial-scout';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'scout/1.dcm', series_instance_uid: 'scout', series_description: 'SCOUT', instance_number: 1, modality: 'CT' },
+    ];
+    mockCornerstone.getViewport.mockImplementation(() => ({
+      scale: 1,
+      voi: { windowWidth: 0, windowCenter: 0 },
+      translation: { x: 0, y: 0 },
+    }));
+
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/scout/1.dcm',
+      ),
+    );
+
+    expect(mockCornerstone.setViewport).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        voi: expect.objectContaining({ windowWidth: 2000, windowCenter: 0 }),
+      }),
     );
   });
 });

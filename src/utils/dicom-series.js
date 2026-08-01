@@ -23,6 +23,7 @@ export const obtenerPresetVentanaInicialSerie = (serie = {}) => {
   if (!/\b(ct|tomografia)\b/.test(modalidad)) return null;
 
   const etiqueta = textoBusqueda(serie.label, serie.descripcion);
+  if (/\b(scout|localiz(?:er|ador)?|topogram)\b/.test(etiqueta)) return "nativo";
   if (/\b(lung|pulmon)\b/.test(etiqueta)) return "ct-pulmon";
   if (/\b(bone|hueso)\b/.test(etiqueta)) return "ct-hueso";
   if (/\b(brain|cerebro)\b/.test(etiqueta)) return "ct-cerebro";

@@ -516,7 +516,7 @@ const PanelDicom = ({
 				bidiRef.current.bidis = estado.overlays.bidis || [];
 			}
 			const vp = cs.getViewport(el);
-			if (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1) {
+			if (presetVentanaId !== "nativo" && (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1)) {
 				cs.setViewport(el, { ...vp, voi: { windowWidth: 2000, windowCenter: 0 } });
 			}
 			aplicarPresetVentana();
@@ -3161,6 +3161,16 @@ const VisorDicom = () => {
 			setSeriesDicom(sesionGuardada.seriesDicom);
 			setImageIds(sesionGuardada.imageIds);
 			setSerieActivaId(sesionGuardada.serieActivaId);
+			const serieActivaGuardada = sesionGuardada.seriesDicom.find(
+				(serie) => serie.id === sesionGuardada.serieActivaId,
+			);
+			const presetSerieActivaGuardada = obtenerPresetVentanaInicialSerie(serieActivaGuardada);
+			if (presetSerieActivaGuardada) {
+				setPresetsVentanaPorSerie((prev) => ({
+					...prev,
+					[serieActivaGuardada.id]: presetSerieActivaGuardada,
+				}));
+			}
 			setPanelImageIds(sesionGuardada.panelImageIds);
 			setImagenesDicomPorId(sesionGuardada.imagenesDicomPorId);
 			setFormatoGrid(sesionGuardada.formatoGrid);
@@ -3250,10 +3260,14 @@ const VisorDicom = () => {
 			);
 			const series = agruparImagenesDicomPorSerie(imagenesConUrl, estudio);
 			const primeraSerie = series[0];
+			const presetPrimeraSerie = obtenerPresetVentanaInicialSerie(primeraSerie);
 			const sesionMpr = leerSesionMpr(idEstudio);
 			mprSesionEstudioRef.current = String(idEstudio);
 
 			setSeriesDicom(series);
+			if (presetPrimeraSerie) {
+				setPresetsVentanaPorSerie((prev) => ({ ...prev, [primeraSerie.id]: presetPrimeraSerie }));
+			}
 			const primerImageId = primeraSerie?.imageIds?.[0] || null;
 			const panelesIniciales = Array(6).fill(null);
 			panelesIniciales[0] = primerImageId;
