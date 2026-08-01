@@ -29,6 +29,7 @@ import {
 	agruparImagenesDicomPorSerie,
 	crearImagenDicomFallback,
 	normalizarStoragePathDicom,
+	obtenerPresetVentanaInicialSerie,
 	obtenerSerieFuenteMpr,
 	ordenarSeriesParaMpr,
 } from "../../../utils/dicom-series";
@@ -303,6 +304,7 @@ const PanelDicom = ({
 	stackImageIds,
 	onStackScroll,
 	herramienta,
+	herramientaFijada,
 	isActive,
 	resetCounter,
 	centrarCounter,
@@ -326,6 +328,8 @@ const PanelDicom = ({
 	const requestedImageIdRef = useRef(null);
 	const imageIdRef = useRef(imageId);
 	const herramientaRef = useRef(herramienta);
+	const herramientaFijadaRef = useRef(herramientaFijada);
+	const herramientaAntesZoomRef = useRef(null);
 	const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
 	const lastStackWheelRef = useRef(0);
 	const zoomTemporalRef = useRef(false);
@@ -401,6 +405,10 @@ const PanelDicom = ({
 	}, [herramienta]);
 
 	useEffect(() => {
+		herramientaFijadaRef.current = herramientaFijada;
+	}, [herramientaFijada]);
+
+	useEffect(() => {
 		imageIdRef.current = imageId;
 	}, [imageId]);
 
@@ -474,6 +482,20 @@ const PanelDicom = ({
 		};
 	}, []);
 
+	const aplicarPresetVentana = () => {
+		const preset = PRESETS_VENTANA.find((item) => item.id === presetVentanaId);
+		const cs = csRef.current;
+		const el = divRef.current;
+		if (!preset || !enabledRef.current || !cs || !el) return;
+		const vp = cs.getViewport(el);
+		if (!vp) return;
+		cs.setViewport(el, {
+			...vp,
+			voi: { ...vp.voi, windowWidth: preset.ancho, windowCenter: preset.nivel },
+		});
+		cs.updateImage(el);
+	};
+
 	const cargarImagen = async (id) => {
 		const cs = csRef.current;
 		const el = divRef.current;
@@ -485,7 +507,7 @@ const PanelDicom = ({
 			cs.displayImage(el, image);
 			const estado = leerEstadoVistaDicom(estadoVista);
 			if (estado) {
-				cs.setViewport(el, estado.viewport);
+				if (presetVentanaId !== "nativo") cs.setViewport(el, estado.viewport);
 				medicionRef.current.lineas = estado.overlays.lineas || [];
 				anotacionRef.current.anotaciones = estado.overlays.anotaciones || [];
 				anguloRef.current.angulos = estado.overlays.angulos || [];
@@ -494,9 +516,10 @@ const PanelDicom = ({
 				bidiRef.current.bidis = estado.overlays.bidis || [];
 			}
 			const vp = cs.getViewport(el);
-			if (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1) {
+			if (presetVentanaId !== "nativo" && (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1)) {
 				cs.setViewport(el, { ...vp, voi: { windowWidth: 2000, windowCenter: 0 } });
 			}
+			aplicarPresetVentana();
 			cs.resize(el, true);
 			sincronizarOverlay();
 		} catch (err) {
@@ -534,18 +557,9 @@ const PanelDicom = ({
 	}, [imageId, estadoVista]);
 
 	useEffect(() => {
-		const preset = PRESETS_VENTANA.find((item) => item.id === presetVentanaId);
-		const cs = csRef.current;
-		const el = divRef.current;
-		if (!preset || !imageId || !enabledRef.current || !cs || !el) return;
+		if (!imageId) return;
 		try {
-			const vp = cs.getViewport(el);
-			if (!vp) return;
-			cs.setViewport(el, {
-				...vp,
-				voi: { ...vp.voi, windowWidth: preset.ancho, windowCenter: preset.nivel },
-			});
-			cs.updateImage(el);
+			aplicarPresetVentana();
 		} catch {}
 	}, [imageId, presetVentanaId]);
 
@@ -1452,6 +1466,7 @@ const PanelDicom = ({
 			? (indiceImagenActual / (stackImageIds.length - 1)) * (100 - porcentajeThumbStack)
 			: 0;
 	const activarAtajo = (tool) => {
+		if (herramientaFijadaRef.current) return;
 		herramientaRef.current = tool;
 		onShortcutTool?.(tool);
 	};
@@ -1460,10 +1475,13 @@ const PanelDicom = ({
 		if (esSerieNavegable() && e.button === 2) {
 			e.preventDefault();
 			zoomTemporalRef.current = true;
-			activarAtajo("Zoom");
+			if (herramientaFijadaRef.current) {
+				herramientaAntesZoomRef.current = herramientaRef.current;
+				herramientaRef.current = "Zoom";
+			} else activarAtajo("Zoom");
 			return;
 		}
-		if (esSerieNavegable() && e.button === 0) activarAtajo("Wwwc");
+		if (esSerieNavegable() && e.button === 0 && !herramientaFijadaRef.current) activarAtajo("Wwwc");
 		const tool = herramientaRef.current;
 
 		if (tool === "Length") {
@@ -1673,10 +1691,6 @@ const PanelDicom = ({
 	};
 
 	const onContextMenu = (e) => {
-		if (esSerieNavegable()) {
-			e.preventDefault();
-			return;
-		}
 		e.preventDefault();
 		const pos = getCanvasPos(e);
 		const overlay = overlayRef.current;
@@ -1961,7 +1975,10 @@ const PanelDicom = ({
 	const onMouseUp = (e) => {
 		if (esSerieNavegable() && e.button === 2 && zoomTemporalRef.current) {
 			zoomTemporalRef.current = false;
-			activarAtajo("StackScroll");
+			if (herramientaFijadaRef.current) {
+				herramientaRef.current = herramientaAntesZoomRef.current;
+				herramientaAntesZoomRef.current = null;
+			} else activarAtajo("StackScroll");
 			return;
 		}
 		const tool = herramientaRef.current;
@@ -2109,9 +2126,7 @@ const PanelDicom = ({
 		const zoomTemporalActivo = zoomTemporalRef.current && (e.buttons & 2) === 2;
 		if (zoomTemporalRef.current && !zoomTemporalActivo) zoomTemporalRef.current = false;
 		if (esSerieNavegable() && !zoomTemporalActivo) {
-			activarAtajo("StackScroll");
-		}
-		if (herramientaRef.current === "StackScroll") {
+			if (!herramientaFijadaRef.current) activarAtajo("StackScroll");
 			if (stackImageIds.length < 2 || e.deltaY === 0) return;
 			const now = Date.now();
 			if (now - lastStackWheelRef.current < 120) return;
@@ -2742,6 +2757,7 @@ const VisorDicom = () => {
 	});
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
+	const [herramientaFijada, setHerramientaFijada] = useState(false);
 	const [formatoGrid, setFormatoGrid] = useState(FORMATOS[0]);
 	const [mprActivo, setMprActivo] = useState(false);
 	const [mprPanelActivo, setMprPanelActivo] = useState(0);
@@ -3076,8 +3092,13 @@ const VisorDicom = () => {
 
 	const seleccionarSerieDicom = (serie, panelObjetivo = panelActivo) => {
 		if (!serie?.imageIds?.length) return;
+		const presetInicial = obtenerPresetVentanaInicialSerie(serie);
 		setSerieActivaId(serie.id);
 		setImageIds(serie.imageIds);
+		setPresetsVentanaPorSerie((prev) => {
+			if (!presetInicial || prev[serie.id]) return prev;
+			return { ...prev, [serie.id]: presetInicial };
+		});
 		setPanelImageIds((prev) => {
 			const n = [...prev];
 			n[panelObjetivo] = serie.imageIds[0];
@@ -3140,6 +3161,16 @@ const VisorDicom = () => {
 			setSeriesDicom(sesionGuardada.seriesDicom);
 			setImageIds(sesionGuardada.imageIds);
 			setSerieActivaId(sesionGuardada.serieActivaId);
+			const serieActivaGuardada = sesionGuardada.seriesDicom.find(
+				(serie) => serie.id === sesionGuardada.serieActivaId,
+			);
+			const presetSerieActivaGuardada = obtenerPresetVentanaInicialSerie(serieActivaGuardada);
+			if (presetSerieActivaGuardada) {
+				setPresetsVentanaPorSerie((prev) => ({
+					...prev,
+					[serieActivaGuardada.id]: presetSerieActivaGuardada,
+				}));
+			}
 			setPanelImageIds(sesionGuardada.panelImageIds);
 			setImagenesDicomPorId(sesionGuardada.imagenesDicomPorId);
 			setFormatoGrid(sesionGuardada.formatoGrid);
@@ -3229,10 +3260,14 @@ const VisorDicom = () => {
 			);
 			const series = agruparImagenesDicomPorSerie(imagenesConUrl, estudio);
 			const primeraSerie = series[0];
+			const presetPrimeraSerie = obtenerPresetVentanaInicialSerie(primeraSerie);
 			const sesionMpr = leerSesionMpr(idEstudio);
 			mprSesionEstudioRef.current = String(idEstudio);
 
 			setSeriesDicom(series);
+			if (presetPrimeraSerie) {
+				setPresetsVentanaPorSerie((prev) => ({ ...prev, [primeraSerie.id]: presetPrimeraSerie }));
+			}
 			const primerImageId = primeraSerie?.imageIds?.[0] || null;
 			const panelesIniciales = Array(6).fill(null);
 			panelesIniciales[0] = primerImageId;
@@ -3538,7 +3573,8 @@ const VisorDicom = () => {
 				else if (id === "elipse") setElipseGlobal(true);
 				else if (id === "rectangulo") setRectanguloGlobal(true);
 				else if (id === "bidireccional") setBidiGlobal(true);
-				setHerramienta(null);
+			setHerramienta(null);
+			setHerramientaFijada(false);
 			}
 			return;
 		}
@@ -4007,7 +4043,16 @@ const VisorDicom = () => {
 		setElipseGlobal(false);
 		setRectanguloGlobal(false);
 		setBidiGlobal(false);
+		if (herramientaFijada && herramienta === id) {
+			setHerramienta(null);
+			setHerramientaFijada(false);
+			return;
+		}
 		setHerramienta(id);
+		setHerramientaFijada(true);
+	};
+	const handleShortcutTool = (id) => {
+		if (!herramientaFijada) setHerramienta(id);
 	};
 
 	const toggleCine = () => {
@@ -4349,6 +4394,7 @@ const VisorDicom = () => {
 		if (!serieActiva) return;
 		setPresetsVentanaPorSerie((prev) => ({ ...prev, [serieActiva.id]: preset.id }));
 		setHerramienta("Wwwc");
+		setHerramientaFijada(true);
 		setMostrarPresetsVentana(false);
 	};
 	const accionesVista = ACTIONS.filter((a) => VIEW_ACTION_IDS.includes(a.id));
@@ -4811,6 +4857,7 @@ const VisorDicom = () => {
 									stackImageIds={imageIds}
 									onStackScroll={(direccion) => navegarImagenSerie(i, direccion)}
 									herramienta={herramienta}
+									herramientaFijada={herramientaFijada}
 									isActive={panelActivo === i}
 									resetCounter={resetCounter}
 									centrarCounter={centrarCounter}
@@ -4821,7 +4868,7 @@ const VisorDicom = () => {
 									rectExterna={panelActivo === i ? rectanguloGlobal : false}
 									bidiExterna={panelActivo === i ? bidiGlobal : false}
 									presetVentanaId={panelActivo === i ? presetsVentanaPorSerie[serieActivaId] : null}
-									onShortcutTool={handleTool}
+									onShortcutTool={handleShortcutTool}
 									onCapturaOk={() =>
 										showNotif("Captura copiada al portapapeles", "exito")
 									}
