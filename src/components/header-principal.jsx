@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import californiaLogo from "../assets/CalifornIA.png";
 import NotificationBell from "./notification-bell";
+import { esRadiologoClinicoPermisos } from "../utils/role-permissions";
 import "./header.css";
 
 const DropdownPortal = ({ anchorRef, onClose, children }) => {
@@ -69,6 +70,7 @@ const Header = ({
 		.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "");
 	const puedeVerPlantillas = ["desarrollador", "radiologo"].includes(rolNormalizado);
+	const ocultarNavegacion = esRadiologoClinicoPermisos(empleadoData?.rol);
 
 	const getIniciales = () => {
 		const nombre = empleadoData?.nombre || user?.email || "";
@@ -85,14 +87,14 @@ const Header = ({
 		<header className="dashboard-header">
 			{/* ── Izquierda: hamburguesa + campana ── */}
 			<div className="header-left">
-				<button
+				{!ocultarNavegacion && <button
 					className={`hamburger-btn${sidebarOpen ? " active" : ""}`}
 					onClick={() => setSidebarOpen?.((v) => !v)}
 					aria-label="Abrir menú">
 					<span />
 					<span />
 					<span />
-				</button>
+				</button>}
 				<NotificationBell user={user} navigate={navigate} />
 			</div>
 
