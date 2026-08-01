@@ -2126,9 +2126,7 @@ const PanelDicom = ({
 		const zoomTemporalActivo = zoomTemporalRef.current && (e.buttons & 2) === 2;
 		if (zoomTemporalRef.current && !zoomTemporalActivo) zoomTemporalRef.current = false;
 		if (esSerieNavegable() && !zoomTemporalActivo) {
-			activarAtajo("StackScroll");
-		}
-		if (herramientaRef.current === "StackScroll") {
+			if (!herramientaFijadaRef.current) activarAtajo("StackScroll");
 			if (stackImageIds.length < 2 || e.deltaY === 0) return;
 			const now = Date.now();
 			if (now - lastStackWheelRef.current < 120) return;

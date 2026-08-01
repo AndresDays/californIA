@@ -502,6 +502,28 @@ describe('VisorDicom — Scroll de serie', () => {
     expect(screen.getByTitle('W/L')).toHaveClass('activo');
   });
 
+  test('la rueda navega la serie sin desactivar Longitud', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+    const panel = document.querySelector('.panel-imagen.activo');
+    const longitud = screen.getByTitle('Longitud');
+
+    fireEvent.click(longitud);
+    fireEvent.wheel(panel, { deltaY: 120 });
+
+    await waitFor(() =>
+      expect(screen.getByRole('slider', { name: 'Posición de imagen en la serie' })).toHaveAttribute(
+        'aria-valuenow',
+        '2',
+      ),
+    );
+    expect(longitud).toHaveClass('activo');
+  });
+
   test('Scroll hacia arriba retrocede y se detiene en los extremos de la serie', async () => {
     const nowSpy = jest.spyOn(Date, 'now');
     nowSpy.mockReturnValue(1000);
