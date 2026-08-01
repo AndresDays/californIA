@@ -21,7 +21,7 @@ import {
   puedeAsignarRadiologia,
   puedeSubirImagenRadiologia,
 } from '../../../utils/radiologia-permisos';
-import { normalizarRolPermisos } from '../../../utils/role-permissions';
+import { esRadiologoClinicoPermisos, normalizarRolPermisos } from '../../../utils/role-permissions';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -147,6 +147,9 @@ const DashboardRadiologia = () => {
   });
   const [loading, setLoading] = useState(true);
   const [empleadoCargado, setEmpleadoCargado] = useState(false);
+  const esRadiologoClinico = esRadiologoClinicoPermisos(
+    empleadoData?.rol || authEmpleadoData?.rol,
+  );
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
@@ -612,11 +615,11 @@ const DashboardRadiologia = () => {
         setSidebarOpen={setSidebarOpen}
       />
 
-      {isMobile ? (
+      {!esRadiologoClinico && (isMobile ? (
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       ) : (
         <SidebarHome />
-      )}
+      ))}
 
       <div className="dashboard-radiologia-content">
         <div className="radiologia-top-bar">
