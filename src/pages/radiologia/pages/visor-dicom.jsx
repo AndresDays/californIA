@@ -1691,10 +1691,6 @@ const PanelDicom = ({
 	};
 
 	const onContextMenu = (e) => {
-		if (esSerieNavegable()) {
-			e.preventDefault();
-			return;
-		}
 		e.preventDefault();
 		const pos = getCanvasPos(e);
 		const overlay = overlayRef.current;
