@@ -304,6 +304,7 @@ const PanelDicom = ({
 	stackImageIds,
 	onStackScroll,
 	herramienta,
+	herramientaFijada,
 	isActive,
 	resetCounter,
 	centrarCounter,
@@ -327,6 +328,8 @@ const PanelDicom = ({
 	const requestedImageIdRef = useRef(null);
 	const imageIdRef = useRef(imageId);
 	const herramientaRef = useRef(herramienta);
+	const herramientaFijadaRef = useRef(herramientaFijada);
+	const herramientaAntesZoomRef = useRef(null);
 	const dragRef = useRef({ active: false, lastX: 0, lastY: 0 });
 	const lastStackWheelRef = useRef(0);
 	const zoomTemporalRef = useRef(false);
@@ -400,6 +403,10 @@ const PanelDicom = ({
 	useEffect(() => {
 		herramientaRef.current = herramienta;
 	}, [herramienta]);
+
+	useEffect(() => {
+		herramientaFijadaRef.current = herramientaFijada;
+	}, [herramientaFijada]);
 
 	useEffect(() => {
 		imageIdRef.current = imageId;
@@ -1459,6 +1466,7 @@ const PanelDicom = ({
 			? (indiceImagenActual / (stackImageIds.length - 1)) * (100 - porcentajeThumbStack)
 			: 0;
 	const activarAtajo = (tool) => {
+		if (herramientaFijadaRef.current) return;
 		herramientaRef.current = tool;
 		onShortcutTool?.(tool);
 	};
@@ -1467,10 +1475,13 @@ const PanelDicom = ({
 		if (esSerieNavegable() && e.button === 2) {
 			e.preventDefault();
 			zoomTemporalRef.current = true;
-			activarAtajo("Zoom");
+			if (herramientaFijadaRef.current) {
+				herramientaAntesZoomRef.current = herramientaRef.current;
+				herramientaRef.current = "Zoom";
+			} else activarAtajo("Zoom");
 			return;
 		}
-		if (esSerieNavegable() && e.button === 0) activarAtajo("Wwwc");
+		if (esSerieNavegable() && e.button === 0 && !herramientaFijadaRef.current) activarAtajo("Wwwc");
 		const tool = herramientaRef.current;
 
 		if (tool === "Length") {
@@ -1968,7 +1979,10 @@ const PanelDicom = ({
 	const onMouseUp = (e) => {
 		if (esSerieNavegable() && e.button === 2 && zoomTemporalRef.current) {
 			zoomTemporalRef.current = false;
-			activarAtajo("StackScroll");
+			if (herramientaFijadaRef.current) {
+				herramientaRef.current = herramientaAntesZoomRef.current;
+				herramientaAntesZoomRef.current = null;
+			} else activarAtajo("StackScroll");
 			return;
 		}
 		const tool = herramientaRef.current;
@@ -2749,6 +2763,7 @@ const VisorDicom = () => {
 	});
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
+	const [herramientaFijada, setHerramientaFijada] = useState(false);
 	const [formatoGrid, setFormatoGrid] = useState(FORMATOS[0]);
 	const [mprActivo, setMprActivo] = useState(false);
 	const [mprPanelActivo, setMprPanelActivo] = useState(0);
@@ -3550,7 +3565,8 @@ const VisorDicom = () => {
 				else if (id === "elipse") setElipseGlobal(true);
 				else if (id === "rectangulo") setRectanguloGlobal(true);
 				else if (id === "bidireccional") setBidiGlobal(true);
-				setHerramienta(null);
+			setHerramienta(null);
+			setHerramientaFijada(false);
 			}
 			return;
 		}
@@ -4019,7 +4035,16 @@ const VisorDicom = () => {
 		setElipseGlobal(false);
 		setRectanguloGlobal(false);
 		setBidiGlobal(false);
+		if (herramientaFijada && herramienta === id) {
+			setHerramienta(null);
+			setHerramientaFijada(false);
+			return;
+		}
 		setHerramienta(id);
+		setHerramientaFijada(true);
+	};
+	const handleShortcutTool = (id) => {
+		if (!herramientaFijada) setHerramienta(id);
 	};
 
 	const toggleCine = () => {
@@ -4361,6 +4386,7 @@ const VisorDicom = () => {
 		if (!serieActiva) return;
 		setPresetsVentanaPorSerie((prev) => ({ ...prev, [serieActiva.id]: preset.id }));
 		setHerramienta("Wwwc");
+		setHerramientaFijada(true);
 		setMostrarPresetsVentana(false);
 	};
 	const accionesVista = ACTIONS.filter((a) => VIEW_ACTION_IDS.includes(a.id));
@@ -4823,6 +4849,7 @@ const VisorDicom = () => {
 									stackImageIds={imageIds}
 									onStackScroll={(direccion) => navegarImagenSerie(i, direccion)}
 									herramienta={herramienta}
+									herramientaFijada={herramientaFijada}
 									isActive={panelActivo === i}
 									resetCounter={resetCounter}
 									centrarCounter={centrarCounter}
@@ -4833,7 +4860,7 @@ const VisorDicom = () => {
 									rectExterna={panelActivo === i ? rectanguloGlobal : false}
 									bidiExterna={panelActivo === i ? bidiGlobal : false}
 									presetVentanaId={panelActivo === i ? presetsVentanaPorSerie[serieActivaId] : null}
-									onShortcutTool={handleTool}
+									onShortcutTool={handleShortcutTool}
 									onCapturaOk={() =>
 										showNotif("Captura copiada al portapapeles", "exito")
 									}

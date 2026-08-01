@@ -477,6 +477,31 @@ describe('VisorDicom — Scroll de serie', () => {
     expect(screen.getByTitle('Scroll')).toHaveClass('activo');
   });
 
+  test('el clic izquierdo conserva la herramienta fijada hasta volver a seleccionarla', async () => {
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/serie/1.dcm',
+      ),
+    );
+    const panel = document.querySelector('.panel-imagen.activo');
+    const longitud = screen.getByTitle('Longitud');
+
+    fireEvent.click(longitud);
+    fireEvent.mouseDown(panel, { button: 0, clientX: 20, clientY: 20 });
+    expect(longitud).toHaveClass('activo');
+    expect(screen.getByTitle('W/L')).not.toHaveClass('activo');
+
+    fireEvent.mouseDown(panel, { button: 2, clientX: 20, clientY: 20 });
+    fireEvent.mouseUp(panel, { button: 2, clientX: 20, clientY: 20 });
+    expect(longitud).toHaveClass('activo');
+
+    fireEvent.click(longitud);
+    expect(longitud).not.toHaveClass('activo');
+    fireEvent.mouseDown(panel, { button: 0, clientX: 20, clientY: 20 });
+    expect(screen.getByTitle('W/L')).toHaveClass('activo');
+  });
+
   test('Scroll hacia arriba retrocede y se detiene en los extremos de la serie', async () => {
     const nowSpy = jest.spyOn(Date, 'now');
     nowSpy.mockReturnValue(1000);
