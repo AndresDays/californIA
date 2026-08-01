@@ -690,7 +690,7 @@ const DashboardRadiologia = () => {
                 subiendoImagen={subiendoImagenId === estudio.id}
                 onVerDetalles={() => handleVerDetalles(estudio)}
                 onSubirImagen={puedeSubirImagen ? () => handleSeleccionarImagen(estudio) : undefined}
-                onAsignar={puedeAsignar ? () => handleAsignar(estudio) : undefined}
+                onAsignar={puedeAsignar ? () => abrirAsignacion(estudio) : undefined}
                 onClick={() => handleVerEstudio(estudio)}
               />
             ))
