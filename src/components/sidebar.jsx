@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import californIA from "../assets/CalifornIA.png";
 import { useAuth } from "../context/auth-context";
 import { guardarRolCacheado, obtenerRolCacheado } from "../utils/role-cache";
-import { filtrarMenuPorRol } from "../utils/role-permissions";
+import { esRadiologoClinicoPermisos, filtrarMenuPorRol } from "../utils/role-permissions";
 import { sidebarItems } from "./sidebar-menu";
 import "./sidebar.css";
 
@@ -35,6 +35,8 @@ const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 	useEffect(() => {
 		guardarRolCacheado(user?.id, rolEmpleado);
 	}, [rolEmpleado, user?.id]);
+
+	if (esRadiologoClinicoPermisos(rolSidebar)) return null;
 
 	return (
 		<>

@@ -36,13 +36,13 @@ describe('ProtectedRoute', () => {
   })
 
   it('renderiza children cuando hay usuario autenticado', () => {
-    useAuth.mockReturnValue({ user: { id: 1, name: 'Doctor' }, loading: false })
+    useAuth.mockReturnValue({ user: { id: 1, name: 'Doctor' }, loading: false, empleadoData: { rol: 'admin' } })
     render(<MemoryRouter><ProtectedRoute><div>Contenido protegido</div></ProtectedRoute></MemoryRouter>)
     expect(screen.getByText('Contenido protegido')).toBeInTheDocument()
   })
 
   it('no muestra loading cuando loading es false', () => {
-    useAuth.mockReturnValue({ user: { id: 1 }, loading: false })
+    useAuth.mockReturnValue({ user: { id: 1 }, loading: false, empleadoData: { rol: 'admin' } })
     render(<MemoryRouter><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)
     expect(screen.queryByText('Cargando...')).not.toBeInTheDocument()
   })
@@ -56,5 +56,11 @@ describe('ProtectedRoute', () => {
     })
     render(<MemoryRouter initialEntries={['/dashboard']}><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)
     expect(mockNavigate).toHaveBeenCalledWith('/radiologia')
+  })
+
+  it('no permite una ruta protegida sin perfil de empleado resuelto', () => {
+    useAuth.mockReturnValue({ user: { id: 1 }, loading: false, empleadoLoading: false, empleadoData: null })
+    render(<MemoryRouter initialEntries={['/usuarios']}><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)
+    expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 })

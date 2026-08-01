@@ -130,4 +130,6 @@ test("limits radiologo clinico to radiology, viewer, and report routes", () => {
 	expect(puedeAccederRuta("radiologo_clinico", "/reporte")).toBe(true);
 	expect(puedeAccederRuta("radiologo_clinico", "/dashboard")).toBe(false);
 	expect(puedeAccederRuta("radiologo_clinico", "/usuarios")).toBe(false);
+	expect(puedeAccederRuta("radiologo_clinico", "/captura")).toBe(false);
+	expect(puedeAccederRuta("radiologo_clinico", "/perfil")).toBe(false);
 });

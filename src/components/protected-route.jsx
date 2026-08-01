@@ -15,8 +15,12 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  if (!puedeAccederRuta(empleadoData?.rol, pathname)) {
-    if (esDoctorExternoPermisos(empleadoData?.rol) || esRadiologoClinicoPermisos(empleadoData?.rol)) {
+  if (!empleadoData) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (!puedeAccederRuta(empleadoData.rol, pathname)) {
+    if (esDoctorExternoPermisos(empleadoData.rol) || esRadiologoClinicoPermisos(empleadoData.rol)) {
       return <Navigate to="/radiologia" replace />
     }
     return <Navigate to="/dashboard" replace />
