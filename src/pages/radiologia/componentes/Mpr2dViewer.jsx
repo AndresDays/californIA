@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { calcularAreaImagenMpr, calcularVoiMpr, combinarPixelesMpr, crearPlanPrecargaMpr, moverIndiceMpr, obtenerIndicesInicialesMpr, obtenerIndicesSlabMpr } from "../../../utils/mpr-loader";
-import { actualizarPuntoPorCorteMpr, calcularCoordenadaCorteMpr, calcularPosicionCruzMpr, calcularPuntoCentralMpr, calcularSeparacionCortesMpr, obtenerGeometriaMpr } from "../../../utils/mpr-geometry";
+import { actualizarPuntoPorCorteMpr, calcularPosicionCruzMpr, calcularPuntoCentralMpr, calcularSeparacionCortesMpr, obtenerGeometriaMpr } from "../../../utils/mpr-geometry";
 import "./Mpr2dViewer.css";
 
 const vistas = [
@@ -65,47 +65,6 @@ export default function Mpr2dViewer({
 		const geometria = obtenerGeometriaMpr(imagen);
 		geometriasCacheRef.current.set(imageId, geometria);
 		return geometria;
-	};
-	const buscarIndicePorPunto = async (cornerstone, serie, punto) => {
-		const ids = serie.imageIds || [];
-		const central = Math.floor(Math.max(0, ids.length - 1) / 2);
-		if (ids.length < 2 || !punto) return central;
-		try {
-			const [primero, ultimo] = await Promise.all([
-				cargarGeometria(cornerstone, ids[0]),
-				cargarGeometria(cornerstone, ids[ids.length - 1]),
-			]);
-			if (!primero || !ultimo) return central;
-			const objetivo = calcularCoordenadaCorteMpr(primero, punto);
-			const inicio = calcularCoordenadaCorteMpr(primero, primero.posicion);
-			const fin = calcularCoordenadaCorteMpr(primero, ultimo.posicion);
-			if (!Number.isFinite(objetivo) || !Number.isFinite(inicio) || !Number.isFinite(fin) || Math.abs(fin - inicio) < 0.0001) return central;
-			const ascendente = inicio <= fin;
-			let bajo = 0, alto = ids.length - 1, mejor = central, distanciaMejor = Infinity;
-			while (bajo <= alto) {
-				const medio = Math.floor((bajo + alto) / 2);
-				const geometria = await cargarGeometria(cornerstone, ids[medio]);
-				// Sin coordenadas fiables nunca se selecciona un extremo por accidente.
-				if (!geometria) return central;
-				const valor = calcularCoordenadaCorteMpr(primero, geometria.posicion);
-				if (!Number.isFinite(valor)) return central;
-				const distancia = Math.abs(valor - objetivo);
-				if (distancia < distanciaMejor) { mejor = medio; distanciaMejor = distancia; }
-				if ((valor < objetivo) === ascendente) bajo = medio + 1;
-				else alto = medio - 1;
-			}
-			return mejor;
-		} catch {
-			return central;
-		}
-	};
-	const alinearIndicesPorPunto = async (cornerstone, punto, indiceAxial) => {
-		const centrales = obtenerIndicesInicialesMpr(obtenerTotales());
-		const [sagital, coronal] = await Promise.all([
-			buscarIndicePorPunto(cornerstone, serieDe(1), punto),
-			buscarIndicePorPunto(cornerstone, serieDe(2), punto),
-		]);
-		return [indiceAxial, sagital ?? centrales[1], coronal ?? centrales[2]];
 	};
 	const precargarSerie = (cornerstone, ids, indice) => {
 		const cola = crearPlanPrecargaMpr(ids, indice).filter(
@@ -233,14 +192,6 @@ export default function Mpr2dViewer({
 						const punto = calcularPuntoCentralMpr(base);
 						puntoAnatomicoRef.current = punto;
 						setPuntoAnatomico(punto);
-						if (!restaurarIndices) {
-							const alineados = await alinearIndicesPorPunto(cornerstone, punto, indicesRef.current[0]);
-							if (!cancelado && alineados.some((indice, panel) => indice !== indicesRef.current[panel])) {
-								indicesRef.current = alineados;
-								setIndices(alineados);
-								onIndicesChange?.(alineados);
-							}
-						}
 					}
 				}
 				if (!cancelado) setMensaje("");
