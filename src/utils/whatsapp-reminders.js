@@ -39,7 +39,7 @@ export const normalizarTelefonoWhatsapp = (telefono, codigoPais = "52") => {
 		: digitos;
 
 	if (sinPrefijo.length !== 10) return null;
-	return `whatsapp:+${prefijoWhatsappMexico}${sinPrefijo}`;
+	return `${prefijoWhatsappMexico}${sinPrefijo}`;
 };
 
 const MESES_ES = [
@@ -102,3 +102,32 @@ export const construirVariablesTemplateRecordatorio = (fechaEstudio) => {
 		2: `${partes.hour}:${partes.minute}`,
 	};
 };
+
+export const construirPayloadTemplateInfobip = ({
+	from,
+	to,
+	templateName,
+	language,
+	fechaEstudio,
+}) => ({
+	messages: [{
+		from,
+		to,
+		content: {
+			templateName,
+			templateData: {
+				body: {
+					placeholders: Object.values(construirVariablesTemplateRecordatorio(fechaEstudio)),
+				},
+				buttons: [
+					{ type: "QUICK_REPLY", parameter: "confirmar_cita" },
+					{ type: "QUICK_REPLY", parameter: "cancelar_cita" },
+				],
+			},
+			language,
+		},
+	}],
+});
+
+export const obtenerIdMensajeInfobip = (respuesta) =>
+	respuesta?.messages?.[0]?.messageId || null;

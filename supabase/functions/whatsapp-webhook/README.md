@@ -1,6 +1,6 @@
 # WhatsApp confirmation webhook
 
-This Edge Function receives Twilio WhatsApp button responses and updates the latest pending appointment for the sender.
+This Edge Function receives Infobip WhatsApp text or button responses and updates the latest pending appointment for the sender.
 
 ## Deploy
 
@@ -11,19 +11,23 @@ supabase functions deploy whatsapp-webhook --no-verify-jwt
 Configura los secretos antes de desplegar:
 
 ```bash
-supabase secrets set TWILIO_AUTH_TOKEN="..."
-supabase secrets set TWILIO_WEBHOOK_URL="https://<project-ref>.functions.supabase.co/whatsapp-webhook"
+supabase secrets set INFOBIP_WEBHOOK_SECRET="<genera-un-secreto-largo-aleatorio>"
+supabase secrets set WHATSAPP_DEFAULT_COUNTRY_CODE="52"
 ```
 
-## Twilio setup
+## Infobip setup
 
-Use this URL as the WhatsApp sandbox inbound webhook:
+Configura esta URL HTTPS como el webhook de eventos `INBOUND_MESSAGE`:
 
 ```txt
 https://<project-ref>.functions.supabase.co/whatsapp-webhook
 ```
 
-Set the method to `POST`.
+Configura el metodo `POST` y el encabezado:
+
+```txt
+Authorization: Bearer <INFOBIP_WEBHOOK_SECRET>
+```
 
 Supported button payloads:
 
@@ -37,4 +41,4 @@ The function updates:
 - `citas.whatsapp_confirmacion_respuesta`
 - `citas.whatsapp_confirmacion_at`
 
-El endpoint valida `X-Twilio-Signature` con la URL exacta configurada en `TWILIO_WEBHOOK_URL`. No modifiques esa URL entre Twilio y el secreto. Cada `MessageSid` entrante se procesa una sola vez.
+El endpoint valida el encabezado `Authorization` antes de consultar citas. Cada `messageId` entrante se procesa una sola vez.

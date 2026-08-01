@@ -46,4 +46,15 @@ describe('ProtectedRoute', () => {
     render(<MemoryRouter><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)
     expect(screen.queryByText('Cargando...')).not.toBeInTheDocument()
   })
+
+  it('redirige al módulo de radiología al radiólogo clínico fuera de su alcance', () => {
+    useAuth.mockReturnValue({
+      user: { id: 1 },
+      loading: false,
+      empleadoLoading: false,
+      empleadoData: { rol: 'radiologo_clinico' },
+    })
+    render(<MemoryRouter initialEntries={['/dashboard']}><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)
+    expect(mockNavigate).toHaveBeenCalledWith('/radiologia')
+  })
 })

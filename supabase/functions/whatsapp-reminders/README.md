@@ -7,16 +7,18 @@ This Edge Function sends WhatsApp reminders for appointments scheduled about 24 
 Set these Supabase secrets before deploying the function:
 
 ```bash
-supabase secrets set TWILIO_ACCOUNT_SID="AC..."
-supabase secrets set TWILIO_AUTH_TOKEN="..."
-supabase secrets set TWILIO_WHATSAPP_FROM="whatsapp:+14155238886"
-supabase secrets set TWILIO_CONTENT_SID="HX..."
+supabase secrets set INFOBIP_BASE_URL="https://<tu-subdominio>.api.infobip.com"
+supabase secrets set INFOBIP_API_KEY="..."
+supabase secrets set INFOBIP_WHATSAPP_FROM="5213221234567"
+supabase secrets set INFOBIP_TEMPLATE_NAME="recordatorio_cita"
+supabase secrets set INFOBIP_TEMPLATE_LANGUAGE="es_MX"
 supabase secrets set WHATSAPP_DEFAULT_COUNTRY_CODE="52"
 supabase secrets set REMINDERS_CRON_SECRET="<genera-un-secreto-largo-aleatorio>"
 ```
 
-`TWILIO_WHATSAPP_FROM` must be the WhatsApp sender configured in Twilio.
-`TWILIO_CONTENT_SID` is the appointment reminder template SID from Twilio. If it is omitted, the function falls back to a plain `Body` message.
+`INFOBIP_WHATSAPP_FROM` debe ser el remitente de WhatsApp registrado en Infobip, sin el prefijo `+`.
+`INFOBIP_API_KEY` debe tener como minimo el alcance `whatsapp:message:send`.
+Registra y aprueba en Infobip una plantilla Utility llamada como `INFOBIP_TEMPLATE_NAME`, con dos variables de cuerpo (fecha y hora) y botones de respuesta rapida con los payloads `confirmar_cita` y `cancelar_cita`.
 
 ## Deploy
 

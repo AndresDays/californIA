@@ -48,7 +48,7 @@ const normalizarTelefonoWhatsapp = (telefono: unknown, codigoPais = "52") => {
 		: digitos;
 
 	if (sinPrefijo.length !== 10) return null;
-	return `whatsapp:+${prefijoWhatsappMexico}${sinPrefijo}`;
+	return `${prefijoWhatsappMexico}${sinPrefijo}`;
 };
 
 const MESES_ES = [
@@ -116,46 +116,66 @@ const construirVariablesTemplateRecordatorio = (fechaEstudio: string) => {
 	};
 };
 
-const enviarWhatsappTwilio = async ({
-	accountSid,
-	authToken,
+const construirPayloadTemplateInfobip = ({
 	from,
 	to,
-	body,
-	contentSid,
-	contentVariables,
+	templateName,
+	language,
+	fechaEstudio,
 }: {
-	accountSid: string;
-	authToken: string;
 	from: string;
 	to: string;
-	body?: string;
-	contentSid?: string;
-	contentVariables?: Record<string, string>;
+	templateName: string;
+	language: string;
+	fechaEstudio: string;
+}) => ({
+	messages: [{
+		from,
+		to,
+		content: {
+			templateName,
+			templateData: {
+				body: {
+					placeholders: Object.values(construirVariablesTemplateRecordatorio(fechaEstudio)),
+				},
+				buttons: [
+					{ type: "QUICK_REPLY", parameter: "confirmar_cita" },
+					{ type: "QUICK_REPLY", parameter: "cancelar_cita" },
+				],
+			},
+			language,
+		},
+	}],
+});
+
+const enviarWhatsappInfobip = async ({
+	baseUrl,
+	apiKey,
+	payload,
+}: {
+	baseUrl: string;
+	apiKey: string;
+	payload: Record<string, unknown>;
 }) => {
-	const params = new URLSearchParams({ From: from, To: to });
-	if (contentSid) {
-		params.set("ContentSid", contentSid);
-		params.set("ContentVariables", JSON.stringify(contentVariables || {}));
-	} else if (body) {
-		params.set("Body", body);
-	}
 
 	const response = await fetch(
-		`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+		`${baseUrl.replace(/\/$/, "")}/whatsapp/1/message/template`,
 		{
 			method: "POST",
 			headers: {
-				Authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-				"Content-Type": "application/x-www-form-urlencoded",
+				Authorization: `App ${apiKey}`,
+				"Content-Type": "application/json",
 			},
-			body: params,
+			body: JSON.stringify(payload),
 		},
 	);
 
 	const data = await response.json().catch(() => ({}));
 	if (!response.ok) {
-		throw new Error(data?.message || "No se pudo enviar WhatsApp con Twilio");
+		throw new Error(data?.requestError?.serviceException?.text || data?.message || "No se pudo enviar WhatsApp con Infobip");
+	}
+	if (!data?.messages?.[0]?.messageId) {
+		throw new Error("Infobip no devolvio un identificador de mensaje");
 	}
 	return data;
 };
@@ -175,17 +195,18 @@ Deno.serve(async (req) => {
 
 	const supabaseUrl = Deno.env.get("SUPABASE_URL");
 	const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-	const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-	const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-	const twilioWhatsappFrom = Deno.env.get("TWILIO_WHATSAPP_FROM");
-	const twilioContentSid = Deno.env.get("TWILIO_CONTENT_SID");
+	const infobipBaseUrl = Deno.env.get("INFOBIP_BASE_URL");
+	const infobipApiKey = Deno.env.get("INFOBIP_API_KEY");
+	const infobipWhatsappFrom = Deno.env.get("INFOBIP_WHATSAPP_FROM");
+	const infobipTemplateName = Deno.env.get("INFOBIP_TEMPLATE_NAME");
+	const infobipTemplateLanguage = Deno.env.get("INFOBIP_TEMPLATE_LANGUAGE") || "es_MX";
 	const codigoPais = Deno.env.get("WHATSAPP_DEFAULT_COUNTRY_CODE") || "52";
 
 	if (!supabaseUrl || !serviceRoleKey) {
 		return json({ error: "Faltan variables de entorno de Supabase" }, 500);
 	}
-	if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsappFrom) {
-		return json({ error: "Faltan variables de entorno de Twilio" }, 500);
+	if (!infobipBaseUrl || !infobipApiKey || !infobipWhatsappFrom || !infobipTemplateName) {
+		return json({ error: "Faltan variables de entorno de Infobip" }, 500);
 	}
 
 	const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -232,20 +253,16 @@ Deno.serve(async (req) => {
 		}
 
 		try {
-			const mensaje = construirMensajeRecordatorio({
-				nombrePaciente: cita.nombre_paciente || paciente?.nombre,
-				tipoEstudio: cita.tipo_estudio,
-				fechaEstudio: cita.fecha_estudio,
-			});
-
-			const twilio = await enviarWhatsappTwilio({
-				accountSid: twilioAccountSid,
-				authToken: twilioAuthToken,
-				from: twilioWhatsappFrom,
-				to: telefono,
-				body: mensaje,
-				contentSid: twilioContentSid || undefined,
-				contentVariables: construirVariablesTemplateRecordatorio(cita.fecha_estudio),
+			const infobip = await enviarWhatsappInfobip({
+				baseUrl: infobipBaseUrl,
+				apiKey: infobipApiKey,
+				payload: construirPayloadTemplateInfobip({
+					from: infobipWhatsappFrom,
+					to: telefono,
+					templateName: infobipTemplateName,
+					language: infobipTemplateLanguage,
+					fechaEstudio: cita.fecha_estudio,
+				}),
 			});
 
 			await supabase
@@ -253,7 +270,7 @@ Deno.serve(async (req) => {
 				.update({
 					whatsapp_recordatorio_enviado_at: new Date().toISOString(),
 					whatsapp_confirmacion_estado: "pendiente",
-					whatsapp_recordatorio_sid: twilio.sid || null,
+					whatsapp_recordatorio_sid: infobip.messages[0].messageId,
 					whatsapp_confirmacion_respuesta: null,
 				})
 				.eq("id_cita", cita.id_cita);

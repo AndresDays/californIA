@@ -14,6 +14,7 @@ const ROLES_DOCTOR_EXTERNO = new Set([
 	"medico_particular",
 	"institucion_externa",
 ]);
+const ROL_RADIOLOGO_CLINICO = "radiologo_clinico";
 const ROLES_MENU_TIPO_QUIMICO = new Set([
 	"quimico",
 	"tecnico",
@@ -34,6 +35,9 @@ export const esQuimico = (rol) => normalizarRolPermisos(rol) === "quimico";
 
 export const esDoctorExternoPermisos = (rol) =>
 	ROLES_DOCTOR_EXTERNO.has(normalizarRolPermisos(rol));
+
+export const esRadiologoClinicoPermisos = (rol) =>
+	normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO;
 
 export const esMenuTipoQuimico = (rol) =>
 	ROLES_MENU_TIPO_QUIMICO.has(normalizarRolPermisos(rol));
@@ -69,6 +73,11 @@ const QUIMICO_PATHS_BLOQUEADOS = [
 ];
 
 export const puedeAccederRuta = (rol, pathname = "") => {
+	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) {
+		return ["/radiologia", "/visor-dicom", "/reporte"].some(
+			(path) => pathname === path || pathname.startsWith(`${path}/`),
+		);
+	}
 	if (esDoctorExternoPermisos(rol)) {
 		return ["/radiologia", "/visor-dicom"].some(
 			(path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -91,6 +100,7 @@ export const puedeAccederRuta = (rol, pathname = "") => {
 };
 
 export const filtrarMenuPorRol = (items = [], rol) => {
+	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) return [];
 	if (esDoctorExternoPermisos(rol)) {
 		return items.filter((item) => item.id === "inicio");
 	}

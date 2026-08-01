@@ -13,6 +13,7 @@ const ROLES_PUEDEN_INTERPRETAR = new Set([
 	"administrador",
 	"desarrollador",
 	"radiologo",
+	"radiologo_clinico",
 ]);
 
 const ROLES_PUEDEN_SUBIR_IMAGEN = new Set([
@@ -20,12 +21,14 @@ const ROLES_PUEDEN_SUBIR_IMAGEN = new Set([
 	"administrador",
 	"desarrollador",
 	"radiologo",
+	"radiologo_clinico",
 	"tecnico",
 	"tecnico_radiologia",
 ]);
 
 const normalizarRolRadiologia = (rol) => {
 	const rolNormalizado = normalizarRolPermisos(rol);
+	if (rolNormalizado === "radiologo_clinico") return rolNormalizado;
 	if (rolNormalizado.includes("administrador")) return "administrador";
 	if (rolNormalizado.includes("radiologo")) return "radiologo";
 	if (rolNormalizado.includes("desarrollador")) return "desarrollador";
@@ -60,6 +63,7 @@ export const puedeSubirImagenRadiologia = (empleado = {}) =>
 
 export const puedeAsignarRadiologia = (empleado = {}) =>
 	!esDoctorExterno(empleado?.rol) &&
+	normalizarRolRadiologia(empleado?.rol) !== "radiologo_clinico" &&
 	ROLES_PUEDEN_INTERPRETAR.has(normalizarRolRadiologia(empleado?.rol));
 
 export const esDoctorAsignableRadiologia = (doctor = {}) => {
