@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth-context';
 import { guardarRolCacheado, obtenerRolCacheado } from '../utils/role-cache';
-import { filtrarMenuPorRol } from '../utils/role-permissions';
+import { esRadiologoClinicoPermisos, filtrarMenuPorRol } from '../utils/role-permissions';
 import { sidebarItems } from './sidebar-menu';
 import './sidebar-home.css';
 
@@ -57,6 +57,8 @@ const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  if (esRadiologoClinicoPermisos(rol)) return null;
 
   return (
     <aside className="sidebar-home" ref={sidebarRef}>

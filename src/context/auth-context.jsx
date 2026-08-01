@@ -3,6 +3,7 @@ import { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../lib/supabase-client'
 import { useSessionStore } from '../store/session-store'
 import { esDoctorExterno } from '../utils/radiologia-permisos'
+import { esRadiologoClinicoPermisos } from '../utils/role-permissions'
 
 const AuthContext = createContext({});
 
@@ -120,7 +121,9 @@ export const AuthProvider = ({ children }) => {
       return {
         data: {
           ...data,
-          redirectTo: esDoctorExterno(perfil?.rol) ? '/radiologia' : '/dashboard',
+          redirectTo: esDoctorExterno(perfil?.rol) || esRadiologoClinicoPermisos(perfil?.rol)
+            ? '/radiologia'
+            : '/dashboard',
         },
         error: null,
       }
