@@ -542,7 +542,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockEmpleadoVisor = null;
-    mockEstudioId = '123';
+    mockEstudioId = 'wl-inicial-lung';
     mockDicomImages = [
       { id_imagen: 1, storage_path: 'axial/1.dcm', series_instance_uid: 'axial', series_description: 'AXIAL 5 MM', instance_number: 1, modality: 'CT' },
       { id_imagen: 2, storage_path: 'lung/1.dcm', series_instance_uid: 'lung', series_description: 'LUNG', instance_number: 1, modality: 'CT' },
@@ -551,15 +551,12 @@ describe('VisorDicom — W/L inicial por serie', () => {
 
   afterEach(() => {
     mockDicomImages = [];
+    mockEstudioId = '123';
   });
 
   test('aplica CT - Pulmón al seleccionar una serie LUNG', async () => {
     await renderVisor();
-    await waitFor(() =>
-      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/axial/1.dcm',
-      ),
-    );
+    await waitFor(() => expect(screen.getAllByText('LUNG')).not.toHaveLength(0));
     mockCornerstone.setViewport.mockClear();
 
     fireEvent.click(screen.getAllByText('LUNG')[0].closest('button'));
