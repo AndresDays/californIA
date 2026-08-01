@@ -42,4 +42,10 @@ describe('session store', () => {
 		expect(supabase.from).toHaveBeenNthCalledWith(1, 'empleados');
 		expect(supabase.from).toHaveBeenNthCalledWith(2, 'doctores');
 	});
+
+	test('mantiene la ruta protegida en espera mientras restaura el perfil de una sesión', () => {
+		useSessionStore.getState().setUser({ id: 'auth-radiologo-clinico' });
+
+		expect(useSessionStore.getState().empleadoLoading).toBe(true);
+	});
 });
