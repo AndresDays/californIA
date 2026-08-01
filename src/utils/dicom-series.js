@@ -18,6 +18,19 @@ const textoBusqueda = (...valores) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
+export const obtenerPresetVentanaInicialSerie = (serie = {}) => {
+  const modalidad = textoBusqueda(serie.modalidad);
+  if (!/\b(ct|tomografia)\b/.test(modalidad)) return null;
+
+  const etiqueta = textoBusqueda(serie.label, serie.descripcion);
+  if (/\b(lung|pulmon)\b/.test(etiqueta)) return "ct-pulmon";
+  if (/\b(bone|hueso)\b/.test(etiqueta)) return "ct-hueso";
+  if (/\b(brain|cerebro)\b/.test(etiqueta)) return "ct-cerebro";
+  if (/\b(liver|higado)\b/.test(etiqueta)) return "ct-higado";
+  if (/\b(soft.?tissue|tejido.?blando)\b/.test(etiqueta)) return "ct-tejido-blando";
+  return null;
+};
+
 export const normalizarModalidadVisor = ({
   dicomModality,
   tipoEstudio,
