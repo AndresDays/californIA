@@ -10,7 +10,7 @@ export const crearEstadoVistaDicom = ({
 	rects = [],
 	bidis = [],
 } = {}) => ({
-	version: 1,
+	version: 2,
 	viewport: {
 		scale: viewport?.scale ?? 1,
 		voi: {
@@ -30,4 +30,4 @@ export const crearEstadoVistaDicom = ({
 });
 
 export const leerEstadoVistaDicom = (estado) =>
-	estado?.version === 1 ? estado : null;
+	estado?.version === 1 || estado?.version === 2 ? estado : null;

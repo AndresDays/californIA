@@ -24,7 +24,7 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
           clave: precioEditar.clave,
           descripcion: precioEditar.descripcion
         });
-        setEmpresaSeleccionada(precioEditar.empresa || '');
+        setEmpresaSeleccionada(precioEditar.cliente || '');
         setPrecio(precioEditar.precio?.toString() || '');
       } else {
         limpiarCampos();

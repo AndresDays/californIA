@@ -14,7 +14,7 @@ import ModalNotificacion from "../components/ModalNotificacion";
 import PageLayout from "../components/page-layout.jsx";
 import { useAuth } from "../context/auth-context";
 import { supabase } from "../lib/supabase-client";
-import { buildEmpleadoUpdatePayload, normalizarRolUsuario } from "../utils/usuarios-auth";
+import { buildEmpleadoUpdatePayload, etiquetaRolUsuario } from "../utils/usuarios-auth";
 import { obtenerMensajeErrorFuncion } from "../utils/supabase-functions";
 
 const Usuarios = () => {
@@ -44,24 +44,7 @@ const Usuarios = () => {
 		cargarSucursales();
 	}, []);
 
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			doctor_externo: "Doctor externo Rayos X",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		const rolNormalizado = normalizarRolUsuario(rol);
-		return roles[rolNormalizado] || rol;
-	};
+	const formatRol = etiquetaRolUsuario;
 
 	const cargarSucursales = async () => {
 		try {

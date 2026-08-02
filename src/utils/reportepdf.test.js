@@ -57,11 +57,20 @@ describe("generarReportePdf", () => {
 		expect(textos).toContain("PUERTO VALLARTA JAL. 10 DE JULIO DE 2026.");
 	});
 
-	test("usa MEDICO REFERENTE cuando no hay doctor", async () => {
-		await generarReportePdf({ ...opcionesBase, doctorNombre: "" });
+	test("omite fecha y líneas clínicas vacías", async () => {
+		await generarReportePdf({
+			...opcionesBase,
+			fechaEncabezado: "",
+			nombrePaciente: "",
+			doctorNombre: "",
+			estudioDescripcion: "",
+		});
 		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
-		expect(textos).toContain("MÉDICO REFERENTE");
+		expect(textos).not.toEqual(
+			expect.arrayContaining(["PACIENTE:", "DOCTOR:", "ESTUDIO:", "MÉDICO REFERENTE"]),
+		);
 	});
+
 
 	test("dibuja el membrete como fondo de pagina completa", async () => {
 		await generarReportePdf(opcionesBase);

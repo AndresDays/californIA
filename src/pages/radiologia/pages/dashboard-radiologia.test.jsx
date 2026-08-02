@@ -301,6 +301,21 @@ test('uploads an image file to the pending radiology study', async () => {
   );
 });
 
+test('rejects non-DICOM files before uploading them to a study', async () => {
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: /Subir imagen Maria Gomez/i }));
+
+  const input = document.querySelector('.radiologia-input-archivo');
+  const archivo = new File(['imagen'], 'placa.jpg', { type: 'image/jpeg' });
+  fireEvent.change(input, { target: { files: [archivo] } });
+
+  expect(await screen.findByText(/Solo se pueden subir archivos DICOM/i)).toBeInTheDocument();
+  expect(mockUpload).not.toHaveBeenCalled();
+  expect(mockInsertDicomImagenes).not.toHaveBeenCalled();
+});
+
 test('uploads multiple DICOM files and records every image for the study', async () => {
   render(<DashboardRadiologia />);
 
