@@ -49,7 +49,7 @@ export const useSessionStore = create((set, get) => ({
   sucursalActual: null,
 
   setUser: (user) => {
-    set({ user });
+    set({ user, empleadoLoading: Boolean(user) });
     if (!user) {
       set({
         empleadoData: null,

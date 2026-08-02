@@ -1,4 +1,5 @@
 import {
+  esArchivoDicom,
   agruparImagenesDicomPorSerie,
   normalizarModalidadVisor,
   normalizarStoragePathDicom,
@@ -7,6 +8,16 @@ import {
   ordenarSeriesParaMpr,
   ordenarImagenesDicom,
 } from "./dicom-series";
+
+test("acepta DICOM por extensión aunque el navegador lo marque como octet-stream", () => {
+  expect(esArchivoDicom({ file_name: "torax.dcm", mime_type: "application/octet-stream" })).toBe(true);
+  expect(esArchivoDicom({ storage_path: "12/estudio.dicom", mime_type: "" })).toBe(true);
+});
+
+test("no trata adjuntos de imagen o PDF como imágenes DICOM", () => {
+  expect(esArchivoDicom({ file_name: "placa.jpg", mime_type: "image/jpeg" })).toBe(false);
+  expect(esArchivoDicom({ file_name: "reporte.pdf", mime_type: "application/pdf" })).toBe(false);
+});
 
 test("normaliza rutas publicas de Supabase a storage_path", () => {
   expect(

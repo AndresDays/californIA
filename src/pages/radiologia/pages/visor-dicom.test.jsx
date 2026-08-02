@@ -126,6 +126,7 @@ jest.mock('./VisorDicom.css', () => ({}));
 const mockNavigate = jest.fn();
 let mockEmpleadoVisor = null;
 let mockDicomImages = [];
+let mockEstadosVista = [];
 let mockEstudioId = '123';
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -161,7 +162,11 @@ jest.mock('../../../lib/supabase-client', () => ({
       eq:          jest.fn().mockReturnThis(),
       neq:         jest.fn().mockReturnThis(),
       order:       jest.fn(() => Promise.resolve({
-        data: table === 'estudio_dicom_imagenes' ? mockDicomImages : [],
+        data: table === 'estudio_dicom_imagenes'
+          ? mockDicomImages
+          : table === 'estudio_dicom_estados_vista'
+            ? mockEstadosVista
+            : [],
         error: null,
       })),
       limit:       jest.fn().mockReturnThis(),
@@ -175,6 +180,10 @@ jest.mock('../../../lib/supabase-client', () => ({
         data: table === 'empleados' ? mockEmpleadoVisor : null,
         error: null,
       })),
+      then: (resolve) => resolve({
+        data: table === 'estudio_dicom_estados_vista' ? mockEstadosVista : [],
+        error: null,
+      }),
       insert:      jest.fn().mockReturnThis(),
       update:      jest.fn().mockReturnThis(),
       delete:      jest.fn().mockReturnThis(),
@@ -402,6 +411,7 @@ describe('VisorDicom — Scroll de serie', () => {
 
   afterEach(() => {
     mockDicomImages = [];
+    mockEstadosVista = [];
   });
 
   test('Scroll hacia abajo avanza a la siguiente imagen de la serie activa', async () => {
@@ -667,6 +677,61 @@ describe('VisorDicom — W/L inicial por serie', () => {
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
         'wadouri:https://mock.url/scout/1.dcm',
+      ),
+    );
+
+    expect(mockCornerstone.setViewport).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        voi: expect.objectContaining({ windowWidth: 2000, windowCenter: 0 }),
+      }),
+    );
+  });
+
+  test('conserva el contraste nativo de una radiografía sin W/L DICOM', async () => {
+    mockEstudioId = 'wl-inicial-dx';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'dx/torax.dcm', series_instance_uid: 'dx', series_description: 'TORAX', instance_number: 1, modality: 'DX' },
+    ];
+    mockCornerstone.getViewport.mockImplementation(() => ({
+      scale: 1,
+      voi: { windowWidth: 0, windowCenter: 0 },
+      translation: { x: 0, y: 0 },
+    }));
+
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/dx/torax.dcm',
+      ),
+    );
+
+    expect(mockCornerstone.setViewport).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        voi: expect.objectContaining({ windowWidth: 2000, windowCenter: 0 }),
+      }),
+    );
+  });
+
+  test('ignora el W/L heredado de estados de vista anteriores', async () => {
+    mockEstudioId = 'wl-estado-heredado';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'dx/torax.dcm', series_instance_uid: 'dx', series_description: 'TORAX', instance_number: 1, modality: 'DX' },
+    ];
+    mockEstadosVista = [{
+      storage_path: 'dx/torax.dcm',
+      estado: {
+        version: 1,
+        viewport: { scale: 1, voi: { windowWidth: 2000, windowCenter: 0 }, translation: { x: 0, y: 0 } },
+        overlays: { lineas: [], anotaciones: [], angulos: [], elipses: [], rects: [], bidis: [] },
+      },
+    }];
+
+    await renderVisor();
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/dx/torax.dcm',
       ),
     );
 

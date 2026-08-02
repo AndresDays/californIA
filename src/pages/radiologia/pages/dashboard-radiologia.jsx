@@ -14,14 +14,14 @@ import {
   EVENTOS_SOLICITUD,
   registrarEventoSolicitud,
 } from '../../../utils/solicitud-auditoria';
-import { normalizarModalidadVisor } from '../../../utils/dicom-series';
+import { esArchivoDicom, normalizarModalidadVisor } from '../../../utils/dicom-series';
 import {
   esDoctorExterno,
   obtenerRestriccionDoctorExterno,
   puedeAsignarRadiologia,
   puedeSubirImagenRadiologia,
 } from '../../../utils/radiologia-permisos';
-import { normalizarRolPermisos } from '../../../utils/role-permissions';
+import { esRadiologoClinicoPermisos, normalizarRolPermisos } from '../../../utils/role-permissions';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -147,6 +147,9 @@ const DashboardRadiologia = () => {
   });
   const [loading, setLoading] = useState(true);
   const [empleadoCargado, setEmpleadoCargado] = useState(false);
+  const esRadiologoClinico = esRadiologoClinicoPermisos(
+    empleadoData?.rol || authEmpleadoData?.rol,
+  );
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {
@@ -371,6 +374,11 @@ const DashboardRadiologia = () => {
     event.target.value = '';
 
     if (archivos.length === 0 || !estudio) return;
+
+    if (archivos.some((archivo) => !esArchivoDicom(archivo))) {
+      mostrarNotificacion('Solo se pueden subir archivos DICOM (.dcm o .dicom) al estudio', 'error');
+      return;
+    }
 
     const archivoPesado = archivos.find((archivo) => archivo.size > IMAGEN_MAX_SIZE);
     if (archivoPesado) {
@@ -612,11 +620,11 @@ const DashboardRadiologia = () => {
         setSidebarOpen={setSidebarOpen}
       />
 
-      {isMobile ? (
+      {!esRadiologoClinico && (isMobile ? (
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       ) : (
         <SidebarHome />
-      )}
+      ))}
 
       <div className="dashboard-radiologia-content">
         <div className="radiologia-top-bar">
@@ -675,7 +683,7 @@ const DashboardRadiologia = () => {
             ref={inputImagenRef}
             type="file"
             className="radiologia-input-archivo"
-            accept=".dcm,.dicom,application/dicom,image/*"
+            accept=".dcm,.dicom,application/dicom,image/dicom-rle"
             multiple
             onChange={handleImagenSeleccionada}
           />

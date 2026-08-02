@@ -28,6 +28,7 @@ import { obtenerColumnaSchemaCacheFaltante } from "../../../utils/supabase-error
 import {
 	agruparImagenesDicomPorSerie,
 	crearImagenDicomFallback,
+	esArchivoDicom,
 	normalizarStoragePathDicom,
 	obtenerPresetVentanaInicialSerie,
 	obtenerSerieFuenteMpr,
@@ -506,19 +507,15 @@ const PanelDicom = ({
 			const image = await cs.loadAndCacheImage(id);
 			if (requestedImageIdRef.current !== id) return;
 			cs.displayImage(el, image);
+			cs.reset(el);
 			const estado = leerEstadoVistaDicom(estadoVista);
 			if (estado) {
-				if (presetVentanaId !== "nativo") cs.setViewport(el, estado.viewport);
 				medicionRef.current.lineas = estado.overlays.lineas || [];
 				anotacionRef.current.anotaciones = estado.overlays.anotaciones || [];
 				anguloRef.current.angulos = estado.overlays.angulos || [];
 				elipseRef.current.elipses = estado.overlays.elipses || [];
 				rectRef.current.rects = estado.overlays.rects || [];
 				bidiRef.current.bidis = estado.overlays.bidis || [];
-			}
-			const vp = cs.getViewport(el);
-			if (presetVentanaId !== "nativo" && (!vp?.voi?.windowWidth || vp.voi.windowWidth <= 1)) {
-				cs.setViewport(el, { ...vp, voi: { windowWidth: 2000, windowCenter: 0 } });
 			}
 			aplicarPresetVentana();
 			cs.resize(el, true);
@@ -2756,6 +2753,10 @@ const VisorDicom = () => {
 		doctorNombre: "",
 		radiologoNombre: "",
 	});
+	const reporteEncabezadoRef = useRef(null);
+	const arrastreFirmaRef = useRef(null);
+	const [reporteEncabezado, setReporteEncabezado] = useState({});
+	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 });
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
 	const [herramientaFijada, setHerramientaFijada] = useState(false);
@@ -2906,6 +2907,32 @@ const VisorDicom = () => {
 	})();
 
 	const fechaReporteEncabezado = `PUERTO VALLARTA JAL. ${fechaReporte}.`;
+	const encabezadoMostrado = {
+		fecha: Object.hasOwn(reporteEncabezado, "fecha") ? reporteEncabezado.fecha : fechaReporteEncabezado,
+		paciente: Object.hasOwn(reporteEncabezado, "paciente") ? reporteEncabezado.paciente : pacienteInfo.nombre,
+		doctor: Object.hasOwn(reporteEncabezado, "doctor") ? reporteEncabezado.doctor : pacienteInfo.doctor,
+		estudio: Object.hasOwn(reporteEncabezado, "estudio") ? reporteEncabezado.estudio : pacienteInfo.tipoEstudio,
+	};
+	const obtenerEncabezadoReporte = () => {
+		const lineas = String(reporteEncabezadoRef.current?.innerText || "")
+			.split("\n")
+			.map((linea) => linea.trim());
+		const valor = (etiqueta) => lineas.find((linea) => linea.toUpperCase().startsWith(etiqueta))?.slice(etiqueta.length).trim() || "";
+		return {
+			fecha: lineas.find((linea) => !/^(PACIENTE|DOCTOR|ESTUDIO):/i.test(linea)) || "",
+			paciente: valor("PACIENTE:"),
+			doctor: valor("DOCTOR:"),
+			estudio: valor("ESTUDIO:"),
+		};
+	};
+	const actualizarAjusteFirma = (campo, valor) => setAjusteFirma((actual) => ({ ...actual, [campo]: Number(valor) }));
+	const iniciarArrastreFirma = (bloque, event) => {
+		if (event.currentTarget.getBoundingClientRect().right - event.clientX < 18 && event.currentTarget.getBoundingClientRect().bottom - event.clientY < 18) return;
+		arrastreFirmaRef.current = { bloque, x: event.clientX, y: event.clientY, origenX: ajusteFirma[`${bloque}X`], origenY: ajusteFirma[`${bloque}Y`] };
+		event.currentTarget.setPointerCapture(event.pointerId);
+	};
+	const moverArrastreFirma = (event) => { const arrastre = arrastreFirmaRef.current; if (arrastre) setAjusteFirma((actual) => ({ ...actual, [`${arrastre.bloque}X`]: arrastre.origenX + event.clientX - arrastre.x, [`${arrastre.bloque}Y`]: arrastre.origenY + event.clientY - arrastre.y })); };
+	const terminarArrastreFirma = () => { arrastreFirmaRef.current = null; };
 
 	const getPrimerNombre = (n) => n || user?.email?.split("@")[0] || "Usuario";
 	const formatRol = (rol) => {
@@ -3194,6 +3221,7 @@ const VisorDicom = () => {
 					.select(`
 						storage_path,
 						reporte,
+						reporte_encabezado,
 						tipo_estudio,
 						descripcion,
 						fecha_estudio,
@@ -3207,7 +3235,7 @@ const VisorDicom = () => {
 				if (errEst) {
 					({ data: estudio, error: errEst } = await supabase
 						.from("estudios_radiologia")
-						.select("storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_doctor, id_radiologo")
+						.select("storage_path, reporte, reporte_encabezado, tipo_estudio, descripcion, fecha_estudio, id_doctor, id_radiologo")
 						.eq("id_estudio", idEstudio)
 						.single());
 				}
@@ -3226,6 +3254,7 @@ const VisorDicom = () => {
 				throw new Error("No tienes acceso a este estudio");
 			}
 			if (estudio.reporte) setReporteTexto(estudio.reporte);
+			setReporteEncabezado(estudio.reporte_encabezado || {});
 
 			let imagenesDicom = [];
 			const consultaImagenes = supabase
@@ -3237,7 +3266,9 @@ const VisorDicom = () => {
 					? await consultaImagenes.order("instance_number", { ascending: true, nullsFirst: false })
 					: await consultaImagenes;
 
-			if (!errImagenes) imagenesDicom = imagenesGuardadas || [];
+			if (!errImagenes) {
+				imagenesDicom = (imagenesGuardadas || []).filter(esArchivoDicom);
+			}
 
 			if (imagenesDicom.length === 0 && estudio?.storage_path) {
 				imagenesDicom = [crearImagenDicomFallback(estudio.storage_path, estudio)];
@@ -4099,12 +4130,13 @@ const VisorDicom = () => {
 	const descargarReportePdf = async () => {
 		const id = estudioId || estudioData?.id || "";
 		const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
+		const encabezado = obtenerEncabezadoReporte();
 		try {
 			await generarReportePdf({
-				nombrePaciente: pacienteInfo.nombre,
-				doctorNombre: estudioAsignacion?.doctorNombre,
-				estudioDescripcion: pacienteInfo.tipoEstudio,
-				fechaEncabezado: fechaReporteEncabezado,
+				nombrePaciente: encabezado.paciente,
+				doctorNombre: encabezado.doctor,
+				estudioDescripcion: encabezado.estudio,
+				fechaEncabezado: encabezado.fecha,
 				reporteTexto: texto,
 				membreteSrc: membreteReporteSrc,
 				qrData: id ? `${window.location.origin}/visor-paciente/${id}` : "",
@@ -4123,11 +4155,13 @@ const VisorDicom = () => {
 		}
 		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
 		const idEstudio = estudioId || estudioData?.id;
+		const encabezado = obtenerEncabezadoReporte();
 		if (esRadiologoClinicoPermisos(empleadoData?.rol)) {
 			const { error } = await supabase.rpc("actualizar_reporte_radiologo_clinico", {
 				p_id_estudio: Number(idEstudio),
 				p_reporte: textoReporte,
 				p_estado: "COMPLETADO",
+				p_reporte_encabezado: encabezado,
 			});
 			if (error) showNotif("Error al guardar el reporte", "error");
 			else {
@@ -4144,6 +4178,7 @@ const VisorDicom = () => {
 		const actualizadoEn = new Date().toISOString();
 		let payloadReporte = {
 			reporte: textoReporte,
+			reporte_encabezado: encabezado,
 			estado: "COMPLETADO",
 			listo_entrega: false,
 			entregado: false,
@@ -5038,20 +5073,22 @@ const VisorDicom = () => {
 
 											<div className="rr-contenido vd-rr-contenido">
 												<span className="vd-sr-only">Centro Diagnóstico California</span>
-												<p className="rr-fecha-encabezado">{fechaReporteEncabezado}</p>
-												<div className="rr-datos-paciente">
+												<div ref={reporteEncabezadoRef} contentEditable={puedeEditarReporte} suppressContentEditableWarning spellCheck={false} aria-label="Encabezado del reporte">
+													<p className="rr-fecha-encabezado">{encabezadoMostrado.fecha}</p>
+													<div className="rr-datos-paciente">
 													<div className="rr-dato-row">
 														<span className="rr-label">PACIENTE:</span>
-														<strong>{pacienteInfo.nombre}</strong>
+														<strong>{encabezadoMostrado.paciente}</strong>
 													</div>
 													<div className="rr-dato-row">
 														<span className="rr-label">DOCTOR:</span>
-														<strong>{pacienteInfo.doctor}</strong>
+														<strong>{encabezadoMostrado.doctor}</strong>
 													</div>
 													<div className="rr-dato-row">
 														<span className="rr-label">ESTUDIO:</span>
-														<strong>{pacienteInfo.tipoEstudio}</strong>
+														<strong>{encabezadoMostrado.estudio}</strong>
 													</div>
+												</div>
 												</div>
 
 												<div
@@ -5066,8 +5103,8 @@ const VisorDicom = () => {
 													onInput={(e) => setReporteTexto(e.currentTarget.innerText)}
 												/>
 
-												<div className="rr-firma-area">
-													<div className="rr-firma-bloque">
+											<div className="rr-firma-area">
+													<div className="rr-firma-elemento" onPointerDown={puedeEditarReporte ? (e) => iniciarArrastreFirma("firma", e) : undefined} onPointerMove={moverArrastreFirma} onPointerUp={terminarArrastreFirma} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px` }}>
 														{firmaEmpleadoUrl ? (
 															<img
 																className="rr-firma-img"
@@ -5077,13 +5114,15 @@ const VisorDicom = () => {
 														) : (
 															<div className="rr-firma-placeholder" />
 														)}
+													</div>
+													<div className="rr-firma-datos-elemento" onPointerDown={puedeEditarReporte ? (e) => iniciarArrastreFirma("datos", e) : undefined} onPointerMove={moverArrastreFirma} onPointerUp={terminarArrastreFirma} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px` }}>
 														<p className="rr-firma-nombre">{nombreRadiologo}</p>
 														<p className="rr-firma-dato">
 															{especialidadRadiologo.toUpperCase()}
 														</p>
 														{empleadoData?.cedula && (
 															<p className="rr-firma-dato">
-																CE {empleadoData.cedula}
+															CE {empleadoData.cedula}
 															</p>
 														)}
 													</div>

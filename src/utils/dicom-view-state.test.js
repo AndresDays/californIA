@@ -17,7 +17,7 @@ test("serializa viewport y overlays sin campos temporales", () => {
 	});
 
 	expect(estado).toEqual({
-		version: 1,
+		version: 2,
 		viewport: expect.objectContaining({ scale: 1.5, invert: true }),
 		overlays: expect.objectContaining({
 			lineas: [{ px1: 1, py1: 2, px2: 3, py2: 4, dist: 5 }],
@@ -34,6 +34,8 @@ test("usa storage_path como clave para imágenes sin metadata", () => {
 	expect(crearClaveImagenDicom({ storage_path: "123/imagen.dcm" })).toBe("123/imagen.dcm");
 });
 
-test("rechaza versiones de estado no compatibles", () => {
-	expect(leerEstadoVistaDicom({ version: 2 })).toBeNull();
+test("acepta el formato actual y conserva los overlays de formatos anteriores", () => {
+	expect(leerEstadoVistaDicom({ version: 2 })).toEqual({ version: 2 });
+	expect(leerEstadoVistaDicom({ version: 1 })).toEqual({ version: 1 });
+	expect(leerEstadoVistaDicom({ version: 3 })).toBeNull();
 });

@@ -1,5 +1,19 @@
 const TEXTO_VACIO = "";
 
+export const esArchivoDicom = (imagen = {}) => {
+  const mimeType = String(imagen.mime_type || imagen.type || "").trim().toLowerCase();
+  const nombre = String(imagen.file_name || imagen.storage_path || imagen.name || "")
+    .split("?")[0]
+    .trim()
+    .toLowerCase();
+
+  return (
+    mimeType === "application/dicom" ||
+    mimeType === "image/dicom-rle" ||
+    /\.(dcm|dicom)$/.test(nombre)
+  );
+};
+
 export const normalizarStoragePathDicom = (path = "", bucket = "radiologia") => {
   const texto = String(path || "").trim();
   if (!texto) return TEXTO_VACIO;

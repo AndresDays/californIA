@@ -2,6 +2,7 @@ import {
 	buildEmpleadoInsertPayload,
 	buildEmpleadoUpdatePayload,
 	esRolAdministrador,
+	etiquetaRolUsuario,
 	normalizarRolUsuario,
 	prepararUsuarioParaFormulario,
 } from './usuarios-auth';
@@ -72,6 +73,11 @@ describe('usuarios auth payloads', () => {
 		expect(normalizarRolUsuario('Radiologo')).toBe('radiologo');
 		expect(normalizarRolUsuario('Médico')).toBe('medico');
 		expect(normalizarRolUsuario('Tecnico Radiologia')).toBe('tecnico_radiologia');
+	});
+
+	test('shows the clinical radiologist as Radiologo without changing its stored role', () => {
+		expect(etiquetaRolUsuario('radiologo_clinico')).toBe('Radiólogo');
+		expect(normalizarRolUsuario('radiologo_clinico')).toBe('radiologo_clinico');
 	});
 
 	test('prepares an existing user for the edit form', () => {

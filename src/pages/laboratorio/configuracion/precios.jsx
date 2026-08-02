@@ -52,9 +52,9 @@ const Precios = () => {
 			let query = supabase.from("precios_estudios").select("*", { count: "exact" });
 			if (buscarPrecio.trim())
 				query = query.or(
-					`clave.ilike.%${buscarPrecio}%,descripcion.ilike.%${buscarPrecio}%,empresa.ilike.%${buscarPrecio}%`,
+					`clave.ilike.%${buscarPrecio}%,descripcion.ilike.%${buscarPrecio}%,cliente.ilike.%${buscarPrecio}%`,
 				);
-			if (empresaFiltro) query = query.eq("empresa", empresaFiltro);
+			if (empresaFiltro) query = query.eq("cliente", empresaFiltro);
 			const desde = (paginaActual - 1) * registrosPorPagina;
 			const { data, error, count } = await query
 				.range(desde, desde + registrosPorPagina - 1)
@@ -76,7 +76,7 @@ const Precios = () => {
 						tipo: precioData.tipo,
 						clave: precioData.clave,
 						descripcion: precioData.descripcion,
-						empresa: precioData.empresa,
+						cliente: precioData.cliente,
 						precio: precioData.precio,
 						fecha: precioData.fecha,
 					})
@@ -142,9 +142,9 @@ const Precios = () => {
 		let query = supabase.from("precios_estudios").select("*");
 		if (buscarPrecio.trim())
 			query = query.or(
-				`clave.ilike.%${buscarPrecio}%,descripcion.ilike.%${buscarPrecio}%,empresa.ilike.%${buscarPrecio}%`,
+				`clave.ilike.%${buscarPrecio}%,descripcion.ilike.%${buscarPrecio}%,cliente.ilike.%${buscarPrecio}%`,
 			);
-		if (empresaFiltro) query = query.eq("empresa", empresaFiltro);
+		if (empresaFiltro) query = query.eq("cliente", empresaFiltro);
 		const { data, error } = await query.order("id", { ascending: true });
 		if (error) throw error;
 		return data || [];
@@ -158,7 +158,7 @@ const Precios = () => {
 				p.tipo || "Estudio",
 				p.clave || "",
 				p.descripcion || "",
-				p.empresa || p.cliente || "",
+				p.cliente || "",
 				`$${p.precio}`,
 				p.fecha ? new Date(p.fecha).toLocaleDateString("es-MX") : "",
 			]);
@@ -177,7 +177,7 @@ const Precios = () => {
 				p.tipo || "Estudio",
 				p.clave || "",
 				p.descripcion || "",
-				p.empresa || p.cliente || "",
+				p.cliente || "",
 				`$${p.precio}`,
 				p.fecha ? new Date(p.fecha).toLocaleDateString("es-MX") : "",
 			]);
@@ -199,12 +199,12 @@ const Precios = () => {
 			const { data, error } = await supabase
 				.from("precios_estudios")
 				.select("tipo, clave, descripcion, precio")
-				.eq("empresa", empresaOrigen);
+				.eq("cliente", empresaOrigen);
 			if (error) throw error;
 			if (!data?.length) { setDuplicando(false); return; }
 			const nuevos = data.map(({ tipo, clave, descripcion, precio }) => ({
 				tipo, clave, descripcion, precio,
-				empresa: empresaDestino,
+				cliente: empresaDestino,
 				fecha: new Date().toISOString(),
 			}));
 			const { error: insertError } = await supabase.from("precios_estudios").insert(nuevos);
