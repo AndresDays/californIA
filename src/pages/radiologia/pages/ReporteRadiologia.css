@@ -292,12 +292,19 @@ body {
 }
 
 .rr-firma-img {
-	height: 104px;
-	max-width: 285px;
-	filter: brightness(0) contrast(1.2);
+	height: 122px;
+	max-width: 320px;
+	filter: none;
 	object-fit: contain;
 	margin-bottom: -2px;
 }
+
+.rr-firma-elemento, .rr-firma-datos-elemento { position: absolute; min-width: 150px; resize: both; overflow: auto; cursor: grab; border: 1px dashed transparent; text-align: center; }
+.rr-firma-elemento:hover, .rr-firma-datos-elemento:hover { border-color: #2388b3; }
+.rr-firma-elemento:active, .rr-firma-datos-elemento:active { cursor: grabbing; }
+.rr-firma-elemento { width: 320px; height: 130px; }
+.rr-firma-datos-elemento { width: 330px; min-height: 62px; }
+.rr-firma-elemento .rr-firma-img { width: 100%; height: 100%; max-width: none; object-fit: contain; filter: none !important; }
 
 .rr-firma-placeholder {
 	width: 170px;

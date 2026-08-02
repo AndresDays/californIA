@@ -14,7 +14,7 @@ import {
   EVENTOS_SOLICITUD,
   registrarEventoSolicitud,
 } from '../../../utils/solicitud-auditoria';
-import { normalizarModalidadVisor } from '../../../utils/dicom-series';
+import { esArchivoDicom, normalizarModalidadVisor } from '../../../utils/dicom-series';
 import {
   esDoctorExterno,
   obtenerRestriccionDoctorExterno,
@@ -375,6 +375,11 @@ const DashboardRadiologia = () => {
 
     if (archivos.length === 0 || !estudio) return;
 
+    if (archivos.some((archivo) => !esArchivoDicom(archivo))) {
+      mostrarNotificacion('Solo se pueden subir archivos DICOM (.dcm o .dicom) al estudio', 'error');
+      return;
+    }
+
     const archivoPesado = archivos.find((archivo) => archivo.size > IMAGEN_MAX_SIZE);
     if (archivoPesado) {
       mostrarNotificacion('El archivo debe pesar menos de 500MB', 'error');
@@ -678,7 +683,7 @@ const DashboardRadiologia = () => {
             ref={inputImagenRef}
             type="file"
             className="radiologia-input-archivo"
-            accept=".dcm,.dicom,application/dicom,image/*"
+            accept=".dcm,.dicom,application/dicom,image/dicom-rle"
             multiple
             onChange={handleImagenSeleccionada}
           />

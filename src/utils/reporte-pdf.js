@@ -59,10 +59,10 @@ export const generarReportePdf = async ({
 
 	doc.setFont("helvetica", "bold");
 	const datos = [
-		["PACIENTE:", nombrePaciente || "-"],
-		["DOCTOR:", doctorNombre || "MÉDICO REFERENTE"],
-		["ESTUDIO:", estudioDescripcion || "-"],
-	];
+		["PACIENTE:", nombrePaciente],
+		["DOCTOR:", doctorNombre],
+		["ESTUDIO:", estudioDescripcion],
+	].filter(([, valor]) => String(valor ?? "").trim());
 	datos.forEach(([etiqueta, valor]) => {
 		doc.text(etiqueta, MARGEN_LATERAL, y);
 		doc.setFont("helvetica", "normal");

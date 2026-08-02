@@ -28,6 +28,22 @@ export const normalizarRolUsuario = (rol) => {
 	return roles[normalizado] || normalizado;
 };
 
+export const etiquetaRolUsuario = (rol) => {
+	const etiquetas = {
+		admin: "Administrador",
+		radiologo: "Radiólogo - Director",
+		radiologo_clinico: "Radiólogo",
+		medico: "Médico",
+		doctor_externo: "Doctor externo Rayos X",
+		tecnico_radiologia: "Técnico en Radiología",
+		quimico: "Químico",
+		recepcionista: "Recepcionista",
+		desarrollador: "Desarrollador",
+	};
+	const rolNormalizado = normalizarRolUsuario(rol);
+	return etiquetas[rolNormalizado] || rol || "Usuario";
+};
+
 export const prepararUsuarioParaFormulario = (usuarioEditar) => ({
 	id: usuarioEditar.id,
 	auth_uuid: usuarioEditar.auth_uuid || "",
