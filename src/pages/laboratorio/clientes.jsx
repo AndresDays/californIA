@@ -6,6 +6,7 @@ import ModalConfirmarEliminacion from '../../components/ModalConfirmarEliminacio
 import { useAuth } from '../../context/auth-context';
 import { supabase } from '../../lib/supabase-client';
 import { useClientes } from '../../hooks/use-clientes';
+import { useBusquedaPersistente } from '../../hooks/use-busqueda-persistente';
 import {
   buscarDuplicadoRegistro,
   crearMensajeRegistroDuplicado,
@@ -18,7 +19,7 @@ const Clientes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [buscarCliente, setBuscarCliente] = useState('');
+  const [buscarCliente, setBuscarCliente] = useBusquedaPersistente('clientes:termino');
   const [paginaActual, setPaginaActual] = useState(1);
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);

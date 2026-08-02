@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregar from "../componentes/modal-agregar";
 import Tabla from "../componentes/tabla";
 import "./administrar-equipos.css";
@@ -9,7 +10,7 @@ import "./administrar-equipos.css";
 const AdministrarEquipos = () => {
 	const { user } = useAuth();
 
-	const [buscarEquipo, setBuscarEquipo] = useState("");
+	const [buscarEquipo, setBuscarEquipo] = useBusquedaPersistente("equipos:termino");
 	const [equipos, setEquipos] = useState([]);
 	const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 	const [paginaActual, setPaginaActual] = useState(1);

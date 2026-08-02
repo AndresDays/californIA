@@ -7,6 +7,7 @@ import pdfBtn from "../../../assets/pdfBtn.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import {
 	resolverEmpresaOperativaCatalogo,
 	resolverModalidadDesdeTipo,
@@ -16,7 +17,7 @@ import "./estudios-lab.css";
 const EstudiosLab = () => {
 	const { user } = useAuth();
 
-	const [buscarEstudio, setBuscarEstudio] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("estudios-laboratorio:termino");
 	const [estudios, setEstudios] = useState([]);
 	const [totalEstudios, setTotalEstudios] = useState(0);
 	const [areas, setAreas] = useState([]);

@@ -10,6 +10,7 @@ import PageLayout from '../components/page-layout.jsx';
 import { useAuth } from '../context/auth-context.jsx';
 import { supabase } from '../lib/supabase-client.js';
 import { usePacientes } from '../hooks/use-pacientes';
+import { useBusquedaPersistente } from '../hooks/use-busqueda-persistente';
 import {
   buscarDuplicadoRegistro,
   crearMensajeRegistroDuplicado,
@@ -21,7 +22,7 @@ const Pacientes = () => {
   const { user, empleadoData } = useAuth();
 	const queryClient = useQueryClient();
 
-  const [buscarPaciente, setBuscarPaciente] = useState('');
+  const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente('pacientes:termino');
   const [paginaActual, setPaginaActual] = useState(1);
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);

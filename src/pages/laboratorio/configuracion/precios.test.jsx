@@ -49,6 +49,18 @@ import Precios from "./precios";
 describe("Precios", () => {
 	beforeEach(() => {
 		filtrosOr.length = 0;
+		sessionStorage.clear();
+	});
+
+	test("restaura la búsqueda al volver a la pantalla", async () => {
+		sessionStorage.setItem("california:busqueda:precios:termino", "rei");
+		render(<Precios />);
+
+		await waitFor(() => {
+			expect(filtrosOr).toContain(
+				"clave.ilike.%rei%,descripcion.ilike.%rei%,cliente.ilike.%rei%",
+			);
+		});
 	});
 
 	test("busca por clave, descripción y cliente sin consultar una columna inexistente", async () => {

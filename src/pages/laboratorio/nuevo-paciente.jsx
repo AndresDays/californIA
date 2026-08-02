@@ -5,6 +5,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import SearchAutocomplete from "../../components/search-autocomplete.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	construirEstudioCatalogoUnificado,
 	construirEstudioSeleccionado,
@@ -26,6 +27,11 @@ import {
 	esErrorColumnaSchemaCache,
 	obtenerColumnaSchemaCacheFaltante,
 } from "../../utils/supabase-errors";
+
+const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
+const leerBorrador = () => {
+	try { return JSON.parse(sessionStorage.getItem(CLAVE_BORRADOR) || "{}"); } catch { return {}; }
+};
 import {
 	EVENTOS_SOLICITUD,
 	registrarEventoSolicitud,
@@ -103,7 +109,7 @@ const NuevoPaciente = () => {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const menuRef = useRef(null);
 	const citaPrecargadaRef = useRef(null);
-	const tipoEstudioPendienteRef = useRef("");
+	const tipoEstudioPendienteRef = useRef(leerBorrador().tipoEstudioSeleccionado || "");
 
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
 	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
@@ -117,7 +123,7 @@ const NuevoPaciente = () => {
 		tipo: "exito",
 	});
 
-	const [buscarPaciente, setBuscarPaciente] = useState("");
+	const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente("nuevo-paciente:paciente");
 	const [pacientesEncontrados, setPacientesEncontrados] = useState([]);
 	const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 	const [showBusquedaPacientes, setShowBusquedaPacientes] = useState(false);
@@ -136,18 +142,18 @@ const NuevoPaciente = () => {
 
 	const [observaciones, setObservaciones] = useState("");
 
-	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
+	const [clienteSeleccionado, setClienteSeleccionado] = useState(() => leerBorrador().clienteSeleccionado || "");
 	const [clientes, setClientes] = useState([]);
 
-	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
+	const [empresaSeleccionada, setEmpresaSeleccionada] = useState(() => leerBorrador().empresaSeleccionada || "");
 	const [empresas, setEmpresas] = useState([]);
 
-	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
+	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState(() => leerBorrador().tipoEstudioSeleccionado || "");
 	const [tiposEstudio, setTiposEstudio] = useState([]);
 
-	const [buscarEstudio, setBuscarEstudio] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("nuevo-paciente:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
-	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
+	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -228,6 +234,10 @@ const NuevoPaciente = () => {
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, pagoRecibido]);
 
 	useEffect(() => {
+		sessionStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ clienteSeleccionado, empresaSeleccionada, tipoEstudioSeleccionado, estudiosSeleccionados }));
+	}, [clienteSeleccionado, empresaSeleccionada, tipoEstudioSeleccionado, estudiosSeleccionados]);
+
+	useEffect(() => {
 		if (!destinoTurnoManual) {
 			setDestinoTurno(resolverDestinoTurnoDesdeEstudios(estudiosSeleccionados));
 		}
@@ -239,8 +249,6 @@ const NuevoPaciente = () => {
 		} else {
 			setTiposEstudio([]);
 		}
-		setTipoEstudioSeleccionado(tipoEstudioPendienteRef.current || "");
-		tipoEstudioPendienteRef.current = "";
 	}, [empresaSeleccionada]);
 
 	useEffect(() => {
@@ -723,6 +731,11 @@ const NuevoPaciente = () => {
 			}));
 
 			setTiposEstudio(tiposFiltrados || []);
+			const tipoPendiente = tipoEstudioPendienteRef.current;
+			if (tipoPendiente && tiposFiltrados.some((tipo) => tipo.id_tipo_estudio?.toString() === tipoPendiente)) {
+				setTipoEstudioSeleccionado(tipoPendiente);
+			}
+			tipoEstudioPendienteRef.current = "";
 		} catch (error) {
 			console.error("Error al cargar tipos de estudio:", error);
 			setTiposEstudio([]);
@@ -1287,6 +1300,7 @@ const NuevoPaciente = () => {
 		setEmpresaSeleccionada("");
 		setTipoEstudioSeleccionado("");
 		setEstudiosSeleccionados([]);
+		sessionStorage.removeItem(CLAVE_BORRADOR);
 		setBuscarPaciente("");
 		setBuscarEstudio("");
 		setPagoRecibido("");

@@ -4,6 +4,7 @@ import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { exportarExcel, exportarPDF } from "../../../utils/exportar-tabla";
 import ModalAgregarPrecio from "../componentes/modal-agregar-precio";
 import "./precios.css";
@@ -12,7 +13,7 @@ const Precios = () => {
 	const { user } = useAuth();
 
 	const [empresaFiltro, setEmpresaFiltro] = useState("");
-	const [buscarPrecio, setBuscarPrecio] = useState("");
+	const [buscarPrecio, setBuscarPrecio] = useBusquedaPersistente("precios:termino");
 	const [precios, setPrecios] = useState([]);
 	const [registrosPorPagina, setRegistrosPorPagina] = useState(100);
 	const [paginaActual, setPaginaActual] = useState(1);

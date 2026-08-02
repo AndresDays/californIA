@@ -7,19 +7,20 @@ import solicitudIcono from "../../../assets/solicitudIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import "./paquetes.css";
 
 const Paquetes = () => {
 	const { user } = useAuth();
 
-	const [buscarPaquete, setBuscarPaquete] = useState("");
+	const [buscarPaquete, setBuscarPaquete] = useBusquedaPersistente("paquetes:paquete");
 	const [paquetes, setPaquetes] = useState([]);
 	const [totalPaquetes, setTotalPaquetes] = useState(0);
 	const [clavePerfil, setClavePerfil] = useState("");
 	const [descripcionPerfil, setDescripcionPerfil] = useState("");
 	const [condicionesPaciente, setCondicionesPaciente] = useState("");
 	const [diasProceso, setDiasProceso] = useState("");
-	const [busquedaEstudio, setBusquedaEstudio] = useState("");
+	const [busquedaEstudio, setBusquedaEstudio] = useBusquedaPersistente("paquetes:estudio");
 	const [estudiosDelPaquete, setEstudiosDelPaquete] = useState([]);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(null);

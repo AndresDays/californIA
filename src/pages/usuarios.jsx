@@ -14,13 +14,14 @@ import ModalNotificacion from "../components/ModalNotificacion";
 import PageLayout from "../components/page-layout.jsx";
 import { useAuth } from "../context/auth-context";
 import { supabase } from "../lib/supabase-client";
+import { useBusquedaPersistente } from "../hooks/use-busqueda-persistente";
 import { buildEmpleadoUpdatePayload, etiquetaRolUsuario } from "../utils/usuarios-auth";
 import { obtenerMensajeErrorFuncion } from "../utils/supabase-functions";
 
 const Usuarios = () => {
 	const { empleadoData } = useAuth();
 
-	const [buscarUsuario, setBuscarUsuario] = useState("");
+	const [buscarUsuario, setBuscarUsuario] = useBusquedaPersistente("usuarios:termino");
 	const [usuarios, setUsuarios] = useState([]);
 	const [paginaActual, setPaginaActual] = useState(1);
 	const [totalUsuarios, setTotalUsuarios] = useState(0);
