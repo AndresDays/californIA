@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregar from "../componentes/modal-agregar";
 import Tabla from "../componentes/tabla";
 import "./administrar-metodos.css";
@@ -9,7 +10,7 @@ import "./administrar-metodos.css";
 const AdministrarMetodos = () => {
 	const { user } = useAuth();
 
-	const [buscarMetodo, setBuscarMetodo] = useState("");
+	const [buscarMetodo, setBuscarMetodo] = useBusquedaPersistente("metodos:termino");
 	const [metodos, setMetodos] = useState([]);
 	const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 	const [paginaActual, setPaginaActual] = useState(1);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
+import { useBusquedaPersistente } from '../../../hooks/use-busqueda-persistente';
 import Header from '../../../components/header-principal';
 import Sidebar from '../../../components/sidebar';
 import SidebarHome from '../../../components/sidebar-home';
@@ -134,7 +135,7 @@ const DashboardRadiologia = () => {
   const [empleadoData, setEmpleadoData] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [estudios, setEstudios] = useState([]);
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useBusquedaPersistente('radiologia:termino');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);

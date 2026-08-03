@@ -10,6 +10,7 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { cargarRadiologiaParaCaptura, useCaptura, useCatalogosCaptura } from "../../hooks/use-captura";
 import {
 	CAPTURA_FILTROS_ESTADO,
@@ -48,8 +49,8 @@ const Captura = () => {
 	const [fechaFinal, setFechaFinal] = useState(
 		new Date().toISOString().split("T")[0],
 	);
-	const [buscarEstudio, setBuscarEstudio] = useState("");
-	const [buscarPaciente, setBuscarPaciente] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("captura:estudio");
+	const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente("captura:paciente");
 	const [clienteFiltro, setClienteFiltro] = useState("");
 	const [areaFiltro, setAreaFiltro] = useState("");
 	const [filtroEstadoCaptura, setFiltroEstadoCaptura] = useState("todos");

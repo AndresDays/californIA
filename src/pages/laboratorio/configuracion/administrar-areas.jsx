@@ -3,13 +3,14 @@ import editarIconoV2 from "../../../assets/editarIconoV2.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregar from "../componentes/modal-agregar.jsx";
 import "./administrar-areas.css";
 
 const AdministrarAreas = () => {
 	const { user } = useAuth();
 
-	const [buscarArea, setBuscarArea] = useState("");
+	const [buscarArea, setBuscarArea] = useBusquedaPersistente("areas:termino");
 	const [areas, setAreas] = useState([]);
 	const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 	const [paginaActual, setPaginaActual] = useState(1);

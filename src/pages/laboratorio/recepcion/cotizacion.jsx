@@ -8,6 +8,7 @@ import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
 import "./cotizacion.css";
 
@@ -17,10 +18,10 @@ const Cotizacion = () => {
 	const [nombrePaciente, setNombrePaciente] = useState("");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [condicionesPaciente, setCondicionesPaciente] = useState("");
-	const [buscarCotizacion, setBuscarCotizacion] = useState("");
+	const [buscarCotizacion, setBuscarCotizacion] = useBusquedaPersistente("cotizacion:folio");
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [empresas, setEmpresas] = useState([]);
-	const [buscarEstudio, setBuscarEstudio] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("cotizacion:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
