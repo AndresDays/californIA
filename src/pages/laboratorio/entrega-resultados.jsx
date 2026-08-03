@@ -18,6 +18,7 @@ import {
 	esErrorTablaInexistente,
 } from "../../utils/supabase-errors";
 import { useEntregaResultados } from "../../hooks/use-entrega-resultados";
+import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	calcularPendientesEntrega,
 	calcularSaldoEntrega,
@@ -88,7 +89,7 @@ const EntregaResultados = () => {
 	const [fechaFinal, setFechaFinal] = useState(
 		formatearFechaMexico(),
 	);
-	const [busquedaEntrega, setBusquedaEntrega] = useState("");
+	const [busquedaEntrega, setBusquedaEntrega] = useBusquedaPersistente("entrega-resultados:termino");
 	const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 	const [estudiosVenta, setEstudiosVenta] = useState([]);
 	const [estudiosRadiologia, setEstudiosRadiologia] = useState([]);

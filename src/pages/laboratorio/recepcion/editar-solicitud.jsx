@@ -13,6 +13,7 @@ import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { generarTicketVenta } from "../../../utils/generarTicketVenta";
 import {
 	EVENTOS_SOLICITUD,
@@ -36,7 +37,7 @@ const EditarSolicitud = () => {
 
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [rangoFecha, setRangoFecha] = useState("hoy");
-	const [buscarPaciente, setBuscarPaciente] = useState("");
+	const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente("editar-solicitud:paciente");
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
 	const [motivoModificacion, setMotivoModificacion] = useState("");
@@ -49,7 +50,7 @@ const EditarSolicitud = () => {
 	const [showBusquedaMedicos, setShowBusquedaMedicos] = useState(false);
 	const [recepcionistas, setRecepcionistas] = useState([]);
 	const [recepcionistaSeleccionado, setRecepcionistaSeleccionado] = useState("");
-	const [buscarEstudio, setBuscarEstudio] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("editar-solicitud:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);

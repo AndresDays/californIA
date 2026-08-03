@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
+import { useBusquedaPersistente } from '../../../hooks/use-busqueda-persistente';
 import Header from '../../../components/header-principal';
 import SidebarHome from '../../../components/sidebar-home';
 import ModalNotificacion from '../../../components/ModalNotificacion';
@@ -93,7 +94,7 @@ const PlantillasRadiologia = () => {
   const [guardando, setGuardando] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useBusquedaPersistente('plantillas-radiologia:termino');
   const [filtro, setFiltro] = useState('todas');
   const [formData, setFormData] = useState(formInicial);
   const [archivo, setArchivo] = useState(null);

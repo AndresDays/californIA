@@ -7,6 +7,7 @@ import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregarAnalitoEstudio from "../componentes/modal-agregar-analito-estudio";
 import ModalAnalito from "../componentes/modal-analito";
 import "./analitos.css";
@@ -14,8 +15,8 @@ import "./analitos.css";
 const Analitos = () => {
 	const { user } = useAuth();
 
-	const [buscarEstudio, setBuscarEstudio] = useState("");
-	const [buscarAnalito, setBuscarAnalito] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("analitos:estudio");
+	const [buscarAnalito, setBuscarAnalito] = useBusquedaPersistente("analitos:analito");
 	const [analitos, setAnalitos] = useState([]);
 	const [totalAnalitos, setTotalAnalitos] = useState(0);
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);

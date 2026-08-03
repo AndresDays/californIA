@@ -4,6 +4,7 @@ import PageLayout from "../../components/page-layout";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { useCitasHoy, useTurnos } from "../../hooks/use-turnos";
+import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	generarCodigoTurno,
 	obtenerNombrePrivado,
@@ -75,7 +76,7 @@ const Turnos = () => {
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [destinosCitas, setDestinosCitas] = useState({});
 	const [pacientes, setPacientes] = useState([]);
-	const [busquedaPaciente, setBusquedaPaciente] = useState("");
+	const [busquedaPaciente, setBusquedaPaciente] = useBusquedaPersistente("turnos:paciente");
 	const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 	const [nombreManual, setNombreManual] = useState("");
 	const [area, setArea] = useState("Recepcion");

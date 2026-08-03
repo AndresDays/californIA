@@ -16,6 +16,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { useDoctores } from "../../hooks/use-doctores";
+import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	buscarDuplicadoRegistro,
 	crearMensajeRegistroDuplicado,
@@ -29,7 +30,7 @@ import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 const Doctores = () => {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
-	const [buscarDoctor, setBuscarDoctor] = useState("");
+	const [buscarDoctor, setBuscarDoctor] = useBusquedaPersistente("doctores:termino");
 	const [paginaActual, setPaginaActual] = useState(1);
 	const [modalAbierto, setModalAbierto] = useState(false);
 	const [doctorEditar, setDoctorEditar] = useState(null);

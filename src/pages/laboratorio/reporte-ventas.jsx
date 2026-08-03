@@ -4,6 +4,7 @@ import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
+import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	agruparEstudiosVendidos,
 	agruparVentasPorDia,
@@ -34,7 +35,7 @@ const ReporteVentas = () => {
 	const [vendedorSeleccionado, setVendedorSeleccionado] = useState("");
 	const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState("");
 	const [areaSeleccionada, setAreaSeleccionada] = useState("");
-	const [buscarEstudio, setBuscarEstudio] = useState("");
+	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("reporte-ventas:estudio");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [doctorSeleccionado, setDoctorSeleccionado] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");

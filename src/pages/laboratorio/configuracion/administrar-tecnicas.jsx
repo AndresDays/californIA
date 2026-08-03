@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregar from "../componentes/modal-agregar.jsx";
 import Tabla from "../componentes/tabla";
 import "./administrar-tecnicas.css";
@@ -9,7 +10,7 @@ import "./administrar-tecnicas.css";
 const AdministrarTecnicas = () => {
 	const { user } = useAuth();
 
-	const [buscarTecnica, setBuscarTecnica] = useState("");
+	const [buscarTecnica, setBuscarTecnica] = useBusquedaPersistente("tecnicas:termino");
 	const [tecnicas, setTecnicas] = useState([]);
 	const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 	const [paginaActual, setPaginaActual] = useState(1);
