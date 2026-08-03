@@ -47,6 +47,31 @@ const initCornerstone = () => {
 	return csInitPromise;
 };
 
+const PreviewSeriePaciente = ({ imageId, label }) => {
+	const previewRef = useRef(null);
+	useEffect(() => {
+		let cancelado = false;
+		const cargarPreview = async () => {
+			if (!previewRef.current || !imageId) return;
+			const { cornerstone } = await initCornerstone();
+			try {
+				cornerstone.enable(previewRef.current);
+				const imagen = await cornerstone.loadAndCacheImage(imageId);
+				if (!cancelado && previewRef.current) {
+					cornerstone.displayImage(previewRef.current, imagen);
+					cornerstone.resize(previewRef.current, true);
+				}
+			} catch (error) {}
+		};
+		cargarPreview();
+		return () => {
+			cancelado = true;
+			try { if (previewRef.current) csModules?.cornerstone?.disable(previewRef.current); } catch (error) {}
+		};
+	}, [imageId]);
+	return <div ref={previewRef} className="vd-serie-preview" aria-label={`Preview ${label}`} />;
+};
+
 const TOOLS = [
 	{ id: "scroll", icon: scrollIcon, label: "Scroll" },
 	{ id: "zoom", icon: ampliarIcon, label: "Ampliar" },
@@ -418,19 +443,19 @@ const VisorPaciente = () => {
 										<span>{serie.label || `Serie ${serieIndex + 1}`}</span>
 										<small>{serie.imagenes.length}</small>
 									</button>
-									{serie.imagenes.map((imagen, i) => (
+									{serie.imagenes.slice(0, 1).map((imagen) => (
 										<button
 											type="button"
-											key={imagen.id_imagen || imagen.storage_path || `${serie.id}-${i}`}
-											className={`vd-miniatura ${!vistaReporte && serieActiva?.id === serie.id && indiceImagen === i ? "activa" : ""}`}
-											onClick={() => seleccionarSerie(serie, i)}>
+											key={imagen.id_imagen || imagen.storage_path || serie.id}
+											className={`vd-miniatura ${!vistaReporte && serieActiva?.id === serie.id ? "activa" : ""}`}
+											onClick={() => seleccionarSerie(serie, 0)}>
 											<div className="vd-mini-img">
-												<span className="vd-mini-dcm">{serie.modalidad || "DCM"}</span>
-												<span className="vd-mini-num">{imagen.numero || i + 1}</span>
+												<PreviewSeriePaciente imageId={imagen.imageId} label={serie.label || `Serie ${serieIndex + 1}`} />
+												<span className="vd-mini-num">{imagen.numero || 1}</span>
 											</div>
 											<div className="vd-mini-footer">
-												<span>Imagen {i + 1}</span>
-												<small>{i + 1}/{serie.imagenes.length}</small>
+												<span>{serie.label || `Serie ${serieIndex + 1}`}</span>
+												<small>{serie.imagenes.length} imágenes</small>
 											</div>
 										</button>
 									))}
