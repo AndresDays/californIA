@@ -33,6 +33,7 @@ export const resolverModalidadDesdeTipo = (tipoNombre = "") => {
 export const construirEstudioCatalogoUnificado = (estudio, modulo = "laboratorio") => {
 	const esImagen = modulo === "imagen";
 	return {
+		...estudio,
 		id: `${modulo}-${estudio.id}`,
 		id_catalogo: estudio.id,
 		modulo,

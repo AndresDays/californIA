@@ -53,7 +53,15 @@ test.describe('Nuevo Paciente — Flujo de registro', () => {
 
     await page.route(`${SUPABASE_URL}/rest/v1/estudios_lab_catalogo**`, async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
-        { id: 1, clave: 'BH', descripcion: 'BIOMETRÍA HEMÁTICA', area: 'Hematología' },
+        {
+          id: 1,
+          clave: 'BH',
+          descripcion: 'BIOMETRÍA HEMÁTICA',
+          area: 'Hematología',
+          dias_proceso: 2,
+          condiciones_paciente: 'Ayuno de 8 horas',
+          tipo_muestra: 'Sangre',
+        },
       ]) });
     });
 
@@ -108,6 +116,24 @@ test.describe('Nuevo Paciente — Flujo de registro', () => {
     await expect(nombreInput).toBeVisible({ timeout: 8000 });
     await nombreInput.fill('Test Paciente');
     await expect(nombreInput).toHaveValue('Test Paciente');
+  });
+
+  test('abre el detalle del estudio seleccionado al hacer clic en su nombre', async ({ page }) => {
+    await page.locator('.top-controls select').selectOption('1');
+    await page.getByPlaceholder('Buscar Estudios...').fill('BH');
+    await page.getByText(/BH.*BIOMETRÍA HEMÁTICA/i).click();
+
+    await page.getByRole('button', { name: /ver detalle de BIOMETRÍA HEMÁTICA/i }).click();
+
+    const dialog = page.getByRole('dialog', { name: /detalle del estudio/i });
+    await expect(dialog).toContainText('BH');
+    await expect(dialog).toContainText('BIOMETRÍA HEMÁTICA');
+    await expect(dialog).toContainText('2 días');
+    await expect(dialog).toContainText('Ayuno de 8 horas');
+    await expect(dialog).toContainText('Sangre');
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
   });
 
   test('guarda la venta cuando el formulario está completo', async ({ page }) => {
