@@ -42,6 +42,7 @@ import {
 } from "../../utils/sucursal-empleado";
 import { crearNotificaciones } from "../../utils/notificaciones";
 import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
+import { calcularTotalesNuevoPaciente } from "../../utils/nuevo-paciente-totales";
 import {
 	TIPOS_MOVIMIENTO_PAGO,
 	registrarMovimientoPagoVenta,
@@ -161,9 +162,6 @@ const NuevoPaciente = () => {
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
 
 	const [subtotal, setSubtotal] = useState(0);
-	const [ivaPercent, setIvaPercent] = useState(16);
-	const [iva, setIva] = useState(0);
-	const [totalConIva, setTotalConIva] = useState(0);
 	const [descuentoPercent, setDescuentoPercent] = useState(0);
 	const [descuento, setDescuento] = useState(0);
 	const [granTotal, setGranTotal] = useState(0);
@@ -233,7 +231,7 @@ const NuevoPaciente = () => {
 
 	useEffect(() => {
 		calcularTotales();
-	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, pagoRecibido]);
+	}, [estudiosSeleccionados, descuentoPercent, pagoRecibido]);
 
 	useEffect(() => {
 		sessionStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ clienteSeleccionado, empresaSeleccionada, tipoEstudioSeleccionado, estudiosSeleccionados }));
@@ -414,7 +412,7 @@ const NuevoPaciente = () => {
 					id_empleado: empleado?.id_empleado || null,
 					fecha_venta: fechaMexico.toISOString(),
 					subtotal: subtotal,
-					iva: iva,
+					iva: 0,
 					descuento: descuento,
 					total: granTotal,
 					forma_pago: formaPago,
@@ -650,7 +648,6 @@ const NuevoPaciente = () => {
 				paciente: nombreCompleto,
 				estudios: estudiosSeleccionados,
 				subtotal,
-				iva,
 				descuento,
 				total: granTotal,
 				pagoRecibido: pagoNormalizado,
@@ -1113,22 +1110,10 @@ const NuevoPaciente = () => {
 	};
 
 	const calcularTotales = () => {
-		const sub = estudiosSeleccionados.reduce(
-			(sum, est) => sum + est.precio * est.cantidad,
-			0,
-		);
+		const { subtotal: sub, descuento: desc, total: gran } =
+			calcularTotalesNuevoPaciente(estudiosSeleccionados, descuentoPercent);
 		setSubtotal(sub);
-
-		const ivaCalc = sub * (ivaPercent / 100);
-		setIva(ivaCalc);
-
-		const totalIva = sub + ivaCalc;
-		setTotalConIva(totalIva);
-
-		const desc = totalIva * (descuentoPercent / 100);
 		setDescuento(desc);
-
-		const gran = totalIva - desc;
 		setGranTotal(gran);
 
 		const camb = normalizarPagoRecibido(pagoRecibido) - gran;
@@ -1489,6 +1474,8 @@ const NuevoPaciente = () => {
 											<option value="">Seleccionar</option>
 											<option value="masculino">Masculino</option>
 											<option value="femenino">Femenino</option>
+											<option value="otro">Otro</option>
+											<option value="prefiero_no_decirlo">Prefiero no decirlo</option>
 										</select>
 									</div>
 								</div>
@@ -1843,27 +1830,6 @@ const NuevoPaciente = () => {
 										/>
 									</div>
 
-									<div className="total-item">
-										<label>IVA %</label>
-										<input
-											type="number"
-											value={ivaPercent}
-											onChange={(e) =>
-												setIvaPercent(parseFloat(e.target.value) || 0)
-											}
-											className="total-input-small"
-										/>
-									</div>
-
-									<div className="total-item">
-										<label>Total+IVA</label>
-										<input
-											type="text"
-											value={`$${totalConIva.toFixed(2)}`}
-											readOnly
-											className="total-input-highlight"
-										/>
-									</div>
 								</div>
 
 								<div className="pago-grid">
@@ -1877,6 +1843,7 @@ const NuevoPaciente = () => {
 											<option value="tarjeta_debito">Tarjeta Debito</option>
 											<option value="tarjeta_credito">Tarjeta Credito</option>
 											<option value="transferencia">Transferencia</option>
+											<option value="credito">Crédito</option>
 										</select>
 									</div>
 
