@@ -361,6 +361,8 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
               <option value="">sexo</option>
               <option value="masculino">Masculino</option>
               <option value="femenino">Femenino</option>
+              <option value="otro">Otro</option>
+              <option value="prefiero_no_decirlo">Prefiero no decirlo</option>
             </select>
           </div>
 
