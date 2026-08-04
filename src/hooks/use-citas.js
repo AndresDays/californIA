@@ -52,14 +52,14 @@ export const useCitasHoy = () => {
   });
 };
 
-export const useCalendarioCitas = (fecha) =>
+export const useCalendarioCitas = (fecha, idSucursal) =>
   useQuery({
-    queryKey: ['citas', 'calendario', fecha],
+    queryKey: ['citas', 'calendario', fecha, idSucursal],
     queryFn: async () => {
       const inicioDia = `${fecha}T00:00:00`;
       const finDia = `${fecha}T23:59:59`;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('citas')
         .select(`
           id_cita, fecha_estudio, estado, tipo_estudio, monto,
@@ -72,13 +72,15 @@ export const useCalendarioCitas = (fecha) =>
         `)
         .gte('fecha_estudio', inicioDia)
         .lte('fecha_estudio', finDia)
-        .not('estado', 'eq', 'cancelada')
-        .order('fecha_estudio', { ascending: true });
+        .not('estado', 'eq', 'cancelada');
+
+      if (idSucursal) query = query.eq('id_sucursal', idSucursal);
+      const { data, error } = await query.order('fecha_estudio', { ascending: true });
 
       if (error) throw error;
       return data ?? [];
     },
-    enabled: Boolean(fecha),
+    enabled: Boolean(fecha && idSucursal),
     staleTime: 1000 * 60 * 2,
     refetchInterval: 1000 * 60 * 5,
   });
