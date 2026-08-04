@@ -75,6 +75,7 @@ import {
 } from "../../utils/duplicados-registro.js";
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
 import ModalMuestrasPendientes from "./componentes/modal-muestras-pendientes";
+import ModalDetalleEstudio from "./componentes/modal-detalle-estudio";
 import "./nuevo-paciente.css";
 
 import cotizacionesBtn from "../../assets/cotizacionesBtn.png";
@@ -154,6 +155,7 @@ const NuevoPaciente = () => {
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("nuevo-paciente:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
+	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -746,7 +748,7 @@ const NuevoPaciente = () => {
 		try {
 			const { data: estudiosLab, error } = await supabase
 				.from("estudios_lab_catalogo")
-				.select("id, clave, descripcion, area, dias_proceso")
+				.select("id, clave, descripcion, area, tipo_muestra, recipiente, metodo, tecnica, equipo, condiciones_paciente, etiquetas_extra, dias_proceso")
 				.order("clave");
 
 			if (error) throw error;
@@ -758,7 +760,7 @@ const NuevoPaciente = () => {
 			const { data: estudiosImagen, error: errorImagen } = await supabase
 				.from("estudios_imagen_catalogo")
 				.select(
-					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso",
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso, preparacion, duracion_minutos",
 				)
 				.eq("activo", true)
 				.order("clave");
@@ -800,7 +802,7 @@ const NuevoPaciente = () => {
 			let query = supabase
 				.from("estudios_imagen_catalogo")
 				.select(
-					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso",
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso, preparacion, duracion_minutos",
 				)
 				.eq("activo", true)
 				.eq("modalidad", modalidad);
@@ -1755,7 +1757,15 @@ const NuevoPaciente = () => {
 												<Fragment key={est.id}>
 													<tr>
 														<td>{est.clave}</td>
-														<td>{est.descripcion}</td>
+													<td>
+														<button
+															type="button"
+															className="btn-detalle-estudio"
+															aria-label={`Ver detalle de ${est.descripcion}`}
+															onClick={() => setEstudioDetalle(est)}>
+															{est.descripcion}
+														</button>
+													</td>
 														<td>{est.cliente}</td>
 														<td>${est.precio.toFixed(2)}</td>
 														<td>{est.diasProceso} días</td>
@@ -2019,6 +2029,11 @@ const NuevoPaciente = () => {
 					estudios={estudiosSeleccionados}
 					onClose={() => setModalMuestrasPendientesOpen(false)}
 					onToggleMuestraPendiente={toggleMuestraPendiente}
+				/>
+
+				<ModalDetalleEstudio
+					estudio={estudioDetalle}
+					onClose={() => setEstudioDetalle(null)}
 				/>
 
 				<ModalNotificacion
