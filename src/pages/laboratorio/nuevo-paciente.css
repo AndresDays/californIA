@@ -554,6 +554,29 @@
 	white-space: nowrap;
 }
 
+.btn-detalle-estudio {
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	max-width: 100%;
+	overflow: hidden;
+	padding: 0;
+	text-align: left;
+	text-decoration: underline;
+	text-decoration-color: transparent;
+	text-overflow: ellipsis;
+	transition: color 0.2s, text-decoration-color 0.2s;
+	white-space: nowrap;
+}
+
+.btn-detalle-estudio:hover,
+.btn-detalle-estudio:focus-visible {
+	color: #8bc7e8;
+	text-decoration-color: currentColor;
+}
+
 .btn-delete {
 	width: 32px;
 	height: 32px;
