@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TodayIcon from "@mui/icons-material/Today";
@@ -7,6 +7,8 @@ import calendarioIcono from "../../assets/calendarioIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useCalendarioCitas } from "../../hooks/use-citas";
+import { useSucursales } from "../../hooks/use-sucursales";
+import NuevaCitaModal from "../../components/nueva-cita-modal";
 import "./calendario-citas.css";
 
 const TIPOS_ESTUDIO_CALENDARIO = [
@@ -20,7 +22,12 @@ const TIPOS_ESTUDIO_CALENDARIO = [
 	{ id: "otros", label: "Otros", aliases: [] },
 ];
 
-const HORAS_CALENDARIO = Array.from({ length: 13 }, (_, index) => index + 7);
+const BLOQUES_CALENDARIO = Array.from({ length: 26 }, (_, indice) => {
+	const total = 420 + indice * 30;
+	const hora = Math.floor(total / 60);
+	const minuto = total % 60;
+	return { hora, minuto, valor: `${String(hora).padStart(2, "0")}:${String(minuto).padStart(2, "0")}` };
+});
 
 const obtenerFechaLocalHoy = () => {
 	const hoy = new Date();
@@ -49,10 +56,9 @@ const formatearFechaTitulo = (fecha) =>
 		.replace(/^(\d+\s)(\p{L})/u, (_, dia, letra) => `${dia}${letra.toUpperCase()}`)
 		.replace(/ (\d{4})$/, ", $1");
 
-const formatearHora = (hora) => {
+const formatearHora = ({ hora, minuto }) => {
 	const periodo = hora >= 12 ? "PM" : "AM";
-	const hora12 = hora % 12 || 12;
-	return `${hora12} ${periodo}`;
+	return `${hora % 12 || 12}:${String(minuto).padStart(2, "0")} ${periodo}`;
 };
 
 const obtenerTextoEstudio = (cita) =>
@@ -69,7 +75,7 @@ const obtenerTipoCalendario = (cita) => {
 
 const obtenerHoraCita = (cita) => {
 	const fecha = new Date(cita.fecha_estudio);
-	return Number.isNaN(fecha.getTime()) ? null : fecha.getHours();
+	return Number.isNaN(fecha.getTime()) ? null : `${String(fecha.getHours()).padStart(2, "0")}:${fecha.getMinutes() < 30 ? "00" : "30"}`;
 };
 
 const obtenerNombrePaciente = (cita) =>
@@ -97,14 +103,20 @@ const formatRol = (rol) => {
 const CalendarioCitas = () => {
 	const { user, empleadoData } = useAuth();
 	const [fechaSeleccionada, setFechaSeleccionada] = useState(() => obtenerFechaLocalHoy());
-	const { data: citas = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada);
+	const [horarioNuevaCita, setHorarioNuevaCita] = useState(null);
+	const [sucursalCalendario, setSucursalCalendario] = useState("");
+	const rolNormalizado = normalizar(empleadoData?.rol);
+	const puedeCambiarSucursal = ["admin", "administrador", "radiologo", "desarrollador"].includes(rolNormalizado);
+	useEffect(() => setSucursalCalendario(empleadoData?.id_sucursal ? String(empleadoData.id_sucursal) : ""), [empleadoData?.id_sucursal]);
+	const { data: sucursales = [] } = useSucursales();
+	const { data: citas = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada, sucursalCalendario);
 
 	const citasPorTipoYHora = useMemo(() => {
 		const grupos = new Map();
 
 		TIPOS_ESTUDIO_CALENDARIO.forEach((tipo) => {
 			grupos.set(tipo.id, new Map());
-			HORAS_CALENDARIO.forEach((hora) => grupos.get(tipo.id).set(hora, []));
+			BLOQUES_CALENDARIO.forEach((bloque) => grupos.get(tipo.id).set(bloque.valor, []));
 		});
 
 		citas.forEach((cita) => {
@@ -112,12 +124,13 @@ const CalendarioCitas = () => {
 			if (hora === null) return;
 
 			const tipo = obtenerTipoCalendario(cita);
-			const horaVisible = HORAS_CALENDARIO.includes(hora) ? hora : HORAS_CALENDARIO[0];
-			grupos.get(tipo.id).get(horaVisible).push(cita);
+			if (grupos.get(tipo.id).has(hora)) grupos.get(tipo.id).get(hora).push(cita);
 		});
 
 		return grupos;
 	}, [citas]);
+
+	const abrirNuevaCita = (horaInicial) => setHorarioNuevaCita({ fechaInicial: fechaSeleccionada, horaInicial });
 
 	const totalCitas = citas.length;
 	const conteoPorTipo = useMemo(() => {
@@ -147,6 +160,7 @@ const CalendarioCitas = () => {
 						</div>
 
 						<div className="cal-controls" aria-label="Controles de calendario">
+							{puedeCambiarSucursal && <select aria-label="Sucursal del calendario" value={sucursalCalendario} onChange={(event) => setSucursalCalendario(event.target.value)}><option value="">Selecciona sucursal</option>{sucursales.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre}</option>)}</select>}
 							<IconButton
 								className="cal-icon-button today"
 								aria-label="Hoy"
@@ -175,6 +189,7 @@ const CalendarioCitas = () => {
 						</div>
 					</div>
 
+					{!sucursalCalendario && <div className="cal-state error">El usuario no tiene una sucursal asignada.</div>}
 					{isLoading && <div className="cal-state">Cargando citas...</div>}
 					{error && <div className="cal-state error">No se pudieron cargar las citas.</div>}
 
@@ -194,15 +209,15 @@ const CalendarioCitas = () => {
 									</div>
 								))}
 
-								{HORAS_CALENDARIO.map((hora) => (
-									<div className="cal-row-fragment" role="row" key={hora}>
-										<div className="cal-hour" role="rowheader">{formatearHora(hora)}</div>
+								{BLOQUES_CALENDARIO.map((bloque) => (
+									<div className="cal-row-fragment" role="row" key={bloque.valor}>
+										<div className="cal-hour" role="rowheader">{formatearHora(bloque)}</div>
 										{TIPOS_ESTUDIO_CALENDARIO.map((tipo) => {
-											const citasHora = citasPorTipoYHora.get(tipo.id)?.get(hora) || [];
+											const citasHora = citasPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
 											return (
-												<div key={`${tipo.id}-${hora}`} className="cal-slot" role="cell">
+												<div key={`${tipo.id}-${bloque.valor}`} className="cal-slot" role="cell">
 													{citasHora.length === 0 ? (
-														<span className="cal-empty-slot" aria-hidden="true" />
+														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor)} />
 													) : (
 														citasHora.map((cita) => (
 															<article className={`cal-card tipo-${tipo.id}`} key={cita.id_cita}>
@@ -228,6 +243,7 @@ const CalendarioCitas = () => {
 					)}
 				</section>
 			</main>
+			<NuevaCitaModal isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
 		</PageLayout>
 	);
 };

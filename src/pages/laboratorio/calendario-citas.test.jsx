@@ -10,14 +10,20 @@ jest.mock("../../components/page-layout.jsx", () => ({ children }) => (
 jest.mock("../../context/auth-context", () => ({
 	useAuth: () => ({
 		user: { id: "user-1", email: "recepcion@test.com" },
-		empleadoData: { nombre: "Recepcion Uno", rol: "recepcionista" },
+		empleadoData: { nombre: "Recepcion Uno", rol: "recepcionista", id_sucursal: 2 },
 		signOut: jest.fn(),
 	}),
 }));
 
+jest.mock("../../hooks/use-sucursales", () => ({ useSucursales: () => ({ data: [] }) }));
+
 jest.mock("../../hooks/use-citas", () => ({
 	useCalendarioCitas: jest.fn(),
 }));
+
+jest.mock("../../components/nueva-cita-modal", () => (props) =>
+	props.isOpen ? <div data-testid="nueva-cita-modal">{`${props.fechaInicial} ${props.horaInicial}`}</div> : null,
+);
 
 const citas = [
 	{
@@ -62,9 +68,11 @@ test("muestra agenda diaria por horas y columnas de tipo de estudio", () => {
 
 	expect(screen.getByRole("heading", { name: /calendario de citas/i })).toBeInTheDocument();
 	expect(screen.getByText("15 Julio, 2026")).toBeInTheDocument();
-	expect(useCalendarioCitas).toHaveBeenCalledWith("2026-07-15");
-	expect(screen.getByText("9 AM")).toBeInTheDocument();
-	expect(screen.getByText("10 AM")).toBeInTheDocument();
+	expect(useCalendarioCitas).toHaveBeenCalledWith("2026-07-15", "2");
+	expect(screen.getByRole("rowheader", { name: "7:00 AM" })).toBeInTheDocument();
+	expect(screen.getByRole("rowheader", { name: "7:30 AM" })).toBeInTheDocument();
+	expect(screen.getByRole("rowheader", { name: "7:30 PM" })).toBeInTheDocument();
+	expect(screen.queryByRole("rowheader", { name: "8:00 PM" })).not.toBeInTheDocument();
 
 	expect(screen.getByRole("columnheader", { name: /lab/i })).toBeInTheDocument();
 	expect(screen.getByRole("columnheader", { name: /ultrasonido/i })).toBeInTheDocument();
@@ -83,7 +91,7 @@ test("cambia la fecha consultada con los controles de dia", () => {
 
 	fireEvent.click(screen.getByRole("button", { name: /dia siguiente/i }));
 
-	expect(useCalendarioCitas).toHaveBeenLastCalledWith("2026-07-16");
+	expect(useCalendarioCitas).toHaveBeenLastCalledWith("2026-07-16", "2");
 });
 
 test("el boton hoy regresa al dia local actual", () => {
@@ -92,5 +100,5 @@ test("el boton hoy regresa al dia local actual", () => {
 	fireEvent.click(screen.getByRole("button", { name: /dia siguiente/i }));
 	fireEvent.click(screen.getByRole("button", { name: /^hoy$/i }));
 
-	expect(useCalendarioCitas).toHaveBeenLastCalledWith("2026-07-15");
+	expect(useCalendarioCitas).toHaveBeenLastCalledWith("2026-07-15", "2");
 });

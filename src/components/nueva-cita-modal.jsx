@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
+import { useAuth } from '../context/auth-context';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 
 const DEFAULT_PRECIO = 150;
 
-const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
+const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInicial }) => {
+  const { empleadoData } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     nombreCompleto: '',
@@ -22,8 +24,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
   const [empresas, setEmpresas] = useState([]);
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
 
-  const [sucursales, setSucursales] = useState([]);
-  const [sucursalSeleccionada, setSucursalSeleccionada] = useState('');
 
   const [tiposEstudio, setTiposEstudio] = useState([]);
   const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState('');
@@ -41,16 +41,15 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
 
     cargarClientes();
     cargarEmpresas();
-    cargarSucursales();
     cargarEstudios();
 
     const ahora = new Date();
     setFormData(prev => ({
       ...prev,
-      fecha: ahora.toISOString().split('T')[0],
-      hora: ahora.toTimeString().slice(0, 5)
+      fecha: fechaInicial || ahora.toISOString().split('T')[0],
+      hora: horaInicial || ahora.toTimeString().slice(0, 5)
     }));
-  }, [isOpen]);
+  }, [isOpen, fechaInicial, horaInicial]);
 
   useEffect(() => {
     if (empresaSeleccionada) cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
@@ -72,14 +71,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
       .select('id_empresa, nombre')
       .order('nombre');
     if (!error) setEmpresas(data || []);
-  };
-
-  const cargarSucursales = async () => {
-    const { data, error } = await supabase
-      .from('sucursales')
-      .select('id_sucursal, nombre')
-      .order('nombre');
-    if (!error) setSucursales(data || []);
   };
 
   const cargarTiposEstudio = async (idEmpresa) => {
@@ -175,13 +166,13 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
   const calcularTotal = () => estudiosSeleccionados.reduce((t, e) => t + (Number(e.precio) || 0), 0);
 
   const validarFormulario = () => {
+    if (!empleadoData?.id_sucursal) return setError('El usuario no tiene una sucursal asignada. Solicite la asignación a un administrador.'), false;
     if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
     if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
     if (!esTelefono10Digitos(formData.telefono)) return setError('El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos'), false;
     if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
     if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
     if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
-    if (!sucursalSeleccionada) return setError('Debe seleccionar una sucursal'), false;
     if (estudiosSeleccionados.length === 0) return setError('Debe agregar al menos un estudio'), false;
     if (!formData.fecha) return setError('La fecha es requerida'), false;
     if (!formData.hora) return setError('La hora es requerida'), false;
@@ -211,7 +202,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
 
       const payload = {
         id_paciente: idPaciente,
-        id_sucursal: Number(sucursalSeleccionada),
+        id_sucursal: Number(empleadoData.id_sucursal),
         id_cliente: Number(clienteSeleccionado),
         id_empresa: Number(empresaSeleccionada),
         id_tipo_estudio: Number(tipoEstudioSeleccionado),
@@ -240,7 +231,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
       setClienteSeleccionado('');
       setEmpresaSeleccionada('');
       setTipoEstudioSeleccionado('');
-      setSucursalSeleccionada('');
       setBuscarEstudio('');
       setEstudiosSeleccionados([]);
       onClose();
@@ -300,15 +290,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada }) => {
             }} className="form-select-cita" disabled={loading}>
               <option value="">Selecciona un Cliente</option>
               {clientes.map(cli => <option key={cli.id_cliente} value={cli.id_cliente}>{cli.nombre}</option>)}
-            </select>
-          </div>
-
-          <div className="form-group-cita">
-            <label className="form-label-cita">Sucursal <span className="required">*</span></label>
-            <select value={sucursalSeleccionada} onChange={(e) => setSucursalSeleccionada(e.target.value)}
-              className="form-select-cita" disabled={loading}>
-              <option value="">Seleccione una sucursal</option>
-              {sucursales.map(s => <option key={s.id_sucursal} value={s.id_sucursal}>{s.nombre}</option>)}
             </select>
           </div>
 
