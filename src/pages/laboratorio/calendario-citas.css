@@ -104,6 +104,56 @@
 	padding: 0 6px 0 10px;
 }
 
+.cal-branch-select {
+	min-width: 290px;
+	max-width: 360px;
+	padding: 7px 34px 7px 11px;
+	border: 1px solid rgba(83, 185, 219, 0.55);
+	border-radius: 6px;
+	background: #0b2a3d;
+	color: #e2f4ff;
+	font: inherit;
+	font-size: 14px;
+	font-weight: 700;
+	box-shadow: inset 0 0 0 1px rgba(5, 18, 30, 0.42);
+	outline: none;
+}
+
+.cal-branch-select:hover {
+	border-color: #77d6f6;
+	background: #10354b;
+}
+
+.cal-branch-select:focus-visible {
+	border-color: #77d6f6;
+	box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.28);
+}
+
+.cal-branch-select option {
+	background: #0b2a3d;
+	color: #e2f4ff;
+}
+
+.cal-action-modal {
+	max-width: 560px;
+}
+
+.cal-action-body {
+	padding: 1.5rem 2rem 2rem;
+}
+
+.cal-action-body .modal-footer-cita {
+	margin-top: 0;
+}
+
+.cal-cancel-question {
+	margin: 0 0 1.5rem;
+	color: #fff;
+	font-size: 1.3rem;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
 .cal-board {
 	overflow: auto;
 	background: #071724;

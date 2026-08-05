@@ -1203,9 +1203,18 @@ const NuevoPaciente = () => {
 				seleccionarPaciente(cita.pacientes);
 			} else {
 				const nombrePaciente = cita.nombre_paciente || "";
-				setPacienteSeleccionado(null);
+				const telefonoPaciente = normalizarTelefono10(cita.telefono_paciente || "");
+				const { data: pacienteExistente } = telefonoPaciente
+					? await supabase
+						.from("pacientes")
+						.select("id_paciente, nombre, telefono, email, sexo, edad, rfc")
+						.eq("telefono", telefonoPaciente)
+						.maybeSingle()
+					: { data: null };
+				if (pacienteExistente) seleccionarPaciente(pacienteExistente);
+				else setPacienteSeleccionado(null);
 				setNombreCompleto(nombrePaciente);
-				setTelefono(normalizarTelefono10(cita.telefono_paciente || ""));
+				setTelefono(telefonoPaciente);
 				setBuscarPaciente(nombrePaciente);
 			}
 
