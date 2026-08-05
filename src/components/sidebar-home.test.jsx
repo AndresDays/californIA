@@ -146,7 +146,7 @@ describe('sidebar-home responsive desktop layout', () => {
     expect(screen.queryByRole('button', { name: /Usuarios/i })).not.toBeInTheDocument();
   });
 
-  test.each(['tecnico_radiologia', 'tecnico', 'medico'])(
+  test.each(['tecnico', 'medico'])(
     'uses quimico-like sidebar for %s role',
     (rol) => {
       mockEmpleadoData = { rol };
@@ -163,4 +163,16 @@ describe('sidebar-home responsive desktop layout', () => {
       expect(screen.queryByRole('button', { name: /Usuarios/i })).not.toBeInTheDocument();
     },
   );
+
+  test('hides restricted modules for tecnico radiologia', () => {
+    mockEmpleadoData = { rol: 'tecnico_radiologia' };
+
+    render(<SidebarHome />);
+
+    expect(screen.queryByRole('button', { name: /Captura/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Administraci/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Configuraci/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Recepci/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Reportes/i })).not.toBeInTheDocument();
+  });
 });

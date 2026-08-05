@@ -15,6 +15,7 @@ const ROLES_DOCTOR_EXTERNO = new Set([
 	"institucion_externa",
 ]);
 const ROL_RADIOLOGO_CLINICO = "radiologo_clinico";
+const ROL_TECNICO_RADIOLOGIA = "tecnico_radiologia";
 const ROLES_MENU_TIPO_QUIMICO = new Set([
 	"quimico",
 	"tecnico",
@@ -72,6 +73,20 @@ const QUIMICO_PATHS_BLOQUEADOS = [
 	"/cierre-caja",
 ];
 
+const TECNICO_RADIOLOGIA_PATHS_BLOQUEADOS = [
+	"/captura",
+	"/usuarios",
+	"/pacientes",
+	"/doctores",
+	"/configuracion",
+];
+
+const TECNICO_RADIOLOGIA_MENU_BLOQUEADO = new Set([
+	"captura",
+	"administracion",
+	"configuracion",
+]);
+
 export const puedeAccederRuta = (rol, pathname = "") => {
 	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) {
 		return ["/radiologia", "/visor-dicom", "/reporte"].some(
@@ -80,6 +95,12 @@ export const puedeAccederRuta = (rol, pathname = "") => {
 	}
 	if (esDoctorExternoPermisos(rol)) {
 		return ["/radiologia", "/visor-dicom"].some(
+			(path) => pathname === path || pathname.startsWith(`${path}/`),
+		);
+	}
+
+	if (normalizarRolPermisos(rol) === ROL_TECNICO_RADIOLOGIA) {
+		return !TECNICO_RADIOLOGIA_PATHS_BLOQUEADOS.some(
 			(path) => pathname === path || pathname.startsWith(`${path}/`),
 		);
 	}
@@ -103,6 +124,12 @@ export const filtrarMenuPorRol = (items = [], rol) => {
 	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) return [];
 	if (esDoctorExternoPermisos(rol)) {
 		return items.filter((item) => item.id === "inicio");
+	}
+	if (normalizarRolPermisos(rol) === ROL_TECNICO_RADIOLOGIA) {
+		return filtrarMenuPorRol(
+			items.filter((item) => !TECNICO_RADIOLOGIA_MENU_BLOQUEADO.has(item.id)),
+			"quimico",
+		);
 	}
 
 	if (esRecepcionista(rol)) {
