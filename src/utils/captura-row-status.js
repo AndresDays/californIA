@@ -98,6 +98,7 @@ export const aplicarEstadoRadiologiaACaptura = (
 			radiologia_id_estudio: estudioRadiologia.id_estudio,
 			radiologia_estado: estudioRadiologia.estado,
 			radiologia_listo_entrega: estudioRadiologia.listo_entrega,
+			radiologia_reporte: estudioRadiologia.reporte || "",
 		};
 	});
 };

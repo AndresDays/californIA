@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import logo from "../assets/CalifornIA.png";
 import { supabase } from "../lib/supabase-client";
 import { MEMBRETE_B64 } from "./radiologia/pages/reporte-radiologia-template";
 import {
-	crearTextoCompartirResultados,
-	crearUrlPortalResultados,
 	normalizarTextoResultado,
 	normalizarTelefonoPortal,
 } from "../utils/portal-resultados";
+import { generarResultadosPortalPdf } from "../utils/reporte-pdf";
 import "./portal-resultados.css";
 
 const formatearFecha = (fecha) => {
@@ -55,15 +54,6 @@ const PortalResultados = () => {
 
 	const venta = resultado?.venta || null;
 	const estudios = resultado?.estudios || [];
-	const portalUrl = useMemo(
-		() =>
-			crearUrlPortalResultados({
-				folio: venta?.folio || folio,
-				telefono: venta?.telefono || telefono,
-			}),
-		[folio, telefono, venta],
-	);
-
 	useEffect(() => {
 		document.title = "Resultados";
 		if (folio && telefono) buscarResultados();
@@ -100,26 +90,14 @@ const PortalResultados = () => {
 		if (!data?.encontrado) setError(data?.mensaje || "No encontramos resultados.");
 	};
 
-	const compartirWhatsApp = () => {
-		const texto = crearTextoCompartirResultados({
-			paciente: venta?.paciente,
-			folio: venta?.folio || folio,
-			url: portalUrl,
+	const verPdf = async () => {
+		const url = await generarResultadosPortalPdf({
+			venta,
+			estudios,
+			membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
 		});
-		window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
+		window.open(url, "_blank", "noopener,noreferrer");
 	};
-
-	const compartirEmail = () => {
-		const subject = `Resultados ${venta?.folio || folio}`;
-		const body = crearTextoCompartirResultados({
-			paciente: venta?.paciente,
-			folio: venta?.folio || folio,
-			url: portalUrl,
-		});
-		window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-	};
-
-	const imprimir = () => window.print();
 
 	return (
 		<div className="portal-resultados">
@@ -198,15 +176,7 @@ const PortalResultados = () => {
 						</div>
 
 						<div className="portal-actions">
-							<button type="button" onClick={imprimir}>
-								Descargar / imprimir
-							</button>
-							<button type="button" onClick={compartirWhatsApp}>
-								WhatsApp
-							</button>
-							<button type="button" onClick={compartirEmail}>
-								E-mail
-							</button>
+							<button type="button" onClick={verPdf}>Ver PDF</button>
 						</div>
 
 						{estudios.length === 0 ? (

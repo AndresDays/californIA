@@ -155,6 +155,11 @@
   border-color: #53B9DB;
 }
 
+.captura-wrapper .input-fecha::-webkit-calendar-picker-indicator {
+	filter: invert(1) opacity(0.7);
+	cursor: pointer;
+}
+
 .input-busqueda {
   min-width: 0;
 }

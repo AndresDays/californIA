@@ -19,6 +19,7 @@ import {
 } from "../../utils/supabase-errors";
 import { useEntregaResultados } from "../../hooks/use-entrega-resultados";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
+import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import {
 	calcularPendientesEntrega,
 	calcularSaldoEntrega,
@@ -83,10 +84,12 @@ const EntregaResultados = () => {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
 
-	const [fechaInicial, setFechaInicial] = useState(
+	const [fechaInicial, setFechaInicial] = useFechaPersistente(
+		"entrega-resultados:inicio",
 		formatearFechaMexico(),
 	);
-	const [fechaFinal, setFechaFinal] = useState(
+	const [fechaFinal, setFechaFinal] = useFechaPersistente(
+		"entrega-resultados:fin",
 		formatearFechaMexico(),
 	);
 	const [busquedaEntrega, setBusquedaEntrega] = useBusquedaPersistente("entrega-resultados:termino");

@@ -6,6 +6,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { useSessionStore } from "../../store/session-store";
+import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 
 import {
 	filtrarVentasCortePorRecepcionista,
@@ -173,7 +174,10 @@ const CierreCaja = () => {
 	const empleadoData = useSessionStore((state) => state.empleadoData);
 	const setSucursalActual = useSessionStore((state) => state.setSucursalActual);
 
-	const [fechaActual, setFechaActual] = useState(new Date().toISOString().split("T")[0]);
+	const [fechaActual, setFechaActual] = useFechaPersistente(
+		"cierre-caja",
+		new Date().toISOString().split("T")[0],
+	);
 	const [sucursales, setSucursales] = useState([]);
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [empleados, setEmpleados] = useState([]);
