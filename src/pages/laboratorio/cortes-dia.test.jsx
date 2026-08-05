@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import CortesDia from "./cortes-dia";
 
 jest.mock("./cortes-dia.css", () => ({}));
@@ -10,6 +10,7 @@ jest.mock("../../components/page-layout.jsx", () => ({
 }));
 
 let mockAuth;
+let mockMovimientos = [];
 
 jest.mock("../../context/auth-context", () => ({
 	useAuth: () => mockAuth,
@@ -26,7 +27,7 @@ jest.mock("../../hooks/use-reporte-ventas", () => ({
 }));
 
 const crearQueryVacia = () => {
-	const resolved = Promise.resolve({ data: [], error: null });
+	const resolved = Promise.resolve({ data: mockMovimientos, error: null });
 	const chain = {
 		select: jest.fn().mockReturnThis(),
 		gte: jest.fn().mockReturnThis(),
@@ -48,6 +49,7 @@ jest.mock("../../lib/supabase-client", () => ({
 
 describe("CortesDia", () => {
 	beforeEach(() => {
+		mockMovimientos = [];
 		mockAuth = {
 			user: { id: "admin-user", email: "admin@test.com" },
 			empleadoData: { rol: "admin", nombre: "Admin" },
@@ -56,7 +58,7 @@ describe("CortesDia", () => {
 		};
 	});
 
-	test("muestra carga mientras se resuelve el empleado autenticado", () => {
+	test("muestra carga mientras se resuelve el empleado autenticado", async () => {
 		mockAuth = {
 			user: { id: "admin-user", email: "admin@test.com" },
 			empleadoData: null,
@@ -65,6 +67,7 @@ describe("CortesDia", () => {
 		};
 
 		render(<CortesDia />);
+		await act(async () => { await Promise.resolve(); });
 
 		expect(screen.getByText("Cargando cortes...")).toBeInTheDocument();
 		expect(screen.queryByText("Esta vista está disponible solo para administradores.")).not.toBeInTheDocument();
@@ -72,10 +75,35 @@ describe("CortesDia", () => {
 
 	test("muestra la vista completa en cero cuando admin no tiene cortes del dia", async () => {
 		render(<CortesDia />);
+		await act(async () => { await Promise.resolve(); });
 
 		expect(await screen.findByText("No hay cortes registrados para esta fecha.")).toBeInTheDocument();
 		expect(screen.getByText("Supervisión de transacciones por empleado")).toBeInTheDocument();
 		expect(screen.getByText("Sin movimientos")).toBeInTheDocument();
 		expect(screen.getAllByText("$0.00").length).toBeGreaterThan(0);
+	});
+
+	test("permite imprimir el corte del empleado seleccionado", async () => {
+		mockMovimientos = [{
+			id_movimiento: 1,
+			monto: 100,
+			forma_pago: "efectivo",
+			actor_auth_uuid: "ana",
+			actor_nombre: "Ana Recepcion",
+			created_at: "2026-08-05T12:00:00Z",
+		}];
+
+		render(<CortesDia />);
+		await act(async () => { await Promise.resolve(); });
+
+		expect(await screen.findByRole("button", { name: "Imprimir corte de Ana Recepcion" })).toBeInTheDocument();
+	});
+
+	test("ofrece imprimir todos los cortes filtrados", async () => {
+		render(<CortesDia />);
+		await act(async () => { await Promise.resolve(); });
+
+		await screen.findByText("No hay cortes registrados para esta fecha.");
+		expect(await screen.findByRole("button", { name: "Imprimir todos los cortes" })).toBeInTheDocument();
 	});
 });

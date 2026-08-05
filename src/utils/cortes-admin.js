@@ -28,7 +28,7 @@ const tipoTransaccion = (movimiento = {}) => {
 export const construirTransaccionesCorte = ({ movimientos = [], ventas = [] } = {}) => {
 	const ventasPorId = new Map(ventas.map((venta) => [String(venta.id_venta), venta]));
 
-	return movimientos.map((movimiento) => {
+	return movimientos.filter((movimiento) => movimiento.motivo !== "apertura_caja").map((movimiento) => {
 		const venta = movimiento.id_venta
 			? ventasPorId.get(String(movimiento.id_venta))
 			: null;

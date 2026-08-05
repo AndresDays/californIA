@@ -9,6 +9,7 @@ import {
 	construirCortesEmpleados,
 	construirTransaccionesCorte,
 } from "../../utils/cortes-admin";
+import { construirDocumentoCortes } from "../../utils/cortes-dia-print";
 import {
 	formatearMontoCajaPorForma,
 	limitarMontoCajaADosDecimales,
@@ -147,6 +148,25 @@ const CortesDia = () => {
 		return mapa;
 	}, [doctores]);
 
+	const imprimirCortes = (cortesAImprimir) => {
+		if (cortesAImprimir.length === 0) return;
+		const sucursal = sucursales.find(
+			(item) => String(item.id_sucursal) === String(sucursalSeleccionada),
+		)?.nombre || "Todas las sucursales";
+		const ventana = window.open("", "_blank");
+		if (!ventana) return;
+
+		ventana.document.write(construirDocumentoCortes({
+			fecha,
+			sucursal,
+			cortes: cortesAImprimir,
+			transacciones,
+		}));
+		ventana.document.close();
+		ventana.focus();
+		ventana.print();
+	};
+
 	const getPrimerNombre = (nombreCompleto) =>
 		nombreCompleto || user?.email?.split("@")[0] || "Usuario";
 
@@ -196,6 +216,12 @@ const CortesDia = () => {
 						<p>Supervisión de transacciones por empleado</p>
 					</div>
 					<div className="cortes-filtros">
+						<button
+							className="cortes-print-button"
+							onClick={() => imprimirCortes(cortes)}
+							disabled={cortes.length === 0}>
+							Imprimir todos los cortes
+						</button>
 						<label>
 							<img src={calendarioIcono} alt="" />
 							<input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
@@ -260,11 +286,18 @@ const CortesDia = () => {
 								<p>{fecha}</p>
 							</div>
 							{corteActual && (
-								<div className="cortes-empleado-totales">
-									<span>Efectivo {formatoMoneda(corteActual.efectivo)}</span>
-									<span>Tarjeta {formatoMoneda(corteActual.tarjeta)}</span>
-									<span>Transfer {formatoMoneda(corteActual.transferencia)}</span>
-									<strong>Total {formatoMoneda(corteActual.total)}</strong>
+								<div className="cortes-empleado-acciones">
+									<button
+										className="cortes-print-button"
+										onClick={() => imprimirCortes([corteActual])}>
+										Imprimir corte de {corteActual.empleadoNombre}
+									</button>
+									<div className="cortes-empleado-totales">
+										<span>Efectivo {formatoMoneda(corteActual.efectivo)}</span>
+										<span>Tarjeta {formatoMoneda(corteActual.tarjeta)}</span>
+										<span>Transfer {formatoMoneda(corteActual.transferencia)}</span>
+										<strong>Total {formatoMoneda(corteActual.total)}</strong>
+									</div>
 								</div>
 							)}
 						</div>
