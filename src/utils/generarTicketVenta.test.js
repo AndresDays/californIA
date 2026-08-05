@@ -50,11 +50,25 @@ describe('generarTicketVenta', () => {
 			fecha: new Date('2026-08-05T12:00:00'),
 			paciente: 'Paciente',
 			empresa: 'CDI',
+			telefono: '3221234567',
+			email: 'paciente@example.com',
 			estudios: [],
 		});
 
 		expect(mockDoc.text).toHaveBeenCalledWith(
 			'RFC: CDI200902A84',
+			expect.any(Number),
+			expect.any(Number),
+			expect.objectContaining({ align: 'center' }),
+		);
+		expect(mockDoc.text).toHaveBeenCalledWith(
+			'Email: paciente@example.com',
+			expect.any(Number),
+			expect.any(Number),
+			expect.objectContaining({ align: 'center' }),
+		);
+		expect(mockDoc.text).toHaveBeenCalledWith(
+			'Telefono: 3221234567',
 			expect.any(Number),
 			expect.any(Number),
 			expect.objectContaining({ align: 'center' }),

@@ -652,6 +652,8 @@ const NuevoPaciente = () => {
 				fecha: new Date(),
 				paciente: nombreCompleto,
 				empresa: empresaActual.nombre,
+				telefono,
+				email: correo,
 				estudios: estudiosSeleccionados,
 				subtotal,
 				descuento,
