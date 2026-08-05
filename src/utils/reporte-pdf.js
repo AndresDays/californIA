@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
+import JsBarcode from "jsbarcode";
 
 const PAGINA_ANCHO = 210;
 const PAGINA_ALTO = 297;
@@ -102,6 +103,187 @@ export const generarReportePdf = async ({
 	}
 
 	doc.save(nombreArchivo);
+};
+
+const normalizarPdf = (valor, fallback = "-") =>
+	String(valor ?? fallback)
+		.replace(/<br\s*\/?>/gi, "\n")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim() || fallback;
+
+const calcularEdadPdf = (fechaNacimiento) => {
+	if (!fechaNacimiento) return "-";
+	const hoy = new Date();
+	const nacimiento = new Date(fechaNacimiento);
+	let edad = hoy.getFullYear() - nacimiento.getFullYear();
+	if (
+		hoy.getMonth() < nacimiento.getMonth() ||
+		(hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate())
+	) edad -= 1;
+	return `${edad} AÑOS`;
+};
+
+const formatearFechaPdf = (fecha) => {
+	if (!fecha) return "-";
+	const valor = new Date(
+		typeof fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fecha)
+			? `${fecha}T12:00:00`
+			: fecha,
+	);
+	if (Number.isNaN(valor.getTime())) return normalizarPdf(fecha);
+	return valor.toLocaleDateString("es-MX", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+};
+
+const generarCodigoBarras = (folio) => {
+	if (!folio || typeof document === "undefined") return null;
+	try {
+		const canvas = document.createElement("canvas");
+		JsBarcode(canvas, String(folio), {
+			format: "CODE128",
+			width: 3,
+			height: 56,
+			displayValue: true,
+			fontSize: 11,
+			margin: 2,
+			background: "#ffffff",
+			lineColor: "#000000",
+		});
+		return canvas.toDataURL("image/png");
+	} catch {
+		return null;
+	}
+};
+
+export const generarResultadosPortalPdf = async ({
+	venta = {},
+	estudios = [],
+	membreteSrc = null,
+	modoVistaPrevia = false,
+} = {}) => {
+	const doc = new jsPDF({ unit: "mm", format: "a4" });
+	const membrete = await cargarImagenComoDataUrl(membreteSrc);
+	const margen = 10;
+	const yInicial = 47;
+	const yLimite = PAGINA_ALTO - MARGEN_INFERIOR;
+	const ancho = PAGINA_ANCHO - margen * 2;
+
+	const dibujarMembrete = () => {
+		if (!membrete) return;
+		try {
+			doc.addImage(membrete, "JPEG", 0, 0, PAGINA_ANCHO, PAGINA_ALTO);
+		} catch {}
+	};
+	const dibujarMarcaVistaPrevia = (estadoValidacion) => {
+		if (!modoVistaPrevia) return;
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(40);
+		doc.setTextColor(70, 70, 70);
+		doc.text(
+			estadoValidacion === "validado"
+				? "RESULTADOS VALIDADOS"
+				: "RESULTADOS NO VALIDADOS",
+			150,
+			190,
+			{ align: "center", angle: 45 },
+		);
+		doc.setTextColor(0, 0, 0);
+	};
+	const nuevaPagina = (estadoValidacion, marcarPaginaAnterior = true) => {
+		if (marcarPaginaAnterior) dibujarMarcaVistaPrevia(estadoValidacion);
+		doc.addPage();
+		dibujarMembrete();
+		return yInicial;
+	};
+	const texto = (valor, x, y, opciones = {}) => {
+		doc.setFont("helvetica", opciones.bold ? "bold" : "normal");
+		doc.setFontSize(opciones.size || 9);
+		doc.text(normalizarPdf(valor), x, y, opciones.align ? { align: opciones.align } : undefined);
+	};
+
+	dibujarMembrete();
+	let y = yInicial;
+	const codigoBarras = generarCodigoBarras(venta.folio);
+	doc.setDrawColor(105, 105, 105);
+	doc.rect(margen, y, ancho, 22);
+	texto("PACIENTE:", margen + 3, y + 5, { bold: true, size: 8 });
+	texto(normalizarPdf(venta.paciente).toUpperCase(), margen + 25, y + 5, { bold: true, size: 8 });
+	texto("EDAD:", margen + 3, y + 11, { bold: true, size: 8 });
+	texto(calcularEdadPdf(venta.fecha_nacimiento), margen + 25, y + 11, { bold: true, size: 8 });
+	texto("SEXO:", margen + 3, y + 17, { bold: true, size: 8 });
+	texto(normalizarPdf(venta.sexo).toUpperCase(), margen + 25, y + 17, { bold: true, size: 8 });
+	texto("FOLIO:", 105, y + 5, { bold: true, size: 7 });
+	texto(normalizarPdf(venta.folio), 120, y + 5, { bold: true, size: 7 });
+	texto("FECHA DE MUESTRA:", 105, y + 11, { bold: true, size: 7 });
+	texto(formatearFechaPdf(venta.fecha_venta), 137, y + 11, { bold: true, size: 7 });
+	texto("FECHA DE IMPRESIÓN:", 105, y + 17, { bold: true, size: 7 });
+	texto(formatearFechaPdf(new Date()), 137, y + 17, { bold: true, size: 7 });
+	if (codigoBarras) doc.addImage(codigoBarras, "PNG", 158, y + 2.5, 40, 16);
+	y += 30;
+
+	let indiceEstudio = 0;
+	for (const estudio of estudios) {
+		if (modoVistaPrevia) {
+			if (indiceEstudio > 0) y = nuevaPagina(estudio.estado_validacion, false);
+		}
+		const titulo = normalizarPdf(estudio.descripcion).toUpperCase();
+		if (y + 18 > yLimite) y = nuevaPagina(estudio.estado_validacion);
+		texto(titulo, PAGINA_ANCHO / 2, y, { bold: true, size: 10, align: "center" });
+		y += 7;
+
+		if (estudio.tipo === "imagen") {
+			const lineas = doc.splitTextToSize(normalizarPdf(estudio.reporte, "SIN REPORTE DISPONIBLE."), ancho - 4);
+			for (const linea of lineas) {
+				if (y > yLimite) y = nuevaPagina(estudio.estado_validacion);
+				texto(linea, margen + 2, y, { size: 10 });
+				y += 5;
+			}
+			y += 5;
+			continue;
+		}
+
+		if (y + 10 > yLimite) y = nuevaPagina();
+		doc.setFillColor(238, 238, 238);
+		doc.rect(margen, y - 4, ancho, 6, "F");
+		doc.setDrawColor(105, 105, 105);
+		doc.line(margen, y - 4, margen + ancho, y - 4);
+		doc.line(margen, y + 2, margen + ancho, y + 2);
+		texto("PARÁMETRO", margen + 1, y, { size: 9 });
+		texto("RESULTADO", 91, y, { size: 9 });
+		texto("UNIDAD", 128, y, { size: 9 });
+		texto("REFERENCIA", 150, y, { size: 9 });
+		y += 8;
+
+		for (const analito of estudio.analitos || []) {
+			if (y > yLimite) {
+				y = nuevaPagina(estudio.estado_validacion);
+				doc.setFillColor(238, 238, 238);
+				doc.rect(margen, y - 4, ancho, 6, "F");
+				texto("PARÁMETRO", margen + 1, y, { size: 9 });
+				texto("RESULTADO", 91, y, { size: 9 });
+				texto("UNIDAD", 128, y, { size: 9 });
+				texto("REFERENCIA", 150, y, { size: 9 });
+				y += 8;
+			}
+			texto(normalizarPdf(analito.descripcion || analito.clave).toUpperCase(), margen + 1, y);
+			texto(analito.resultado, 93, y);
+			texto(analito.unidades || analito.unidad || "-", 130, y);
+			const referencia = doc.splitTextToSize(normalizarPdf(analito.referencia), 50);
+			referencia.forEach((linea, indice) => texto(linea, 150, y + indice * 4, { size: 8 }));
+			y += Math.max(6, referencia.length * 4 + 2);
+			doc.setDrawColor(220, 220, 220);
+			doc.line(margen, y - 3, margen + ancho, y - 3);
+		}
+		y += 6;
+		dibujarMarcaVistaPrevia(estudio.estado_validacion);
+		indiceEstudio += 1;
+	}
+
+	return doc.output("bloburl");
 };
 
 export const crearNombreArchivoReporte = (nombrePaciente = "") => {

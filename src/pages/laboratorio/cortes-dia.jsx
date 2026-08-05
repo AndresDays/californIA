@@ -3,6 +3,7 @@ import calendarioIcono from "../../assets/calendarioIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
+import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { supabase } from "../../lib/supabase-client";
 import {
 	construirCortesEmpleados,
@@ -38,7 +39,7 @@ const puedeVerCortes = (rol) =>
 
 const CortesDia = () => {
 	const { user, empleadoData, loading, empleadoLoading } = useAuth();
-	const [fecha, setFecha] = useState(hoyMexico());
+	const [fecha, setFecha] = useFechaPersistente("cortes-dia", hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState("");
 	const [movimientos, setMovimientos] = useState([]);
