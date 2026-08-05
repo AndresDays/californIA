@@ -462,6 +462,25 @@
   border: 1px solid rgba(73, 178, 212, 0.3);
 }
 
+.panel-captura-fill {
+  min-height: 620px;
+  align-self: stretch;
+}
+
+.panel-captura-match-height {
+  height: auto;
+}
+
+.panel-captura-fill .tabla-resultados-container {
+  max-height: none;
+  min-height: 0;
+}
+
+.panel-captura-fill .captura-actions {
+  position: static;
+  flex-shrink: 0;
+}
+
 .panel-header-captura {
   background: linear-gradient(135deg, rgba(16, 109, 160, 0.9) 0%, rgba(73, 178, 212, 0.9) 100%);
   padding: 1.1rem 1.5rem;
@@ -485,6 +504,16 @@
   margin: 0.35rem 0 0;
   font-size: 0.86rem;
   color: rgba(255, 255, 255, 0.78);
+}
+
+.panel-header-captura-compact {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.panel-header-captura-compact p {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
 }
 
 .captura-header-meta {
@@ -522,6 +551,34 @@
   background: rgba(2, 15, 35, 0.5);
   border-bottom: 1px solid rgba(73, 178, 212, 0.2);
   flex-wrap: wrap;
+}
+
+.captura-controls-compact {
+  gap: 0.5rem;
+  padding: 0.45rem 1.5rem;
+  flex-wrap: nowrap;
+}
+
+.captura-controls-compact .btn-vista-previa {
+  height: 32px;
+  padding: 0 0.95rem;
+  font-size: 0.82rem;
+}
+
+.captura-controls-compact .select-idioma {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.captura-controls-compact .checkbox-inline {
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.captura-controls-compact .checkbox-inline input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
 }
 
 .captura-wrapper .btn-vista-previa {
@@ -584,33 +641,7 @@
 }
 
 .btn-imprimir {
-  padding: 0;
-  background: transparent !important;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: none !important;
-  outline: none !important;
   margin-left: auto;
-}
-
-.btn-imprimir:hover {
-  transform: translateY(-2px);
-}
-
-.icono-btn {
-  width: 120px;
-  height: 120px;
-  object-fit: contain;
-  display: block;
-  transition: all 0.3s;
-}
-
-.btn-imprimir:hover .icono-btn {
-  transform: scale(1.15);
 }
 
 .select-idioma {
@@ -645,7 +676,7 @@
 }
 
 .observaciones-section {
-  padding: 1.1rem 1.5rem;
+  padding: 0.65rem 1.5rem;
   background: rgba(2, 15, 35, 0.3);
   border-bottom: 1px solid rgba(73, 178, 212, 0.2);
 }
@@ -655,6 +686,27 @@
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.6rem;
+}
+
+.observaciones-inline {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.observaciones-inline label {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.observaciones-inline .textarea-observaciones {
+  height: 42px;
+  min-height: 42px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.86rem;
 }
 
 .textarea-observaciones {
@@ -667,7 +719,8 @@
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.95rem;
   resize: vertical;
-  min-height: 80px;
+  height: 52px;
+  min-height: 52px;
 }
 
 .textarea-observaciones:focus {
@@ -831,6 +884,15 @@
   .captura-controls {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .observaciones-inline {
+    display: block;
+  }
+
+  .observaciones-inline label {
+    display: block;
+    margin-bottom: 0.4rem;
   }
 
   .btn-imprimir {

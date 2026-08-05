@@ -59,6 +59,10 @@ describe('Captura — Renderizado', () => {
     await renderCaptura();
     expect(screen.getByText('Lista de Pacientes')).toBeInTheDocument();
     expect(screen.getByText('Área de Captura')).toBeInTheDocument();
+    expect(screen.getByText('Área de Captura').closest('.panel-captura'))
+      .toHaveClass('panel-captura-fill');
+    expect(screen.getByText('Área de Captura').closest('.panel-captura'))
+      .toHaveClass('panel-captura-match-height');
   });
 
   test('renderiza los filtros de fecha', async () => {
@@ -127,6 +131,19 @@ describe('Captura — Validaciones sin paciente seleccionado', () => {
   test('muestra el botón Vista previa en el área de captura', async () => {
     await renderCaptura();
     expect(screen.getByText('Vista previa')).toBeInTheDocument();
+  });
+
+  test('agrupa los controles de impresión en el diseño compacto', async () => {
+    await renderCaptura();
+    expect(screen.getByRole('button', { name: 'Imprimir' }).parentElement)
+      .toHaveClass('captura-controls-compact');
+    expect(screen.queryByRole('img', { name: 'Imprimir' })).not.toBeInTheDocument();
+  });
+
+  test('muestra las observaciones en una franja compacta', async () => {
+    await renderCaptura();
+    expect(screen.getByText('Observaciones').parentElement)
+      .toHaveClass('observaciones-inline');
   });
 
   test('muestra notificación al hacer clic en Vista previa sin paciente', async () => {
