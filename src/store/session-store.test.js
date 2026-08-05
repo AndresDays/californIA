@@ -40,6 +40,9 @@ describe('session store', () => {
 			es_radiologo: true,
 		});
 		expect(supabase.from).toHaveBeenNthCalledWith(1, 'empleados');
+		expect(supabase.from.mock.results[0].value.select).toHaveBeenCalledWith(
+			'nombre, rol, id_doctor, sucursal',
+		);
 		expect(supabase.from).toHaveBeenNthCalledWith(2, 'doctores');
 	});
 

@@ -3,6 +3,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import CalendarioCitas from "./calendario-citas";
 import { useCalendarioCitas } from "../../hooks/use-citas";
 
+jest.mock("react-router-dom", () => ({ useNavigate: () => jest.fn() }));
+jest.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }));
+
 jest.mock("../../components/page-layout.jsx", () => ({ children }) => (
 	<div data-testid="page-layout">{children}</div>
 ));
