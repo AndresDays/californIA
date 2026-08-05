@@ -33,4 +33,9 @@ describe('TarjetaEstudio', () => {
     fireEvent.click(screen.getByRole('button', { name: /⋮/ }));
     expect(baseProps.onVerDetalles).toHaveBeenCalled();
   });
+
+  it.each([false, true])('no muestra acciones manuales de imagen cuando tieneImagen es %s', (tieneImagen) => {
+    render(<TarjetaEstudio {...baseProps} tieneImagen={tieneImagen} onSubirImagen={jest.fn()} />);
+    expect(screen.queryByRole('button', { name: /subir imagen|reemplazar imagen/i })).not.toBeInTheDocument();
+  });
 });

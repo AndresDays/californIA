@@ -161,24 +161,38 @@ describe("cita-nuevo-paciente helpers", () => {
 		).toHaveLength(1);
 	});
 
-	test("usa códigos cortos para pendientes de radiología", () => {
+	test("usa códigos de modalidad compatibles con DICOM Cloud", () => {
 		expect(
 			resolverCodigoTipoRadiologia({
 				clave_estudio: "RM-CRANEO-SIMPLE",
 				descripcion_estudio: "RM CRANEO SIMPLE",
 			}),
-		).toBe("RM");
+		).toBe("MR");
 		expect(
 			resolverCodigoTipoRadiologia({
 				clave_estudio: "TAC-ABDOMEN-SIMPLE",
 				descripcion_estudio: "TAC DE ABDOMEN SIMPLE",
 			}),
-		).toBe("TAC");
+		).toBe("CT");
+		expect(
+			resolverCodigoTipoRadiologia({
+				clave_estudio: "RX-TORAX",
+				descripcion_estudio: "RADIOGRAFIA DE TORAX",
+			}),
+		).toBe("DX");
 		expect(
 			resolverCodigoTipoRadiologia({
 				clave_estudio: "US-RENAL",
 				descripcion_estudio: "U.S. RENAL",
 			}),
 		).toBe("US");
+		expect(
+			resolverCodigoTipoRadiologia({
+				descripcion_estudio: "MASTOGRAFIA BILATERAL",
+			}),
+		).toBe("MG");
+		expect(() =>
+			resolverCodigoTipoRadiologia({ modalidad: "estudios_contrastados" }),
+		).toThrow("Modalidad de radiologia no compatible con DICOM Cloud");
 	});
 });
