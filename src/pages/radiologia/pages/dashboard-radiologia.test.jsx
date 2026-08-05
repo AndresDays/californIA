@@ -6,8 +6,6 @@ const mockEqEstudios = jest.fn();
 const mockUpdate = jest.fn(() => ({
   eq: jest.fn().mockResolvedValue({ error: null }),
 }));
-const mockInsertDicomImagenes = jest.fn().mockResolvedValue({ error: null });
-const mockUpload = jest.fn().mockResolvedValue({ error: null });
 const mockHeader = jest.fn(() => <div>Header</div>);
 const mockSidebar = jest.fn(({ isOpen }) => <div>{isOpen ? 'Sidebar mobile abierto' : 'Sidebar mobile cerrado'}</div>);
 const mockSidebarHome = jest.fn(() => <div>Sidebar escritorio</div>);
@@ -41,16 +39,11 @@ jest.mock('../../../components/header-principal', () => (props) => mockHeader(pr
 jest.mock('../../../components/sidebar', () => (props) => mockSidebar(props));
 jest.mock('../../../components/sidebar-home', () => (props) => mockSidebarHome(props));
 jest.mock('../../../utils/use-sidebar', () => () => mockSidebarState);
-jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onClick, onVerDetalles, onSubirImagen }) => (
+jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onClick, onVerDetalles }) => (
   <div>
     <button type="button" onClick={onClick}>
       {nombrePaciente} {estado}
     </button>
-    {onSubirImagen && (
-      <button type="button" onClick={onSubirImagen}>
-        Subir imagen {nombrePaciente}
-      </button>
-    )}
     <button type="button" onClick={onVerDetalles} aria-label={`Detalles ${nombrePaciente}`}>
       ⋮
     </button>
@@ -59,11 +52,6 @@ jest.mock('../componentes/TarjetaEstudio', () => ({ nombrePaciente, estado, onCl
 
 jest.mock('../../../lib/supabase-client', () => ({
   supabase: {
-    storage: {
-      from: jest.fn(() => ({
-        upload: mockUpload,
-      })),
-    },
     from: jest.fn((table) => {
       if (table === 'empleados') {
         return {
@@ -93,12 +81,6 @@ jest.mock('../../../lib/supabase-client', () => ({
           }),
         };
       }
-      if (table === 'estudio_dicom_imagenes') {
-        return {
-          insert: mockInsertDicomImagenes,
-        };
-      }
-
       return {
         select: jest.fn().mockReturnThis(),
         eq: mockEqEstudios.mockReturnThis(),
@@ -234,6 +216,16 @@ test('shows operational filters and keeps card details behind the three-dot acti
   expect(screen.getByRole('heading', { name: /Detalle del estudio/i })).toBeInTheDocument();
 });
 
+test('does not offer manual image upload from cards or study details', async () => {
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: /Subir imagen Maria Gomez/i })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
+  expect(screen.queryByRole('button', { name: /Subir imagen|Reemplazar imagen/i })).not.toBeInTheDocument();
+});
+
 test('lets an authorized user choose whether to assign a technician, referring doctor, or radiologist', async () => {
   render(<DashboardRadiologia />);
 
@@ -272,81 +264,7 @@ test('assigns the selected technician to the study', async () => {
   })));
 });
 
-test('uploads an image file to the pending radiology study', async () => {
-  render(<DashboardRadiologia />);
-
-  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
-
-  fireEvent.click(screen.getByRole('button', { name: /Subir imagen Maria Gomez/i }));
-
-  const input = document.querySelector('.radiologia-input-archivo');
-  const archivo = new File(['dicom'], 'torax.dcm', { type: 'application/dicom' });
-  fireEvent.change(input, { target: { files: [archivo] } });
-
-  await waitFor(() => expect(mockUpload).toHaveBeenCalled());
-  expect(mockUpload.mock.calls[0][0]).toMatch(/^1\/\d+-1-torax\.dcm$/);
-  expect(mockInsertDicomImagenes).toHaveBeenCalledWith([
-    expect.objectContaining({
-      id_estudio: 1,
-      storage_path: expect.stringMatching(/^1\/\d+-1-torax\.dcm$/),
-      file_name: 'torax.dcm',
-      instance_number: 1,
-    }),
-  ]);
-  expect(mockUpdate).toHaveBeenCalledWith(
-    expect.objectContaining({
-      estado: 'EN PROCESO',
-      storage_path: expect.stringMatching(/^1\/\d+-1-torax\.dcm$/),
-    })
-  );
-});
-
-test('rejects non-DICOM files before uploading them to a study', async () => {
-  render(<DashboardRadiologia />);
-
-  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: /Subir imagen Maria Gomez/i }));
-
-  const input = document.querySelector('.radiologia-input-archivo');
-  const archivo = new File(['imagen'], 'placa.jpg', { type: 'image/jpeg' });
-  fireEvent.change(input, { target: { files: [archivo] } });
-
-  expect(await screen.findByText(/Solo se pueden subir archivos DICOM/i)).toBeInTheDocument();
-  expect(mockUpload).not.toHaveBeenCalled();
-  expect(mockInsertDicomImagenes).not.toHaveBeenCalled();
-});
-
-test('uploads multiple DICOM files and records every image for the study', async () => {
-  render(<DashboardRadiologia />);
-
-  await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
-
-  fireEvent.click(screen.getByRole('button', { name: /Subir imagen Maria Gomez/i }));
-
-  const input = document.querySelector('.radiologia-input-archivo');
-  const archivo1 = new File(['dicom-1'], 'serie-001.dcm', { type: 'application/dicom' });
-  const archivo2 = new File(['dicom-2'], 'serie-002.dcm', { type: 'application/dicom' });
-  fireEvent.change(input, { target: { files: [archivo1, archivo2] } });
-
-  await waitFor(() => expect(mockUpload).toHaveBeenCalledTimes(2));
-  expect(mockInsertDicomImagenes).toHaveBeenCalledWith([
-    expect.objectContaining({
-      storage_path: expect.stringMatching(/^1\/\d+-1-serie-001\.dcm$/),
-      instance_number: 1,
-    }),
-    expect.objectContaining({
-      storage_path: expect.stringMatching(/^1\/\d+-2-serie-002\.dcm$/),
-      instance_number: 2,
-    }),
-  ]);
-  expect(mockUpdate).toHaveBeenCalledWith(
-    expect.objectContaining({
-      storage_path: expect.stringMatching(/^1\/\d+-1-serie-001\.dcm$/),
-    })
-  );
-});
-
-test('filters studies by assigned doctor and hides assignment/upload actions for external doctors', async () => {
+test('filters studies by assigned doctor and hides assignment actions for external doctors', async () => {
   mockEmpleadoData = {
     id_empleado: 88,
     nombre: 'Doctor Externo',
@@ -363,9 +281,7 @@ test('filters studies by assigned doctor and hides assignment/upload actions for
   await waitFor(() => expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument());
 
   expect(mockEqEstudios).toHaveBeenCalledWith('id_doctor', 42);
-  expect(screen.queryByRole('button', { name: /Subir imagen Maria Gomez/i })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Detalles Maria Gomez/i }));
-  expect(screen.queryByRole('button', { name: /Subir imagen/i })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Asignar estudio/i })).not.toBeInTheDocument();
 });
 
