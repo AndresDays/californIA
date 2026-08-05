@@ -123,7 +123,8 @@ jest.mock('../../../lib/supabase-client', () => ({
 }));
 
 beforeEach(() => {
-  jest.clearAllMocks();
+	jest.clearAllMocks();
+	sessionStorage.clear();
   mockAuthUser = { id: 'user-1', email: 'radiologia@test.com' };
   mockAuthEmpleadoData = null;
   mockEmpleadoData = {
@@ -140,6 +141,15 @@ beforeEach(() => {
     setSidebarOpen: mockSetSidebarOpen,
     isMobile: false,
   };
+});
+
+test('restaura el filtro de modalidad al volver al dashboard', async () => {
+  sessionStorage.setItem('radiologia:filtros', JSON.stringify({ tipo: 'DX', estado: 'todos' }));
+
+  render(<DashboardRadiologia />);
+
+  await waitFor(() => expect(screen.getByRole('button', { name: 'DX' })).toHaveClass('activo'));
+  expect(screen.queryByRole('button', { name: /Juan Perez ASIGNADO/i })).not.toBeInTheDocument();
 });
 
 test('does not show the create group action', async () => {

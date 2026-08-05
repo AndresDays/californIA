@@ -1,7 +1,10 @@
 import {
 	crearClaveImagenDicom,
+	crearClaveSerieDicom,
 	crearEstadoVistaDicom,
+	crearEstadoVentanaSerieDicom,
 	leerEstadoVistaDicom,
+	leerEstadoVentanaSerieDicom,
 } from "./dicom-view-state";
 
 test("serializa viewport y overlays sin campos temporales", () => {
@@ -32,6 +35,18 @@ test("serializa viewport y overlays sin campos temporales", () => {
 
 test("usa storage_path como clave para imágenes sin metadata", () => {
 	expect(crearClaveImagenDicom({ storage_path: "123/imagen.dcm" })).toBe("123/imagen.dcm");
+});
+
+test("serializa una ventana compartida usando una clave exclusiva de serie", () => {
+	expect(crearClaveSerieDicom({ id: "1.2.840.serie" })).toBe("serie:1.2.840.serie");
+	expect(crearEstadoVentanaSerieDicom({ windowWidth: 1200, windowCenter: -300 })).toEqual({
+		version: 1,
+		voi: { windowWidth: 1200, windowCenter: -300 },
+	});
+	expect(leerEstadoVentanaSerieDicom({ version: 1, voi: { windowWidth: 1200, windowCenter: -300 } })).toEqual({
+		version: 1,
+		voi: { windowWidth: 1200, windowCenter: -300 },
+	});
 });
 
 test("acepta el formato actual y conserva los overlays de formatos anteriores", () => {
