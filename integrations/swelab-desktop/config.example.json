@@ -1,0 +1,5 @@
+{
+  "endpoint": "https://oavjusrxvmbqebwdqwyy.functions.supabase.co/swelab-import",
+  "secret": "PEGA_AQUI_SOLO_EL_SWELAB_IMPORT_SECRET_DE_STAGING",
+  "importarFolio": ""
+}
