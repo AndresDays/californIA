@@ -5,6 +5,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
+import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import {
 	agruparEstudiosVendidos,
 	agruparVentasPorDia,
@@ -29,8 +30,8 @@ const inicioMesMexico = () => {
 };
 
 const ReporteVentas = () => {
-	const [fechaInicial, setFechaInicial] = useState(inicioMesMexico());
-	const [fechaFinal, setFechaFinal] = useState(hoyMexico());
+	const [fechaInicial, setFechaInicial] = useFechaPersistente("reporte-ventas:inicio", inicioMesMexico());
+	const [fechaFinal, setFechaFinal] = useFechaPersistente("reporte-ventas:fin", hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [vendedorSeleccionado, setVendedorSeleccionado] = useState("");
 	const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState("");

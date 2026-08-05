@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
@@ -49,8 +50,8 @@ const formatRol = (rol) => {
 const ReporteAdministrativo = () => {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
-	const [fechaInicial, setFechaInicial] = useState(inicioMesMexico());
-	const [fechaFinal, setFechaFinal] = useState(hoyMexico());
+	const [fechaInicial, setFechaInicial] = useFechaPersistente("reporte-administrativo:inicio", inicioMesMexico());
+	const [fechaFinal, setFechaFinal] = useFechaPersistente("reporte-administrativo:fin", hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [empleadoData, setEmpleadoData] = useState(null);
 

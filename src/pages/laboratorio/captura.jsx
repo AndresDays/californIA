@@ -10,6 +10,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
+import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { cargarRadiologiaParaCaptura, useCaptura, useCatalogosCaptura } from "../../hooks/use-captura";
 import {
 	CAPTURA_FILTROS_ESTADO,
@@ -35,6 +36,8 @@ import {
 	EVENTOS_SOLICITUD,
 	registrarEventoSolicitud,
 } from "../../utils/solicitud-auditoria";
+import { generarResultadosPortalPdf } from "../../utils/reporte-pdf";
+import { MEMBRETE_B64 } from "../radiologia/pages/reporte-radiologia-template";
 import "./captura.css";
 
 const Captura = () => {
@@ -42,10 +45,12 @@ const Captura = () => {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
-	const [fechaInicial, setFechaInicial] = useState(
+	const [fechaInicial, setFechaInicial] = useFechaPersistente(
+		"captura:inicio",
 		new Date().toISOString().split("T")[0],
 	);
-	const [fechaFinal, setFechaFinal] = useState(
+	const [fechaFinal, setFechaFinal] = useFechaPersistente(
+		"captura:fin",
 		new Date().toISOString().split("T")[0],
 	);
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("captura:estudio");
@@ -96,6 +101,11 @@ const Captura = () => {
 		setNotificacion({ isOpen: true, mensaje, tipo });
 	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
+	const abrirSelectorFecha = (event) => {
+		if (typeof event.currentTarget.showPicker === "function") {
+			event.currentTarget.showPicker();
+		}
+	};
 
 	const refrescarVentas = () => {
 		queryClient.invalidateQueries({ queryKey: ['captura', fechaInicial, fechaFinal] });
@@ -391,19 +401,34 @@ const Captura = () => {
 		}
 	};
 
-	const vistaPrevia = () => {
+	const vistaPrevia = async () => {
 		if (!ventaSeleccionada) {
 			mostrarNotificacion("Por favor seleccione un paciente", "advertencia");
 			return;
 		}
-		if (tieneAdeudoVenta(ventaSeleccionada)) {
-			mostrarNotificacion(
-				`No se pueden enviar resultados con adeudo de $${calcularSaldoVenta(ventaSeleccionada).toFixed(2)}. Edita la solicitud y liquida el monto completo.`,
-				"advertencia",
-			);
-			return;
+		try {
+			const url = await generarResultadosPortalPdf({
+				venta: {
+					...ventaSeleccionada,
+					paciente: ventaSeleccionada.pacientes?.nombre,
+					fecha_nacimiento: ventaSeleccionada.pacientes?.fecha_nacimiento,
+					sexo: ventaSeleccionada.pacientes?.sexo,
+				},
+				estudios: resultados.map((estudio) => ({
+					tipo: esEstudioImagenCaptura(estudio) ? "imagen" : "laboratorio",
+					descripcion: estudio.descripcion_estudio || estudio.descripcion || estudio.clave_estudio,
+					reporte: estudio.radiologia_reporte || "Sin reporte disponible.",
+					analitos: estudio.analitos || [],
+					estado_validacion: estudio.estado_validacion,
+				})),
+				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+				modoVistaPrevia: true,
+			});
+			window.open(url, "_blank", "noopener,noreferrer");
+		} catch (error) {
+			console.error("Error al generar vista previa:", error);
+			mostrarNotificacion("No fue posible generar la vista previa", "error");
 		}
-		mostrarNotificacion("Vista previa del estudio", "info");
 	};
 
 	const imprimir = () => {
@@ -567,6 +592,7 @@ const Captura = () => {
 										type="date"
 										value={fechaInicial}
 										onChange={(e) => setFechaInicial(e.target.value)}
+										onClick={abrirSelectorFecha}
 										className="input-fecha"
 									/>
 								</label>
@@ -576,6 +602,7 @@ const Captura = () => {
 										type="date"
 										value={fechaFinal}
 										onChange={(e) => setFechaFinal(e.target.value)}
+										onClick={abrirSelectorFecha}
 										className="input-fecha"
 									/>
 								</label>

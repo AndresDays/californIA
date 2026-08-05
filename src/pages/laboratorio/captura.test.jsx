@@ -23,6 +23,10 @@ jest.mock('../../context/auth-context', () => ({
   useAuth: () => ({ user: { id: 'user-123', email: 'test@test.com' } })
 }));
 
+jest.mock('../../utils/reporte-pdf', () => ({
+  generarResultadosPortalPdf: jest.fn()
+}));
+
 jest.mock('react-router-dom', () => ({
   useNavigate: () => jest.fn()
 }));
@@ -69,6 +73,19 @@ describe('Captura — Renderizado', () => {
     await renderCaptura();
     expect(screen.getByText('Inicio')).toBeInTheDocument();
     expect(screen.getByText('Fin')).toBeInTheDocument();
+  });
+
+  test('abre el selector nativo al hacer clic en una fecha', async () => {
+    const showPicker = jest.fn();
+    Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+      configurable: true,
+      value: showPicker,
+    });
+    await renderCaptura();
+
+    fireEvent.click(screen.getAllByDisplayValue(/^\d{4}-\d{2}-\d{2}$/)[0]);
+
+    expect(showPicker).toHaveBeenCalledTimes(1);
   });
 
   test('renderiza los buscadores de folio y paciente', async () => {

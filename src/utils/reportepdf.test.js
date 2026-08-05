@@ -3,10 +3,16 @@ const mockDoc = {
 	addPage: jest.fn(),
 	setFont: jest.fn(),
 	setFontSize: jest.fn(),
+	setDrawColor: jest.fn(),
+	setFillColor: jest.fn(),
+	setTextColor: jest.fn(),
+	rect: jest.fn(),
+	line: jest.fn(),
 	text: jest.fn(),
 	splitTextToSize: jest.fn((texto) => String(texto).split("\n")),
 	link: jest.fn(),
 	save: jest.fn(),
+	output: jest.fn(() => "blob:resultados"),
 };
 
 jest.mock("jspdf", () => jest.fn(() => mockDoc));
@@ -15,9 +21,16 @@ jest.mock("qrcode", () => ({
 	toDataURL: jest.fn().mockResolvedValue("data:image/png;base64,QRMOCK"),
 }));
 
+jest.mock("jsbarcode", () => jest.fn());
+
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
-import { crearNombreArchivoReporte, generarReportePdf } from "./reporte-pdf";
+import JsBarcode from "jsbarcode";
+import {
+	crearNombreArchivoReporte,
+	generarReportePdf,
+	generarResultadosPortalPdf,
+} from "./reporte-pdf";
 
 const MEMBRETE_DATA_URL = "data:image/jpeg;base64,MEMBRETEMOCK";
 
@@ -136,5 +149,71 @@ describe("crearNombreArchivoReporte", () => {
 	test("usa fallback cuando no hay nombre", () => {
 		expect(crearNombreArchivoReporte("")).toBe("reporte_reporte.pdf");
 		expect(crearNombreArchivoReporte("···")).toBe("reporte_estudio.pdf");
+	});
+});
+
+describe("generarResultadosPortalPdf", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		jest.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,BARCODEMOCK");
+	});
+
+	afterEach(() => {
+		jest.restoreAllMocks();
+	});
+
+	test("usa el membrete y organiza los analitos en una tabla", async () => {
+		const url = await generarResultadosPortalPdf({
+			venta: {
+				paciente: "Cynthia Lorena Cortes",
+				folio: "1506260003",
+				fecha_venta: "2026-06-15",
+				fecha_nacimiento: "1978-01-01",
+				sexo: "Femenino",
+			},
+			estudios: [{
+				tipo: "laboratorio",
+				descripcion: "Quimica sanguinea",
+				analitos: [{ descripcion: "Glucosa serica", resultado: "81", unidades: "mg/dL", referencia: "Mujeres: 0.5 - 1.2<BR>Hombres: 0.6 - 1.5" }],
+			}],
+			membreteSrc: MEMBRETE_DATA_URL,
+		});
+
+		expect(url).toBe("blob:resultados");
+		expect(JsBarcode).toHaveBeenCalledWith(
+			expect.any(HTMLCanvasElement),
+			"1506260003",
+			expect.objectContaining({ format: "CODE128", width: 3, height: 56 }),
+		);
+		expect(mockDoc.addImage).toHaveBeenCalledWith(MEMBRETE_DATA_URL, "JPEG", 0, 0, 210, 297);
+		expect(mockDoc.rect).toHaveBeenCalledWith(10, 47, 190, 22);
+		expect(mockDoc.addImage).toHaveBeenCalledWith("data:image/png;base64,BARCODEMOCK", "PNG", 158, 49.5, 40, 16);
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+		expect(textos).toEqual(expect.arrayContaining(["PACIENTE:", "CYNTHIA LORENA CORTES", "PARAMETRO", "RESULTADO", "UNIDAD", "REFERENCIA", "GLUCOSA SERICA", "81", "mg/dL"]));
+		expect(textos.join(" ")).not.toContain("<BR>");
+		expect(textos).toEqual(expect.arrayContaining(["Mujeres: 0.5 - 1.2", "Hombres: 0.6 - 1.5"]));
+	});
+
+	test("en vista previa separa estudios y marca cada página según su validación", async () => {
+		await generarResultadosPortalPdf({
+			venta: { paciente: "Paciente", folio: "F-1" },
+			estudios: [
+				{ tipo: "laboratorio", descripcion: "Estudio validado", estado_validacion: "validado", analitos: [] },
+				{ tipo: "laboratorio", descripcion: "Estudio pendiente", estado_validacion: "guardado", analitos: [] },
+			],
+			membreteSrc: MEMBRETE_DATA_URL,
+			modoVistaPrevia: true,
+		});
+
+		expect(mockDoc.addPage).toHaveBeenCalledTimes(1);
+		expect(mockDoc.setFontSize).toHaveBeenCalledWith(40);
+		expect(mockDoc.text).toHaveBeenCalledWith(
+			"RESULTADOS VALIDADOS",
+			150,
+			190,
+			expect.objectContaining({ align: "center", angle: 45 }),
+		);
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+		expect(textos).toEqual(expect.arrayContaining(["RESULTADOS VALIDADOS", "RESULTADOS NO VALIDADOS"]));
 	});
 });
