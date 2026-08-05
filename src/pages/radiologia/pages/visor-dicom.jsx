@@ -37,8 +37,11 @@ import {
 import { crearColaInicialMpr } from "../../../utils/mpr-loader";
 import {
 	crearClaveImagenDicom,
+	crearClaveSerieDicom,
 	crearEstadoVistaDicom,
+	crearEstadoVentanaSerieDicom,
 	leerEstadoVistaDicom,
+	leerEstadoVentanaSerieDicom,
 } from "../../../utils/dicom-view-state";
 import {
 	esDoctorExterno,
@@ -301,7 +304,9 @@ const PanelDicom = ({
 	imageId,
 	imagenDicom,
 	estadoVista,
+	estadoVentanaSerie,
 	onGuardarEstadoVista,
+	onGuardarVentanaSerie,
 	onEliminarEstadoVista,
 	stackImageIds,
 	onStackScroll,
@@ -317,6 +322,7 @@ const PanelDicom = ({
 	rectExterna,
 	bidiExterna,
 	presetVentanaId,
+	usarVentanaSerie,
 	onShortcutTool,
 	onCapturaOk,
 	onCapturaFail,
@@ -336,6 +342,7 @@ const PanelDicom = ({
 	const lastStackWheelRef = useRef(0);
 	const zoomTemporalRef = useRef(false);
 	const arrastrandoBarraRef = useRef(false);
+	const ventanaSeriePendienteRef = useRef(null);
 	const guardadoTimerRef = useRef(null);
 	const lupaActivaRef = useRef(false);
 	const medicionRef = useRef({
@@ -518,6 +525,17 @@ const PanelDicom = ({
 				bidiRef.current.bidis = estado.overlays.bidis || [];
 			}
 			aplicarPresetVentana();
+			const ventanaSerie = leerEstadoVentanaSerieDicom(estadoVentanaSerie);
+			const voiGuardado = ventanaSerie?.voi || (usarVentanaSerie ? null : estado?.viewport?.voi);
+			if (voiGuardado) {
+				const vp = cs.getViewport(el);
+				if (vp) {
+					cs.setViewport(el, {
+						...vp,
+						voi: { ...vp.voi, ...voiGuardado },
+					});
+				}
+			}
 			cs.resize(el, true);
 			sincronizarOverlay();
 		} catch (err) {
@@ -552,7 +570,7 @@ const PanelDicom = ({
 			await cargarImagen(imageId);
 		};
 		intentar();
-	}, [imageId, estadoVista]);
+	}, [imageId, estadoVista, usarVentanaSerie]);
 
 	useEffect(() => {
 		if (!imageId) return;
@@ -1966,6 +1984,12 @@ const PanelDicom = ({
 				vp.voi.windowCenter = vp.voi.windowCenter + dy * 5;
 				cs.setViewport(el, vp);
 				cs.updateImage(el);
+				if (onGuardarVentanaSerie) {
+					ventanaSeriePendienteRef.current = {
+						windowWidth: vp.voi.windowWidth,
+						windowCenter: vp.voi.windowCenter,
+					};
+				} else guardarEstadoActual();
 			}
 		} catch (err) {}
 	};
@@ -1980,6 +2004,10 @@ const PanelDicom = ({
 			return;
 		}
 		const tool = herramientaRef.current;
+		if (tool === "Wwwc" && ventanaSeriePendienteRef.current) {
+			onGuardarVentanaSerie?.(ventanaSeriePendienteRef.current);
+			ventanaSeriePendienteRef.current = null;
+		}
 		if (tool === "Angle") {
 			const ar = anguloRef.current;
 			const pos = getCanvasPos(e);
@@ -3167,6 +3195,39 @@ const VisorDicom = () => {
 		}
 	};
 
+	const guardarVentanaSerie = async (serie, voi) => {
+		if (!serie?.id) return;
+		const estadoVentanaSerie = crearEstadoVentanaSerieDicom(voi);
+		try {
+			const { error } = await supabase.from("estudio_dicom_estados_vista").upsert(
+				{
+					id_estudio: Number(estudioId || estudioData?.id),
+					id_imagen: null,
+					storage_path: crearClaveSerieDicom(serie),
+					estado: estadoVentanaSerie,
+				},
+				{ onConflict: "id_estudio,storage_path" },
+			);
+			if (error) throw error;
+			setImagenesDicomPorId((prev) => {
+				const siguiente = Object.fromEntries(Object.entries(prev).map(([imageId, imagen]) => [
+					imageId,
+					(imagen.series_instance_uid || imagen.series_description || "serie-unica") === serie.id
+						? { ...imagen, estadoVentanaSerie }
+						: imagen,
+				]));
+				const sesion = cacheSesionVisorDicom.get(String(estudioId || estudioData?.id));
+				if (sesion) cacheSesionVisorDicom.set(String(estudioId || estudioData?.id), {
+					...sesion,
+					imagenesDicomPorId: siguiente,
+				});
+				return siguiente;
+			});
+		} catch {
+			showNotif("No se pudo guardar la ventana de la serie", "error");
+		}
+	};
+
 	const eliminarEstadoVista = async (imagen) => {
 		try {
 			const { error } = await supabase
@@ -3282,10 +3343,21 @@ const VisorDicom = () => {
 				.eq("id_estudio", idEstudio);
 			if (estadosError) throw estadosError;
 			const estadosPorRuta = new Map(
-				(estadosVista || []).map((fila) => [fila.storage_path, fila.estado]),
+				(estadosVista || [])
+					.filter((fila) => !String(fila.storage_path || "").startsWith("serie:"))
+					.map((fila) => [fila.storage_path, fila.estado]),
+			);
+			const ventanasPorSerie = new Map(
+				(estadosVista || [])
+					.filter((fila) => String(fila.storage_path || "").startsWith("serie:"))
+					.map((fila) => [fila.storage_path, leerEstadoVentanaSerieDicom(fila.estado)]),
 			);
 			const imagenesConUrl = (await crearImagenesConUrlFirmada(imagenesDicom)).map(
-				(imagen) => ({ ...imagen, estadoVista: estadosPorRuta.get(imagen.storage_path) || null }),
+				(imagen) => ({
+					...imagen,
+					estadoVista: estadosPorRuta.get(imagen.storage_path) || null,
+					estadoVentanaSerie: ventanasPorSerie.get(`serie:${imagen.series_instance_uid || imagen.series_description || "serie-unica"}`) || null,
+				}),
 			);
 			setImagenesDicomPorId(
 				Object.fromEntries(imagenesConUrl.map((imagen) => [imagen.imageId, imagen])),
@@ -4897,12 +4969,16 @@ const VisorDicom = () => {
 									imageId={panelImageIds[i] || null}
 									imagenDicom={imagenesDicomPorId[panelImageIds[i]] || null}
 									estadoVista={imagenesDicomPorId[panelImageIds[i]]?.estadoVista || null}
+									estadoVentanaSerie={imagenesDicomPorId[panelImageIds[i]]?.estadoVentanaSerie || null}
 									onGuardarEstadoVista={(estado) =>
 										guardarEstadoVista(imagenesDicomPorId[panelImageIds[i]], estado)
 									}
 									onEliminarEstadoVista={() =>
 										eliminarEstadoVista(imagenesDicomPorId[panelImageIds[i]])
 									}
+									onGuardarVentanaSerie={panelActivo === i && esSerieCtRm
+										? (voi) => guardarVentanaSerie(serieActiva, voi)
+										: null}
 									stackImageIds={imageIds}
 									onStackScroll={(direccion) => navegarImagenSerie(i, direccion)}
 									herramienta={herramienta}
@@ -4917,6 +4993,7 @@ const VisorDicom = () => {
 									rectExterna={panelActivo === i ? rectanguloGlobal : false}
 									bidiExterna={panelActivo === i ? bidiGlobal : false}
 									presetVentanaId={panelActivo === i ? presetsVentanaPorSerie[serieActivaId] : null}
+									usarVentanaSerie={panelActivo === i && esSerieCtRm}
 									onShortcutTool={handleShortcutTool}
 									onCapturaOk={() =>
 										showNotif("Captura copiada al portapapeles", "exito")

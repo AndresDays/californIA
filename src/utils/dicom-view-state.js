@@ -1,6 +1,20 @@
 export const crearClaveImagenDicom = (imagen = {}) =>
 	String(imagen.storage_path || "").trim();
 
+export const crearClaveSerieDicom = (serie = {}) =>
+	`serie:${String(serie.id || "").trim()}`;
+
+export const crearEstadoVentanaSerieDicom = ({ windowWidth, windowCenter } = {}) => ({
+	version: 1,
+	voi: { windowWidth, windowCenter },
+});
+
+export const leerEstadoVentanaSerieDicom = (estado) =>
+	estado?.version === 1 && Number.isFinite(estado?.voi?.windowWidth) &&
+	Number.isFinite(estado?.voi?.windowCenter)
+		? estado
+		: null;
+
 export const crearEstadoVistaDicom = ({
 	viewport,
 	lineas = [],
