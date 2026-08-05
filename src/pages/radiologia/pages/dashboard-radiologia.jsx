@@ -26,6 +26,10 @@ const ESTADOS_FILTRO = [
   { id: 'EN PROCESO', label: 'En proceso' },
   { id: 'COMPLETADO', label: 'Completados' }
 ];
+const CLAVE_FILTROS_RADIOLOGIA = 'radiologia:filtros';
+const leerFiltrosRadiologia = () => {
+  try { return JSON.parse(sessionStorage.getItem(CLAVE_FILTROS_RADIOLOGIA) || '{}'); } catch { return {}; }
+};
 
 const TIPOS_ASIGNACION = {
   tecnico: {
@@ -86,8 +90,8 @@ const DashboardRadiologia = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [estudios, setEstudios] = useState([]);
   const [busqueda, setBusqueda] = useBusquedaPersistente('radiologia:termino');
-  const [filtroEstado, setFiltroEstado] = useState('todos');
-  const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroEstado, setFiltroEstado] = useState(() => leerFiltrosRadiologia().estado || 'todos');
+  const [filtroTipo, setFiltroTipo] = useState(() => leerFiltrosRadiologia().tipo || 'todos');
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
   const [modalAsignar, setModalAsignar] = useState(null);
   const [notificacion, setNotificacion] = useState({
@@ -100,6 +104,10 @@ const DashboardRadiologia = () => {
   const esRadiologoClinico = esRadiologoClinicoPermisos(
     empleadoData?.rol || authEmpleadoData?.rol,
   );
+
+  useEffect(() => {
+    try { sessionStorage.setItem(CLAVE_FILTROS_RADIOLOGIA, JSON.stringify({ estado: filtroEstado, tipo: filtroTipo })); } catch {}
+  }, [filtroEstado, filtroTipo]);
 
   useEffect(() => {
     const fetchEmpleadoData = async () => {

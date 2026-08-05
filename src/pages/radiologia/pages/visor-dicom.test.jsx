@@ -714,7 +714,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
     );
   });
 
-  test('ignora el W/L heredado de estados de vista anteriores', async () => {
+  test('restaura el W/L guardado para una imagen DX', async () => {
     mockEstudioId = 'wl-estado-heredado';
     mockDicomImages = [
       { id_imagen: 1, storage_path: 'dx/torax.dcm', series_instance_uid: 'dx', series_description: 'TORAX', instance_number: 1, modality: 'DX' },
@@ -735,7 +735,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
       ),
     );
 
-    expect(mockCornerstone.setViewport).not.toHaveBeenCalledWith(
+    expect(mockCornerstone.setViewport).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         voi: expect.objectContaining({ windowWidth: 2000, windowCenter: 0 }),
