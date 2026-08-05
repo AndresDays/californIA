@@ -17,10 +17,10 @@ acepta DICOM Cloud: `DX`, `MR`, `CT`, `MG` o `US`.
    - tomografia/TAC -> `CT`
    - mastografia -> `MG`
    - ultrasonido -> `US`
-3. Si el estudio no corresponde a uno de esos codigos, se detiene el registro
-   antes de insertar una tarjeta, con un mensaje que identifica la modalidad
-   invalida. No se enviaran codigos internos como `RX`, `TAC`, `RM`, `EC`,
-   `IMG`, `UO` o `VET`.
+3. Si el estudio no corresponde a uno de esos codigos, el resolvedor lanza un
+   error antes de construir el payload y se detiene el registro, con un mensaje
+   que identifica la modalidad invalida. No se enviaran codigos internos como
+   `RX`, `TAC`, `RM`, `EC`, `IMG`, `UO` o `VET`.
 
 ## Limites
 
