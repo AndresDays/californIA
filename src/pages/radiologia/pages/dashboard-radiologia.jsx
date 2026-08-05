@@ -12,15 +12,9 @@ import TarjetaEstudio from '../componentes/TarjetaEstudio';
 import ModalAsignar from '../componentes/ModalAsignar';
 import lupaIcono from '../../../assets/lupaIcono.png';
 import {
-  EVENTOS_SOLICITUD,
-  registrarEventoSolicitud,
-} from '../../../utils/solicitud-auditoria';
-import { esArchivoDicom, normalizarModalidadVisor } from '../../../utils/dicom-series';
-import {
   esDoctorExterno,
   obtenerRestriccionDoctorExterno,
   puedeAsignarRadiologia,
-  puedeSubirImagenRadiologia,
 } from '../../../utils/radiologia-permisos';
 import { esRadiologoClinicoPermisos, normalizarRolPermisos } from '../../../utils/role-permissions';
 import './DashboardRadiologia.css';
@@ -32,9 +26,6 @@ const ESTADOS_FILTRO = [
   { id: 'EN PROCESO', label: 'En proceso' },
   { id: 'COMPLETADO', label: 'Completados' }
 ];
-
-const BUCKET_RADIOLOGIA = 'radiologia';
-const IMAGEN_MAX_SIZE = 500 * 1024 * 1024;
 
 const TIPOS_ASIGNACION = {
   tecnico: {
@@ -78,20 +69,6 @@ const TIPOS_ASIGNACION = {
   },
 };
 
-const limpiarNombreArchivo = (nombre = '') =>
-  nombre
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9.]+/g, '-')
-    .replace(/(^-|-$)/g, '') || 'imagen';
-
-const obtenerNumeroInstanciaDesdeNombre = (nombre = '') => {
-  const coincidencia = String(nombre).match(/(?:^|[^0-9])([0-9]{1,5})(?:[^0-9]|$)/);
-  return coincidencia ? Number(coincidencia[1]) : null;
-};
-
 const obtenerIdDoctorSesionLocal = (user) => {
   const match = String(user?.id || '').match(/^doctor:(\d+)$/);
   if (!match) return null;
@@ -99,38 +76,11 @@ const obtenerIdDoctorSesionLocal = (user) => {
   return Number.isFinite(idDoctor) ? idDoctor : null;
 };
 
-const leerMetadatosDicom = async (archivo) => {
-  try {
-    const dicomParserModule = await import('dicom-parser');
-    const dicomParser = dicomParserModule.default || dicomParserModule;
-    const buffer = await archivo.arrayBuffer();
-    const dataSet = dicomParser.parseDicom(new Uint8Array(buffer));
-    const entero = (tag) => {
-      const valor = dataSet.string(tag);
-      const numero = Number(valor);
-      return Number.isFinite(numero) ? numero : null;
-    };
-
-    return {
-      modality: dataSet.string('x00080060') || null,
-      study_instance_uid: dataSet.string('x0020000d') || null,
-      series_instance_uid: dataSet.string('x0020000e') || null,
-      series_description: dataSet.string('x0008103e') || null,
-      instance_number: entero('x00200013'),
-      frame_count: entero('x00280008'),
-    };
-  } catch (error) {
-    return {};
-  }
-};
-
 const DashboardRadiologia = () => {
   const { user, signOut, empleadoData: authEmpleadoData } = useAuth();
   const navigate = useNavigate();
   const { sidebarOpen, setSidebarOpen, isMobile } = useSidebar();
   const menuRef = useRef(null);
-  const inputImagenRef = useRef(null);
-  const estudioParaSubirRef = useRef(null);
 
   const [empleadoData, setEmpleadoData] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -140,7 +90,6 @@ const DashboardRadiologia = () => {
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
   const [modalAsignar, setModalAsignar] = useState(null);
-  const [subiendoImagenId, setSubiendoImagenId] = useState(null);
   const [notificacion, setNotificacion] = useState({
     isOpen: false,
     mensaje: '',
@@ -364,132 +313,6 @@ const DashboardRadiologia = () => {
     setEstudioSeleccionado(estudio);
   };
 
-  const handleSeleccionarImagen = (estudio) => {
-    estudioParaSubirRef.current = estudio;
-    inputImagenRef.current?.click();
-  };
-
-  const handleImagenSeleccionada = async (event) => {
-    const archivos = Array.from(event.target.files || []);
-    const estudio = estudioParaSubirRef.current;
-    event.target.value = '';
-
-    if (archivos.length === 0 || !estudio) return;
-
-    if (archivos.some((archivo) => !esArchivoDicom(archivo))) {
-      mostrarNotificacion('Solo se pueden subir archivos DICOM (.dcm o .dicom) al estudio', 'error');
-      return;
-    }
-
-    const archivoPesado = archivos.find((archivo) => archivo.size > IMAGEN_MAX_SIZE);
-    if (archivoPesado) {
-      mostrarNotificacion('El archivo debe pesar menos de 500MB', 'error');
-      return;
-    }
-
-    setSubiendoImagenId(estudio.id);
-    try {
-      const marcaTiempo = Date.now();
-      const imagenesSubidas = [];
-
-      for (const [indice, archivo] of archivos.entries()) {
-        const nombreSeguro = limpiarNombreArchivo(archivo.name);
-        const archivoPath = `${estudio.id}/${marcaTiempo}-${indice + 1}-${nombreSeguro}`;
-        const metadataDicom = await leerMetadatosDicom(archivo);
-
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET_RADIOLOGIA)
-          .upload(archivoPath, archivo, {
-            cacheControl: '3600',
-            contentType: archivo.type || 'application/octet-stream',
-            upsert: false
-          });
-
-        if (uploadError) throw uploadError;
-
-        imagenesSubidas.push({
-          id_estudio: estudio.id,
-          bucket: BUCKET_RADIOLOGIA,
-          storage_path: archivoPath,
-          file_name: archivo.name,
-          file_size: archivo.size,
-          mime_type: archivo.type || 'application/octet-stream',
-          modality: metadataDicom.modality || normalizarModalidadVisor({
-            tipoEstudio: estudio.tipoEstudio,
-            descripcion: estudio.descripcionEstudio,
-          }),
-          study_instance_uid: metadataDicom.study_instance_uid || null,
-          series_instance_uid: metadataDicom.series_instance_uid || null,
-          series_description: metadataDicom.series_description || estudio.descripcionEstudio || estudio.tipoEstudio || 'Serie 1',
-          instance_number: metadataDicom.instance_number || obtenerNumeroInstanciaDesdeNombre(archivo.name) || indice + 1,
-          frame_count: metadataDicom.frame_count || null,
-        });
-      }
-
-      const archivoPathPrincipal = imagenesSubidas[0]?.storage_path;
-
-      const esRadiologoClinico = normalizarRolPermisos(empleadoData?.rol) === 'radiologo_clinico';
-
-      if (imagenesSubidas.length > 0 && esRadiologoClinico) {
-        const { error: registroError } = await supabase.rpc('registrar_imagenes_radiologo_clinico', {
-          p_id_estudio: estudio.id,
-          p_imagenes: imagenesSubidas,
-        });
-
-        if (registroError) throw registroError;
-      } else if (imagenesSubidas.length > 0) {
-        const { error: insertImagenesError } = await supabase
-          .from('estudio_dicom_imagenes')
-          .insert(imagenesSubidas);
-
-        if (insertImagenesError) throw insertImagenesError;
-      }
-
-      if (!esRadiologoClinico) {
-        const { error: updateError } = await supabase
-          .from('estudios_radiologia')
-          .update({
-            storage_path: archivoPathPrincipal,
-            estado: 'EN PROCESO',
-            ...(empleadoData?.id_empleado ? { id_tecnico: empleadoData.id_empleado } : {}),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id_estudio', estudio.id);
-
-        if (updateError) throw updateError;
-      }
-      if (!esRadiologoClinico) await registrarEventoSolicitud(supabase, {
-        id_venta: estudio.idVenta,
-        evento: EVENTOS_SOLICITUD.IMAGEN_SUBIDA,
-        descripcion: `Imagen subida para ${estudio.descripcionEstudio || estudio.tipoEstudio}`,
-        empleado: empleadoData,
-        user,
-        entidad_tipo: 'estudio_radiologia',
-        entidad_id: estudio.id,
-        detalles: {
-          storage_path: archivoPathPrincipal,
-          total_archivos: imagenesSubidas.length,
-          id_estudio_venta: estudio.idEstudioVenta
-        }
-      });
-
-      mostrarNotificacion(
-        imagenesSubidas.length === 1
-          ? 'Imagen subida al estudio pendiente'
-          : `${imagenesSubidas.length} imagenes subidas al estudio pendiente`,
-        'exito'
-      );
-      setEstudioSeleccionado(null);
-      cargarEstudios();
-    } catch (error) {
-      console.error('Error al subir imagen:', error);
-      mostrarNotificacion('Error al subir la imagen del estudio', 'error');
-    } finally {
-      estudioParaSubirRef.current = null;
-      setSubiendoImagenId(null);
-    }
-  };
-
   const abrirAsignacion = (estudio) => {
     setModalAsignar({ paso: 'tipo', estudio });
   };
@@ -554,7 +377,6 @@ const DashboardRadiologia = () => {
   const tiposEstudio = Array.from(
     new Set(estudios.map(estudio => estudio.tipoEstudio).filter(Boolean))
   );
-  const puedeSubirImagen = puedeSubirImagenRadiologia(empleadoData);
   const puedeAsignar = puedeAsignarRadiologia(empleadoData);
 
   const conteosPorEstado = ESTADOS_FILTRO.reduce((conteos, estado) => {
@@ -680,14 +502,6 @@ const DashboardRadiologia = () => {
         </div>
 
         <div className="grid-estudios">
-          <input
-            ref={inputImagenRef}
-            type="file"
-            className="radiologia-input-archivo"
-            accept=".dcm,.dicom,application/dicom,image/dicom-rle"
-            multiple
-            onChange={handleImagenSeleccionada}
-          />
           {loading ? (
             <div className="sin-estudios">
               <p>Cargando estudios...</p>
@@ -706,10 +520,7 @@ const DashboardRadiologia = () => {
                 horaFecha={estudio.horaFecha}
                 sucursal={estudio.sucursal}
                 estado={estudio.estado}
-                tieneImagen={estudio.tieneImagen}
-                subiendoImagen={subiendoImagenId === estudio.id}
                 onVerDetalles={() => handleVerDetalles(estudio)}
-                onSubirImagen={puedeSubirImagen ? () => handleSeleccionarImagen(estudio) : undefined}
                 onAsignar={puedeAsignar ? () => abrirAsignacion(estudio) : undefined}
                 onClick={() => handleVerEstudio(estudio)}
               />
@@ -766,15 +577,6 @@ const DashboardRadiologia = () => {
             </div>
 
             <div className="radiologia-detalle-acciones">
-              {puedeSubirImagen && (
-                <button
-                  type="button"
-                  className="radiologia-btn-secundario"
-                  onClick={() => handleSeleccionarImagen(estudioSeleccionado)}
-                >
-                  {estudioSeleccionado.tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
-                </button>
-              )}
               {puedeAsignar && (
                 <button
                   type="button"

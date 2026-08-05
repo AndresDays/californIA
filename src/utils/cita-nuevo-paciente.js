@@ -100,16 +100,13 @@ export const resolverCodigoTipoRadiologia = (estudio = {}) => {
 		`${estudio.area || ""} ${estudio.descripcion || ""} ${estudio.descripcion_estudio || ""}`,
 	);
 
-	if (clave.startsWith("rm-") || modalidad === "resonancia" || /\brm\b|resonancia/.test(texto)) return "RM";
-	if (clave.startsWith("tac-") || modalidad === "tomografia" || /\btac\b|tomografia/.test(texto)) return "TAC";
-	if (clave.startsWith("rx-") || modalidad === "radiografia" || /\brx\b|radiografia|radiologia|rayos/.test(texto)) return "RX";
+	if (clave.startsWith("rm-") || modalidad === "resonancia" || /\brm\b|resonancia/.test(texto)) return "MR";
+	if (clave.startsWith("tac-") || modalidad === "tomografia" || /\btac\b|tomografia/.test(texto)) return "CT";
+	if (clave.startsWith("rx-") || modalidad === "radiografia" || /\brx\b|radiografia|radiologia|rayos/.test(texto)) return "DX";
 	if (clave.startsWith("us-") || modalidad === "ultrasonido" || /\bus\b|ultrasonido|ultrasonografia/.test(texto)) return "US";
-	if (clave.startsWith("ec-") || modalidad === "estudios_contrastados" || /contrast/.test(texto)) return "EC";
-	if (clave.startsWith("uo-") || modalidad === "urgencias_otros" || /urgencia|reimpresion/.test(texto)) return "UO";
-	if (clave.startsWith("vet-") || modalidad === "veterinaria" || /veterinaria/.test(texto)) return "VET";
 	if (modalidad === "mastografia" || /mastografia|mamografia/.test(texto)) return "MG";
 
-	return "IMG";
+	throw new Error("Modalidad de radiologia no compatible con DICOM Cloud");
 };
 
 export const dividirEstudiosCita = (tipoEstudio = "") =>

@@ -8,10 +8,7 @@ const TarjetaEstudio = ({
   horaFecha, 
   sucursal, 
   estado, 
-  tieneImagen,
-  subiendoImagen = false,
   onVerDetalles,
-  onSubirImagen,
   onAsignar,
   onClick 
 }) => {
@@ -76,19 +73,6 @@ const TarjetaEstudio = ({
         </div>
 
         <div className="tarjeta-acciones">
-          {onSubirImagen && (
-            <button
-              type="button"
-              className={`btn-subir-imagen ${tieneImagen ? 'con-imagen' : ''}`}
-              disabled={subiendoImagen}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSubirImagen();
-              }}
-            >
-              {subiendoImagen ? 'Subiendo...' : tieneImagen ? 'Reemplazar imagen' : 'Subir imagen'}
-            </button>
-          )}
           <button 
             className="btn-menu-estudio"
             onClick={(e) => {

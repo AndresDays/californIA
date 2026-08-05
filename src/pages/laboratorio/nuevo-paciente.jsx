@@ -354,6 +354,11 @@ const NuevoPaciente = () => {
 			return;
 		}
 
+		if (!empresaActual?.nombre) {
+			alert("Seleccione una empresa antes de registrar la venta");
+			return;
+		}
+
 		try {
 			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
 			const pagoAplicado = calcularPagoAplicadoVenta(granTotal, pagoNormalizado);
@@ -646,6 +651,9 @@ const NuevoPaciente = () => {
 				folio,
 				fecha: new Date(),
 				paciente: nombreCompleto,
+				empresa: empresaActual.nombre,
+				telefono,
+				email: correo,
 				estudios: estudiosSeleccionados,
 				subtotal,
 				descuento,
