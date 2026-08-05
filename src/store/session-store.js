@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase-client';
 import { esDoctorExterno } from '../utils/radiologia-permisos';
+import { resolverSucursalEmpleado } from '../utils/sucursal-empleado';
 
 const esColumnaInexistente = (error, columna) =>
   error?.code === '42703' &&
@@ -75,14 +76,14 @@ export const useSessionStore = create((set, get) => ({
     try {
       let { data, error } = await supabase
         .from('empleados')
-        .select('nombre, rol, id_doctor')
+        .select('nombre, rol, id_doctor, sucursal')
         .eq('auth_uuid', authId)
         .maybeSingle();
 
       if (esColumnaInexistente(error, 'id_doctor')) {
         const respuestaBase = await supabase
           .from('empleados')
-          .select('nombre, rol')
+          .select('nombre, rol, sucursal')
           .eq('auth_uuid', authId)
           .maybeSingle();
         data = respuestaBase.data;
@@ -113,6 +114,14 @@ export const useSessionStore = create((set, get) => ({
           es_radiologo: doctorExterno?.es_radiologo === true,
           especialidad: doctorExterno?.especialidad || null,
         };
+      }
+
+      if (empleadoData?.sucursal) {
+        const { data: sucursales, error: sucursalesError } = await supabase
+          .from('sucursales')
+          .select('id_sucursal, nombre');
+        if (sucursalesError) throw sucursalesError;
+        empleadoData = { ...empleadoData, ...resolverSucursalEmpleado(empleadoData, sucursales) };
       }
 
       set({ empleadoData, empleadoLoading: false });

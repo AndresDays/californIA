@@ -13,6 +13,7 @@ export const useCitasProximas = ({ limite = 5 } = {}) => {
         .from('citas')
         .select(`
           id_cita, fecha_estudio, estado, tipo_estudio, monto,
+          id_paciente, id_cliente, id_empresa, id_tipo_estudio,
           id_sucursal, nombre_paciente, telefono_paciente,
           pacientes ( nombre, telefono, id_paciente ),
           sucursales ( id_sucursal, nombre ),
@@ -63,6 +64,7 @@ export const useCalendarioCitas = (fecha, idSucursal) =>
         .from('citas')
         .select(`
           id_cita, fecha_estudio, estado, tipo_estudio, monto,
+          id_paciente, id_cliente, id_empresa, id_tipo_estudio,
           id_sucursal, nombre_paciente, telefono_paciente,
           pacientes ( nombre, telefono, id_paciente ),
           sucursales ( id_sucursal, nombre ),

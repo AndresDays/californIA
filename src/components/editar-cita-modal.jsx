@@ -559,7 +559,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
           <div className="modal-footer-cita">
             <button type="button" className="btn-cancel-cita" onClick={onClose} disabled={loading}>
-              Cancelar Cita
+              Cerrar
             </button>
             <button type="submit" className="btn-submit-cita" disabled={loading}>
               {loading ? 'Guardando...' : 'Guardar Cambios'}
