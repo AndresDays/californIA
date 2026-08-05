@@ -1,7 +1,22 @@
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import { resolverEmpresaOperativaCatalogo } from './cita-nuevo-paciente';
 import { crearUrlPortalResultados } from './portal-resultados';
+
+const RFC_POR_EMPRESA = {
+	CDC: 'CDC031217UMA',
+	CDI: 'CDI200902A84',
+};
+
+export const resolverRfcTicketEmpresa = (empresa) => {
+	const empresaOperativa = resolverEmpresaOperativaCatalogo(empresa);
+	const rfc = RFC_POR_EMPRESA[empresaOperativa];
+	if (!rfc) {
+		throw new Error('No existe RFC configurado para la empresa seleccionada');
+	}
+	return rfc;
+};
 
 const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
 
