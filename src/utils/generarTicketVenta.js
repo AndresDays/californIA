@@ -80,6 +80,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		formaPago,
 		vendedor,
 	} = datosTicket;
+	const rfcEmpresa = resolverRfcTicketEmpresa(empresa);
 	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
 
 	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
@@ -102,7 +103,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		'Paulina Diaz Cortes',
 		'Dirección: Av. Francisco Villa 880, C.P. 48328, Colonia',
 		'Gaviotas, Puerto Vallarta, Jalisco, México.',
-		'RFC: CDC031217UMA',
+		`RFC: ${rfcEmpresa}`,
 		'Correo: labcalifornia01@gmail.com',
 	];
 	lineasEncabezado.forEach((l) => {

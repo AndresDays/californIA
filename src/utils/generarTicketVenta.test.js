@@ -1,8 +1,23 @@
-jest.mock('jspdf', () => jest.fn());
-jest.mock('jsbarcode', () => jest.fn());
-jest.mock('qrcode', () => ({ toDataURL: jest.fn() }));
+const mockDoc = {
+	addImage: jest.fn(),
+	line: jest.fn(),
+	output: jest.fn(() => new Blob()),
+	setDrawColor: jest.fn(),
+	setFont: jest.fn(),
+	setFontSize: jest.fn(),
+	setLineWidth: jest.fn(),
+	splitTextToSize: jest.fn((texto) => [texto]),
+	text: jest.fn(),
+};
 
-import { resolverRfcTicketEmpresa } from './generarTicketVenta';
+jest.mock('jspdf', () => jest.fn(() => mockDoc));
+jest.mock('jsbarcode', () => jest.fn());
+jest.mock('qrcode', () => ({ toDataURL: jest.fn().mockResolvedValue('qr') }));
+jest.mock('../assets/logoCDC.jpg', () => {
+	throw new Error('El logo no forma parte de esta prueba');
+});
+
+import { generarTicketVenta, resolverRfcTicketEmpresa } from './generarTicketVenta';
 
 describe('resolverRfcTicketEmpresa', () => {
 	test.each([
@@ -17,6 +32,32 @@ describe('resolverRfcTicketEmpresa', () => {
 	test.each(['', 'Empresa externa'])('rechaza empresa sin RFC: %s', (empresa) => {
 		expect(() => resolverRfcTicketEmpresa(empresa)).toThrow(
 			'No existe RFC configurado para la empresa seleccionada',
+		);
+	});
+});
+
+describe('generarTicketVenta', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		HTMLCanvasElement.prototype.toDataURL = jest.fn(() => 'barcode');
+		URL.createObjectURL = jest.fn(() => 'blob:ticket');
+		window.open = jest.fn();
+	});
+
+	test('escribe el RFC de CDI en el encabezado', async () => {
+		await generarTicketVenta({
+			folio: 'V-001',
+			fecha: new Date('2026-08-05T12:00:00'),
+			paciente: 'Paciente',
+			empresa: 'CDI',
+			estudios: [],
+		});
+
+		expect(mockDoc.text).toHaveBeenCalledWith(
+			'RFC: CDI200902A84',
+			expect.any(Number),
+			expect.any(Number),
+			expect.objectContaining({ align: 'center' }),
 		);
 	});
 });
