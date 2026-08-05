@@ -1,0 +1,24 @@
+{
+  "name": "california-swelab",
+  "version": "1.0.0",
+  "description": "Importador de resultados Swelab Alfa Plus para CalifornIA",
+  "author": "CalifornIA",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis --ia32",
+    "dist:portable": "electron-builder --win portable --ia32"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "mx.california.swelab",
+    "productName": "CalifornIA Swelab",
+    "files": ["main.js", "read-swelab.ps1", "lib/**"],
+    "asarUnpack": ["read-swelab.ps1"],
+    "win": { "target": "nsis" }
+  }
+}
