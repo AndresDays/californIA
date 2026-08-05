@@ -81,7 +81,7 @@ test("hides reports users and reception module for quimico", () => {
 	]);
 });
 
-test.each(["quimico", "tecnico_radiologia", "tecnico", "medico"])(
+test.each(["quimico", "tecnico", "medico"])(
 	"hides reports users and reception module for %s",
 	(rol) => {
 		const filtrado = filtrarMenuPorRol(menu, rol);
@@ -95,7 +95,7 @@ test.each(["quimico", "tecnico_radiologia", "tecnico", "medico"])(
 	},
 );
 
-test.each(["quimico", "tecnico_radiologia", "tecnico", "medico"])(
+test.each(["quimico", "tecnico", "medico"])(
 	"blocks %s access to reports users and reception routes",
 	(rol) => {
 		expect(puedeAccederRuta(rol, "/dashboard")).toBe(true);
@@ -108,6 +108,30 @@ test.each(["quimico", "tecnico_radiologia", "tecnico", "medico"])(
 		expect(puedeAccederRuta(rol, "/turnos")).toBe(false);
 	},
 );
+
+test("hides capture administration and configuration for tecnico radiologia", () => {
+	const filtrado = filtrarMenuPorRol(
+		[...menu, { id: "configuracion", path: "/configuracion" }],
+		"tecnico_radiologia",
+	);
+
+	expect(filtrado.map((item) => item.id)).not.toContain("captura");
+	expect(filtrado.map((item) => item.id)).not.toContain("administracion");
+	expect(filtrado.map((item) => item.id)).not.toContain("configuracion");
+	expect(filtrado.map((item) => item.id)).not.toContain("recepcion");
+	expect(filtrado.map((item) => item.id)).not.toContain("reportes");
+});
+
+test("blocks restricted routes only for tecnico radiologia", () => {
+	expect(puedeAccederRuta("tecnico_radiologia", "/dashboard")).toBe(true);
+	expect(puedeAccederRuta("tecnico_radiologia", "/radiologia")).toBe(true);
+	expect(puedeAccederRuta("tecnico_radiologia", "/captura")).toBe(false);
+	expect(puedeAccederRuta("tecnico_radiologia", "/usuarios")).toBe(false);
+	expect(puedeAccederRuta("tecnico_radiologia", "/pacientes")).toBe(false);
+	expect(puedeAccederRuta("tecnico_radiologia", "/doctores")).toBe(false);
+	expect(puedeAccederRuta("tecnico_radiologia", "/configuracion/estudios")).toBe(false);
+	expect(puedeAccederRuta("tecnico", "/captura")).toBe(true);
+});
 
 test("limits external doctor to radiology and assigned-study viewer routes", () => {
 	const filtrado = filtrarMenuPorRol(menu, "doctor_externo");
