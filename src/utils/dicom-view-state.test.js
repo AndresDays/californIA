@@ -15,7 +15,9 @@ test("serializa viewport y overlays sin campos temporales", () => {
 			translation: { x: 4, y: 8 },
 			invert: true,
 		},
-		lineas: [{ px1: 1, py1: 2, px2: 3, py2: 4, dist: 5 }],
+		lineas: [
+			{ px1: 1, py1: 2, px2: 3, py2: 4, dist: 5, labelDx: 32, labelDy: -18 },
+		],
 		anotaciones: [{ px: 4, py: 5, texto: "lesión" }],
 	});
 
@@ -23,7 +25,9 @@ test("serializa viewport y overlays sin campos temporales", () => {
 		version: 2,
 		viewport: expect.objectContaining({ scale: 1.5, invert: true }),
 		overlays: expect.objectContaining({
-			lineas: [{ px1: 1, py1: 2, px2: 3, py2: 4, dist: 5 }],
+			lineas: [
+				{ px1: 1, py1: 2, px2: 3, py2: 4, dist: 5, labelDx: 32, labelDy: -18 },
+			],
 			anotaciones: [{ px: 4, py: 5, texto: "lesión" }],
 			angulos: [],
 			elipses: [],

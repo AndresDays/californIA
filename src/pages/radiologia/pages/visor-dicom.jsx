@@ -77,6 +77,7 @@ import {
 	default as reporteIcon,
 } from "../../../assets/editarIcono.png";
 import etiquetaIcon from "../../../assets/etiquetaIcono.png";
+import elipseIcono from "../../../assets/elipseIcono.png";
 import exclamacionIcon from "../../../assets/exclamacionIcono.png";
 import formatoIcon from "../../../assets/formatoIcono.png";
 import informacionIcon from "../../../assets/informacionIcono.png";
@@ -88,6 +89,7 @@ import moverIcon from "../../../assets/moverIcono.png";
 import ojosIcono from "../../../assets/ojosIcono.png";
 import pestanaIcon from "../../../assets/pestanaIcono.png";
 import referenteIcon from "../../../assets/referenteIcono.png";
+import rectanguloIcono from "../../../assets/rectanguloIcono.png";
 import restaurarIcon from "../../../assets/restaurarIcono.png";
 import scrollIcon from "../../../assets/scrollIcono.png";
 import solicitudIcon from "../../../assets/solicitudIcono.png";
@@ -264,8 +266,8 @@ const FORMATOS = [
 const MAS_ITEMS = [
 	{ id: "lupa", icon: ampliarIcon, label: "Lupa" },
 	{ id: "ventanaROI", icon: contrasteIcono, label: "Ventana ROI" },
-	{ id: "elipse", icon: anotarIcono, label: "Elipse" },
-	{ id: "rectangulo", icon: formatoIcon, label: "Rectángulo" },
+	{ id: "elipse", icon: elipseIcono, label: "Elipse" },
+	{ id: "rectangulo", icon: rectanguloIcono, label: "Rectángulo" },
 	{ id: "negativo", icon: contrasteIcono, label: "Negativo" },
 	{ id: "girar", icon: restaurarIcon, label: "Girar →" },
 	{ id: "voltearH", icon: restaurarIcon, label: "Voltear H" },
@@ -344,6 +346,8 @@ const PanelDicom = ({
 	const arrastrandoBarraRef = useRef(false);
 	const ventanaSeriePendienteRef = useRef(null);
 	const guardadoTimerRef = useRef(null);
+	const etiquetasMedicionRef = useRef([]);
+	const arrastreEtiquetaRef = useRef(null);
 	const lupaActivaRef = useRef(false);
 	const medicionRef = useRef({
 		dibujando: false,
@@ -820,6 +824,7 @@ const PanelDicom = ({
 		sincronizarOverlay();
 		const ctx = overlay.getContext("2d");
 		ctx.clearRect(0, 0, overlay.width, overlay.height);
+		etiquetasMedicionRef.current = [];
 
 		const vpScale = getVp()?.vp.scale ?? 1;
 
@@ -829,7 +834,16 @@ const PanelDicom = ({
 				c2 = pixelToCanvas(l.px2, l.py2);
 			dibujarLinea(
 				ctx,
-				{ x1: c1.cx, y1: c1.cy, x2: c2.cx, y2: c2.cy, dist: l.dist, label: l.label },
+				{
+					x1: c1.cx,
+					y1: c1.cy,
+					x2: c2.cx,
+					y2: c2.cy,
+					dist: l.dist,
+					label: l.label,
+					medicion: l,
+					escala: vpScale,
+				},
 				i === lHov ? "hover" : "normal",
 			);
 		});
@@ -877,6 +891,8 @@ const PanelDicom = ({
 					p3x: c3.cx,
 					p3y: c3.cy,
 					grados: a.grados,
+					medicion: a,
+					escala: vpScale,
 				},
 				i === angHov ? "hover" : "normal",
 			);
@@ -921,6 +937,8 @@ const PanelDicom = ({
 					ry: e.pry * vpScale,
 					stats: e.stats,
 					label: e.label,
+					medicion: e,
+					escala: vpScale,
 				},
 				i === eHov ? "hover" : "normal",
 			);
@@ -955,6 +973,8 @@ const PanelDicom = ({
 					y2: cr2.cy,
 					stats: r.stats,
 					label: r.label,
+					medicion: r,
+					escala: vpScale,
 				},
 				i === rHov ? "hover" : "normal",
 			);
@@ -982,7 +1002,15 @@ const PanelDicom = ({
 				cb2 = pixelToCanvas(b.pex, b.pey);
 			dibujarBidiShape(
 				ctx,
-				{ cx: cb1.cx, cy: cb1.cy, ex: cb2.cx, ey: cb2.cy, label: b.label },
+				{
+					cx: cb1.cx,
+					cy: cb1.cy,
+					ex: cb2.cx,
+					ey: cb2.cy,
+					label: b.label,
+					medicion: b,
+					escala: vpScale,
+				},
 				i === bHov ? "hover" : "normal",
 			);
 		});
@@ -990,6 +1018,64 @@ const PanelDicom = ({
 			dibujarBidiShape(ctx, { cx: bCx, cy: bCy, ex: bEx, ey: bEy }, "preview");
 		}
 		guardarEstadoActual();
+	};
+
+	const dibujarEtiquetaMedicion = (ctx, { medicion, textos, anchorX, anchorY, x, y, color, escala = 1 }) => {
+		const lineas = textos.filter(Boolean);
+		if (!lineas.length) return;
+		const dx = (medicion?.labelDx || 0) * escala;
+		const dy = (medicion?.labelDy || 0) * escala;
+		const tx = x + dx;
+		const ty = y + dy;
+		ctx.font = "bold 13px monospace";
+		const ancho = Math.max(...lineas.map((linea) => ctx.measureText(linea).width));
+		const altoLinea = 18;
+		const padding = 5;
+		const alto = lineas.length * altoLinea + padding * 2;
+		const left = tx - ancho / 2 - padding;
+		const top = ty - alto / 2;
+
+		if (medicion && (dx || dy)) {
+			const angulo = Math.atan2(anchorY - ty, anchorX - tx);
+			ctx.save();
+			ctx.strokeStyle = color;
+			ctx.fillStyle = color;
+			ctx.lineWidth = 1.25;
+			ctx.setLineDash([4, 3]);
+			ctx.beginPath();
+			ctx.moveTo(tx, ty);
+			ctx.lineTo(anchorX, anchorY);
+			ctx.stroke();
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			ctx.moveTo(anchorX, anchorY);
+			ctx.lineTo(anchorX - 8 * Math.cos(angulo - 0.45), anchorY - 8 * Math.sin(angulo - 0.45));
+			ctx.lineTo(anchorX - 8 * Math.cos(angulo + 0.45), anchorY - 8 * Math.sin(angulo + 0.45));
+			ctx.closePath();
+			ctx.fill();
+			ctx.restore();
+		}
+
+		ctx.fillStyle = "rgba(0,0,0,0.68)";
+		ctx.fillRect(left, top, ancho + padding * 2, alto);
+		ctx.fillStyle = color;
+		ctx.textAlign = "center";
+		ctx.shadowColor = "rgba(0,0,0,0.9)";
+		ctx.shadowBlur = 4;
+		lineas.forEach((linea, indice) => ctx.fillText(linea, tx, top + padding + 13 + indice * altoLinea));
+
+		if (medicion) {
+			etiquetasMedicionRef.current.push({
+				medicion,
+				x: tx,
+				y: ty,
+				width: ancho + padding * 2,
+				height: alto,
+				anchorX,
+				anchorY,
+				escala,
+			});
+		}
 	};
 
 	const dibujarLinea = (ctx, l, mode) => {
@@ -1029,14 +1115,16 @@ const PanelDicom = ({
 			ctx.restore();
 			return;
 		}
-		ctx.font = "bold 13px monospace";
-		const tw = ctx.measureText(txt).width;
-		const pad = 4;
-		ctx.fillStyle = "rgba(0,0,0,0.65)";
-		ctx.fillRect(mx - tw / 2 - pad, my - 14, tw + pad * 2, 20);
-		ctx.fillStyle = isPreview ? "#FFE000" : isHover ? "#4cff72" : "#53B9DB";
-		ctx.textAlign = "center";
-		ctx.fillText(txt, mx, my + 2);
+		dibujarEtiquetaMedicion(ctx, {
+			medicion: l.medicion,
+			textos: [txt],
+			anchorX: mx,
+			anchorY: my,
+			x: mx,
+			y: my,
+			color: isPreview ? "#FFE000" : isHover ? "#4cff72" : "#53B9DB",
+			escala: l.escala,
+		});
 		ctx.restore();
 	};
 
@@ -1116,12 +1204,16 @@ const PanelDicom = ({
 			const midAng = startA + diff / 2;
 			const tx = a.p2x + (r + 18) * Math.cos(midAng);
 			const ty = a.p2y + (r + 18) * Math.sin(midAng);
-			ctx.font = "bold 13px monospace";
-			ctx.fillStyle = color;
-			ctx.textAlign = "center";
-			ctx.shadowColor = "rgba(0,0,0,0.9)";
-			ctx.shadowBlur = 4;
-			ctx.fillText(`${a.grados.toFixed(2)}°`, tx, ty);
+			dibujarEtiquetaMedicion(ctx, {
+				medicion: a.medicion,
+				textos: [`${a.grados.toFixed(2)}°`],
+				anchorX: a.p2x,
+				anchorY: a.p2y,
+				x: tx,
+				y: ty,
+				color,
+				escala: a.escala,
+			});
 		}
 		ctx.restore();
 	};
@@ -1321,16 +1413,17 @@ const PanelDicom = ({
 			1,
 		);
 
-		const tx = cx + 8,
-			ty = cy - 8;
-		ctx.font = "bold 13px monospace";
-		ctx.fillStyle = color;
-		ctx.shadowColor = "rgba(0,0,0,0.9)";
-		ctx.shadowBlur = 4;
 		ctx.setLineDash([]);
-		if (label) ctx.fillText(label, tx, ty - 36);
-		ctx.fillText("L " + Lmm + " mm", tx, ty - 18);
-		ctx.fillText("W " + Wmm + " mm", tx, ty);
+		dibujarEtiquetaMedicion(ctx, {
+			medicion: b.medicion,
+			textos: [label, "L " + Lmm + " mm", "W " + Wmm + " mm"],
+			anchorX: cx,
+			anchorY: cy,
+			x: cx + 52,
+			y: cy - 34,
+			color,
+			escala: b.escala,
+		});
 		ctx.restore();
 	};
 
@@ -1363,18 +1456,17 @@ const PanelDicom = ({
 			ctx.fillStyle = color;
 			ctx.fill();
 		});
-		if (stats) {
-			const tx = Math.max(x1, x2) + 8;
-			const ty = Math.min(y1, y2) + 16;
-			ctx.font = "bold 13px monospace";
-			ctx.fillStyle = color;
-			ctx.shadowColor = "rgba(0,0,0,0.8)";
-			ctx.shadowBlur = 4;
-			if (label) ctx.fillText(label, tx, ty - 18);
-			ctx.fillText("Área: " + stats.area + " mm²", tx, ty);
-			ctx.fillText("Media: " + stats.mean, tx, ty + 18);
-			ctx.fillText("Desv. Est.: " + stats.std, tx, ty + 36);
-		}
+		if (stats)
+			dibujarEtiquetaMedicion(ctx, {
+				medicion: r.medicion,
+				textos: [label, "Área: " + stats.area + " mm²", "Media: " + stats.mean, "Desv. Est.: " + stats.std],
+				anchorX: Math.max(x1, x2),
+				anchorY: Math.min(y1, y2),
+				x: Math.max(x1, x2) + 75,
+				y: Math.min(y1, y2) + 32,
+				color,
+				escala: r.escala,
+			});
 		ctx.restore();
 	};
 
@@ -1394,18 +1486,17 @@ const PanelDicom = ({
 		ctx.beginPath();
 		ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
 		ctx.stroke();
-		if (stats) {
-			const tx = cx + rx + 8;
-			const ty = cy - ry / 2;
-			ctx.font = "bold 13px monospace";
-			ctx.fillStyle = color;
-			ctx.shadowColor = "rgba(0,0,0,0.8)";
-			ctx.shadowBlur = 4;
-			if (e.label) ctx.fillText(e.label, tx, ty - 18);
-			ctx.fillText("Área: " + stats.area + " mm²", tx, ty);
-			ctx.fillText("Media: " + stats.mean, tx, ty + 18);
-			ctx.fillText("Desv. Est.: " + stats.std, tx, ty + 36);
-		}
+		if (stats)
+			dibujarEtiquetaMedicion(ctx, {
+				medicion: e.medicion,
+				textos: [e.label, "Área: " + stats.area + " mm²", "Media: " + stats.mean, "Desv. Est.: " + stats.std],
+				anchorX: cx + rx,
+				anchorY: cy,
+				x: cx + rx + 75,
+				y: cy + 18,
+				color,
+				escala: e.escala,
+			});
 		ctx.restore();
 	};
 
@@ -1496,6 +1587,21 @@ const PanelDicom = ({
 				herramientaRef.current = "Zoom";
 			} else activarAtajo("Zoom");
 			return;
+		}
+		if (e.button === 0) {
+			const pos = getCanvasPos(e);
+			const etiqueta = [...etiquetasMedicionRef.current]
+				.reverse()
+				.find(
+					(item) =>
+						Math.abs(pos.x - item.x) <= item.width / 2 + 5 &&
+						Math.abs(pos.y - item.y) <= item.height / 2 + 5,
+				);
+			if (etiqueta) {
+				e.preventDefault();
+				arrastreEtiquetaRef.current = etiqueta;
+				return;
+			}
 		}
 		if (esSerieNavegable() && e.button === 0 && !herramientaFijadaRef.current) activarAtajo("Wwwc");
 		const tool = herramientaRef.current;
@@ -1812,6 +1918,14 @@ const PanelDicom = ({
 	const onMouseMove = (e) => {
 		const tool = herramientaRef.current;
 		const pos = getCanvasPos(e);
+		const etiquetaArrastrada = arrastreEtiquetaRef.current;
+		if (etiquetaArrastrada) {
+			const { medicion, anchorX, anchorY, escala } = etiquetaArrastrada;
+			medicion.labelDx = (pos.x - anchorX) / escala;
+			medicion.labelDy = (pos.y - anchorY) / escala;
+			redibujarOverlay();
+			return;
+		}
 
 		{
 			let changed = false;
@@ -2001,6 +2115,13 @@ const PanelDicom = ({
 				herramientaRef.current = herramientaAntesZoomRef.current;
 				herramientaAntesZoomRef.current = null;
 			} else activarAtajo("StackScroll");
+			return;
+		}
+		if (arrastreEtiquetaRef.current) {
+			arrastreEtiquetaRef.current = null;
+			dragRef.current.active = false;
+			redibujarOverlay();
+			guardarEstadoActual(true);
 			return;
 		}
 		const tool = herramientaRef.current;
