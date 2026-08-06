@@ -1,4 +1,5 @@
 import React from 'react';
+import { readFileSync } from 'fs';
 import { cleanup, render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import VisorDicom from './visor-dicom';
 
@@ -103,6 +104,7 @@ jest.mock('../../../assets/detallesIcono.png',    () => 'mock-img');
 jest.mock('../../../assets/doctorV2Icono.png',    () => 'mock-img');
 jest.mock('../../../assets/editarIcono.png',      () => 'mock-img');
 jest.mock('../../../assets/etiquetaIcono.png',    () => 'mock-img');
+jest.mock('../../../assets/elipseIcono.png',      () => 'mock-elipse-icono');
 jest.mock('../../../assets/exclamacionIcono.png', () => 'mock-img');
 jest.mock('../../../assets/formatoIcono.png',     () => 'mock-img');
 jest.mock('../../../assets/informacionIcono.png', () => 'mock-img');
@@ -114,6 +116,7 @@ jest.mock('../../../assets/moverIcono.png',       () => 'mock-img');
 jest.mock('../../../assets/nubeIcono.png',        () => 'mock-img');
 jest.mock('../../../assets/ojosIcono.png',        () => 'mock-img');
 jest.mock('../../../assets/referenteIcono.png',   () => 'mock-img');
+jest.mock('../../../assets/rectanguloIcono.png',  () => 'mock-rectangulo-icono');
 jest.mock('../../../assets/restaurarIcono.png',   () => 'mock-img');
 jest.mock('../../../assets/scrollIcono.png',      () => 'mock-img');
 jest.mock('../../../assets/solicitudIcono.png',   () => 'mock-img');
@@ -338,6 +341,15 @@ describe('VisorDicom — Toolbar acciones', () => {
     await act(async () => { fireEvent.click(screen.getByTitle('Más')); });
     // MAS_ITEMS includes "Lupa", "Elipse", etc.
     expect(screen.getByTitle('Lupa')).toBeInTheDocument();
+  });
+
+  test('configura los iconos propios de Elipse y Rectángulo en Más', () => {
+    const visor = readFileSync(require.resolve('./visor-dicom.jsx'), 'utf8');
+
+    expect(visor).toContain('import elipseIcono from "../../../assets/elipseIcono.png"');
+    expect(visor).toContain('import rectanguloIcono from "../../../assets/rectanguloIcono.png"');
+    expect(visor).toContain('{ id: "elipse", icon: elipseIcono, label: "Elipse" }');
+    expect(visor).toContain('{ id: "rectangulo", icon: rectanguloIcono, label: "Rectángulo" }');
   });
 
   test('clic en Detalle abre el panel de detalles', async () => {
