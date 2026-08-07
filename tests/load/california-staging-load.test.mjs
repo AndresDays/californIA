@@ -21,3 +21,9 @@ test('requiere configuración explícita de staging antes de ejecutar solicitude
   assert.match(script, /LOAD_TEST_ACCESS_TOKEN/);
   assert.match(script, /setup\(\)/);
 });
+
+test('no depende del constructor URL, que no existe en el runtime de k6', async () => {
+  const script = await readFile(new URL('../../load-tests/california-staging.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(script, /new URL\(/);
+});

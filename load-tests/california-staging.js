@@ -48,6 +48,8 @@ const requireEnvironment = (name) => {
   return value;
 };
 
+const normalizarUrlBase = (value) => String(value).replace(/\/+$/, '');
+
 export function setup() {
   if (__ENV.LOAD_TEST_ENV !== 'staging') {
     fail('Esta prueba solo se puede ejecutar con LOAD_TEST_ENV=staging.');
@@ -56,15 +58,15 @@ export function setup() {
   const configuration = Object.fromEntries(
     requiredEnvironment.map((name) => [name, requireEnvironment(name)]),
   );
-  const applicationUrl = new URL(configuration.LOAD_TEST_BASE_URL);
+  const baseUrl = normalizarUrlBase(configuration.LOAD_TEST_BASE_URL);
 
-  if (applicationUrl.hostname === 'app.californiadiagnostica.com') {
+  if (/^https:\/\/app\.californiadiagnostica\.com(?:\/|$)/i.test(baseUrl)) {
     fail('No ejecutes la prueba contra producción. Usa el dominio de staging.');
   }
 
   return {
-    baseUrl: applicationUrl.origin,
-    supabaseUrl: configuration.LOAD_TEST_SUPABASE_URL.replace(/\/$/, ''),
+    baseUrl,
+    supabaseUrl: normalizarUrlBase(configuration.LOAD_TEST_SUPABASE_URL),
   };
 }
 
