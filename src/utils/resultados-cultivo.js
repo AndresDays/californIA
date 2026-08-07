@@ -18,17 +18,25 @@ export function validarPdfCultivo(file) {
 	return "";
 }
 
+export function esArchivoCultivoPathValido(archivoCultivoPath) {
+	return /^[0-9]+\/cultivo\.pdf$/.test(String(archivoCultivoPath || ""));
+}
+
 /**
- * `archivo_cultivo_url` must be a non-empty, fetchable public HTTP(S) URL.
- * Authorization and release status are verified by the portal RPC before use.
+ * The URL must be obtained from the configured Supabase Storage client after
+ * the secure portal RPC authorizes and returns the deterministic path.
  */
-function tieneArchivoCultivoUrl(archivoCultivoUrl) {
-	try {
-		const url = new URL(archivoCultivoUrl);
-		return url.protocol === "https:" || url.protocol === "http:";
-	} catch {
-		return false;
+export function hidratarArchivoCultivoUrl(estudio, supabaseOrStorage) {
+	const storage = supabaseOrStorage?.storage || supabaseOrStorage;
+	if (!esArchivoCultivoPathValido(estudio?.archivo_cultivo_path) || !storage?.from) {
+		return estudio;
 	}
+	const { data } = storage
+		.from("resultados-cultivo-adjuntos")
+		.getPublicUrl(estudio.archivo_cultivo_path);
+	if (!data?.publicUrl) return estudio;
+
+	return { ...estudio, archivo_cultivo_url: data.publicUrl };
 }
 
 export function separarEstudiosConCultivo(studies = []) {
@@ -36,7 +44,8 @@ export function separarEstudiosConCultivo(studies = []) {
 
 	return estudios.reduce(
 		(resultado, estudio) => {
-			if (esEstudioCultivo(estudio) && tieneArchivoCultivoUrl(estudio.archivo_cultivo_url)) {
+			const tieneAdjunto = esArchivoCultivoPathValido(estudio?.archivo_cultivo_path);
+			if (esEstudioCultivo(estudio) && tieneAdjunto) {
 				resultado.adjuntosCultivo.push(estudio);
 			} else {
 				resultado.generados.push(estudio);

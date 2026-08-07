@@ -4,7 +4,7 @@
 
 **Goal:** Cargar el PDF de un cultivo y entregarlo solo o anexado al reporte generado de los demás estudios.
 
-**Architecture:** Una tabla y bucket nuevos persisten un adjunto por estudio de venta. Un helper identifica cultivos por descripción y separa adjuntos de estudios que se generan; pdf-lib combina páginas sin rasterizarlas. Captura y Portal usan el mismo compositor.
+**Architecture:** Una tabla y bucket nuevos persisten un adjunto por estudio de venta en la ruta determinista `id_estudio_venta/cultivo.pdf`. El RPC seguro entrega sólo `archivo_cultivo_path`; Captura y Portal llaman `hidratarArchivoCultivoUrl(estudio, supabase)` después de autorizar. El helper obtiene internamente `getPublicUrl(path)` del cliente configurado y entrega la URL absoluta al compositor. Un helper identifica cultivos por descripción y separa adjuntos de estudios que se generan; pdf-lib combina páginas sin rasterizarlas.
 
 **Tech Stack:** React 18, Supabase Storage/Postgres/RPC, Jest, jsPDF, pdf-lib.
 
@@ -22,7 +22,7 @@
 import { esEstudioCultivo, separarEstudiosConCultivo, validarPdfCultivo } from './resultados-cultivo';
 
 test('detecta cultivo sin distinguir mayúsculas y separa su adjunto', () => {
-  const cultivo = { descripcion_estudio: 'Cultivo de orina', archivo_cultivo_url: 'https://files/c.pdf' };
+  const cultivo = { descripcion_estudio: 'Cultivo de orina', archivo_cultivo_path: '1/cultivo.pdf' };
   const bhc = { descripcion_estudio: 'Biometría hemática' };
   expect(esEstudioCultivo(cultivo)).toBe(true);
   expect(separarEstudiosConCultivo([cultivo, bhc])).toEqual({ generados: [bhc], adjuntosCultivo: [cultivo] });
@@ -48,7 +48,7 @@ export const validarPdfCultivo = (archivo) => {
   return archivo.size > 25 * 1024 * 1024 ? 'El archivo debe pesar menos de 25 MB' : '';
 };
 export const separarEstudiosConCultivo = (estudios = []) => estudios.reduce((r, estudio) => {
-  (esEstudioCultivo(estudio) && estudio.archivo_cultivo_url ? r.adjuntosCultivo : r.generados).push(estudio);
+  (esEstudioCultivo(estudio) && esArchivoCultivoPathValido(estudio.archivo_cultivo_path) ? r.adjuntosCultivo : r.generados).push(estudio);
   return r;
 }, { generados: [], adjuntosCultivo: [] });
 ```
@@ -74,7 +74,7 @@ git commit -m "feat: classify cultivo result studies"
 
 - [ ] **Step 1: Write the failing migration-contract check**
 
-Run: rg -n "resultados_cultivo_adjuntos|resultados-cultivo-adjuntos|archivo_cultivo_url" supabase/migrations/20260805120000_resultados_cultivo_adjuntos.sql
+Run: rg -n "resultados_cultivo_adjuntos|resultados-cultivo-adjuntos|archivo_cultivo_path" supabase/migrations/20260806120000_resultados_cultivo_adjuntos.sql
 
 Expected: the file is absent.
 
@@ -84,7 +84,7 @@ Expected: the file is absent.
 create table if not exists public.resultados_cultivo_adjuntos (
   id uuid primary key default gen_random_uuid(),
   id_estudio_venta integer not null unique references public.estudios_venta(id_estudio_venta) on delete cascade,
-  nombre_archivo text not null, archivo_path text not null, archivo_url text not null,
+  nombre_archivo text not null, archivo_path text not null,
   mime_type text not null check (mime_type = 'application/pdf'),
   size_bytes bigint not null check (size_bytes > 0 and size_bytes <= 26214400),
   creado_por uuid references auth.users(id) on delete set null,
@@ -92,22 +92,22 @@ create table if not exists public.resultados_cultivo_adjuntos (
 );
 ```
 
-Create the public resultados-cultivo-adjuntos bucket (25 MB, application/pdf only). Add table and storage RLS for active authenticated quimico, tecnico, administrador, admin, and desarrollador roles. Extend buscar_resultados_portal to return archivo_cultivo_url only for validated cultivo rows with an adjunto, preserving its existing folio, phone, and balance checks.
+Create the public resultados-cultivo-adjuntos bucket (25 MB, application/pdf only). Add table and storage RLS for active authenticated quimico, tecnico, administrador, admin, and desarrollador roles, limited to cultivo descriptions and `id_estudio_venta/cultivo.pdf`. Extend buscar_resultados_portal to return archivo_cultivo_path only for validated cultivo rows with an adjunto, preserving its existing folio, phone, and balance checks. Captura/Portal hydrate the configured Storage public URL only after that secure response.
 
 - [ ] **Step 3: Load the adjunto in Captura**
 
 ```js
 const { data: adjuntos } = await supabase
   .from('resultados_cultivo_adjuntos')
-  .select('id_estudio_venta, nombre_archivo, archivo_path, archivo_url, mime_type, size_bytes')
+  .select('id_estudio_venta, nombre_archivo, archivo_path, mime_type, size_bytes')
   .in('id_estudio_venta', idsEstudiosVenta);
 ```
 
-Merge each matching row as archivo_cultivo_url.
+Merge each matching row as archivo_cultivo_path; call `hidratarArchivoCultivoUrl(estudio, supabase)` before calling the composer so the helper obtains the public URL from the configured Storage client.
 
 - [ ] **Step 4: Verify the migration contract**
 
-Run: rg -n "resultados_cultivo_adjuntos|resultados-cultivo-adjuntos|archivo_cultivo_url" supabase/migrations/20260805120000_resultados_cultivo_adjuntos.sql
+Run: rg -n "resultados_cultivo_adjuntos|resultados-cultivo-adjuntos|archivo_cultivo_path" supabase/migrations/20260806120000_resultados_cultivo_adjuntos.sql
 
 Expected: table, bucket, policies and RPC projection are present.
 
@@ -131,13 +131,13 @@ git commit -m "feat: persist cultivo result PDFs"
 ```js
 test('devuelve el PDF de cultivo cuando es el único resultado', async () => {
   expect(await generarResultadosCombinadosPdf({ estudios: [
-    { descripcion: 'Cultivo', archivo_cultivo_url: 'blob:cultivo' },
+    { descripcion: 'Cultivo', archivo_cultivo_path: '1/cultivo.pdf', archivo_cultivo_url: 'blob:cultivo' }, // URL hydrated after RPC authorization
   ] })).toBe('blob:cultivo');
 });
 test('anexa cultivo al PDF generado cuando también hay BHC', async () => {
   await generarResultadosCombinadosPdf({ estudios: [
     { descripcion: 'BHC', analitos: [{ clave: 'HB', resultado: '12' }] },
-    { descripcion: 'Cultivo', archivo_cultivo_url: 'https://files/c.pdf' },
+    { descripcion: 'Cultivo', archivo_cultivo_path: '1/cultivo.pdf', archivo_cultivo_url: 'https://project.supabase.co/storage/v1/object/public/resultados-cultivo-adjuntos/1/cultivo.pdf' }, // URL hydrated after RPC authorization
   ] });
   expect(PDFDocument.load).toHaveBeenCalledTimes(2);
 });
@@ -268,4 +268,3 @@ Expected: no whitespace errors and only planned files plus the pre-existing unre
 git add src/pages/portal-resultados.jsx src/pages/portal-resultados.test.jsx
 git commit -m "feat: deliver combined cultivo result PDFs"
 ```
-
