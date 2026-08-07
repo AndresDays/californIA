@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+	actualizarSesionAnalitos,
+	obtenerSesionAnalitos,
+} from "../configuracion/analitos-sesion";
 import "./modal-agregar-analito-estudio.css";
 
 const ModalAgregarAnalitoEstudio = ({
@@ -7,8 +11,24 @@ const ModalAgregarAnalitoEstudio = ({
 	onGuardar,
 	analitosDisponibles,
 }) => {
-	const [busqueda, setBusqueda] = useState("");
-	const [analitosSeleccionados, setAnalitosSeleccionados] = useState([]);
+	const sesionInicial = obtenerSesionAnalitos();
+	const [busqueda, setBusqueda] = useState(() => sesionInicial.busquedaAnalitos);
+	const [analitosSeleccionados, setAnalitosSeleccionados] = useState(
+		() => sesionInicial.analitosSeleccionados,
+	);
+	const actualizarBusqueda = (valor) => {
+		actualizarSesionAnalitos({ busquedaAnalitos: valor });
+		setBusqueda(valor);
+	};
+	const actualizarSeleccionados = (valor) => {
+		actualizarSesionAnalitos({ analitosSeleccionados: valor });
+		setAnalitosSeleccionados(valor);
+	};
+	const limpiarSeleccion = () => {
+		actualizarSesionAnalitos({ busquedaAnalitos: "", analitosSeleccionados: [] });
+		setBusqueda("");
+		setAnalitosSeleccionados([]);
+	};
 
 	if (!isOpen) return null;
 
@@ -24,11 +44,11 @@ const ModalAgregarAnalitoEstudio = ({
 		);
 
 		if (yaSeleccionado) {
-			setAnalitosSeleccionados(
+			actualizarSeleccionados(
 				analitosSeleccionados.filter((a) => a.id_analito !== analito.id_analito),
 			);
 		} else {
-			setAnalitosSeleccionados([...analitosSeleccionados, analito]);
+			actualizarSeleccionados([...analitosSeleccionados, analito]);
 		}
 	};
 
@@ -48,7 +68,7 @@ const ModalAgregarAnalitoEstudio = ({
 			nuevosAnalitos[index],
 			nuevosAnalitos[index - 1],
 		];
-		setAnalitosSeleccionados(nuevosAnalitos);
+		actualizarSeleccionados(nuevosAnalitos);
 	};
 
 	const moverAbajo = (index) => {
@@ -58,11 +78,11 @@ const ModalAgregarAnalitoEstudio = ({
 			nuevosAnalitos[index + 1],
 			nuevosAnalitos[index],
 		];
-		setAnalitosSeleccionados(nuevosAnalitos);
+		actualizarSeleccionados(nuevosAnalitos);
 	};
 
 	const removerSeleccionado = (idAnalito) => {
-		setAnalitosSeleccionados(
+		actualizarSeleccionados(
 			analitosSeleccionados.filter((a) => a.id_analito !== idAnalito),
 		);
 	};
@@ -75,13 +95,11 @@ const ModalAgregarAnalitoEstudio = ({
 
 		onGuardar(analitosSeleccionados);
 
-		setBusqueda("");
-		setAnalitosSeleccionados([]);
+		limpiarSeleccion();
 	};
 
 	const handleClose = () => {
-		setBusqueda("");
-		setAnalitosSeleccionados([]);
+		limpiarSeleccion();
 		onClose();
 	};
 
@@ -104,7 +122,7 @@ const ModalAgregarAnalitoEstudio = ({
 									type="text"
 									placeholder="Buscar por clave o descripción..."
 									value={busqueda}
-									onChange={(e) => setBusqueda(e.target.value)}
+								onChange={(e) => actualizarBusqueda(e.target.value)}
 									className="input-buscar-modal"
 									autoFocus
 								/>
@@ -151,7 +169,7 @@ const ModalAgregarAnalitoEstudio = ({
 								{analitosSeleccionados.length > 0 && (
 									<button
 										className="btn-limpiar-seleccion"
-										onClick={() => setAnalitosSeleccionados([])}>
+									onClick={() => actualizarSeleccionados([])}>
 										Limpiar
 									</button>
 								)}

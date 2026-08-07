@@ -10,10 +10,16 @@ import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregarAnalitoEstudio from "../componentes/modal-agregar-analito-estudio";
 import ModalAnalito from "../componentes/modal-analito";
+import {
+	actualizarSesionAnalitos,
+	obtenerSesionAnalitos,
+	reiniciarSesionAnalitos,
+} from "./analitos-sesion";
 import "./analitos.css";
 
 const Analitos = () => {
 	const { user } = useAuth();
+	const sesionInicial = obtenerSesionAnalitos();
 
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("analitos:estudio");
 	const [buscarAnalito, setBuscarAnalito] = useBusquedaPersistente("analitos:analito");
@@ -22,12 +28,16 @@ const Analitos = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosEncontrados, setEstudiosEncontrados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
-	const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
+	const [estudioSeleccionado, setEstudioSeleccionado] = useState(
+		() => sesionInicial.estudioSeleccionado,
+	);
 	const [analitosEstudio, setAnalitosEstudio] = useState([]);
 	const [modalOpen, setModalOpen] = useState(false);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [analitoEditando, setAnalitoEditando] = useState(null);
-	const [modalAgregarOpen, setModalAgregarOpen] = useState(false);
+	const [modalAgregarOpen, setModalAgregarOpen] = useState(
+		() => sesionInicial.modalAgregarOpen,
+	);
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
@@ -112,6 +122,7 @@ const Analitos = () => {
 	};
 
 	const seleccionarEstudio = (estudio) => {
+		actualizarSesionAnalitos({ estudioSeleccionado: estudio });
 		setEstudioSeleccionado(estudio);
 		setBuscarEstudio(`${estudio.clave} - ${estudio.descripcion}`);
 		setShowBusquedaEstudios(false);
@@ -203,6 +214,7 @@ const Analitos = () => {
 					"exito",
 				);
 			await cargarAnalitosDelEstudio();
+			actualizarSesionAnalitos({ modalAgregarOpen: false });
 			setModalAgregarOpen(false);
 		} catch (error) {
 			console.error("Error:", error);
@@ -368,6 +380,7 @@ const Analitos = () => {
 												);
 												return;
 											}
+											actualizarSesionAnalitos({ modalAgregarOpen: true });
 											setModalAgregarOpen(true);
 										}}>
 										+ Agregar Analito
@@ -473,6 +486,7 @@ const Analitos = () => {
 								className="btn-nuevo-analitos"
 								onClick={() => {
 									setBuscarEstudio("");
+									reiniciarSesionAnalitos();
 									setEstudioSeleccionado(null);
 									setAnalitosEstudio([]);
 								}}>
@@ -581,7 +595,10 @@ const Analitos = () => {
 				/>
 				<ModalAgregarAnalitoEstudio
 					isOpen={modalAgregarOpen}
-					onClose={() => setModalAgregarOpen(false)}
+					onClose={() => {
+						actualizarSesionAnalitos({ modalAgregarOpen: false });
+						setModalAgregarOpen(false);
+					}}
 					onGuardar={handleGuardarAnalitoEstudio}
 					analitosDisponibles={analitos}
 				/>
