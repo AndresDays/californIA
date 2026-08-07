@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ModalAgregarAnalitoEstudio from './modal-agregar-analito-estudio';
+import { reiniciarSesionAnalitos } from '../configuracion/analitos-sesion';
 
 // Mock de CSS
 jest.mock('./modal-agregar-analito-estudio.css', () => {});
@@ -22,6 +23,8 @@ const defaultProps = {
   onGuardar: jest.fn(),
   analitosDisponibles,
 };
+
+beforeEach(() => reiniciarSesionAnalitos());
 
 // SUITE 1 — Renderizado inicial
 describe('ModalAgregarAnalitoEstudio — Renderizado inicial', () => {
@@ -105,7 +108,10 @@ describe('ModalAgregarAnalitoEstudio — Búsqueda', () => {
 
 // SUITE 3 — Selección de analitos
 describe('ModalAgregarAnalitoEstudio — Selección', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    reiniciarSesionAnalitos();
+  });
 
   const buscarYSeleccionar = (texto) => {
     fireEvent.change(screen.getByPlaceholderText('Buscar por clave o descripción...'), {
@@ -137,6 +143,20 @@ describe('ModalAgregarAnalitoEstudio — Selección', () => {
     render(<ModalAgregarAnalitoEstudio {...defaultProps} />);
     buscarYSeleccionar('GLU');
     expect(document.querySelector('.btn-guardar-modal')).not.toBeDisabled();
+  });
+
+  test('conserva la búsqueda y los analitos seleccionados al volver a montar el modal', () => {
+    const { unmount } = render(<ModalAgregarAnalitoEstudio {...defaultProps} />);
+    fireEvent.change(screen.getByPlaceholderText('Buscar por clave o descripción...'), {
+      target: { value: 'GLU' },
+    });
+    fireEvent.click(screen.getByText('Glucosa'));
+
+    unmount();
+    render(<ModalAgregarAnalitoEstudio {...defaultProps} />);
+
+    expect(screen.getByPlaceholderText('Buscar por clave o descripción...')).toHaveValue('GLU');
+    expect(screen.getByText('Analitos Seleccionados (1)')).toBeInTheDocument();
   });
 
   test('el botón Limpiar aparece cuando hay analitos seleccionados', () => {
