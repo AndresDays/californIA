@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { esErrorTablaInexistente } from '../utils/supabase-errors';
+import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 const SELECT_VENTAS_ADMIN = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido, id_cliente, id_doctor, id_sucursal, sucursal,
@@ -16,18 +17,19 @@ export const useReporteAdministrativo = ({ fechaInicial, fechaFinal, sucursalSel
 	useQuery({
 		queryKey: ['reporte-administrativo', fechaInicial, fechaFinal, sucursalSeleccionada],
 		queryFn: async () => {
+			const rango = crearRangoFechaMexico(fechaInicial, fechaFinal);
 			let ventasQuery = supabase
 				.from('ventas')
 				.select(SELECT_VENTAS_ADMIN)
 				.eq('estado', 'activo')
-				.gte('fecha_venta', `${fechaInicial}T00:00:00`)
-				.lte('fecha_venta', `${fechaFinal}T23:59:59`)
+				.gte('fecha_venta', rango.inicio)
+				.lt('fecha_venta', rango.fin)
 				.order('fecha_venta', { ascending: false });
 			let radiologiaQuery = supabase
 				.from('estudios_radiologia')
 				.select('id_estudio, id_venta, estado, listo_entrega, entregado, fecha_estudio')
-				.gte('fecha_estudio', `${fechaInicial}T00:00:00`)
-				.lte('fecha_estudio', `${fechaFinal}T23:59:59`);
+				.gte('fecha_estudio', rango.inicio)
+				.lt('fecha_estudio', rango.fin);
 
 			if (sucursalSeleccionada) {
 				ventasQuery = ventasQuery.eq('id_sucursal', sucursalSeleccionada);
@@ -39,8 +41,8 @@ export const useReporteAdministrativo = ({ fechaInicial, fechaFinal, sucursalSel
 				supabase
 					.from('solicitudes_auditoria')
 					.select('id_venta, evento, created_at')
-					.gte('created_at', `${fechaInicial}T00:00:00`)
-					.lte('created_at', `${fechaFinal}T23:59:59`)
+					.gte('created_at', rango.inicio)
+					.lt('created_at', rango.fin)
 					.order('created_at', { ascending: true }),
 			]);
 

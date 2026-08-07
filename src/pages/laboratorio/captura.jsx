@@ -138,9 +138,14 @@ const Captura = () => {
 				.from("resultados_cultivo_adjuntos")
 				.select("id_estudio_venta, archivo_path")
 				.in("id_estudio_venta", idsEstudiosVenta);
-			if (errorAdjuntosCultivo) throw errorAdjuntosCultivo;
+			// Los resultados normales no dependen de que la migración de cultivos
+			// ya esté aplicada. Si el adjunto no puede consultarse, conserva la
+			// captura de analitos y deja el cultivo sin archivo asociado.
+			if (errorAdjuntosCultivo) {
+				console.warn("No se pudieron cargar adjuntos de cultivo:", errorAdjuntosCultivo);
+			}
 			const archivoCultivoPorEstudio = new Map(
-				(adjuntosCultivo || []).map((adjunto) => [adjunto.id_estudio_venta, adjunto.archivo_path]),
+				(errorAdjuntosCultivo ? [] : adjuntosCultivo || []).map((adjunto) => [adjunto.id_estudio_venta, adjunto.archivo_path]),
 			);
 			const estudiosConAdjuntosCultivo = (estudiosVenta || []).map((estudio) => ({
 				...estudio,
@@ -834,6 +839,7 @@ const Captura = () => {
 								<div className="cultivo-upload-controls">
 									<select
 										aria-label="Estudio de cultivo"
+										className="cultivo-select"
 										value={cultivoSeleccionado}
 										onChange={(event) => setCultivoSeleccionado(event.target.value)}
 										disabled={subiendoCultivo}>
@@ -849,18 +855,17 @@ const Captura = () => {
 										className="btn-vista-previa btn-cultivo"
 										onClick={() => inputCultivoRef.current?.click()}
 										disabled={subiendoCultivo || !cultivoSeleccionado || resultados.find((item) => String(item.id_estudio_venta) === cultivoSeleccionado)?.estado_validacion === "validado"}>
-										{subiendoCultivo ? "Cargando PDF..." : "Adjuntar cultivo"}
+										{subiendoCultivo ? "Cargando PDF..." : "Subir PDF de cultivo"}
 									</button>
-									<label className="cultivo-file-label">
-										Subir PDF de cultivo
-										<input
-											ref={inputCultivoRef}
-											type="file"
-											accept="application/pdf"
-											onChange={subirPdfCultivo}
-											disabled={subiendoCultivo || !cultivoSeleccionado || resultados.find((item) => String(item.id_estudio_venta) === cultivoSeleccionado)?.estado_validacion === "validado"}
-										/>
-									</label>
+									<input
+										ref={inputCultivoRef}
+										aria-label="Subir PDF de cultivo"
+										className="cultivo-file-input"
+										type="file"
+										accept="application/pdf"
+										onChange={subirPdfCultivo}
+										disabled={subiendoCultivo || !cultivoSeleccionado || resultados.find((item) => String(item.id_estudio_venta) === cultivoSeleccionado)?.estado_validacion === "validado"}
+									/>
 								</div>
 							)}
 							<select

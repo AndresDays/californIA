@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { esErrorColumnaSchemaCache } from '../utils/supabase-errors';
+import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 const SELECT_BASE = `
   id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
@@ -60,13 +61,14 @@ const cargarCitasDeVentas = async (ventas = []) => {
 };
 
 const fetchVentasConFallback = async ({ fechaInicial, fechaFinal }) => {
-  const crearQuery = (select) =>
+	const rango = crearRangoFechaMexico(fechaInicial, fechaFinal);
+	const crearQuery = (select) =>
     supabase
       .from('ventas')
       .select(select)
       .eq('estado', 'activo')
-      .gte('fecha_venta', `${fechaInicial}T00:00:00`)
-      .lte('fecha_venta', `${fechaFinal}T23:59:59`)
+		.gte('fecha_venta', rango.inicio)
+		.lt('fecha_venta', rango.fin)
       .order('fecha_venta', { ascending: false });
 
   // Intento 1: query completo

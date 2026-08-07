@@ -19,6 +19,7 @@ import {
 
 import { resumirMovimientosCaja } from "../../utils/pagos-ventas";
 import { esErrorTablaInexistente } from "../../utils/supabase-errors";
+import { crearRangoFechaMexico } from "../../utils/fecha-mexico";
 import "./cierre-caja.css";
 
 const ModalAperturaCaja = ({ onConfirmar, onCerrar, montoActual }) => {
@@ -264,14 +265,13 @@ const CierreCaja = () => {
 		);
 
 	const cargarCorteCaja = async () => {
-		const inicio = `${fechaActual}T00:00:00`;
-		const fin = `${fechaActual}T23:59:59`;
+		const { inicio, fin } = crearRangoFechaMexico(fechaActual);
 		try {
 			let query = supabase
 				.from("movimientos_pago_venta")
 				.select("*")
 				.gte("created_at", inicio)
-				.lte("created_at", fin);
+				.lt("created_at", fin);
 			if (sucursalSeleccionada) query = query.eq("id_sucursal", sucursalSeleccionada);
 			if (usuarioSeleccionado) query = query.eq("actor_auth_uuid", usuarioSeleccionado);
 
@@ -321,7 +321,7 @@ const CierreCaja = () => {
 			.from("ventas")
 			.select("total, pago_recibido, forma_pago, estado, id_sucursal, id_empleado")
 			.gte("fecha_venta", inicio)
-			.lte("fecha_venta", fin);
+			.lt("fecha_venta", fin);
 		if (sucursalSeleccionada) query = query.eq("id_sucursal", sucursalSeleccionada);
 		const { data, error } = await query;
 		if (error) throw error;

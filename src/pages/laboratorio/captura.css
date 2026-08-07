@@ -651,23 +651,30 @@
   gap: 0.45rem;
 }
 
-.cultivo-upload-controls select,
-.cultivo-file-label input {
-  max-width: 180px;
-  color: #fff;
+.cultivo-select {
+  width: 260px;
+  padding: 0.58rem 0.65rem;
+  background: rgba(7, 20, 34, 0.54);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.9rem;
 }
 
-.cultivo-file-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 0.76rem;
-  white-space: nowrap;
+.cultivo-select:focus {
+  outline: none;
+  border-color: rgba(111, 179, 210, 0.65);
+  background: rgba(7, 20, 34, 0.78);
 }
 
-.cultivo-file-label input[type="file"] {
-  font-size: 0.72rem;
+.cultivo-select option {
+  background: #FFFFFF;
+  color: #0A1929;
+}
+
+.cultivo-file-input {
+  display: none;
 }
 
 .btn-imprimir {
