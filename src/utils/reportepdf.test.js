@@ -228,18 +228,9 @@ describe("generarResultadosPortalPdf", () => {
 });
 
 describe("generarResultadosCombinadosPdf", () => {
-	const crearSupabase = () => ({
-		storage: {
-			from: jest.fn(() => ({
-				createSignedUrl: jest.fn((path) => ({
-					data: { signedUrl: `https://storage.test/${path}` },
-				})),
-			})),
-		},
-	});
 	const cultivo = (id) => ({
 		descripcion: "Cultivo bacteriológico",
-		archivo_cultivo_path: `${id}/cultivo.pdf`,
+		archivo_cultivo_url: `https://storage.test/${id}/cultivo.pdf`,
 	});
 	const bhc = { tipo: "laboratorio", descripcion: "BHC", analitos: [] };
 
@@ -258,30 +249,17 @@ describe("generarResultadosCombinadosPdf", () => {
 		jest.restoreAllMocks();
 	});
 
-	test("devuelve la URL confiable si solo hay un cultivo adjunto", async () => {
-		const supabase = crearSupabase();
-		const url = await generarResultadosCombinadosPdf({ estudios: [cultivo(17)], supabase });
+	test("devuelve la URL firmada entregada por la consulta segura si solo hay un cultivo", async () => {
+		const url = await generarResultadosCombinadosPdf({ estudios: [cultivo(17)] });
 
 		expect(url).toBe("https://storage.test/17/cultivo.pdf");
-		expect(supabase.storage.from).toHaveBeenCalledWith("resultados-cultivo-adjuntos");
 		expect(global.fetch).not.toHaveBeenCalled();
 	});
 
-	test("reemplaza una URL de cultivo proporcionada por la URL confiable del storage", async () => {
-		const supabase = crearSupabase();
-		const url = await generarResultadosCombinadosPdf({
-			estudios: [{ ...cultivo(17), archivo_cultivo_url: "https://malicioso.test/cultivo.pdf" }],
-			supabase,
-		});
-
-		expect(url).toBe("https://storage.test/17/cultivo.pdf");
-		expect(url).not.toContain("malicioso.test");
-	});
-
-	test("rechaza adjuntos de cultivo cuando falta el cliente Supabase", async () => {
+	test("rechaza cultivo sin URL firmada de la consulta segura", async () => {
 		await expect(generarResultadosCombinadosPdf({
-			estudios: [{ ...cultivo(17), archivo_cultivo_url: "https://malicioso.test/cultivo.pdf" }],
-		})).rejects.toThrow("Supabase");
+			estudios: [{ descripcion: "Cultivo bacteriológico" }],
+		})).rejects.toThrow("URL autorizada");
 	});
 
 	test("conserva el PDF legado cuando no hay adjuntos de cultivo", async () => {
@@ -303,7 +281,6 @@ describe("generarResultadosCombinadosPdf", () => {
 		const resultado = await generarResultadosCombinadosPdf({
 			venta: { paciente: "Paciente", folio: "F-1" },
 			estudios: [bhc, cultivo(21)],
-			supabase: crearSupabase(),
 		});
 
 		expect(resultado).toBeInstanceOf(Blob);
@@ -325,7 +302,7 @@ describe("generarResultadosCombinadosPdf", () => {
 			.mockResolvedValueOnce({ ok: true, arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(1)) })
 			.mockResolvedValueOnce({ ok: true, arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(2)) });
 
-		await generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() });
+		await generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)] });
 
 		expect(global.fetch.mock.calls.map(([url]) => url)).toEqual([
 			"https://storage.test/1/cultivo.pdf",
@@ -340,21 +317,21 @@ describe("generarResultadosCombinadosPdf", () => {
 	test("informa cuando no puede descargar un cultivo adjunto", async () => {
 		global.fetch.mockResolvedValue({ ok: false, status: 403, statusText: "Forbidden" });
 
-		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() }))
+		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)] }))
 			.rejects.toThrow("No se pudo descargar el PDF de cultivo");
 	});
 
 	test("informa claramente cuando falla la red al descargar un cultivo", async () => {
 		global.fetch.mockRejectedValue(new Error("network"));
 
-		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() }))
+		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)] }))
 			.rejects.toThrow("No se pudo descargar el PDF de cultivo: network");
 	});
 
 	test("informa cuando la descarga no devuelve una respuesta", async () => {
 		global.fetch.mockResolvedValue(undefined);
 
-		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() }))
+		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)] }))
 			.rejects.toThrow("No se pudo descargar el PDF de cultivo");
 	});
 });

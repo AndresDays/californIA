@@ -23,7 +23,8 @@ describe("resultados cultivo adjuntos migration", () => {
 		expect(migration).toMatch(/mime_type = 'application\/pdf'/i);
 		expect(migration).toMatch(/size_bytes <= 25 \* 1024 \* 1024/i);
 		expect(migration).toMatch(/'resultados-cultivo-adjuntos'/i);
-		expect(migration).toMatch(/true,\s*25 \* 1024 \* 1024,\s*array\['application\/pdf'\]/i);
+		expect(migration).toMatch(/false,\s*25 \* 1024 \* 1024,\s*array\['application\/pdf'\]/i);
+		expect(migration).toMatch(/public = false/i);
 		expect(migration).toMatch(/es_usuario_resultados_cultivo_activo/i);
 		expect(migration).toMatch(/'quimico', 'tecnico', 'administrador', 'admin', 'desarrollador'/i);
 		expect(migration).toMatch(/for (?:select|insert|update|delete)/i);

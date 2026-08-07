@@ -1,7 +1,6 @@
 import {
 	esEstudioCultivo,
 	esArchivoCultivoPathValido,
-	hidratarArchivoCultivoUrl,
 	separarEstudiosConCultivo,
 	validarPdfCultivo,
 } from "./resultados-cultivo";
@@ -13,45 +12,17 @@ describe("resultados-cultivo", () => {
 		expect(esEstudioCultivo({ descripcion_estudio: "Biometria hematica" })).toBe(false);
 	});
 
-	test("valida la ruta determinista e hidrata una URL firmada antes de clasificar el adjunto", async () => {
+	test("valida la ruta determinista, pero solo clasifica la URL firmada recibida del servidor", () => {
 		const cultivo = {
 			id_estudio_venta: 17,
 			descripcion_estudio: "Cultivo de orina",
 			archivo_cultivo_path: "17/cultivo.pdf",
 		};
-		const storage = {
-			from: jest.fn(() => ({
-				createSignedUrl: jest.fn(() => ({
-					data: {
-						signedUrl: "https://project.supabase.co/storage/v1/object/sign/resultados-cultivo-adjuntos/17/cultivo.pdf",
-					},
-				})),
-			})),
-		};
-
 		expect(esArchivoCultivoPathValido(cultivo.archivo_cultivo_path)).toBe(true);
 		expect(esArchivoCultivoPathValido("17/otro.pdf")).toBe(false);
-		const hidratado = await hidratarArchivoCultivoUrl(
-			cultivo,
-			storage,
-		);
-		expect(hidratado).toMatchObject({ archivo_cultivo_url: expect.stringContaining("17/cultivo.pdf") });
-		expect(storage.from).toHaveBeenCalledWith("resultados-cultivo-adjuntos");
-		expect(separarEstudiosConCultivo([hidratado]).adjuntosCultivo).toEqual([hidratado]);
-	});
-
-	test("no hidrata rutas invalidas ni respuestas Storage sin URL firmada", async () => {
-		const storage = { from: jest.fn() };
-		expect(
-			await hidratarArchivoCultivoUrl({ archivo_cultivo_path: "17/otro.pdf" }, storage),
-		).toEqual({ archivo_cultivo_path: "17/otro.pdf" });
-		expect(storage.from).not.toHaveBeenCalled();
-		expect(
-			await hidratarArchivoCultivoUrl(
-				{ archivo_cultivo_path: "17/cultivo.pdf" },
-				{ from: () => ({ createSignedUrl: () => ({ data: {} }) }) },
-			),
-		).toEqual({ archivo_cultivo_path: "17/cultivo.pdf" });
+		expect(separarEstudiosConCultivo([cultivo]).adjuntosCultivo).toEqual([]);
+		const firmado = { ...cultivo, archivo_cultivo_url: "https://project.supabase.co/storage/v1/object/sign/resultados-cultivo-adjuntos/17/cultivo.pdf" };
+		expect(separarEstudiosConCultivo([firmado]).adjuntosCultivo).toEqual([firmado]);
 	});
 
 	test("separa solo los cultivos que ya tienen un PDF adjunto", () => {

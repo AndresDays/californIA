@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { PDFDocument } from "pdf-lib";
 import {
+	esEstudioCultivo,
 	hidratarArchivoCultivoUrl,
 	separarEstudiosConCultivo,
 } from "./resultados-cultivo";
@@ -322,14 +323,14 @@ export const generarResultadosCombinadosPdf = async ({
 	modoVistaPrevia = false,
 	supabase,
 } = {}) => {
-	const { generados, adjuntosCultivo } = separarEstudiosConCultivo(estudios);
-	const storage = supabase?.storage || supabase;
-	if (adjuntosCultivo.length > 0 && !storage?.from) {
-		throw new Error("Se requiere un cliente Supabase configurado para obtener los PDFs de cultivo.");
-	}
-	const cultivos = await Promise.all(adjuntosCultivo.map((estudio) =>
-		hidratarArchivoCultivoUrl({ ...estudio, archivo_cultivo_url: undefined }, supabase),
+	const estudiosConUrl = await Promise.all((estudios || []).map((estudio) =>
+		hidratarArchivoCultivoUrl(estudio, supabase),
 	));
+	const { generados, adjuntosCultivo } = separarEstudiosConCultivo(estudiosConUrl);
+	if (estudiosConUrl.some((estudio) => esEstudioCultivo(estudio) && !estudio?.archivo_cultivo_url)) {
+		throw new Error("No fue posible obtener la URL autorizada del PDF de cultivo.");
+	}
+	const cultivos = adjuntosCultivo;
 
 	if (cultivos.some((estudio) => !estudio.archivo_cultivo_url)) {
 		throw new Error("No fue posible obtener la URL autorizada del PDF de cultivo.");

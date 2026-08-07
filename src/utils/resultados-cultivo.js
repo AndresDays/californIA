@@ -22,21 +22,15 @@ export function esArchivoCultivoPathValido(archivoCultivoPath) {
 	return /^[0-9]+\/cultivo\.pdf$/.test(String(archivoCultivoPath || ""));
 }
 
-/**
- * The URL must be obtained from the configured Supabase Storage client after
- * the secure portal RPC authorizes and returns the deterministic path.
- */
+// Used by authenticated internal screens only. The public portal must receive
+// archivo_cultivo_url from its server-side, rate-limited delivery endpoint.
 export async function hidratarArchivoCultivoUrl(estudio, supabaseOrStorage) {
 	const storage = supabaseOrStorage?.storage || supabaseOrStorage;
-	if (!esArchivoCultivoPathValido(estudio?.archivo_cultivo_path) || !storage?.from) {
-		return estudio;
-	}
+	if (estudio?.archivo_cultivo_url || !esArchivoCultivoPathValido(estudio?.archivo_cultivo_path) || !storage?.from) return estudio;
 	const { data, error } = await storage
 		.from("resultados-cultivo-adjuntos")
 		.createSignedUrl(estudio.archivo_cultivo_path, 60);
-	if (error || !data?.signedUrl) return estudio;
-
-	return { ...estudio, archivo_cultivo_url: data.signedUrl };
+	return error || !data?.signedUrl ? estudio : { ...estudio, archivo_cultivo_url: data.signedUrl };
 }
 
 export function separarEstudiosConCultivo(studies = []) {
@@ -44,7 +38,8 @@ export function separarEstudiosConCultivo(studies = []) {
 
 	return estudios.reduce(
 		(resultado, estudio) => {
-			const tieneAdjunto = esArchivoCultivoPathValido(estudio?.archivo_cultivo_path);
+			const tieneAdjunto = typeof estudio?.archivo_cultivo_url === "string"
+				&& estudio.archivo_cultivo_url.length > 0;
 			if (esEstudioCultivo(estudio) && tieneAdjunto) {
 				resultado.adjuntosCultivo.push(estudio);
 			} else {
