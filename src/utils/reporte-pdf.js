@@ -1,6 +1,11 @@
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
+import { PDFDocument } from "pdf-lib";
+import {
+	hidratarArchivoCultivoUrl,
+	separarEstudiosConCultivo,
+} from "./resultados-cultivo";
 
 const PAGINA_ANCHO = 210;
 const PAGINA_ALTO = 297;
@@ -159,11 +164,12 @@ const generarCodigoBarras = (folio) => {
 	}
 };
 
-export const generarResultadosPortalPdf = async ({
+const generarResultadosPortalPdfConSalida = async ({
 	venta = {},
 	estudios = [],
 	membreteSrc = null,
 	modoVistaPrevia = false,
+	formatoSalida = "bloburl",
 } = {}) => {
 	const doc = new jsPDF({ unit: "mm", format: "a4" });
 	const membrete = await cargarImagenComoDataUrl(membreteSrc);
@@ -283,7 +289,76 @@ export const generarResultadosPortalPdf = async ({
 		indiceEstudio += 1;
 	}
 
-	return doc.output("bloburl");
+	return doc.output(formatoSalida);
+};
+
+export const generarResultadosPortalPdf = async (opciones = {}) =>
+	generarResultadosPortalPdfConSalida(opciones);
+
+const agregarPaginasPdf = async (destino, origen) => {
+	const paginas = await destino.copyPages(origen, origen.getPageIndices());
+	paginas.forEach((pagina) => destino.addPage(pagina));
+};
+
+const descargarPdfCultivo = async (url) => {
+	let respuesta;
+	try {
+		respuesta = await fetch(url);
+	} catch (error) {
+		throw new Error(`No se pudo descargar el PDF de cultivo: ${error.message}`);
+	}
+	if (!respuesta?.ok || typeof respuesta.arrayBuffer !== "function") {
+		throw new Error(
+			`No se pudo descargar el PDF de cultivo (${respuesta?.status || "sin estado"}${respuesta?.statusText ? ` ${respuesta.statusText}` : ""}).`,
+		);
+	}
+	return respuesta.arrayBuffer();
+};
+
+export const generarResultadosCombinadosPdf = async ({
+	venta = {},
+	estudios = [],
+	membreteSrc = null,
+	modoVistaPrevia = false,
+	supabase,
+} = {}) => {
+	const { generados, adjuntosCultivo } = separarEstudiosConCultivo(estudios);
+	const storage = supabase?.storage || supabase;
+	if (adjuntosCultivo.length > 0 && !storage?.from) {
+		throw new Error("Se requiere un cliente Supabase configurado para obtener los PDFs de cultivo.");
+	}
+	const cultivos = adjuntosCultivo.map((estudio) =>
+		hidratarArchivoCultivoUrl({ ...estudio, archivo_cultivo_url: undefined }, supabase),
+	);
+
+	if (cultivos.some((estudio) => !estudio.archivo_cultivo_url)) {
+		throw new Error("No fue posible obtener la URL autorizada del PDF de cultivo.");
+	}
+	if (generados.length === 0 && cultivos.length === 1) {
+		return cultivos[0].archivo_cultivo_url;
+	}
+	if (cultivos.length === 0) {
+		return generarResultadosPortalPdf({ venta, estudios: generados, membreteSrc, modoVistaPrevia });
+	}
+
+	const combinado = await PDFDocument.create();
+	if (generados.length > 0) {
+		const pdfGenerado = await generarResultadosPortalPdfConSalida({
+			venta,
+			estudios: generados,
+			membreteSrc,
+			modoVistaPrevia,
+			formatoSalida: "arraybuffer",
+		});
+		await agregarPaginasPdf(combinado, await PDFDocument.load(pdfGenerado));
+	}
+	for (const cultivo of cultivos) {
+		const pdfCultivo = await PDFDocument.load(
+			await descargarPdfCultivo(cultivo.archivo_cultivo_url),
+		);
+		await agregarPaginasPdf(combinado, pdfCultivo);
+	}
+	return new Blob([await combinado.save()], { type: "application/pdf" });
 };
 
 export const crearNombreArchivoReporte = (nombrePaciente = "") => {

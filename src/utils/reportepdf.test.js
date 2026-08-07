@@ -12,7 +12,7 @@ const mockDoc = {
 	splitTextToSize: jest.fn((texto) => String(texto).split("\n")),
 	link: jest.fn(),
 	save: jest.fn(),
-	output: jest.fn(() => "blob:resultados"),
+	output: jest.fn((tipo) => tipo === "arraybuffer" ? new Uint8Array([7, 8, 9]).buffer : "blob:resultados"),
 };
 
 jest.mock("jspdf", () => jest.fn(() => mockDoc));
@@ -23,12 +23,21 @@ jest.mock("qrcode", () => ({
 
 jest.mock("jsbarcode", () => jest.fn());
 
+jest.mock("pdf-lib", () => ({
+	PDFDocument: {
+		create: jest.fn(),
+		load: jest.fn(),
+	},
+}), { virtual: true });
+
 import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
+import { PDFDocument } from "pdf-lib";
 import {
 	crearNombreArchivoReporte,
 	generarReportePdf,
+	generarResultadosCombinadosPdf,
 	generarResultadosPortalPdf,
 } from "./reporte-pdf";
 
@@ -215,5 +224,137 @@ describe("generarResultadosPortalPdf", () => {
 		);
 		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
 		expect(textos).toEqual(expect.arrayContaining(["RESULTADOS VALIDADOS", "RESULTADOS NO VALIDADOS"]));
+	});
+});
+
+describe("generarResultadosCombinadosPdf", () => {
+	const crearSupabase = () => ({
+		storage: {
+			from: jest.fn(() => ({
+				getPublicUrl: jest.fn((path) => ({
+					data: { publicUrl: `https://storage.test/${path}` },
+				})),
+			})),
+		},
+	});
+	const cultivo = (id) => ({
+		descripcion: "Cultivo bacteriológico",
+		archivo_cultivo_path: `${id}/cultivo.pdf`,
+	});
+	const bhc = { tipo: "laboratorio", descripcion: "BHC", analitos: [] };
+
+	beforeEach(() => {
+		jest.clearAllMocks();
+		global.fetch = jest.fn();
+		jest.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,BARCODEMOCK");
+		PDFDocument.create.mockResolvedValue({
+			copyPages: jest.fn(async (_pdf, paginas) => paginas.map((pagina) => `copiada-${pagina}`)),
+			addPage: jest.fn(),
+			save: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+		});
+	});
+
+	afterEach(() => {
+		jest.restoreAllMocks();
+	});
+
+	test("devuelve la URL confiable si solo hay un cultivo adjunto", async () => {
+		const supabase = crearSupabase();
+		const url = await generarResultadosCombinadosPdf({ estudios: [cultivo(17)], supabase });
+
+		expect(url).toBe("https://storage.test/17/cultivo.pdf");
+		expect(supabase.storage.from).toHaveBeenCalledWith("resultados-cultivo-adjuntos");
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
+
+	test("reemplaza una URL de cultivo proporcionada por la URL confiable del storage", async () => {
+		const supabase = crearSupabase();
+		const url = await generarResultadosCombinadosPdf({
+			estudios: [{ ...cultivo(17), archivo_cultivo_url: "https://malicioso.test/cultivo.pdf" }],
+			supabase,
+		});
+
+		expect(url).toBe("https://storage.test/17/cultivo.pdf");
+		expect(url).not.toContain("malicioso.test");
+	});
+
+	test("rechaza adjuntos de cultivo cuando falta el cliente Supabase", async () => {
+		await expect(generarResultadosCombinadosPdf({
+			estudios: [{ ...cultivo(17), archivo_cultivo_url: "https://malicioso.test/cultivo.pdf" }],
+		})).rejects.toThrow("Supabase");
+	});
+
+	test("conserva el PDF legado cuando no hay adjuntos de cultivo", async () => {
+		const resultado = await generarResultadosCombinadosPdf({
+			venta: { paciente: "Paciente", folio: "F-1" },
+			estudios: [bhc],
+		});
+
+		expect(resultado).toBe("blob:resultados");
+		expect(PDFDocument.create).not.toHaveBeenCalled();
+	});
+
+	test("conserva páginas generadas antes del cultivo adjunto", async () => {
+		const fuenteGenerada = { nombre: "generado", getPageIndices: jest.fn(() => [0]) };
+		const fuenteCultivo = { nombre: "cultivo", getPageIndices: jest.fn(() => [0, 1]) };
+		PDFDocument.load.mockResolvedValueOnce(fuenteGenerada).mockResolvedValueOnce(fuenteCultivo);
+		global.fetch.mockResolvedValue({ ok: true, arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(4)) });
+
+		const resultado = await generarResultadosCombinadosPdf({
+			venta: { paciente: "Paciente", folio: "F-1" },
+			estudios: [bhc, cultivo(21)],
+			supabase: crearSupabase(),
+		});
+
+		expect(resultado).toBeInstanceOf(Blob);
+		expect(PDFDocument.load).toHaveBeenCalledWith(expect.any(ArrayBuffer));
+		const combinado = await PDFDocument.create.mock.results[0].value;
+		expect(combinado.copyPages.mock.calls.map(([fuente]) => fuente.nombre)).toEqual([
+			"generado", "cultivo",
+		]);
+		expect(combinado.addPage.mock.calls.map(([pagina]) => pagina)).toEqual([
+			expect.anything(), "copiada-0", "copiada-1",
+		]);
+	});
+
+	test("combina varios cultivos adjuntos en el orden recibido", async () => {
+		PDFDocument.load
+			.mockResolvedValueOnce({ getPageIndices: () => [0] })
+			.mockResolvedValueOnce({ getPageIndices: () => [0, 1] });
+		global.fetch
+			.mockResolvedValueOnce({ ok: true, arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(1)) })
+			.mockResolvedValueOnce({ ok: true, arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(2)) });
+
+		await generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() });
+
+		expect(global.fetch.mock.calls.map(([url]) => url)).toEqual([
+			"https://storage.test/1/cultivo.pdf",
+			"https://storage.test/2/cultivo.pdf",
+		]);
+		const combinado = await PDFDocument.create.mock.results[0].value;
+		expect(combinado.addPage.mock.calls.map(([pagina]) => pagina)).toEqual([
+			"copiada-0", "copiada-0", "copiada-1",
+		]);
+	});
+
+	test("informa cuando no puede descargar un cultivo adjunto", async () => {
+		global.fetch.mockResolvedValue({ ok: false, status: 403, statusText: "Forbidden" });
+
+		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() }))
+			.rejects.toThrow("No se pudo descargar el PDF de cultivo");
+	});
+
+	test("informa claramente cuando falla la red al descargar un cultivo", async () => {
+		global.fetch.mockRejectedValue(new Error("network"));
+
+		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() }))
+			.rejects.toThrow("No se pudo descargar el PDF de cultivo: network");
+	});
+
+	test("informa cuando la descarga no devuelve una respuesta", async () => {
+		global.fetch.mockResolvedValue(undefined);
+
+		await expect(generarResultadosCombinadosPdf({ estudios: [cultivo(1), cultivo(2)], supabase: crearSupabase() }))
+			.rejects.toThrow("No se pudo descargar el PDF de cultivo");
 	});
 });
