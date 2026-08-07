@@ -33,6 +33,7 @@ const Dashboard = () => {
 		entregaLista: 0,
 	});
 	const [bandejasLoading, setBandejasLoading] = useState(true);
+	const [bandejasInicialesCargadas, setBandejasInicialesCargadas] = useState(false);
 	const [modalNuevaCitaOpen, setModalNuevaCitaOpen] = useState(false);
 	const [modalEditarCitaOpen, setModalEditarCitaOpen] = useState(false);
 	const [citaEditando, setCitaEditando] = useState(null);
@@ -128,6 +129,7 @@ const Dashboard = () => {
 			console.error("Error al cargar bandejas de trabajo:", error);
 		} finally {
 			setBandejasLoading(false);
+			setBandejasInicialesCargadas(true);
 		}
 	}, [empleadoData?.id_doctor, empleadoData?.rol]);
 
@@ -261,6 +263,7 @@ const Dashboard = () => {
 		(total, bandeja) => total + bandeja.conteo,
 		0,
 	);
+	const mostrarCargaInicialBandejas = bandejasLoading && !bandejasInicialesCargadas;
 
 	return (
 		<div className="dashboard-container">
@@ -380,7 +383,7 @@ const Dashboard = () => {
 									</p>
 								</div>
 								<span className="workbench-total">
-									{bandejasLoading ? "..." : totalTareasRol} tareas
+									{mostrarCargaInicialBandejas ? "..." : totalTareasRol} tareas
 								</span>
 							</div>
 							<div className="workbench-grid">
@@ -391,7 +394,7 @@ const Dashboard = () => {
 										className="workbench-card"
 										onClick={() => navigate(bandeja.ruta)}>
 										<span className="workbench-card-label">{bandeja.titulo}</span>
-										<strong>{bandejasLoading ? "..." : bandeja.conteo}</strong>
+										<strong>{mostrarCargaInicialBandejas ? "..." : bandeja.conteo}</strong>
 										<span>{bandeja.descripcion}</span>
 									</button>
 								))}

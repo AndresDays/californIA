@@ -7,7 +7,7 @@ import {
 	normalizarTextoResultado,
 	normalizarTelefonoPortal,
 } from "../utils/portal-resultados";
-import { generarResultadosPortalPdf } from "../utils/reporte-pdf";
+import { generarResultadosCombinadosPdf } from "../utils/reporte-pdf";
 import "./portal-resultados.css";
 
 const formatearFecha = (fecha) => {
@@ -71,9 +71,8 @@ const PortalResultados = () => {
 		}
 
 		setCargando(true);
-		const { data, error: rpcError } = await supabase.rpc("buscar_resultados_portal_seguro", {
-			p_folio: folio.trim(),
-			p_telefono: telefono,
+		const { data, error: rpcError } = await supabase.functions.invoke("portal-resultados", {
+			body: { p_folio: folio.trim(), p_telefono: telefono },
 		});
 		setCargando(false);
 
@@ -91,12 +90,12 @@ const PortalResultados = () => {
 	};
 
 	const verPdf = async () => {
-		const url = await generarResultadosPortalPdf({
+		const url = await generarResultadosCombinadosPdf({
 			venta,
 			estudios,
 			membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
 		});
-		window.open(url, "_blank", "noopener,noreferrer");
+		window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
 	};
 
 	return (
@@ -208,6 +207,7 @@ const PortalResultados = () => {
 											</div>
 										) : (
 											<div className="portal-analitos-texto">
+												{estudio.archivo_cultivo_url && <p>PDF de cultivo adjunto.</p>}
 												<div className="portal-analitos-header">
 													<span>Analito</span>
 													<span>Resultado</span>

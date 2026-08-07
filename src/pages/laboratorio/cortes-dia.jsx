@@ -15,6 +15,7 @@ import {
 	limitarMontoCajaADosDecimales,
 } from "../../utils/cierre-caja";
 import { normalizarRolPermisos } from "../../utils/role-permissions";
+import { crearRangoFechaMexico } from "../../utils/fecha-mexico";
 import "./cortes-dia.css";
 
 const hoyMexico = () =>
@@ -62,11 +63,12 @@ const CortesDia = () => {
 			setCargandoMovimientos(true);
 			setErrorMovimientos("");
 			try {
+				const rango = crearRangoFechaMexico(fecha);
 				let query = supabase
 					.from("movimientos_pago_venta")
 					.select("*")
-					.gte("created_at", `${fecha}T00:00:00`)
-					.lte("created_at", `${fecha}T23:59:59`)
+					.gte("created_at", rango.inicio)
+					.lt("created_at", rango.fin)
 					.order("created_at", { ascending: false });
 
 				if (sucursalSeleccionada) {

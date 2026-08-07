@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
-import { obtenerRangoDiaLocalISO } from '../utils/turnos-pacientes';
+import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 const hoyLocal = () => {
 	const ahora = new Date();
@@ -9,7 +9,7 @@ const hoyLocal = () => {
 
 export const useTurnos = () => {
 	const fecha = hoyLocal();
-	const rango = obtenerRangoDiaLocalISO(fecha);
+	const rango = crearRangoFechaMexico(fecha);
 
 	return useQuery({
 		queryKey: ['turnos', fecha],
@@ -18,7 +18,7 @@ export const useTurnos = () => {
 				.from('turnos_pacientes')
 				.select('*')
 				.gte('fecha_programada', rango.inicio)
-				.lte('fecha_programada', rango.fin)
+				.lt('fecha_programada', rango.fin)
 				.order('fecha_programada', { ascending: true });
 			if (error) throw error;
 			return data ?? [];
@@ -32,14 +32,15 @@ export const useCitasHoy = () => {
 
 	return useQuery({
 		queryKey: ['citas-hoy', fecha],
-		queryFn: async () => {
+	queryFn: async () => {
+			const rango = crearRangoFechaMexico(fecha);
 			const { data, error } = await supabase
 				.from('citas')
 				.select(
 					'id_cita, fecha_estudio, tipo_estudio, nombre_paciente, pacientes(id_paciente, nombre)',
 				)
-				.gte('fecha_estudio', `${fecha}T00:00:00`)
-				.lte('fecha_estudio', `${fecha}T23:59:59`)
+				.gte('fecha_estudio', rango.inicio)
+				.lt('fecha_estudio', rango.fin)
 				.not('estado', 'eq', 'cancelada')
 				.order('fecha_estudio', { ascending: true });
 			if (error) throw error;
