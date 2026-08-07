@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { aplicarEstadoRadiologiaACaptura } from '../utils/captura-row-status';
+import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 export const cargarRadiologiaParaCaptura = async ({ idsVentas = [], idsEstudiosVenta = [], idsPacientes = [] } = {}) => {
 	const selectRadiologia =
@@ -52,6 +53,7 @@ export const useCaptura = ({ fechaInicial, fechaFinal } = {}) =>
 	useQuery({
 		queryKey: ['captura', fechaInicial, fechaFinal],
 		queryFn: async () => {
+			const rango = crearRangoFechaMexico(fechaInicial, fechaFinal);
 			const { data, error } = await supabase
 				.from('ventas')
 				.select(
@@ -60,8 +62,8 @@ export const useCaptura = ({ fechaInicial, fechaFinal } = {}) =>
 					clientes (id_cliente, nombre),
 					estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, area, estado_captura, estado_validacion, muestra_pendiente)`,
 				)
-				.gte('fecha_venta', `${fechaInicial}T00:00:00`)
-				.lte('fecha_venta', `${fechaFinal}T23:59:59`)
+				.gte('fecha_venta', rango.inicio)
+				.lt('fecha_venta', rango.fin)
 				.eq('estado', 'activo')
 				.order('fecha_venta', { ascending: false });
 

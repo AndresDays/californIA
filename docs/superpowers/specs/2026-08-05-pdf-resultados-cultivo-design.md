@@ -33,8 +33,12 @@ resultado cargado por el usuario, sin cambiar el flujo de los demás estudios.
 
 ## Portal
 
-- El RPC seguro devolverá los estudios de cultivo validados que tengan PDF y
-  sus URLs necesarias para construir el PDF final en el cliente.
+- El RPC seguro devolverá los estudios de cultivo validados que tengan PDF con
+  `archivo_cultivo_path`, nunca una URL escrita por el cliente. Tras la
+  autorización, Captura y Portal obtienen la URL pública absoluta con
+  `hidratarArchivoCultivoUrl(estudio, supabase)`, que internamente llama a
+  `supabase.storage.from('resultados-cultivo-adjuntos').getPublicUrl(path)`;
+  el compositor recibe esa URL ya hidratada.
 - El portal mantiene un único botón **Ver PDF**. Este abre el PDF cargado si es
   el único resultado, o el archivo combinado si hay resultados generados.
 - La lista de resultados identifica los cultivos como PDF adjunto en lugar de
@@ -45,6 +49,8 @@ resultado cargado por el usuario, sin cambiar el flujo de los demás estudios.
 - La migración crea `resultados_cultivo_adjuntos`, ligado a
   `estudios_venta.id_estudio_venta`, con ruta, nombre, tipo MIME, tamaño,
   usuario creador y fecha.
+- La ruta es determinista: `id_estudio_venta/cultivo.pdf`. Las políticas de
+  tabla y Storage permiten sólo estudios cuya descripción contenga `cultivo`.
 - El bucket `resultados-cultivo-adjuntos` admite solo `application/pdf`, tiene
   límite de 25 MB y políticas equivalentes a las de Captura para usuarios
   autenticados autorizados.

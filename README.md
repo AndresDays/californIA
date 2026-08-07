@@ -69,3 +69,4 @@ Documentos operativos relacionados:
 - `docs/operations/access-control.md`
 - `docs/operations/clinic-onboarding.md`
 - `docs/operations/support-runbook.md`
+- `docs/operations/load-testing.md`

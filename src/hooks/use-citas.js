@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { CITA_ESTADOS_DASHBOARD } from '../utils/cita-lifecycle';
+import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 export const useCitasProximas = ({ limite = 5 } = {}) => {
   const ahora = new Date();
@@ -38,13 +39,14 @@ export const useCitasHoy = () => {
   const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
 
   return useQuery({
-    queryKey: ['citas', 'hoy'],
-    queryFn: async () => {
-      const { count, error } = await supabase
+  queryKey: ['citas', 'hoy'],
+  queryFn: async () => {
+		const rango = crearRangoFechaMexico(hoy);
+    const { count, error } = await supabase
         .from('citas')
         .select('*', { count: 'exact', head: true })
-        .gte('fecha_estudio', hoy)
-        .lt('fecha_estudio', `${hoy}T23:59:59`)
+				.gte('fecha_estudio', rango.inicio)
+				.lt('fecha_estudio', rango.fin)
         .not('estado', 'eq', 'cancelada');
       if (error) throw error;
       return count ?? 0;
@@ -57,8 +59,7 @@ export const useCalendarioCitas = (fecha, idSucursal) =>
   useQuery({
     queryKey: ['citas', 'calendario', fecha, idSucursal],
     queryFn: async () => {
-      const inicioDia = `${fecha}T00:00:00`;
-      const finDia = `${fecha}T23:59:59`;
+			const rango = crearRangoFechaMexico(fecha);
 
       let query = supabase
         .from('citas')
@@ -72,8 +73,8 @@ export const useCalendarioCitas = (fecha, idSucursal) =>
           empresas ( id_empresa, nombre ),
           tipos_estudio ( id_tipo_estudio, nombre )
         `)
-        .gte('fecha_estudio', inicioDia)
-        .lte('fecha_estudio', finDia)
+				.gte('fecha_estudio', rango.inicio)
+				.lt('fecha_estudio', rango.fin)
         .not('estado', 'eq', 'cancelada');
 
       if (idSucursal) query = query.eq('id_sucursal', idSucursal);
