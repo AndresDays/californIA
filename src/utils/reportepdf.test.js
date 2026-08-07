@@ -231,8 +231,8 @@ describe("generarResultadosCombinadosPdf", () => {
 	const crearSupabase = () => ({
 		storage: {
 			from: jest.fn(() => ({
-				getPublicUrl: jest.fn((path) => ({
-					data: { publicUrl: `https://storage.test/${path}` },
+				createSignedUrl: jest.fn((path) => ({
+					data: { signedUrl: `https://storage.test/${path}` },
 				})),
 			})),
 		},

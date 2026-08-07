@@ -13,7 +13,7 @@ describe("resultados-cultivo", () => {
 		expect(esEstudioCultivo({ descripcion_estudio: "Biometria hematica" })).toBe(false);
 	});
 
-	test("valida la ruta determinista e hidrata la URL confiable antes de clasificar el adjunto", () => {
+	test("valida la ruta determinista e hidrata una URL firmada antes de clasificar el adjunto", async () => {
 		const cultivo = {
 			id_estudio_venta: 17,
 			descripcion_estudio: "Cultivo de orina",
@@ -21,10 +21,9 @@ describe("resultados-cultivo", () => {
 		};
 		const storage = {
 			from: jest.fn(() => ({
-				getPublicUrl: jest.fn(() => ({
+				createSignedUrl: jest.fn(() => ({
 					data: {
-						publicUrl:
-							"https://project.supabase.co/storage/v1/object/public/resultados-cultivo-adjuntos/17/cultivo.pdf",
+						signedUrl: "https://project.supabase.co/storage/v1/object/sign/resultados-cultivo-adjuntos/17/cultivo.pdf",
 					},
 				})),
 			})),
@@ -32,7 +31,7 @@ describe("resultados-cultivo", () => {
 
 		expect(esArchivoCultivoPathValido(cultivo.archivo_cultivo_path)).toBe(true);
 		expect(esArchivoCultivoPathValido("17/otro.pdf")).toBe(false);
-		const hidratado = hidratarArchivoCultivoUrl(
+		const hidratado = await hidratarArchivoCultivoUrl(
 			cultivo,
 			storage,
 		);
@@ -41,16 +40,16 @@ describe("resultados-cultivo", () => {
 		expect(separarEstudiosConCultivo([hidratado]).adjuntosCultivo).toEqual([hidratado]);
 	});
 
-	test("no hidrata rutas invalidas ni respuestas Storage sin URL publica", () => {
+	test("no hidrata rutas invalidas ni respuestas Storage sin URL firmada", async () => {
 		const storage = { from: jest.fn() };
 		expect(
-			hidratarArchivoCultivoUrl({ archivo_cultivo_path: "17/otro.pdf" }, storage),
+			await hidratarArchivoCultivoUrl({ archivo_cultivo_path: "17/otro.pdf" }, storage),
 		).toEqual({ archivo_cultivo_path: "17/otro.pdf" });
 		expect(storage.from).not.toHaveBeenCalled();
 		expect(
-			hidratarArchivoCultivoUrl(
+			await hidratarArchivoCultivoUrl(
 				{ archivo_cultivo_path: "17/cultivo.pdf" },
-				{ from: () => ({ getPublicUrl: () => ({ data: {} }) }) },
+				{ from: () => ({ createSignedUrl: () => ({ data: {} }) }) },
 			),
 		).toEqual({ archivo_cultivo_path: "17/cultivo.pdf" });
 	});

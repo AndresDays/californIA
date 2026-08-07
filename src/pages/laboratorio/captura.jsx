@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
@@ -36,7 +36,8 @@ import {
 	EVENTOS_SOLICITUD,
 	registrarEventoSolicitud,
 } from "../../utils/solicitud-auditoria";
-import { generarResultadosPortalPdf } from "../../utils/reporte-pdf";
+import { generarResultadosCombinadosPdf } from "../../utils/reporte-pdf";
+import { esEstudioCultivo, validarPdfCultivo } from "../../utils/resultados-cultivo";
 import { MEMBRETE_B64 } from "../radiologia/pages/reporte-radiologia-template";
 import "./captura.css";
 
@@ -64,6 +65,10 @@ const Captura = () => {
 	const [imprimirEncabezado, setImprimirEncabezado] = useState(true);
 	const [observaciones, setObservaciones] = useState("");
 	const [resultados, setResultados] = useState([]);
+	const [cultivoSeleccionado, setCultivoSeleccionado] = useState("");
+	const [subiendoCultivo, setSubiendoCultivo] = useState(false);
+	const inputCultivoRef = useRef(null);
+	const ventaSeleccionadaIdRef = useRef(null);
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
@@ -113,7 +118,9 @@ const Captura = () => {
 
 	const seleccionarVenta = (venta) => {
 		setVentaSeleccionada(venta);
+		ventaSeleccionadaIdRef.current = venta.id_venta;
 		setObservaciones("");
+		setCultivoSeleccionado("");
 		cargarResultados(venta.id_venta, venta);
 	};
 
@@ -124,6 +131,21 @@ const Captura = () => {
 				.select("*")
 				.eq("id_venta", idVenta);
 			if (errorEstudios) throw errorEstudios;
+			const idsEstudiosVenta = (estudiosVenta || [])
+				.map((estudio) => estudio.id_estudio_venta)
+				.filter(Boolean);
+			const { data: adjuntosCultivo, error: errorAdjuntosCultivo } = await supabase
+				.from("resultados_cultivo_adjuntos")
+				.select("id_estudio_venta, archivo_path")
+				.in("id_estudio_venta", idsEstudiosVenta);
+			if (errorAdjuntosCultivo) throw errorAdjuntosCultivo;
+			const archivoCultivoPorEstudio = new Map(
+				(adjuntosCultivo || []).map((adjunto) => [adjunto.id_estudio_venta, adjunto.archivo_path]),
+			);
+			const estudiosConAdjuntosCultivo = (estudiosVenta || []).map((estudio) => ({
+				...estudio,
+				archivo_cultivo_path: archivoCultivoPorEstudio.get(estudio.id_estudio_venta),
+			}));
 			const estudiosRadiologia = await cargarRadiologiaParaCaptura({
 				idsVentas: [idVenta].filter(Boolean),
 				idsEstudiosVenta: (estudiosVenta || [])
@@ -132,7 +154,7 @@ const Captura = () => {
 				idsPacientes: [ventaBase?.pacientes?.id_paciente].filter(Boolean),
 			});
 			const estudiosVentaConRadiologia = aplicarEstadoRadiologiaACaptura(
-				estudiosVenta || [],
+				estudiosConAdjuntosCultivo,
 				estudiosRadiologia,
 			);
 			const estudiosConAnalitos = await Promise.all(
@@ -190,6 +212,57 @@ const Captura = () => {
 		} catch (error) {
 			console.error("Error al cargar resultados:", error);
 			setResultados([]);
+		}
+	};
+
+	const subirPdfCultivo = async (event) => {
+		const archivo = event.target.files?.[0];
+		event.target.value = "";
+		if (!archivo) return;
+		if (!cultivoSeleccionado) {
+			mostrarNotificacion("Seleccione el estudio de cultivo al que corresponde el PDF.", "advertencia");
+			return;
+		}
+		const errorValidacion = validarPdfCultivo(archivo);
+		if (errorValidacion) {
+			mostrarNotificacion(errorValidacion, "error");
+			return;
+		}
+		const estudio = resultados.find((item) => String(item.id_estudio_venta) === cultivoSeleccionado);
+		if (!estudio || !esEstudioCultivo(estudio) || estudio.estado_validacion === "validado") return;
+		const archivoPath = `${estudio.id_estudio_venta}/cultivo.pdf`;
+		const idVentaCarga = ventaSeleccionada?.id_venta;
+		setSubiendoCultivo(true);
+		try {
+			const { error: errorStorage } = await supabase.storage
+				.from("resultados-cultivo-adjuntos")
+				.upload(archivoPath, archivo, { upsert: true, contentType: "application/pdf" });
+			if (errorStorage) throw errorStorage;
+			const { error: errorMetadata } = await supabase
+				.from("resultados_cultivo_adjuntos")
+				.upsert({
+					id_estudio_venta: estudio.id_estudio_venta,
+					nombre_archivo: archivo.name,
+					archivo_path: archivoPath,
+					mime_type: "application/pdf",
+					size_bytes: archivo.size,
+					creado_por: user?.id || null,
+				}, { onConflict: "id_estudio_venta" });
+			if (errorMetadata) throw errorMetadata;
+			const { error: errorEstado } = await supabase
+				.from("estudios_venta")
+				.update({ estado_captura: "completado", estado_validacion: "guardado", updated_at: new Date().toISOString() })
+				.eq("id_estudio_venta", estudio.id_estudio_venta);
+			if (errorEstado) throw errorEstado;
+			mostrarNotificacion("PDF de cultivo cargado correctamente", "exito");
+			if (ventaSeleccionadaIdRef.current === idVentaCarga) {
+				await cargarResultados(idVentaCarga);
+			}
+		} catch (error) {
+			console.error("Error al cargar PDF de cultivo:", error);
+			mostrarNotificacion("No fue posible cargar el PDF de cultivo", "error");
+		} finally {
+			setSubiendoCultivo(false);
 		}
 	};
 
@@ -407,7 +480,7 @@ const Captura = () => {
 			return;
 		}
 		try {
-			const url = await generarResultadosPortalPdf({
+			const url = await generarResultadosCombinadosPdf({
 				venta: {
 					...ventaSeleccionada,
 					paciente: ventaSeleccionada.pacientes?.nombre,
@@ -420,9 +493,12 @@ const Captura = () => {
 					reporte: estudio.radiologia_reporte || "Sin reporte disponible.",
 					analitos: estudio.analitos || [],
 					estado_validacion: estudio.estado_validacion,
+					id_estudio_venta: estudio.id_estudio_venta,
+					archivo_cultivo_path: estudio.archivo_cultivo_path,
 				})),
 				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
 				modoVistaPrevia: true,
+				supabase,
 			});
 			window.open(url, "_blank", "noopener,noreferrer");
 		} catch (error) {
@@ -754,6 +830,39 @@ const Captura = () => {
 							<button className="btn-vista-previa" onClick={vistaPrevia}>
 								Vista previa
 							</button>
+							{resultados.some(esEstudioCultivo) && (
+								<div className="cultivo-upload-controls">
+									<select
+										aria-label="Estudio de cultivo"
+										value={cultivoSeleccionado}
+										onChange={(event) => setCultivoSeleccionado(event.target.value)}
+										disabled={subiendoCultivo}>
+										<option value="">Seleccionar cultivo</option>
+										{resultados.filter(esEstudioCultivo).map((estudio) => (
+											<option key={estudio.id_estudio_venta} value={estudio.id_estudio_venta}>
+												{estudio.descripcion_estudio || estudio.descripcion || estudio.clave_estudio}
+											</option>
+										))}
+									</select>
+									<button
+										type="button"
+										className="btn-vista-previa btn-cultivo"
+										onClick={() => inputCultivoRef.current?.click()}
+										disabled={subiendoCultivo || !cultivoSeleccionado || resultados.find((item) => String(item.id_estudio_venta) === cultivoSeleccionado)?.estado_validacion === "validado"}>
+										{subiendoCultivo ? "Cargando PDF..." : "Adjuntar cultivo"}
+									</button>
+									<label className="cultivo-file-label">
+										Subir PDF de cultivo
+										<input
+											ref={inputCultivoRef}
+											type="file"
+											accept="application/pdf"
+											onChange={subirPdfCultivo}
+											disabled={subiendoCultivo || !cultivoSeleccionado || resultados.find((item) => String(item.id_estudio_venta) === cultivoSeleccionado)?.estado_validacion === "validado"}
+										/>
+									</label>
+								</div>
+							)}
 							<select
 								value={idioma}
 								onChange={(e) => setIdioma(e.target.value)}

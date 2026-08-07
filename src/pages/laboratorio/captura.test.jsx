@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mocks
@@ -23,8 +23,24 @@ jest.mock('../../context/auth-context', () => ({
   useAuth: () => ({ user: { id: 'user-123', email: 'test@test.com' } })
 }));
 
+let mockCapturaData = [];
+let mockStorageError = null;
+let mockMetadataError = null;
+let mockEstadoError = null;
+jest.mock('../../hooks/use-captura', () => ({
+  useCaptura: () => ({ data: mockCapturaData }),
+  useCatalogosCaptura: () => ({ data: { clientes: [], areas: [] } }),
+  cargarRadiologiaParaCaptura: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock('../../utils/reporte-pdf', () => ({
-  generarResultadosPortalPdf: jest.fn()
+  generarResultadosPortalPdf: jest.fn(),
+  generarResultadosCombinadosPdf: jest.fn()
+}));
+
+jest.mock('../../utils/resultados-cultivo', () => ({
+  esEstudioCultivo: (estudio) => /cultivo/i.test(estudio?.descripcion_estudio || estudio?.descripcion || ''),
+  validarPdfCultivo: (archivo) => archivo?.type !== 'application/pdf' ? 'Solo se permiten archivos PDF.' : ''
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -42,11 +58,29 @@ jest.mock('../../lib/supabase-client', () => {
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
     single:      jest.fn().mockResolvedValue({ data: null, error: null }),
     update:      jest.fn().mockReturnThis(),
+    upsert:      jest.fn().mockResolvedValue({ error: null }),
   };
-  return { supabase: { from: jest.fn(() => mockChain) } };
+  return {
+    supabase: {
+      from: jest.fn((tabla) => {
+        if (tabla === 'empleados') return { select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }) })) })) };
+        if (tabla === 'estudios_venta') return {
+          select: jest.fn(() => ({ eq: jest.fn().mockResolvedValue({ data: [{ id_estudio_venta: 17, descripcion_estudio: 'Cultivo urinario', clave_estudio: 'CUL' }], error: null }) })),
+          update: jest.fn(() => ({ eq: jest.fn().mockResolvedValue({ error: mockEstadoError }) })),
+        };
+        if (tabla === 'resultados_cultivo_adjuntos') return {
+          select: jest.fn(() => ({ in: jest.fn().mockResolvedValue({ data: [], error: null }) })),
+          upsert: jest.fn().mockResolvedValue({ error: mockMetadataError }),
+        };
+        return { ...mockChain, select: jest.fn(() => ({ eq: jest.fn(() => ({ order: jest.fn().mockResolvedValue({ data: [], error: null }) })) })) };
+      }),
+      storage: { from: jest.fn(() => ({ upload: jest.fn().mockResolvedValue({ error: mockStorageError }) })) },
+    },
+  };
 });
 
 import Captura from './captura';
+import { supabase } from '../../lib/supabase-client';
 
 const renderCaptura = async () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -103,6 +137,111 @@ describe('Captura — Renderizado', () => {
     await renderCaptura();
     expect(screen.getByText('Seleccione un paciente para capturar resultados')).toBeInTheDocument();
   });
+});
+
+describe('Captura — adjuntos de cultivo', () => {
+  beforeEach(() => {
+		jest.clearAllMocks();
+		mockStorageError = null;
+		mockMetadataError = null;
+		mockEstadoError = null;
+    mockCapturaData = [{
+      id_venta: 9,
+      folio: 'CUL-9',
+      fecha_venta: '2026-08-06T12:00:00.000Z',
+      estado: 'activo',
+      pacientes: { id_paciente: 5, nombre: 'Ana', fecha_nacimiento: '1990-01-01', sexo: 'Femenino' },
+      estudios_venta: [{ id_estudio_venta: 17, descripcion_estudio: 'Cultivo urinario' }],
+    }];
+  });
+
+  afterEach(() => { mockCapturaData = []; });
+
+  test('muestra el control de cultivo al seleccionar una venta que lo incluye', async () => {
+    await renderCaptura();
+    fireEvent.click(screen.getByText('CUL-9'));
+    expect(await screen.findByLabelText('Subir PDF de cultivo')).toBeInTheDocument();
+  });
+
+  test('rechaza una imagen antes de intentar cargarla', async () => {
+    await renderCaptura();
+    fireEvent.click(screen.getByText('CUL-9'));
+    const input = await screen.findByLabelText('Subir PDF de cultivo');
+    fireEvent.change(screen.getByLabelText('Estudio de cultivo'), { target: { value: '17' } });
+    fireEvent.change(input, { target: { files: [new File(['x'], 'cultivo.png', { type: 'image/png' })] } });
+    expect(supabase.storage.from).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Solo se permiten archivos PDF.');
+  });
+
+  test('carga el PDF al path determinista y guarda los estados del estudio elegido', async () => {
+    await renderCaptura();
+    fireEvent.click(screen.getByText('CUL-9'));
+    const input = await screen.findByLabelText('Subir PDF de cultivo');
+    fireEvent.change(screen.getByLabelText('Estudio de cultivo'), { target: { value: '17' } });
+    fireEvent.change(input, { target: { files: [new File(['pdf'], 'cultivo.pdf', { type: 'application/pdf' })] } });
+
+    await waitFor(() => expect(supabase.storage.from).toHaveBeenCalledWith('resultados-cultivo-adjuntos'));
+    const upload = supabase.storage.from.mock.results[0].value.upload;
+    expect(upload).toHaveBeenCalledWith('17/cultivo.pdf', expect.any(File), expect.objectContaining({ upsert: true }));
+    await waitFor(() => {
+      const metadata = supabase.from.mock.results
+        .filter((_, index) => supabase.from.mock.calls[index][0] === 'resultados_cultivo_adjuntos')
+        .map((result) => result.value)
+        .find((valor) => valor?.upsert?.mock.calls.length);
+      expect(metadata.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        id_estudio_venta: 17,
+        archivo_path: '17/cultivo.pdf',
+        mime_type: 'application/pdf',
+        creado_por: 'user-123',
+      }), expect.objectContaining({ onConflict: 'id_estudio_venta' }));
+		const estudioActualizado = supabase.from.mock.results
+			.filter((_, index) => supabase.from.mock.calls[index][0] === 'estudios_venta')
+			.map((result) => result.value)
+			.find((valor) => valor?.update?.mock.calls.length);
+		expect(estudioActualizado.update).toHaveBeenCalledWith(expect.objectContaining({
+			estado_captura: 'completado',
+			estado_validacion: 'guardado',
+		}));
+    });
+  });
+
+	const cargarPdf = async () => {
+		await renderCaptura();
+		fireEvent.click(screen.getByText('CUL-9'));
+		const input = await screen.findByLabelText('Subir PDF de cultivo');
+		fireEvent.change(screen.getByLabelText('Estudio de cultivo'), { target: { value: '17' } });
+		fireEvent.change(input, { target: { files: [new File(['pdf'], 'cultivo.pdf', { type: 'application/pdf' })] } });
+	};
+
+	test('detiene el flujo si Storage rechaza la carga', async () => {
+		mockStorageError = new Error('storage falló');
+		await cargarPdf();
+		await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No fue posible cargar el PDF de cultivo'));
+		expect(supabase.from.mock.calls.some(([tabla]) => tabla === 'resultados_cultivo_adjuntos')).toBe(true);
+		const metadata = supabase.from.mock.results
+			.filter((_, index) => supabase.from.mock.calls[index][0] === 'resultados_cultivo_adjuntos')
+			.map((result) => result.value)
+			.find((valor) => valor?.upsert);
+		expect(metadata.upsert).not.toHaveBeenCalled();
+	});
+
+	test('detiene el flujo si falla el upsert de metadatos', async () => {
+		mockMetadataError = new Error('metadata falló');
+		await cargarPdf();
+		await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No fue posible cargar el PDF de cultivo'));
+		const estudios = supabase.from.mock.results
+			.filter((_, index) => supabase.from.mock.calls[index][0] === 'estudios_venta')
+			.map((result) => result.value)
+			.filter((valor) => valor?.update);
+		expect(estudios.every((estudio) => estudio.update.mock.calls.length === 0)).toBe(true);
+	});
+
+	test('muestra error y no refresca si falla el estado del estudio', async () => {
+		mockEstadoError = new Error('estado falló');
+		await cargarPdf();
+		await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('No fue posible cargar el PDF de cultivo'));
+		expect(screen.queryByText('PDF de cultivo cargado correctamente')).not.toBeInTheDocument();
+	});
 });
 
 // Captura — Interacción con filtros

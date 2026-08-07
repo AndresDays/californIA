@@ -645,6 +645,31 @@
   box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.25), 0 10px 26px rgba(73, 178, 212, 0.25);
 }
 
+.cultivo-upload-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cultivo-upload-controls select,
+.cultivo-file-label input {
+  max-width: 180px;
+  color: #fff;
+}
+
+.cultivo-file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.cultivo-file-label input[type="file"] {
+  font-size: 0.72rem;
+}
+
 .btn-imprimir {
   margin-left: auto;
 }

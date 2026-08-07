@@ -131,13 +131,13 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values (
 	'resultados-cultivo-adjuntos',
 	'resultados-cultivo-adjuntos',
-	true,
+	false,
 	25 * 1024 * 1024,
 	array['application/pdf']
 )
 on conflict (id) do update
 set
-	public = excluded.public,
+	public = false,
 	file_size_limit = excluded.file_size_limit,
 	allowed_mime_types = excluded.allowed_mime_types;
 

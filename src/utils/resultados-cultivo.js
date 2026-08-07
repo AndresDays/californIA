@@ -26,17 +26,17 @@ export function esArchivoCultivoPathValido(archivoCultivoPath) {
  * The URL must be obtained from the configured Supabase Storage client after
  * the secure portal RPC authorizes and returns the deterministic path.
  */
-export function hidratarArchivoCultivoUrl(estudio, supabaseOrStorage) {
+export async function hidratarArchivoCultivoUrl(estudio, supabaseOrStorage) {
 	const storage = supabaseOrStorage?.storage || supabaseOrStorage;
 	if (!esArchivoCultivoPathValido(estudio?.archivo_cultivo_path) || !storage?.from) {
 		return estudio;
 	}
-	const { data } = storage
+	const { data, error } = await storage
 		.from("resultados-cultivo-adjuntos")
-		.getPublicUrl(estudio.archivo_cultivo_path);
-	if (!data?.publicUrl) return estudio;
+		.createSignedUrl(estudio.archivo_cultivo_path, 60);
+	if (error || !data?.signedUrl) return estudio;
 
-	return { ...estudio, archivo_cultivo_url: data.publicUrl };
+	return { ...estudio, archivo_cultivo_url: data.signedUrl };
 }
 
 export function separarEstudiosConCultivo(studies = []) {
