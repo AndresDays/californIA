@@ -165,7 +165,7 @@
 }
 
 .input-busqueda::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .icono-lupa {
@@ -766,7 +766,7 @@
 }
 
 .textarea-observaciones::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .tabla-resultados-container {
@@ -831,7 +831,7 @@
 }
 
 .input-resultado::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .captura-actions {
@@ -1116,7 +1116,7 @@
 }
 
 .textarea-resultado::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .no-data-mini {

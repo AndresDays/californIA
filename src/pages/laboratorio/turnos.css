@@ -172,7 +172,7 @@
 }
 
 .turnos-field input::placeholder {
-	color: rgba(255, 255, 255, 0.38);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .turnos-field select option,

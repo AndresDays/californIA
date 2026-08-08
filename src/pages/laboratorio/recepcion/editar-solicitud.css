@@ -146,7 +146,7 @@
 }
 
 .input-buscar-paciente-edit::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.65);
 }
 
 .select-rango-fecha {
@@ -328,7 +328,7 @@
 }
 
 .textarea-motivo::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.65);
 }
 
 .folio-grupo {
@@ -414,7 +414,7 @@
 }
 
 .input-medico::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.65);
 }
 
 .dropdown-medicos {
@@ -500,7 +500,7 @@
 }
 
 .input-buscar-estudios::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.65);
 }
 
 .dropdown-estudios {

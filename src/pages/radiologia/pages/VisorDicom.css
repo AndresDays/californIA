@@ -1235,7 +1235,7 @@
 }
 
 .vd-template-search input::placeholder {
-	color: rgba(255, 255, 255, 0.45);
+	color: rgba(255, 255, 255, 0.65);
 }
 
 .vd-template-list {
@@ -1584,7 +1584,7 @@
 }
 
 .vd-reporte-textarea::placeholder {
-	color: rgba(17, 24, 39, 0.34);
+	color: rgba(75, 85, 99, 0.6);
 }
 
 .vd-reporte-textarea:focus {
@@ -2370,7 +2370,7 @@
 }
 
 .vd-modal-search::placeholder {
-	color: rgba(205, 221, 238, 0.45);
+	color: rgba(205, 221, 238, 0.65);
 }
 
 /* â”€â”€ Modal â€” lista de items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -2545,7 +2545,7 @@
 }
 
 .vd-coment-textarea::placeholder {
-	color: rgba(150, 180, 210, 0.45);
+	color: rgba(150, 180, 210, 0.65);
 }
 
 .vd-coment-textarea--edit {
@@ -2795,7 +2795,7 @@
 }
 
 .vd-etiq-text-input::placeholder {
-	color: rgba(255, 255, 255, 0.3);
+	color: rgba(255, 255, 255, 0.55);
 }
 
 .vd-etiq-dropdown {
@@ -3023,7 +3023,7 @@
 }
 
 .vd-ficha-input::placeholder {
-	color: rgba(255, 255, 255, 0.2);
+	color: rgba(255, 255, 255, 0.5);
 }
 
 select.vd-ficha-input {

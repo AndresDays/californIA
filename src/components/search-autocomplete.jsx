@@ -80,7 +80,7 @@ const darkTheme = createTheme({
 						'&.Mui-focused': { color: '#53B9DB' },
 					},
 					'& input::placeholder': {
-						color: 'rgba(255,255,255,0.35)',
+						color: 'rgba(255,255,255,0.6)',
 						opacity: 1,
 					},
 				},

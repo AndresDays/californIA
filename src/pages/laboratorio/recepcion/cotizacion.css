@@ -123,7 +123,7 @@
 }
 
 .input-nombre-paciente::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .condiciones-grupo {
@@ -158,7 +158,7 @@
 }
 
 .textarea-condiciones::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .historial-cotizaciones-section {
@@ -197,7 +197,7 @@
 }
 
 .input-buscar-cotizacion::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .tabla-cotizaciones-container {
@@ -322,7 +322,7 @@
 }
 
 .input-buscar-estudios-cot::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .search-results-estudios-cot {

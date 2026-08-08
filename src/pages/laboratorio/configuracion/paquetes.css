@@ -91,7 +91,7 @@
 }
 
 .input-paquete-icon::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .campo-busqueda-paquete {
@@ -125,7 +125,7 @@
 }
 
 .input-busqueda-paquete::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.6);
 }
 
 .input-busqueda-paquete:disabled {
