@@ -2964,7 +2964,6 @@ const VisorDicom = () => {
 	const [modalPlantillasReporte, setModalPlantillasReporte] = useState(false);
 	const [plantillasReporte, setPlantillasReporte] = useState([]);
 	const [plantillasReporteLoading, setPlantillasReporteLoading] = useState(false);
-	const [plantillaReporteTab, setPlantillaReporteTab] = useState("organizacion");
 	const [plantillaReporteBusqueda, setPlantillaReporteBusqueda] = useState("");
 	const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
 	const [reporteQrUrl, setReporteQrUrl] = useState("");
@@ -4563,8 +4562,9 @@ const VisorDicom = () => {
 			const { data, error } = await supabase
 				.from("plantillas_radiologia")
 				.select(
-					"id, nombre, descripcion, categoria, visibilidad, archivo_url, mime_type, contenido_html, membrete_base64, created_at",
+					"id, nombre, descripcion, categoria, archivo_url, mime_type, contenido_html, membrete_base64, created_at",
 				)
+				.eq("visibilidad", "organizacion")
 				.order("created_at", { ascending: false });
 
 			if (error) throw error;
@@ -4693,7 +4693,6 @@ const VisorDicom = () => {
 		puedeAsignarEstudio || !["radiologo", "tecnico", "referente", "prioridad", "etiquetas"].includes(item.id),
 	);
 	const plantillasReporteFiltradas = plantillasReporte.filter((plantilla) => {
-		const coincideTab = plantilla.visibilidad === plantillaReporteTab;
 		const texto = plantillaReporteBusqueda.trim().toLowerCase();
 		const coincideBusqueda =
 			!texto ||
@@ -4701,14 +4700,8 @@ const VisorDicom = () => {
 				.filter(Boolean)
 				.some((valor) => valor.toLowerCase().includes(texto));
 
-		return coincideTab && coincideBusqueda;
+		return coincideBusqueda;
 	});
-	const cantidadPlantillasOrganizacion = plantillasReporte.filter(
-		(plantilla) => plantilla.visibilidad === "organizacion",
-	).length;
-	const cantidadPlantillasPrivadas = plantillasReporte.filter(
-		(plantilla) => plantilla.visibilidad === "privado",
-	).length;
 
 	return (
 		<div className="vd-root">
@@ -5424,33 +5417,6 @@ const VisorDicom = () => {
 							</button>
 						</div>
 
-						<div className="vd-template-tabs" role="tablist" aria-label="Tipo de plantilla">
-							<button
-								type="button"
-								className={plantillaReporteTab === "organizacion" ? "activo" : ""}
-								onClick={() => setPlantillaReporteTab("organizacion")}
-								role="tab"
-								aria-selected={plantillaReporteTab === "organizacion"}>
-								<span className="vd-template-tab-icon" aria-hidden="true">
-									▦
-								</span>
-								Organización
-								<strong>{cantidadPlantillasOrganizacion}</strong>
-							</button>
-							<button
-								type="button"
-								className={plantillaReporteTab === "privado" ? "activo" : ""}
-								onClick={() => setPlantillaReporteTab("privado")}
-								role="tab"
-								aria-selected={plantillaReporteTab === "privado"}>
-								<span className="vd-template-tab-icon" aria-hidden="true">
-									▣
-								</span>
-								Privado
-								<strong>{cantidadPlantillasPrivadas}</strong>
-							</button>
-						</div>
-
 						<div className="vd-template-toolbar">
 							<span>Plantillas</span>
 							<label className="vd-template-search">
@@ -5471,9 +5437,7 @@ const VisorDicom = () => {
 							{plantillasReporteLoading ? (
 								<div className="vd-template-empty">Cargando plantillas...</div>
 							) : plantillasReporteFiltradas.length === 0 ? (
-								<div className="vd-template-empty">
-									No hay plantillas {plantillaReporteTab === "privado" ? "privadas" : "de organización"}.
-								</div>
+								<div className="vd-template-empty">No hay plantillas de organización.</div>
 							) : (
 								plantillasReporteFiltradas.map((plantilla) => (
 									<button

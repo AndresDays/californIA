@@ -6,10 +6,10 @@ import { useBusquedaPersistente } from '../../../hooks/use-busqueda-persistente'
 import Header from '../../../components/header-principal';
 import SidebarHome from '../../../components/sidebar-home';
 import ModalNotificacion from '../../../components/ModalNotificacion';
+import { puedePublicarPlantillasRadiologia } from '../../../utils/plantillas-radiologia-permisos';
 import './plantillas-radiologia.css';
 
 const BUCKET_MEMBRETES = 'plantillas-radiologia';
-const ROLES_PLANTILLAS = ['desarrollador', 'radiologo'];
 const MIME_TYPES_PERMITIDOS = [
   'application/pdf',
   'application/msword',
@@ -23,7 +23,6 @@ const normalizarRol = (rol) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-const tieneAccesoPlantillas = (rol) => ROLES_PLANTILLAS.includes(normalizarRol(rol));
 
 const esArchivoMembreteValido = (archivo) => {
   const extension = archivo?.name?.split('.').pop()?.toLowerCase();
@@ -39,7 +38,6 @@ const formInicial = {
   nombre: '',
   descripcion: '',
   categoria: 'Radiologia',
-  visibilidad: 'organizacion',
 };
 
 const archivoABase64 = (archivo) =>
@@ -105,7 +103,7 @@ const PlantillasRadiologia = () => {
     tipo: 'exito',
   });
 
-  const puedeEntrar = tieneAccesoPlantillas(empleadoData?.rol);
+  const puedeEntrar = puedePublicarPlantillasRadiologia(empleadoData?.rol);
 
   const mostrarNotificacion = (mensaje, tipo = 'exito') => {
     setNotificacion({
@@ -149,7 +147,7 @@ const PlantillasRadiologia = () => {
 
         setEmpleadoData(data || null);
 
-        if (tieneAccesoPlantillas(data?.rol)) {
+        if (puedePublicarPlantillasRadiologia(data?.rol)) {
           await cargarPlantillas();
         }
       } catch (error) {
@@ -266,7 +264,7 @@ const PlantillasRadiologia = () => {
         descripcion: formData.descripcion.trim() || null,
         categoria: formData.categoria.trim() || 'Radiologia',
         tipo: 'membrete',
-        visibilidad: formData.visibilidad,
+        visibilidad: 'organizacion',
         archivo_url: publicData?.publicUrl || null,
         archivo_path: archivoPath,
         mime_type: archivo.type,
@@ -462,17 +460,6 @@ const PlantillasRadiologia = () => {
                   value={formData.categoria}
                   onChange={(event) => setFormData((prev) => ({ ...prev, categoria: event.target.value }))}
                 />
-              </label>
-
-              <label>
-                <span>Visibilidad</span>
-                <select
-                  value={formData.visibilidad}
-                  onChange={(event) => setFormData((prev) => ({ ...prev, visibilidad: event.target.value }))}
-                >
-                  <option value="organizacion">Organización</option>
-                  <option value="privado">Privado</option>
-                </select>
               </label>
 
               <label className="plantillas-upload">

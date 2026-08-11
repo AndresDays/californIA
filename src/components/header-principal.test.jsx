@@ -75,6 +75,11 @@ describe('Header — Menú desplegable', () => {
     expect(screen.getByText('Plantillas')).toBeInTheDocument();
   });
 
+  test('muestra Plantillas para rol administrador', () => {
+    render(<Header {...defaultProps} menuOpen={true} empleadoData={{ rol: 'administrador', nombre: 'Juan Perez' }} />);
+    expect(screen.getByText('Plantillas')).toBeInTheDocument();
+  });
+
   test('no muestra Plantillas para rol recepcionista', () => {
     render(<Header {...defaultProps} menuOpen={true} empleadoData={{ rol: 'recepcionista', nombre: 'Juan Perez' }} />);
     expect(screen.queryByText('Plantillas')).not.toBeInTheDocument();
