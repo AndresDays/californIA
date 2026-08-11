@@ -6,14 +6,14 @@ import guardarBtn from "../../../assets/guardarBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
 import "./cotizacion.css";
 
 const Cotizacion = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [nombrePaciente, setNombrePaciente] = useState("");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
@@ -28,29 +28,11 @@ const Cotizacion = () => {
 	const [total, setTotal] = useState(0);
 	const [descuento, setDescuento] = useState(0);
 	const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
 		tipo: "exito",
 	});
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	useEffect(() => {
 		cargarCotizaciones();
@@ -306,28 +288,6 @@ const Cotizacion = () => {
 			cot.nombre_paciente.toLowerCase().includes(buscarCotizacion.toLowerCase()) ||
 			cot.numero_cotizacion.toLowerCase().includes(buscarCotizacion.toLowerCase()),
 	);
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
-	};
 
 	return (
 		<PageLayout

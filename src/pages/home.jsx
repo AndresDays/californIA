@@ -17,13 +17,13 @@ import EditarCitaModal from '../components/editar-cita-modal';
 import NuevaCitaModal from '../components/nueva-cita-modal';
 import '../components/nueva-cita-modal.css';
 import PageLayout from '../components/page-layout';
-import { useAuth } from '../context/auth-context';
+import { useEmpleadoActual } from '../hooks/use-empleado-actual';
 import { supabase } from '../lib/supabase-client';
 import { esDashboardRayosX, esDoctorExternoPermisos, esQuimico, esRecepcionista } from '../utils/role-permissions';
 import './CalifornIA.css';
 
 const Dashboard = () => {
-	const { user, empleadoData } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	// — estados primero —
 	const [bandejasTrabajo, setBandejasTrabajo] = useState({
 		capturaPendiente: 0,
@@ -166,29 +166,6 @@ const Dashboard = () => {
 		navigate(`/nuevo-paciente?citaId=${cita.id_cita}`, {
 			state: { citaId: cita.id_cita },
 		});
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			doctor_externo: "Doctor externo Rayos X",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	const formatFecha = (f) =>

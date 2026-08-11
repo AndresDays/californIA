@@ -5,13 +5,13 @@ import lupaIcono from "../../../assets/lupaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import solicitudIcono from "../../../assets/solicitudIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import "./paquetes.css";
 
 const Paquetes = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [buscarPaquete, setBuscarPaquete] = useBusquedaPersistente("paquetes:paquete");
 	const [paquetes, setPaquetes] = useState([]);
@@ -24,24 +24,6 @@ const Paquetes = () => {
 	const [estudiosDelPaquete, setEstudiosDelPaquete] = useState([]);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [paqueteSeleccionado, setPaqueteSeleccionado] = useState(null);
-	const [empleadoData, setEmpleadoData] = useState(null);
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	useEffect(() => {
 		cargarPaquetes();
@@ -241,27 +223,6 @@ const Paquetes = () => {
 		setModoEdicion(true);
 		setPaqueteSeleccionado(paquete.id);
 		await cargarEstudiosDelPaquete(paquete.id);
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	return (

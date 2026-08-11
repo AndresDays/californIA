@@ -12,6 +12,7 @@ import relojIcono from "../../assets/relojIcono.png";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import {
 	esErrorColumnaInexistente,
@@ -82,6 +83,7 @@ const formatearFechaMexico = (fecha = new Date()) => {
 
 const EntregaResultados = () => {
 	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const queryClient = useQueryClient();
 
 	const [fechaInicial, setFechaInicial] = useFechaPersistente(
@@ -102,33 +104,11 @@ const EntregaResultados = () => {
 	const [observacionesEntrega, setObservacionesEntrega] = useState("");
 	const [motivoAutorizacionAdeudo, setMotivoAutorizacionAdeudo] = useState("");
 	const [autorizacionesAdeudo, setAutorizacionesAdeudo] = useState({});
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
 		tipo: "exito",
 	});
-
-	useState(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (error) {
-					console.error("Error al obtener empleado:", error);
-					return;
-				}
-				if (empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	const { data: ventas = [] } = useEntregaResultados({ fechaInicial, fechaFinal });
 
@@ -533,28 +513,6 @@ const EntregaResultados = () => {
 				{meta.label}
 			</span>
 		);
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	return (

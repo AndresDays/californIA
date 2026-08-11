@@ -13,7 +13,7 @@ import {
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
-import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useDoctores } from "../../hooks/use-doctores";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
@@ -28,7 +28,7 @@ import {
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 
 const Doctores = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const queryClient = useQueryClient();
 	const [buscarDoctor, setBuscarDoctor] = useBusquedaPersistente("doctores:termino");
 	const [paginaActual, setPaginaActual] = useState(1);
@@ -37,30 +37,12 @@ const Doctores = () => {
 	const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
 	const [doctorAEliminar, setDoctorAEliminar] = useState(null);
 	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
 		tipo: "exito",
 	});
 	const doctoresPorPagina = 500;
-
-	useState(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	const { data: doctoresResult } = useDoctores({ buscar: buscarDoctor, pagina: paginaActual, porPagina: doctoresPorPagina });
 	const totalDoctores = doctoresResult?.count ?? 0;
@@ -161,27 +143,6 @@ const Doctores = () => {
 		} finally {
 			setDoctorAEliminar(null);
 		}
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	const doctorInicio = totalDoctores ? (paginaActual - 1) * doctoresPorPagina + 1 : 0;
