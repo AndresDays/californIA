@@ -37,6 +37,7 @@ import {
 	registrarEventoSolicitud,
 } from "../../utils/solicitud-auditoria";
 import { generarResultadosCombinadosPdf } from "../../utils/reporte-pdf";
+import { obtenerDatosQuimico } from "../../utils/datos-quimico";
 import { esEstudioCultivo, validarPdfCultivo } from "../../utils/resultados-cultivo";
 import { MEMBRETE_B64 } from "../radiologia/pages/reporte-radiologia-template";
 import "./captura.css";
@@ -502,6 +503,7 @@ const Captura = () => {
 					archivo_cultivo_path: estudio.archivo_cultivo_path,
 				})),
 				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+				datosQuimicoSrc: obtenerDatosQuimico(ventaSeleccionada),
 				modoVistaPrevia: true,
 				supabase,
 			});

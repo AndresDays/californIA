@@ -203,6 +203,42 @@ describe("generarResultadosPortalPdf", () => {
 		expect(textos).toEqual(expect.arrayContaining(["Mujeres: 0.5 - 1.2", "Hombres: 0.6 - 1.5"]));
 	});
 
+	test("dibuja los datos del quimico en el pie de cada resultado", async () => {
+		await generarResultadosPortalPdf({
+			venta: { paciente: "Paciente", folio: "F-1" },
+			estudios: [{ tipo: "laboratorio", descripcion: "BHC", analitos: [] }],
+			datosQuimicoSrc: "data:image/png;base64,QUIMICOMOCK",
+		});
+
+		expect(mockDoc.addImage).toHaveBeenCalledWith(
+			"data:image/png;base64,QUIMICOMOCK",
+			"PNG",
+			61.5,
+			220,
+			87.5,
+			35,
+		);
+	});
+
+	test("repite los datos del quimico cuando el resultado ocupa varias paginas", async () => {
+		await generarResultadosPortalPdf({
+			venta: { paciente: "Paciente", folio: "F-1" },
+			estudios: [
+				{ tipo: "laboratorio", descripcion: "BHC", estado_validacion: "validado", analitos: [] },
+				{ tipo: "laboratorio", descripcion: "QS", estado_validacion: "validado", analitos: [] },
+			],
+			datosQuimicoSrc: "data:image/png;base64,QUIMICOMOCK",
+			modoVistaPrevia: true,
+		});
+
+		const pies = mockDoc.addImage.mock.calls.filter(
+			([src, formato, x, y, ancho, alto]) =>
+				src === "data:image/png;base64,QUIMICOMOCK" &&
+				formato === "PNG" && x === 61.5 && y === 220 && ancho === 87.5 && alto === 35,
+		);
+		expect(pies).toHaveLength(2);
+	});
+
 	test("en vista previa separa estudios y marca cada página según su validación", async () => {
 		await generarResultadosPortalPdf({
 			venta: { paciente: "Paciente", folio: "F-1" },
