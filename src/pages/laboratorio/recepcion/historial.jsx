@@ -3,13 +3,13 @@ import lupaIcono from "../../../assets/lupaIcono.png";
 import notaIcono from "../../../assets/notaIcono.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import "./historial.css";
 
 const Historial = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [buscarCliente, setBuscarCliente] = useBusquedaPersistente("historial:cliente");
 	const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
@@ -17,24 +17,6 @@ const Historial = () => {
 	const [historialVisitas, setHistorialVisitas] = useState([]);
 	const [visitaSeleccionada, setVisitaSeleccionada] = useState(null);
 	const [estudiosVisita, setEstudiosVisita] = useState([]);
-	const [empleadoData, setEmpleadoData] = useState(null);
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (err) {
-				console.error("Error al obtener empleado:", err);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	const buscarPaciente = async () => {
 		if (!buscarCliente.trim()) return;
@@ -240,27 +222,6 @@ const Historial = () => {
 			month: "2-digit",
 			year: "numeric",
 		});
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	const obtenerIconoEstado = (estado) => {

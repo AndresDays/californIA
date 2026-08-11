@@ -7,7 +7,7 @@ import imprimirTablaBtn from '../assets/imprimirTablaBtn.png';
 import ModalConfirmarEliminacion from '../components/ModalConfirmarEliminacion';
 import ModalNotificacion from '../components/ModalNotificacion';
 import PageLayout from '../components/page-layout.jsx';
-import { useAuth } from '../context/auth-context.jsx';
+import { useEmpleadoActual } from '../hooks/use-empleado-actual';
 import { supabase } from '../lib/supabase-client.js';
 import { usePacientes } from '../hooks/use-pacientes';
 import { useBusquedaPersistente } from '../hooks/use-busqueda-persistente';
@@ -19,7 +19,7 @@ import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-pacien
 import './pacientes.css';
 
 const Pacientes = () => {
-  const { user, empleadoData } = useAuth();
+  const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const queryClient = useQueryClient();
 
   const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente('pacientes:termino');
@@ -199,30 +199,6 @@ const handleGuardarPacienteModal = async (pacienteData, isEditMode) => {
     if (paginaActual > 1) {
       setPaginaActual(paginaActual - 1);
     }
-  };
-
-  const getPrimerNombre = (nombreCompleto) => {
-    if (!nombreCompleto) return user?.email?.split('@')[0] || 'Usuario';
-    return nombreCompleto;
-  };
-
-  const formatRol = (rol) => {
-    if (!rol) return 'Usuario';
-
-    const roles = {
-      'admin': 'Administrador',
-      'administrador': 'Administrador',
-      'radiologo': 'Radiólogo - Director',
-      'doctor': 'Médico',
-      'medico': 'Médico',
-      'tecnico_radiologia': 'Técnico en Radiología',
-      'tecnico': 'Técnico',
-      'quimico': 'Químico',
-      'recepcionista': 'Recepcionista',
-      'desarrollador': 'Desarrollador'
-    };
-
-    return roles[rol] || rol;
   };
 
   const pacienteInicio = (paginaActual - 1) * pacientesPorPagina + 1;

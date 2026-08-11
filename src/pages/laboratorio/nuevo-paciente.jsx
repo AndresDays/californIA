@@ -4,6 +4,7 @@ import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
 import SearchAutocomplete from "../../components/search-autocomplete.jsx";
 import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
@@ -106,6 +107,7 @@ const esEstudioRadiologia = (estudio = {}) => {
 
 const NuevoPaciente = () => {
 	const { user, signOut } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [menuOpen, setMenuOpen] = useState(false);
@@ -174,7 +176,6 @@ const NuevoPaciente = () => {
 	const [destinoTurnoManual, setDestinoTurnoManual] = useState(false);
 	const [prioridadTurno, setPrioridadTurno] = useState("0");
 
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const citaIdDesdeDashboard =
 		location.state?.citaId ||
 		new URLSearchParams(location.search).get("citaId");
@@ -195,33 +196,6 @@ const NuevoPaciente = () => {
 	const handleDescuentoPercentChange = (valor) => {
 		setDescuentoPercent(normalizarPorcentaje(valor));
 	};
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("id_empleado, nombre, rol, auth_uuid, sucursal")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-
-				if (error) {
-					console.error("Error al obtener empleado:", error);
-					return;
-				}
-
-				if (empleado) {
-					setEmpleadoData(empleado);
-				}
-			} catch (error) {
-				console.error("Error al obtener datos del empleado:", error);
-			}
-		};
-
-		fetchEmpleadoData();
-	}, [user]);
 
 	useEffect(() => {
 		cargarClientes();
@@ -1343,30 +1317,6 @@ const NuevoPaciente = () => {
 		tipoEstudioSeleccionado,
 		estudiosFiltrados.length,
 	]);
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-
-		return roles[rol] || rol;
-	};
 
 	const resumenPago = obtenerResumenPagoNuevoPaciente(granTotal, pagoRecibido);
 	const limpiarPacienteSeleccionado = () => {

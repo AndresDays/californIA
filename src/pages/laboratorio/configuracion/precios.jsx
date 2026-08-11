@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import editarIconoV2 from "../../../assets/editarIconoV2.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { exportarExcel, exportarPDF } from "../../../utils/exportar-tabla";
@@ -10,7 +10,7 @@ import ModalAgregarPrecio from "../componentes/modal-agregar-precio";
 import "./precios.css";
 
 const Precios = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [empresaFiltro, setEmpresaFiltro] = useState("");
 	const [buscarPrecio, setBuscarPrecio] = useBusquedaPersistente("precios:termino");
@@ -21,28 +21,10 @@ const Precios = () => {
 	const [seleccionados, setSeleccionados] = useState([]);
 	const [modalAbierto, setModalAbierto] = useState(false);
 	const [precioEditar, setPrecioEditar] = useState(null);
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [modalDuplicarAbierto, setModalDuplicarAbierto] = useState(false);
 	const [empresaOrigen, setEmpresaOrigen] = useState("");
 	const [empresaDestino, setEmpresaDestino] = useState("");
 	const [duplicando, setDuplicando] = useState(false);
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	useEffect(() => {
 		cargarPrecios();
@@ -219,27 +201,6 @@ const Precios = () => {
 		} finally {
 			setDuplicando(false);
 		}
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	return (
