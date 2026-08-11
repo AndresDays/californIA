@@ -5,7 +5,7 @@ import lupaIcono from "../../../assets/lupaIcono.png";
 import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregarAnalitoEstudio from "../componentes/modal-agregar-analito-estudio";
@@ -18,7 +18,7 @@ import {
 import "./analitos.css";
 
 const Analitos = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const sesionInicial = obtenerSesionAnalitos();
 
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("analitos:estudio");
@@ -38,7 +38,6 @@ const Analitos = () => {
 	const [modalAgregarOpen, setModalAgregarOpen] = useState(
 		() => sesionInicial.modalAgregarOpen,
 	);
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
@@ -52,23 +51,9 @@ const Analitos = () => {
 	});
 
 	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
 		cargarAnalitos();
 		cargarEstudiosDisponibles();
-	}, [user]);
+	}, []);
 
 	useEffect(() => {
 		if (buscarAnalito.trim()) cargarAnalitos();
@@ -295,27 +280,6 @@ const Analitos = () => {
 				cerrarConfirmacion();
 			},
 		);
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	return (

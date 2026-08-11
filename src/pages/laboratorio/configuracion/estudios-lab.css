@@ -277,7 +277,7 @@
 }
 
 .input-buscar-estudios-adm::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .botones-exportar-estudios {
@@ -389,7 +389,7 @@
 .sin-estudios-adm {
 	text-align: center;
 	padding: 3rem !important;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	font-style: italic;
 }
 

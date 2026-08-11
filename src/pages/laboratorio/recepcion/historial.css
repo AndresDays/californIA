@@ -10,7 +10,7 @@
 	--color-surface-hover: rgba(16, 109, 160, 0.3);
 	--color-border: rgba(83, 185, 219, 0.25);
 	--color-border-strong: rgba(83, 185, 219, 0.5);
-	--color-text-muted: rgba(255, 255, 255, 0.5);
+	--color-text-muted: rgba(255, 255, 255, 0.75);
 	--color-text-sub: rgba(255, 255, 255, 0.85);
 	--font: 'Codec Pro', sans-serif;
 }
@@ -107,7 +107,7 @@
 }
 
 .input-buscar-cliente::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .btn-buscar {

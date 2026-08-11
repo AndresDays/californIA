@@ -165,7 +165,7 @@
 }
 
 .input-busqueda::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .icono-lupa {
@@ -453,7 +453,7 @@
 .no-data {
   text-align: center;
   padding: 2rem !important;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.75);
   font-style: italic;
 }
 
@@ -766,7 +766,7 @@
 }
 
 .textarea-observaciones::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .tabla-resultados-container {
@@ -831,7 +831,7 @@
 }
 
 .input-resultado::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .captura-actions {
@@ -1116,7 +1116,7 @@
 }
 
 .textarea-resultado::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .no-data-mini {
