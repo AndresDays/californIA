@@ -12,7 +12,7 @@ const PAGINA_ANCHO = 210;
 const PAGINA_ALTO = 297;
 const MARGEN_LATERAL = 20;
 const MARGEN_SUPERIOR = 42;
-const MARGEN_INFERIOR = 46;
+const MARGEN_INFERIOR = 72;
 
 const cargarImagenComoDataUrl = async (src) => {
 	if (!src) return null;
@@ -169,11 +169,13 @@ const generarResultadosPortalPdfConSalida = async ({
 	venta = {},
 	estudios = [],
 	membreteSrc = null,
+	datosQuimicoSrc = null,
 	modoVistaPrevia = false,
 	formatoSalida = "bloburl",
 } = {}) => {
 	const doc = new jsPDF({ unit: "mm", format: "a4" });
 	const membrete = await cargarImagenComoDataUrl(membreteSrc);
+	const datosQuimico = await cargarImagenComoDataUrl(datosQuimicoSrc);
 	const margen = 10;
 	const yInicial = 47;
 	const yLimite = PAGINA_ALTO - MARGEN_INFERIOR;
@@ -183,6 +185,12 @@ const generarResultadosPortalPdfConSalida = async ({
 		if (!membrete) return;
 		try {
 			doc.addImage(membrete, "JPEG", 0, 0, PAGINA_ANCHO, PAGINA_ALTO);
+		} catch {}
+	};
+	const dibujarDatosQuimico = () => {
+		if (!datosQuimico) return;
+		try {
+			doc.addImage(datosQuimico, "PNG", 61.5, 220, 87.5, 35);
 		} catch {}
 	};
 	const dibujarMarcaVistaPrevia = (estadoValidacion) => {
@@ -202,6 +210,7 @@ const generarResultadosPortalPdfConSalida = async ({
 	};
 	const nuevaPagina = (estadoValidacion, marcarPaginaAnterior = true) => {
 		if (marcarPaginaAnterior) dibujarMarcaVistaPrevia(estadoValidacion);
+		dibujarDatosQuimico();
 		doc.addPage();
 		dibujarMembrete();
 		return yInicial;
@@ -290,6 +299,7 @@ const generarResultadosPortalPdfConSalida = async ({
 		indiceEstudio += 1;
 	}
 
+	dibujarDatosQuimico();
 	return doc.output(formatoSalida);
 };
 
@@ -320,6 +330,7 @@ export const generarResultadosCombinadosPdf = async ({
 	venta = {},
 	estudios = [],
 	membreteSrc = null,
+	datosQuimicoSrc = null,
 	modoVistaPrevia = false,
 	supabase,
 } = {}) => {
@@ -339,15 +350,16 @@ export const generarResultadosCombinadosPdf = async ({
 		return cultivos[0].archivo_cultivo_url;
 	}
 	if (cultivos.length === 0) {
-		return generarResultadosPortalPdf({ venta, estudios: generados, membreteSrc, modoVistaPrevia });
+		return generarResultadosPortalPdf({ venta, estudios: generados, membreteSrc, datosQuimicoSrc, modoVistaPrevia });
 	}
 
 	const combinado = await PDFDocument.create();
 	if (generados.length > 0) {
-		const pdfGenerado = await generarResultadosPortalPdfConSalida({
+	const pdfGenerado = await generarResultadosPortalPdfConSalida({
 			venta,
 			estudios: generados,
 			membreteSrc,
+			datosQuimicoSrc,
 			modoVistaPrevia,
 			formatoSalida: "arraybuffer",
 		});
