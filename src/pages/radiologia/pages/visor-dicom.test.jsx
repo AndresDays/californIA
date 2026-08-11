@@ -376,6 +376,19 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.getByRole('dialog', { name: 'Elegir plantilla' })).toBeInTheDocument();
   });
 
+  test('el selector muestra sólo plantillas compartidas', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo' };
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Usar plantilla')); });
+
+		expect(screen.getByText('Plantillas')).toBeInTheDocument();
+		expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+		expect(screen.queryByRole('tab', { name: /Privado/i })).not.toBeInTheDocument();
+    const visor = readFileSync(require.resolve('./visor-dicom.jsx'), 'utf8');
+    expect(visor).toContain('.eq("visibilidad", "organizacion")');
+  });
+
   test('clic en Formato muestra el popup de formatos de grid', async () => {
     await renderVisor();
     await act(async () => { fireEvent.click(screen.getByTitle('Formato')); });

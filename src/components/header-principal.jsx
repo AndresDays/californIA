@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import californiaLogo from "../assets/CalifornIA.png";
 import NotificationBell from "./notification-bell";
 import { esRadiologoClinicoPermisos } from "../utils/role-permissions";
+import { puedePublicarPlantillasRadiologia } from "../utils/plantillas-radiologia-permisos";
 import "./header.css";
 
 const DropdownPortal = ({ anchorRef, onClose, children }) => {
@@ -69,7 +70,7 @@ const Header = ({
 		.toLowerCase()
 		.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "");
-	const puedeVerPlantillas = ["desarrollador", "radiologo"].includes(rolNormalizado);
+	const puedeVerPlantillas = puedePublicarPlantillasRadiologia(rolNormalizado);
 	const ocultarNavegacion = esRadiologoClinicoPermisos(empleadoData?.rol);
 
 	const getIniciales = () => {

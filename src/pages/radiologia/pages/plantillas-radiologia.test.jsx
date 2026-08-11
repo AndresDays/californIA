@@ -94,8 +94,20 @@ describe('PlantillasRadiologia', () => {
   it('shows the templates workspace for radiologos', async () => {
     render(<PlantillasRadiologia />);
 
-    expect(await screen.findByRole('heading', { name: /Plantillas/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Nueva plantilla/i })).toBeInTheDocument();
     expect(screen.getByText('Membrete General')).toBeInTheDocument();
+  });
+
+  it('shows the templates workspace for administrators', async () => {
+    mockEmpleado = {
+      id_empleado: 8,
+      nombre: 'Admin User',
+      rol: 'administrador',
+    };
+
+    render(<PlantillasRadiologia />);
+
+    expect(await screen.findByRole('heading', { name: /Plantillas/i })).toBeInTheDocument();
   });
 
   it('blocks employees without template access', async () => {
@@ -136,5 +148,13 @@ describe('PlantillasRadiologia', () => {
       expect(supabase.storage.from).toHaveBeenCalledWith('plantillas-radiologia');
       expect(supabase.from).toHaveBeenCalledWith('plantillas_radiologia');
     });
+  });
+
+  it('only offers organization visibility for new templates', async () => {
+    render(<PlantillasRadiologia />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Nueva plantilla/i }));
+
+    expect(screen.queryByLabelText(/Visibilidad/i)).not.toBeInTheDocument();
   });
 });
