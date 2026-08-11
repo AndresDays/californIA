@@ -69,7 +69,7 @@
 
 .icon-campo {
 	font-size: 1.1rem;
-	color: rgba(255, 255, 255, 0.6);
+	color: rgba(255, 255, 255, 0.8);
 	min-width: 22px;
 	text-align: center;
 	flex-shrink: 0;
@@ -91,7 +91,7 @@
 }
 
 .input-paquete-icon::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .campo-busqueda-paquete {
@@ -125,7 +125,7 @@
 }
 
 .input-busqueda-paquete::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .input-busqueda-paquete:disabled {
@@ -136,7 +136,7 @@
 .btn-buscar-paquete {
 	background: transparent;
 	border: none;
-	color: rgba(255, 255, 255, 0.6);
+	color: rgba(255, 255, 255, 0.8);
 	font-size: 1.1rem;
 	cursor: pointer;
 	padding: 0.5rem;
@@ -223,7 +223,7 @@
 .sin-estudios-paquete {
 	text-align: center;
 	padding: 2rem !important;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	font-style: italic;
 	font-size: 0.85rem;
 }
@@ -425,7 +425,7 @@
 .sin-paquetes {
 	text-align: center;
 	padding: 3rem !important;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	font-style: italic;
 }
 
