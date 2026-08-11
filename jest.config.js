@@ -8,7 +8,7 @@ export default {
     "<rootDir>/jest.setup.js"
   ],
   moduleNameMapper: {
-    "\\.(png|jpg|jpeg|gif|svg)$": "<rootDir>/__mocks__/fileMock.js",
+    "\\.(png|PNG|jpg|jpeg|gif|svg)$": "<rootDir>/__mocks__/fileMock.js",
     "\\.(css|less|scss|sass)$": "<rootDir>/__mocks__/styleMock.js",
     "^@/(.*)$": "<rootDir>/src/$1",
     "^../lib/supabase-client$": "<rootDir>/__mocks__/supabase.js",

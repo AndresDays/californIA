@@ -8,6 +8,7 @@ import {
 	normalizarTelefonoPortal,
 } from "../utils/portal-resultados";
 import { generarResultadosCombinadosPdf } from "../utils/reporte-pdf";
+import { obtenerDatosQuimico } from "../utils/datos-quimico";
 import "./portal-resultados.css";
 
 const formatearFecha = (fecha) => {
@@ -94,6 +95,7 @@ const PortalResultados = () => {
 			venta,
 			estudios,
 			membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+			datosQuimicoSrc: obtenerDatosQuimico(venta),
 		});
 		window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
 	};

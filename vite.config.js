@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
+    assetsInclude: ['**/*.PNG'],
     worker: {
       format: 'es',
     },
@@ -49,7 +50,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           cleanupOutdatedCaches: true,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,PNG,svg,webp,jpg,jpeg,woff2}'],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallbackDenylist: [
             /^\/rest\//,
