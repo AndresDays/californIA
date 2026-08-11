@@ -105,7 +105,7 @@
 }
 
 .section-title-row span {
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.8rem;
   font-weight: 700;
   white-space: nowrap;
@@ -118,7 +118,7 @@
 .form-group label {
   display: block;
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.35rem;
 }
 
@@ -146,7 +146,7 @@
 
 .form-input::placeholder,
 .form-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .form-select option {
@@ -293,7 +293,7 @@
   display: flex;
   gap: 0.45rem;
   font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   flex-wrap: wrap;
 }
 
@@ -351,7 +351,7 @@
 .search-no-results {
   padding: 1rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
   display: grid;
   gap: 0.75rem;
@@ -428,7 +428,7 @@
 .form-group-inline label {
   display: block;
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.35rem;
 }
 
@@ -607,7 +607,7 @@
 .empty-message {
 	text-align: center;
 	padding: 2rem !important;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	font-style: italic;
 }
 
@@ -851,7 +851,7 @@
 }
 
 .turno-sala-toggle small {
-	color: rgba(255, 255, 255, 0.62);
+	color: rgba(255, 255, 255, 0.8);
 	font-size: 0.76rem;
 	line-height: 1.25;
 }

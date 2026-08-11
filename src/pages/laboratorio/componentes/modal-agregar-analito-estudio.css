@@ -109,7 +109,7 @@
 }
 
 .input-buscar-modal::placeholder {
-	color: rgba(255, 255, 255, 0.6);
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .lista-analitos-seleccion {
@@ -178,7 +178,7 @@
 .sin-resultados {
 	padding: 2rem;
 	text-align: center;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	font-style: italic;
 	font-size: 0.9rem;
 }

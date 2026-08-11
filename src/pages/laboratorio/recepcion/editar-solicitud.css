@@ -11,7 +11,7 @@
 	--color-surface-hover: rgba(16, 109, 160, 0.3);
 	--color-border: rgba(83, 185, 219, 0.25);
 	--color-border-strong: rgba(83, 185, 219, 0.5);
-	--color-text-muted: rgba(255, 255, 255, 0.5);
+	--color-text-muted: rgba(255, 255, 255, 0.75);
 	--color-text-sub: rgba(255, 255, 255, 0.85);
 	--font: 'Codec Pro', sans-serif;
 }
@@ -146,7 +146,7 @@
 }
 
 .input-buscar-paciente-edit::placeholder {
-	color: rgba(255, 255, 255, 0.65);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .select-rango-fecha {
@@ -328,7 +328,7 @@
 }
 
 .textarea-motivo::placeholder {
-	color: rgba(255, 255, 255, 0.65);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .folio-grupo {
@@ -414,7 +414,7 @@
 }
 
 .input-medico::placeholder {
-	color: rgba(255, 255, 255, 0.65);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .dropdown-medicos {
@@ -500,7 +500,7 @@
 }
 
 .input-buscar-estudios::placeholder {
-	color: rgba(255, 255, 255, 0.65);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .dropdown-estudios {

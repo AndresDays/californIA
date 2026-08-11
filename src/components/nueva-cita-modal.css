@@ -156,7 +156,7 @@
 }
 
 .form-input-cita::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .form-input-cita:focus,
@@ -230,7 +230,7 @@
 .search-no-results-modal {
   padding: 1rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.9rem;
 }
 

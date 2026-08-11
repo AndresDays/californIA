@@ -98,7 +98,7 @@
 
 .modal-icon-campo {
   font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   min-width: 28px;
   text-align: center;
 }
@@ -115,7 +115,7 @@
 }
 
 .modal-input-icon::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .modal-botones {

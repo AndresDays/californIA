@@ -127,7 +127,7 @@
 }
 
 .admin-catalog-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .admin-catalog-pagination {
@@ -236,7 +236,7 @@
 .admin-catalog-empty {
   text-align: center;
   padding: 3rem !important;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.75);
   font-style: italic;
 }
 

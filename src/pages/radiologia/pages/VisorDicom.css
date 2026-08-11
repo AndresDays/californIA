@@ -277,7 +277,7 @@
 	gap: 0.1rem;
 	background: transparent;
 	border: 1px solid transparent;
-	color: rgba(255, 255, 255, 0.6);
+	color: rgba(255, 255, 255, 0.8);
 	padding: 0.22rem 0.46rem;
 	border-radius: 5px;
 	cursor: pointer;
@@ -347,7 +347,7 @@
 	border: 0;
 	border-left: 1px solid rgba(255, 255, 255, 0.06);
 	background: transparent;
-	color: rgba(255, 255, 255, 0.55);
+	color: rgba(255, 255, 255, 0.78);
 	cursor: pointer;
 	font-size: 0.82rem;
 	font-family: 'Codec Pro', sans-serif;
@@ -693,7 +693,7 @@
 
 .vd-ov-dato {
 	font-size: 0.74rem;
-	color: rgba(255, 255, 255, 0.55);
+	color: rgba(255, 255, 255, 0.78);
 	line-height: 1.5;
 }
 
@@ -804,7 +804,7 @@
 	flex-direction: column;
 	align-items: center;
 	gap: 0.25rem;
-	color: rgba(255, 255, 255, 0.65);
+	color: rgba(255, 255, 255, 0.82);
 	font-size: 0.7rem;
 	font-family: 'Codec Pro', sans-serif;
 	transition: all 0.12s;
@@ -1235,7 +1235,7 @@
 }
 
 .vd-template-search input::placeholder {
-	color: rgba(255, 255, 255, 0.65);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .vd-template-list {
@@ -1318,7 +1318,7 @@
 	display: grid;
 	place-items: center;
 	min-height: 260px;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	font-size: 0.95rem;
 	text-align: center;
 	padding: 2rem;
@@ -1584,7 +1584,7 @@
 }
 
 .vd-reporte-textarea::placeholder {
-	color: rgba(75, 85, 99, 0.6);
+	color: rgba(107, 114, 128, 0.75);
 }
 
 .vd-reporte-textarea:focus {
@@ -1772,7 +1772,7 @@
 	min-height: 38px;
 	font-size: 1.55rem;
 	line-height: 1;
-	color: rgba(255, 255, 255, 0.62);
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .vd-side-tabs .vd-side-close:hover {
@@ -2370,7 +2370,7 @@
 }
 
 .vd-modal-search::placeholder {
-	color: rgba(205, 221, 238, 0.65);
+	color: rgba(205, 221, 238, 0.85);
 }
 
 /* â”€â”€ Modal â€” lista de items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -2545,7 +2545,7 @@
 }
 
 .vd-coment-textarea::placeholder {
-	color: rgba(150, 180, 210, 0.65);
+	color: rgba(150, 180, 210, 0.85);
 }
 
 .vd-coment-textarea--edit {
@@ -2795,7 +2795,7 @@
 }
 
 .vd-etiq-text-input::placeholder {
-	color: rgba(255, 255, 255, 0.55);
+	color: rgba(255, 255, 255, 0.78);
 }
 
 .vd-etiq-dropdown {
@@ -2993,7 +2993,7 @@
 
 .vd-ficha-row label {
 	font-size: 0.8rem;
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 	min-width: 130px;
 	flex-shrink: 0;
 }
@@ -3023,7 +3023,7 @@
 }
 
 .vd-ficha-input::placeholder {
-	color: rgba(255, 255, 255, 0.5);
+	color: rgba(255, 255, 255, 0.75);
 }
 
 select.vd-ficha-input {
