@@ -5,7 +5,7 @@ import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
-import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import {
 	agruparEstudiosMasVendidosAdmin,
@@ -30,43 +30,12 @@ const inicioMesMexico = () => {
 	return fecha.toISOString().split("T")[0];
 };
 
-const formatRol = (rol) => {
-	if (!rol) return "Usuario";
-	const roles = {
-		admin: "Administrador",
-		administrador: "Administrador",
-		radiologo: "Radiologo - Director",
-		doctor: "Medico",
-		medico: "Medico",
-		tecnico_radiologia: "Tecnico en Radiologia",
-		tecnico: "Tecnico",
-		quimico: "Quimico",
-		recepcionista: "Recepcionista",
-		desarrollador: "Desarrollador",
-	};
-	return roles[rol] || rol;
-};
-
 const ReporteAdministrativo = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const queryClient = useQueryClient();
 	const [fechaInicial, setFechaInicial] = useFechaPersistente("reporte-administrativo:inicio", inicioMesMexico());
 	const [fechaFinal, setFechaFinal] = useFechaPersistente("reporte-administrativo:fin", hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
-	const [empleadoData, setEmpleadoData] = useState(null);
-
-	useState(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			const { data } = await supabase
-				.from("empleados")
-				.select("nombre, rol")
-				.eq("auth_uuid", user.id)
-				.maybeSingle();
-			if (data) setEmpleadoData(data);
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	const {
 		data: reporteData,
@@ -111,9 +80,6 @@ const ReporteAdministrativo = () => {
 	);
 	const maxEtapas = Math.max(...pendientesEtapa.map((etapa) => etapa.total), 1);
 	const maxSucursal = Math.max(...ingresosSucursal.map((item) => item.ingreso), 1);
-
-	const getPrimerNombre = (nombreCompleto) =>
-		nombreCompleto || user?.email?.split("@")[0] || "Usuario";
 
 	const exportarReporteExcel = () => {
 		const sufijo = `${fechaInicial}_${fechaFinal}`;

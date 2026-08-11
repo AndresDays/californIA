@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import ModalAgregar from "../componentes/modal-agregar.jsx";
@@ -8,7 +8,7 @@ import Tabla from "../componentes/tabla";
 import "./tipo_muestra.css";
 
 const TipoMuestra = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [buscarMuestra, setBuscarMuestra] = useBusquedaPersistente("tipo-muestra:termino");
 	const [muestras, setMuestras] = useState([]);
@@ -18,24 +18,6 @@ const TipoMuestra = () => {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [muestraEditando, setMuestraEditando] = useState(null);
-	const [empleadoData, setEmpleadoData] = useState(null);
-
-	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
-	}, [user]);
 
 	useEffect(() => {
 		cargarMuestras();
@@ -104,27 +86,6 @@ const TipoMuestra = () => {
 	const muestraInicio = (paginaActual - 1) * registrosPorPagina + 1;
 	const muestraFin = Math.min(paginaActual * registrosPorPagina, totalMuestras);
 	const totalPaginas = Math.ceil(totalMuestras / registrosPorPagina);
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
-	};
 
 	return (
 		<PageLayout
