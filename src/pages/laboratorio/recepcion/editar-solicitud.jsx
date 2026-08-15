@@ -14,7 +14,10 @@ import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
-import { generarTicketVenta } from "../../../utils/generarTicketVenta";
+import {
+	generarTicketVenta,
+	resolverEmpresaTicketReimpresion,
+} from "../../../utils/generarTicketVenta";
 import {
 	EVENTOS_SOLICITUD,
 	formatearEventoAuditoria,
@@ -158,7 +161,8 @@ const EditarSolicitud = () => {
 				.from("ventas")
 				.select(
 					`
-				id_venta, folio, fecha_venta, total, pago_recibido, subtotal, iva, descuento, forma_pago, observaciones, estado, id_cliente, id_doctor,
+				id_venta, folio, fecha_venta, total, pago_recibido, subtotal, iva, descuento, forma_pago, observaciones, estado, id_cliente, id_empresa, id_doctor,
+				empresas (id_empresa, nombre),
 				pacientes (id_paciente, nombre, fecha_nacimiento, sexo, telefono, email, rfc),
 				estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, muestra_pendiente)
 			`,
@@ -649,11 +653,9 @@ const EditarSolicitud = () => {
 					.single();
 				if (doc) nombreDoctor = doc.nombre;
 			}
-			let nombreEmpresa = "PARTICULAR";
-			if (orden.id_cliente) {
-				const clienteObj = clientes.find((c) => c.id_cliente === orden.id_cliente);
-				if (clienteObj) nombreEmpresa = clienteObj.nombre;
-			}
+			const nombreEmpresaOperativa = resolverEmpresaTicketReimpresion(
+				orden.empresas?.nombre,
+			);
 			const paciente = orden.pacientes;
 			const hoy = new Date();
 			const nac = paciente?.fecha_nacimiento
@@ -674,7 +676,7 @@ const EditarSolicitud = () => {
 				paciente: paciente?.nombre || "N/A",
 				edad: edadStr,
 				doctor: nombreDoctor,
-				empresa: nombreEmpresa,
+				empresa: nombreEmpresaOperativa,
 				telefono: paciente?.telefono || "",
 				email: paciente?.email || "",
 				estudios: (orden.estudios_venta || []).map((ev) => ({

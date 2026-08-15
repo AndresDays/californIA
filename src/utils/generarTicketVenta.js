@@ -18,6 +18,10 @@ export const resolverRfcTicketEmpresa = (empresa) => {
 	return rfc;
 };
 
+export const resolverEmpresaTicketReimpresion = (empresa) => empresa || 'CDC';
+
+const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
+
 const getImageBase64 = (url) =>
 	new Promise((resolve, reject) => {
 		const img = new Image();
