@@ -1,6 +1,6 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-.admin-metodos-wrapper {
+.admin-catalogo-wrapper {
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
@@ -12,7 +12,7 @@
 	box-sizing: border-box;
 }
 
-.admin-metodos-header {
+.admin-catalogo-header {
 	padding: 1rem 2rem 1rem 120px;
 	background: rgba(10, 25, 41, 0.8);
 	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
@@ -20,7 +20,7 @@
 	width: 100%;
 }
 
-.admin-metodos-title {
+.admin-catalogo-title {
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
@@ -28,7 +28,7 @@
 	letter-spacing: 1px;
 }
 
-.admin-metodos-content {
+.admin-catalogo-content {
 	flex: 1;
 	padding: 1.5rem 1.5rem 1.5rem 120px;
 	display: flex;
@@ -38,12 +38,12 @@
 	width: 100%;
 }
 
-.controles-superiores-metodos {
+.controles-superiores-catalogo {
 	display: flex;
 	justify-content: flex-start;
 }
 
-.btn-agregar-metodo {
+.btn-agregar-catalogo {
 	padding: 0.7rem 1.5rem;
 	border: none;
 	border-radius: 6px;
@@ -56,13 +56,13 @@
 	background: linear-gradient(135deg, #007bff, #0056b3);
 }
 
-.btn-agregar-metodo:hover {
+.btn-agregar-catalogo:hover {
 	background: linear-gradient(135deg, #0056b3, #004085);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
-.controles-tabla-metodos {
+.controles-tabla-catalogo {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -70,7 +70,7 @@
 	gap: 1rem;
 }
 
-.mostrar-registros-metodos {
+.mostrar-registros-catalogo {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
@@ -78,7 +78,7 @@
 	color: rgba(255, 255, 255, 0.9);
 }
 
-.select-registros-metodos {
+.select-registros-catalogo {
 	padding: 0.5rem 0.75rem;
 	background: rgba(10, 25, 41, 0.6);
 	border: 1px solid rgba(111, 179, 210, 0.3);
@@ -89,17 +89,17 @@
 	cursor: pointer;
 }
 
-.select-registros-metodos:focus {
+.select-registros-catalogo:focus {
 	outline: none;
 	border-color: #6FB3D2;
 }
 
-.select-registros-metodos option {
+.select-registros-catalogo option {
 	background: #0a1929;
 	color: white;
 }
 
-.buscar-metodos-grupo {
+.buscar-catalogo-grupo {
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
@@ -107,7 +107,7 @@
 	color: rgba(255, 255, 255, 0.9);
 }
 
-.input-buscar-metodos {
+.input-buscar-catalogo {
 	padding: 0.5rem 0.75rem;
 	background: rgba(10, 25, 41, 0.6);
 	border: 1px solid rgba(111, 179, 210, 0.3);
@@ -119,12 +119,12 @@
 	box-sizing: border-box;
 }
 
-.input-buscar-metodos:focus {
+.input-buscar-catalogo:focus {
 	outline: none;
 	border-color: #6FB3D2;
 }
 
-.paginacion-metodos {
+.paginacion-catalogo {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -133,20 +133,20 @@
 	padding: 0.5rem 0;
 }
 
-.contador-metodos {
+.contador-catalogo {
 	font-size: 0.9rem;
 	color: rgba(255, 255, 255, 0.8);
 }
 
-.botones-paginacion-metodos {
+.botones-paginacion-catalogo {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
 	flex-wrap: wrap;
 }
 
-.btn-pag-metodos,
-.btn-pag-numero-metodos {
+.btn-pag-catalogo,
+.btn-pag-numero-catalogo {
 	padding: 0.5rem 1rem;
 	background: rgba(10, 25, 41, 0.8);
 	border: 1px solid rgba(111, 179, 210, 0.3);
@@ -158,54 +158,54 @@
 	transition: all 0.2s;
 }
 
-.btn-pag-metodos:hover:not(:disabled),
-.btn-pag-numero-metodos:hover {
+.btn-pag-catalogo:hover:not(:disabled),
+.btn-pag-numero-catalogo:hover {
 	background: rgba(111, 179, 210, 0.2);
 	border-color: #6FB3D2;
 }
 
-.btn-pag-metodos:disabled {
+.btn-pag-catalogo:disabled {
 	opacity: 0.3;
 	cursor: not-allowed;
 }
 
-.btn-pag-numero-metodos.activo {
+.btn-pag-numero-catalogo.activo {
 	background: #007bff;
 	border-color: #007bff;
 	font-weight: 600;
 }
 
 @media (max-width: 1023px) {
-	.admin-metodos-header {
+	.admin-catalogo-header {
 		padding: 1rem !important;
 	}
 
-	.admin-metodos-content {
+	.admin-catalogo-content {
 		padding: 1rem !important;
 	}
 }
 
 @media (max-width: 768px) {
-	.controles-tabla-metodos {
+	.controles-tabla-catalogo {
 		flex-direction: column;
 		align-items: stretch;
 	}
 
-	.buscar-metodos-grupo {
+	.buscar-catalogo-grupo {
 		flex-direction: column;
 		align-items: stretch;
 	}
 
-	.input-buscar-metodos {
+	.input-buscar-catalogo {
 		min-width: 100%;
 	}
 
-	.paginacion-metodos {
+	.paginacion-catalogo {
 		flex-direction: column;
 		align-items: center;
 	}
 
-	.botones-paginacion-metodos {
+	.botones-paginacion-catalogo {
 		justify-content: center;
 	}
 }

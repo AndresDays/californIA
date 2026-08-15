@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
-import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
@@ -41,7 +41,7 @@ const ReporteVentas = () => {
 	const [doctorSeleccionado, setDoctorSeleccionado] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
-	const { empleadoData } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const {
 		data: ventas = [],
@@ -147,27 +147,6 @@ const ReporteVentas = () => {
 			filasVentas(),
 			`reporte-ventas-${fechaInicial}-${fechaFinal}`,
 		);
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return empleadoData?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	const renderReporte = () => {

@@ -7,7 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
-import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { useCalendarioCitas } from "../../hooks/use-citas";
 import { useSucursales } from "../../hooks/use-sucursales";
 import NuevaCitaModal from "../../components/nueva-cita-modal";
@@ -85,27 +85,8 @@ const obtenerHoraCita = (cita) => {
 const obtenerNombrePaciente = (cita) =>
 	cita?.pacientes?.nombre || cita?.nombre_paciente || "Sin paciente";
 
-const getPrimerNombre = (nombreCompleto, user) =>
-	nombreCompleto || user?.email?.split("@")[0] || "Usuario";
-
-const formatRol = (rol) => {
-	const roles = {
-		admin: "Administrador",
-		administrador: "Administrador",
-		radiologo: "Radiologo",
-		doctor: "Medico",
-		medico: "Medico",
-		tecnico_radiologia: "Tecnico en Radiologia",
-		tecnico: "Tecnico",
-		quimico: "Quimico",
-		recepcionista: "Recepcionista",
-		desarrollador: "Desarrollador",
-	};
-	return roles[rol] || rol || "Usuario";
-};
-
 const CalendarioCitas = () => {
-	const { user, empleadoData } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const [fechaSeleccionada, setFechaSeleccionada] = useState(() => obtenerFechaLocalHoy());
@@ -164,7 +145,7 @@ const CalendarioCitas = () => {
 		<PageLayout
 			empleadoData={empleadoData}
 			formatRol={formatRol}
-			getPrimerNombre={(nombre) => getPrimerNombre(nombre, user)}
+			getPrimerNombre={getPrimerNombre}
 		>
 			<main className="cal-page">
 				<section className="cal-shell">

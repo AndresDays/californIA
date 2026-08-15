@@ -11,7 +11,7 @@
 	--color-surface-hover: rgba(16, 109, 160, 0.3);
 	--color-border: rgba(83, 185, 219, 0.25);
 	--color-border-strong: rgba(83, 185, 219, 0.5);
-	--color-text-muted: rgba(255, 255, 255, 0.6);
+	--color-text-muted: rgba(255, 255, 255, 0.8);
 	--color-text-sub: rgba(255, 255, 255, 0.8);
 	--font: 'Codec Pro', sans-serif;
 }
@@ -219,7 +219,7 @@
 }
 
 .input-busqueda::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .checkbox-inline {
@@ -361,7 +361,7 @@
 }
 
 .input-buscar-nombre::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .tabla-pacientes-container {
@@ -620,7 +620,7 @@
 }
 
 .textarea-observaciones-entrega::placeholder {
-	color: var(--color-text-muted);
+	color: rgba(255, 255, 255, 0.82);
 }
 
 .btn-guardar-observaciones {
@@ -1050,5 +1050,5 @@
 }
 
 .input-busqueda-con-lupa::placeholder {
-	color: rgba(255, 255, 255, 0.4);
+	color: rgba(255, 255, 255, 0.8);
 }

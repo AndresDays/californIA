@@ -26,6 +26,7 @@ const ESTADOS_FILTRO = [
   { id: 'EN PROCESO', label: 'En proceso' },
   { id: 'COMPLETADO', label: 'Completados' }
 ];
+
 const CLAVE_FILTROS_RADIOLOGIA = 'radiologia:filtros';
 const leerFiltrosRadiologia = () => {
   try { return JSON.parse(sessionStorage.getItem(CLAVE_FILTROS_RADIOLOGIA) || '{}'); } catch { return {}; }

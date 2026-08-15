@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import PageLayout from "../../components/page-layout";
 import { useAuth } from "../../context/auth-context";
+import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useCitasHoy, useTurnos } from "../../hooks/use-turnos";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
@@ -51,29 +52,10 @@ const formatHora = (fecha) =>
 			})
 		: "--:--";
 
-const getPrimerNombre = (nombreCompleto, user) =>
-	nombreCompleto || user?.email?.split("@")[0] || "Usuario";
-
-const formatRol = (rol) => {
-	const roles = {
-		admin: "Administrador",
-		administrador: "Administrador",
-		radiologo: "Radiologo",
-		doctor: "Medico",
-		medico: "Medico",
-		tecnico_radiologia: "Tecnico en Radiologia",
-		tecnico: "Tecnico",
-		quimico: "Quimico",
-		recepcionista: "Recepcionista",
-		desarrollador: "Desarrollador",
-	};
-	return roles[rol] || rol || "Usuario";
-};
-
 const Turnos = () => {
 	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const queryClient = useQueryClient();
-	const [empleadoData, setEmpleadoData] = useState(null);
 	const [destinosCitas, setDestinosCitas] = useState({});
 	const [pacientes, setPacientes] = useState([]);
 	const [busquedaPaciente, setBusquedaPaciente] = useBusquedaPersistente("turnos:paciente");
@@ -112,20 +94,6 @@ const Turnos = () => {
 				.slice(0, 8),
 		[turnos],
 	);
-
-	useState(() => {
-		const cargarEmpleado = async () => {
-			if (!user?.id) return;
-			const { data, error } = await supabase
-				.from("empleados")
-				.select("nombre, rol")
-				.eq("auth_uuid", user.id)
-				.maybeSingle();
-			if (!error) setEmpleadoData(data || null);
-		};
-
-		cargarEmpleado();
-	}, [user]);
 
 	useEffect(() => {
 		const buscar = async () => {
@@ -228,7 +196,7 @@ const Turnos = () => {
 		<PageLayout
 			empleadoData={empleadoData}
 			formatRol={formatRol}
-			getPrimerNombre={(nombre) => getPrimerNombre(nombre, user)}>
+			getPrimerNombre={getPrimerNombre}>
 			<main className="turnos-main">
 				<header className="turnos-header">
 					<div>

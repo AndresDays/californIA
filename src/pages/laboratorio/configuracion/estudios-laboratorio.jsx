@@ -5,7 +5,7 @@ import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import excelBtn from "../../../assets/excelBtn.png";
 import pdfBtn from "../../../assets/pdfBtn.png";
 import PageLayout from "../../../components/page-layout.jsx";
-import { useAuth } from "../../../context/auth-context";
+import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import {
@@ -15,7 +15,7 @@ import {
 import "./estudios-lab.css";
 
 const EstudiosLab = () => {
-	const { user } = useAuth();
+	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("estudios-laboratorio:termino");
 	const [estudios, setEstudios] = useState([]);
@@ -54,7 +54,6 @@ const EstudiosLab = () => {
 	const [activoImagen, setActivoImagen] = useState(true);
 	const [modoEdicion, setModoEdicion] = useState(false);
 	const [estudioSeleccionado, setEstudioSeleccionado] = useState(null);
-	const [empleadoData, setEmpleadoData] = useState(null);
 
 	const empresaActual = empresas.find(
 		(empresa) => String(empresa.id_empresa) === String(empresaSeleccionada),
@@ -69,23 +68,9 @@ const EstudiosLab = () => {
 		Boolean(tipoEstudioSeleccionado) && modalidadSeleccionada !== "laboratorio";
 
 	useEffect(() => {
-		const fetchEmpleadoData = async () => {
-			if (!user?.id) return;
-			try {
-				const { data: empleado, error } = await supabase
-					.from("empleados")
-					.select("nombre, rol")
-					.eq("auth_uuid", user.id)
-					.maybeSingle();
-				if (!error && empleado) setEmpleadoData(empleado);
-			} catch (error) {
-				console.error("Error:", error);
-			}
-		};
-		fetchEmpleadoData();
 		cargarCatalogos();
 		cargarEstudios();
-	}, [user]);
+	}, []);
 
 	useEffect(() => {
 		cargarEstudios();
@@ -521,27 +506,6 @@ const EstudiosLab = () => {
 				alert("Error al eliminar estudio");
 			}
 		}
-	};
-
-	const getPrimerNombre = (nombreCompleto) => {
-		if (!nombreCompleto) return user?.email?.split("@")[0] || "Usuario";
-		return nombreCompleto;
-	};
-	const formatRol = (rol) => {
-		if (!rol) return "Usuario";
-		const roles = {
-			admin: "Administrador",
-			administrador: "Administrador",
-			radiologo: "Radiólogo - Director",
-			doctor: "Médico",
-			medico: "Médico",
-			tecnico_radiologia: "Técnico en Radiología",
-			tecnico: "Técnico",
-			quimico: "Químico",
-			recepcionista: "Recepcionista",
-			desarrollador: "Desarrollador",
-		};
-		return roles[rol] || rol;
 	};
 
 	return (
