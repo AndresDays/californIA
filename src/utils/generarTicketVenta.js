@@ -18,8 +18,6 @@ export const resolverRfcTicketEmpresa = (empresa) => {
 	return rfc;
 };
 
-const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
-
 const getImageBase64 = (url) =>
 	new Promise((resolve, reject) => {
 		const img = new Image();
@@ -39,10 +37,10 @@ const generarBarcode = (folio) => {
 	const canvas = document.createElement('canvas');
 	JsBarcode(canvas, folio, {
 		format: 'CODE128',
-		width: 2,
-		height: 40,
+		width: 3,
+		height: 55,
 		displayValue: true,
-		fontSize: 10,
+		fontSize: 14,
 		margin: 4,
 		background: '#ffffff',
 		lineColor: '#000000',
@@ -114,6 +112,8 @@ export const generarTicketVenta = async (datosTicket) => {
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(7);
+	pdf.text('Teléfono: 3222256008', W / 2, y, { align: 'center' });
+	y += 4;
 	pdf.text('Descarga de Resultados:', W / 2, y, { align: 'center' });
 	y += 4;
 	pdf.setFont('helvetica', 'bold');
@@ -123,10 +123,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		W - mg * 2,
 	);
 	urlLines.forEach((l) => { pdf.text(l, W / 2, y, { align: 'center' }); y += 4; });
-	pdf.setFont('helvetica', 'normal');
-	pdf.setFontSize(7);
-	pdf.text('Teléfono: 3222256008', W / 2, y, { align: 'center' });
-	y += 5;
+	y += 1;
 
 	const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha;
 	const fechaStr = fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -146,15 +143,8 @@ export const generarTicketVenta = async (datosTicket) => {
 	pdf.setFontSize(8);
 	if (edad) { pdf.text(`Edad: ${edad}`, W / 2, y, { align: 'center' }); y += 4; }
 	if (doctor) { pdf.text(`Doctor: ${doctor.toUpperCase()}`, W / 2, y, { align: 'center' }); y += 4; }
-	pdf.text(`Empresa: ${(empresa || 'PARTICULAR').toUpperCase()}`, W / 2, y, { align: 'center' });
-	y += 4;
 
-	const usuario = generarCodigo(6);
-	const contrasena = generarCodigo(6);
 	pdf.setFont('helvetica', 'bold');
-	pdf.setFontSize(9);
-	pdf.text(`Usuario: ${usuario}`, W / 2, y, { align: 'center' }); y += 5;
-	pdf.text(`Contraseña: ${contrasena}`, W / 2, y, { align: 'center' }); y += 5;
 	pdf.setFontSize(11);
 	pdf.text(`Folio: ${folio}`, W / 2, y, { align: 'center' }); y += 5;
 
@@ -165,8 +155,8 @@ export const generarTicketVenta = async (datosTicket) => {
 
 	try {
 		const barcodeImg = generarBarcode(folio);
-		pdf.addImage(barcodeImg, 'PNG', mg + 2, y, W - mg * 2 - 4, 14);
-		y += 16;
+		pdf.addImage(barcodeImg, 'PNG', mg + 2, y, W - mg * 2 - 4, 18);
+		y += 20;
 	} catch { y += 2; }
 
 	pdf.setLineWidth(0.3);
@@ -193,12 +183,12 @@ export const generarTicketVenta = async (datosTicket) => {
 			day: '2-digit', month: '2-digit', year: '2-digit',
 		}).replace(/\//g, '-');
 
-		const maxW = 38;
+		const maxW = 34;
 		const lines = pdf.splitTextToSize(desc, maxW);
 		lines.forEach((line, i) => {
 			if (i === 0) {
 				pdf.text(line, mg, y);
-				pdf.text(precio, W - mg - 14, y);
+				pdf.text(precio, W - mg - 15, y, { align: 'right' });
 				pdf.text(feStr, W - mg, y, { align: 'right' });
 			} else {
 				pdf.text(line, mg, y);
@@ -222,7 +212,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	pdf.setFontSize(8);
 
 	const filaTotal = (label, valor) => {
-		pdf.text(label, W / 2, y, { align: 'right' });
+		pdf.text(label, W - mg - 20, y, { align: 'right' });
 		pdf.text(valor, W - mg, y, { align: 'right' });
 		y += 4.5;
 	};
