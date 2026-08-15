@@ -18,6 +18,7 @@ import {
 	generarTicketVenta,
 	resolverEmpresaTicketReimpresion,
 } from "../../../utils/generarTicketVenta";
+import { generarEtiquetasEstudiosLaboratorio } from "../../../utils/generar-etiquetas-estudios-laboratorio";
 import {
 	EVENTOS_SOLICITUD,
 	formatearEventoAuditoria,
@@ -640,6 +641,59 @@ const EditarSolicitud = () => {
 		return roles[rol] || rol;
 	};
 
+	const imprimirEtiquetasOrden = async (orden, e) => {
+		e?.stopPropagation();
+		if (!orden) return;
+		try {
+			const paciente = orden.pacientes;
+			const hoy = new Date();
+			const nac = paciente?.fecha_nacimiento ? new Date(paciente.fecha_nacimiento) : null;
+			let edadStr = "";
+			if (nac) {
+				let edad = hoy.getFullYear() - nac.getFullYear();
+				const mes = hoy.getMonth() - nac.getMonth();
+				if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
+				edadStr = `${edad} años`;
+			}
+			const clavesEstudios = (orden.estudios_venta || [])
+				.map(({ clave_estudio }) => clave_estudio)
+				.filter(Boolean);
+			if (!clavesEstudios.length) {
+				mostrarNotificacion("La orden no tiene estudios para etiquetar", "error");
+				return;
+			}
+			const { data: estudiosCatalogo, error } = await supabase
+				.from("estudios_lab_catalogo")
+				.select("clave, tipo_muestra, recipiente")
+				.in("clave", clavesEstudios);
+			if (error) throw error;
+			const catalogoPorClave = new Map(
+				(estudiosCatalogo || []).map((estudio) => [estudio.clave, estudio]),
+			);
+			const genero = generarEtiquetasEstudiosLaboratorio({
+				folio: orden.folio,
+				paciente: paciente?.nombre,
+				sexo: paciente?.sexo,
+				edad: edadStr,
+				estudios: (orden.estudios_venta || []).map((estudio) => {
+					const estudioCatalogo = catalogoPorClave.get(estudio.clave_estudio);
+					return {
+						...estudio,
+						clave: estudio.clave_estudio,
+						modulo: estudioCatalogo ? "laboratorio" : "imagen",
+						...estudioCatalogo,
+					};
+				}),
+			});
+			if (!genero) {
+				mostrarNotificacion("No hay estudios de laboratorio con recipiente configurado", "error");
+			}
+		} catch (err) {
+			console.error("Error al generar etiquetas:", err);
+			mostrarNotificacion("Error al generar las etiquetas", "error");
+		}
+	};
+
 	const imprimirTicketOrden = async (orden, e) => {
 		e.stopPropagation();
 		if (!orden) return;
@@ -695,6 +749,7 @@ const EditarSolicitud = () => {
 				formaPago: orden.forma_pago || "efectivo",
 				vendedor,
 			});
+			await imprimirEtiquetasOrden(orden);
 		} catch (err) {
 			console.error("Error al generar ticket:", err);
 			mostrarNotificacion("Error al generar el ticket", "error");
@@ -786,7 +841,7 @@ const EditarSolicitud = () => {
 												<td>
 													<button
 														className="btn-accion-orden"
-														onClick={(e) => e.stopPropagation()}>
+														onClick={(e) => imprimirEtiquetasOrden(orden, e)}>
 														<img
 															src={imprimirIcono}
 															alt="Etiquetas"
