@@ -7,6 +7,7 @@ const mockDoc = {
 	addImage: jest.fn(),
 	addPage: jest.fn(),
 	output: jest.fn(() => new Blob()),
+	setCharSpace: jest.fn(),
 	setFont: jest.fn(),
 	setFontSize: jest.fn(),
 	text: jest.fn(),
@@ -103,13 +104,15 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 			'0708260010',
 			expect.objectContaining({
 				format: 'CODE128',
-				width: 5,
+				width: 4,
 				height: 105,
-				fontSize: 28,
-				textMargin: 3,
+				displayValue: false,
+				margin: 0,
 			}),
 		);
-		expect(mockDoc.addImage).toHaveBeenCalledWith('barcode', 'PNG', 2, 8, 46, 19);
+		expect(mockDoc.addImage).toHaveBeenCalledWith('barcode', 'PNG', 4, 7.2, 42, 15);
+		expect(mockDoc.setCharSpace).toHaveBeenCalledWith(1.2);
+		expect(mockDoc.text).toHaveBeenCalledWith('0708260010', 25, 24.8, { align: 'center' });
 		expect(mockDoc.text).toHaveBeenCalledWith(
 			'ALVAREZ GONZALEZ JOSE',
 			25,
