@@ -4585,10 +4585,14 @@ const VisorDicom = () => {
 	const aplicarPlantillaSubida = (plantilla) => {
 		setPlantillaSeleccionada(plantilla);
 
+		const extensionImagen = /\.(png|jpe?g|webp)(\?|#|$)/i.test(plantilla.archivo_url || "");
+
 		if (plantilla.membrete_base64?.startsWith("data:image/")) {
 			setMembreteReporteSrc(plantilla.membrete_base64);
-		} else if (plantilla.archivo_url && plantilla.mime_type?.startsWith("image/")) {
+		} else if (plantilla.archivo_url && (plantilla.mime_type?.startsWith("image/") || extensionImagen)) {
 			setMembreteReporteSrc(plantilla.archivo_url);
+		} else {
+			setMembreteReporteSrc(`data:image/jpeg;base64,${MEMBRETE_B64}`);
 		}
 
 		const contenido = plantilla.contenido_html || "";

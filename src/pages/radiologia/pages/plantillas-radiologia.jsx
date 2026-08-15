@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 import { supabase } from '../../../lib/supabase-client';
 import { useAuth } from '../../../context/auth-context';
 import { useBusquedaPersistente } from '../../../hooks/use-busqueda-persistente';
@@ -40,18 +41,66 @@ const formInicial = {
   categoria: 'Radiologia',
 };
 
-const archivoABase64 = (archivo) =>
-  new Promise((resolve, reject) => {
-    if (!archivo || !archivo.type?.startsWith('image/')) {
-      resolve(null);
-      return;
-    }
+const EXTENSIONES_IMAGEN = ['png', 'jpg', 'jpeg', 'webp'];
+const MIME_POR_EXTENSION_IMAGEN = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+  webp: 'image/webp',
+};
 
+const esImagenPorExtension = (archivo) => {
+  const extension = archivo?.name?.split('.').pop()?.toLowerCase();
+  return EXTENSIONES_IMAGEN.includes(extension);
+};
+
+const esDocx = (archivo) =>
+  archivo?.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+  archivo?.name?.toLowerCase().endsWith('.docx');
+
+const blobADataUrl = (blob) =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(archivo);
+    reader.readAsDataURL(blob);
   });
+
+// Un .docx es un zip; el membrete suele estar como la primera imagen en word/media/.
+const extraerImagenDeDocx = async (archivo) => {
+  const zip = await JSZip.loadAsync(archivo);
+  const rutasImagenes = Object.keys(zip.files)
+    .filter((ruta) => ruta.startsWith('word/media/') && /\.(png|jpe?g|gif|bmp)$/i.test(ruta))
+    .sort();
+
+  if (rutasImagenes.length === 0) return null;
+
+  const ruta = rutasImagenes[0];
+  const extension = ruta.split('.').pop().toLowerCase();
+  const mime = MIME_POR_EXTENSION_IMAGEN[extension] || 'image/jpeg';
+  const blob = await zip.files[ruta].async('blob');
+
+  return blobADataUrl(blob.type ? blob : new Blob([blob], { type: mime }));
+};
+
+const archivoABase64 = async (archivo) => {
+  if (!archivo) return null;
+
+  const esImagen = archivo.type?.startsWith('image/') || (!archivo.type && esImagenPorExtension(archivo));
+  if (esImagen) return blobADataUrl(archivo);
+
+  if (esDocx(archivo)) {
+    try {
+      return await extraerImagenDeDocx(archivo);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
 
 const formatearFecha = (fecha) => {
   if (!fecha) return 'Sin fecha';
@@ -233,8 +282,19 @@ const PlantillasRadiologia = () => {
 
     setGuardando(true);
 
+    const MIME_POR_EXTENSION = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      webp: 'image/webp',
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+
     try {
       const extension = archivo.name.split('.').pop() || 'png';
+      const mimeType = archivo.type || MIME_POR_EXTENSION[extension.toLowerCase()] || '';
       const nombreSeguro = formData.nombre
         .trim()
         .toLowerCase()
@@ -249,7 +309,7 @@ const PlantillasRadiologia = () => {
         .upload(archivoPath, archivo, {
           cacheControl: '3600',
           upsert: false,
-          contentType: archivo.type,
+          contentType: mimeType,
         });
 
       if (uploadError) throw uploadError;
@@ -267,7 +327,7 @@ const PlantillasRadiologia = () => {
         visibilidad: 'organizacion',
         archivo_url: publicData?.publicUrl || null,
         archivo_path: archivoPath,
-        mime_type: archivo.type,
+        mime_type: mimeType,
         membrete_base64: membreteBase64,
         creado_por: user.id,
         creado_por_empleado: empleadoData?.id_empleado || null,
