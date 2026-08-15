@@ -636,6 +636,7 @@ const NuevoPaciente = () => {
 				cambio: cambioVenta,
 				formaPago,
 				observaciones,
+				vendedor: empleadoData?.nombre || getPrimerNombre(),
 			});
 
 			alert(

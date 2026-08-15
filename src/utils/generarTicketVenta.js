@@ -37,11 +37,11 @@ const generarBarcode = (folio) => {
 	const canvas = document.createElement('canvas');
 	JsBarcode(canvas, folio, {
 		format: 'CODE128',
-		width: 3,
-		height: 55,
+		width: 5,
+		height: 90,
 		displayValue: true,
-		fontSize: 14,
-		margin: 4,
+		fontSize: 22,
+		margin: 6,
 		background: '#ffffff',
 		lineColor: '#000000',
 	});
@@ -108,12 +108,12 @@ export const generarTicketVenta = async (datosTicket) => {
 		pdf.text(l, W / 2, y, { align: 'center' });
 		y += 3.5;
 	});
-	y += 2;
+	y += 1;
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(7);
 	pdf.text('Teléfono: 3222256008', W / 2, y, { align: 'center' });
-	y += 4;
+	y += 7;
 	pdf.text('Descarga de Resultados:', W / 2, y, { align: 'center' });
 	y += 4;
 	pdf.setFont('helvetica', 'bold');
@@ -123,7 +123,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		W - mg * 2,
 	);
 	urlLines.forEach((l) => { pdf.text(l, W / 2, y, { align: 'center' }); y += 4; });
-	y += 1;
+	y += 4;
 
 	const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha;
 	const fechaStr = fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -135,9 +135,9 @@ export const generarTicketVenta = async (datosTicket) => {
 	y += 4.5;
 
 	pdf.setFont('helvetica', 'bold');
-	pdf.setFontSize(8);
+	pdf.setFontSize(10);
 	pdf.text(`Cliente: ${(paciente || '').toUpperCase()}`, W / 2, y, { align: 'center' });
-	y += 4.5;
+	y += 5;
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(8);
@@ -146,12 +146,12 @@ export const generarTicketVenta = async (datosTicket) => {
 
 	pdf.setFont('helvetica', 'bold');
 	pdf.setFontSize(11);
-	pdf.text(`Folio: ${folio}`, W / 2, y, { align: 'center' }); y += 5;
+	pdf.text(`Folio: ${folio}`, W / 2, y, { align: 'center' }); y += 5.5;
 
 	pdf.setFont('helvetica', 'normal');
-	pdf.setFontSize(8);
-	pdf.text(`Email: ${email || ''}`, W / 2, y, { align: 'center' }); y += 4;
-	pdf.text(`Telefono: ${telefono || ''}`, W / 2, y, { align: 'center' }); y += 5;
+	pdf.setFontSize(10);
+	pdf.text(`Email: ${email || ''}`, W / 2, y, { align: 'center' }); y += 5;
+	pdf.text(`Telefono: ${telefono || ''}`, W / 2, y, { align: 'center' }); y += 5.5;
 
 	try {
 		const barcodeImg = generarBarcode(folio);
@@ -212,7 +212,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	pdf.setFontSize(8);
 
 	const filaTotal = (label, valor) => {
-		pdf.text(label, W - mg - 20, y, { align: 'right' });
+		pdf.text(label, W - mg - 14, y, { align: 'right' });
 		pdf.text(valor, W - mg, y, { align: 'right' });
 		y += 4.5;
 	};
