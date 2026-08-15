@@ -354,7 +354,7 @@ const NuevoPaciente = () => {
 			return;
 		}
 
-		if (!empresaActual?.nombre) {
+		if (!empresaActual?.id_empresa || !empresaActual.nombre) {
 			alert("Seleccione una empresa antes de registrar la venta");
 			return;
 		}
@@ -414,6 +414,7 @@ const NuevoPaciente = () => {
 					id_doctor:
 						doctorSeleccionado?.id_doctor || doctorSeleccionado?.id_empleado || null,
 					id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
+					id_empresa: empresaActual.id_empresa,
 					id_empleado: empleado?.id_empleado || null,
 					fecha_venta: fechaMexico.toISOString(),
 					subtotal: subtotal,

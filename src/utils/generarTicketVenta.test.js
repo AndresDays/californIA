@@ -17,7 +17,11 @@ jest.mock('../assets/logoCDC.jpg', () => {
 	throw new Error('El logo no forma parte de esta prueba');
 });
 
-import { generarTicketVenta, resolverRfcTicketEmpresa } from './generarTicketVenta';
+import {
+	generarTicketVenta,
+	resolverEmpresaTicketReimpresion,
+	resolverRfcTicketEmpresa,
+} from './generarTicketVenta';
 
 describe('resolverRfcTicketEmpresa', () => {
 	test.each([
@@ -33,6 +37,16 @@ describe('resolverRfcTicketEmpresa', () => {
 		expect(() => resolverRfcTicketEmpresa(empresa)).toThrow(
 			'No existe RFC configurado para la empresa seleccionada',
 		);
+	});
+});
+
+describe('resolverEmpresaTicketReimpresion', () => {
+	test.each([
+		['CENTRAL DIAGNOSTICA CALIFORNIA', 'CENTRAL DIAGNOSTICA CALIFORNIA'],
+		['CENTRO DE DIAGNOSTICO POR IMAGEN PVR', 'CENTRO DE DIAGNOSTICO POR IMAGEN PVR'],
+		[null, 'CDC'],
+	])('conserva el emisor de una reimpresion o usa CDC para historicos', (empresa, esperado) => {
+		expect(resolverEmpresaTicketReimpresion(empresa)).toBe(esperado);
 	});
 });
 
