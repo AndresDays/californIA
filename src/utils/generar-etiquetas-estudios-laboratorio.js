@@ -24,12 +24,10 @@ const crearBarcode = (folio) => {
 	const canvas = document.createElement('canvas');
 	JsBarcode(canvas, String(folio), {
 		format: 'CODE128',
-		width: 5,
+		width: 4,
 		height: 105,
-		displayValue: true,
-		fontSize: 28,
-		textMargin: 3,
-		margin: 6,
+		displayValue: false,
+		margin: 0,
 	});
 	return canvas.toDataURL('image/png');
 };
@@ -67,9 +65,14 @@ export const generarEtiquetasEstudiosLaboratorio = ({
 		pdf.setFont('helvetica', 'normal');
 		pdf.setFontSize(6.8);
 		pdf.text(encabezado, 25, 5.8, { align: 'center', maxWidth: 46 });
-		pdf.addImage(barcode, 'PNG', 2, 8, 46, 19);
+		pdf.addImage(barcode, 'PNG', 4, 7.2, 42, 15);
+		pdf.setFont('helvetica', 'normal');
+		pdf.setFontSize(8.5);
+		pdf.setCharSpace(1.2);
+		pdf.text(String(folio), 25, 24.8, { align: 'center' });
+		pdf.setCharSpace(0);
 		pdf.setFontSize(7.5);
-		pdf.text(grupo.claves.join(', '), 4, 28, { maxWidth: 42 });
+		pdf.text(grupo.claves.join(', '), 4, 29, { maxWidth: 42 });
 	});
 
 	const url = URL.createObjectURL(pdf.output('blob'));
