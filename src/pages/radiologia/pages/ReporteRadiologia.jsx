@@ -6,6 +6,10 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import {
+	crearBloquesReporteParaImprimir,
+	dividirReporteEnPaginas,
+} from "../../../utils/reporte-radiologia-paginado";
 import imprimirIcon from "../../../assets/imprimirIcono.png";
 import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
 import "./ReporteRadiologia.css";
@@ -90,6 +94,7 @@ const ReporteRadiologia = () => {
 	const [notif, setNotif] = useState(null);
 	const [qrUrl, setQrUrl] = useState("");
 	const [membreteSrc, setMembreteSrc] = useState(`data:image/jpeg;base64,${MEMBRETE_B64}`);
+	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial.replace(/\n/g, "<br>"));
 	const encabezadoRef = useRef(null);
 	const arrastreFirmaRef = useRef(null);
 	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, datosX: 0, datosY: 0 });
@@ -241,12 +246,37 @@ const ReporteRadiologia = () => {
 		else showNotif(borrador ? "Borrador guardado" : "Reporte guardado", "ok");
 	};
 
-	const imprimir = () => window.print();
+	const imprimir = () => {
+		setReporteParaImprimir(editorRef.current?.innerHTML || "");
+		window.setTimeout(() => window.print(), 0);
+	};
 
 	const execFmt = (cmd, arg) => {
 		editorRef.current?.focus();
 		document.execCommand(cmd, false, arg ?? null);
 	};
+
+	const paginasImpresion = dividirReporteEnPaginas(
+		crearBloquesReporteParaImprimir(reporteParaImprimir),
+		330,
+	);
+	const renderPaginaImpresion = (pagina, indice) => (
+		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
+			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
+			<div className="rr-contenido rr-contenido-impresion">
+				<div className="rr-encabezado-impresion">
+					<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
+					{renderDatosPaciente()}
+				</div>
+				<div className="rr-editor rr-editor-impresion">
+					{pagina.map((bloque, bloqueIndice) => (
+						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
+					))}
+				</div>
+				{renderFirma()}
+			</div>
+		</div>
+	);
 
 	return (
 		<div className="rr-root">
@@ -390,7 +420,7 @@ const ReporteRadiologia = () => {
 			</div>
 
 			<div className="rr-page-wrapper">
-				<div className="rr-page">
+				<div className="rr-page rr-page-editor">
 					<img
 						className="rr-membrete"
 						src={membreteSrc}
@@ -403,17 +433,21 @@ const ReporteRadiologia = () => {
 							{renderDatosPaciente()}
 						</div>
 
-						<div
-							ref={editorRef}
+					<div
+						ref={editorRef}
 							className="rr-editor"
 							contentEditable
 							suppressContentEditableWarning
-							spellCheck={false}
+						spellCheck={false}
+						onInput={(event) => setReporteParaImprimir(event.currentTarget.innerHTML)}
 							data-placeholder="Escribir reporte aquí..."
 						/>
 
-						{renderFirma()}
-					</div>
+					{renderFirma()}
+				</div>
+			</div>
+				<div className="rr-print-pages">
+					{paginasImpresion.map(renderPaginaImpresion)}
 				</div>
 			</div>
 

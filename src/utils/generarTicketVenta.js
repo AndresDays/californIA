@@ -1,6 +1,7 @@
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
 import { resolverEmpresaOperativaCatalogo } from './cita-nuevo-paciente';
 import { crearUrlPortalResultados } from './portal-resultados';
 
@@ -86,6 +87,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
 
 	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
+	pdf.setProperties({ title: `Ticket ${folio}` });
 	const W = 80;
 	const mg = 5;
 	let y = 6;
@@ -267,5 +269,8 @@ export const generarTicketVenta = async (datosTicket) => {
 	pieLines.forEach((l) => { pdf.text(l, mg, y); y += 3.2; });
 
 	const blob = pdf.output('blob');
-	window.open(URL.createObjectURL(blob), '_blank');
+	abrirPdfEnPestana({
+		url: URL.createObjectURL(blob),
+		titulo: `Ticket ${folio}`,
+	});
 };

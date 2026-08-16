@@ -163,12 +163,16 @@ body {
 	display: flex;
 	justify-content: center;
 	padding: 2rem 1rem 5rem;
+	flex-direction: column;
+	align-items: center;
+	gap: 2rem;
 }
 
 .rr-page {
 	position: relative;
 	width: 794px;
-	min-height: 1123px;
+	height: 1123px;
+	overflow: hidden;
 	background: #fff;
 	color: #000;
 	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
@@ -192,7 +196,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	gap: 1.05rem;
-	min-height: 1123px;
+	height: 1123px;
 }
 
 .rr-fecha-encabezado {
@@ -299,12 +303,17 @@ body {
 	margin-bottom: -2px;
 }
 
-.rr-firma-elemento, .rr-firma-datos-elemento { position: absolute; min-width: 150px; resize: both; overflow: auto; cursor: grab; border: 1px dashed transparent; text-align: center; }
+.rr-firma-elemento, .rr-firma-datos-elemento { position: absolute; min-width: 150px; overflow: hidden; cursor: grab; border: 1px dashed transparent; text-align: center; }
 .rr-firma-elemento:hover, .rr-firma-datos-elemento:hover { border-color: #2388b3; }
 .rr-firma-elemento:active, .rr-firma-datos-elemento:active { cursor: grabbing; }
 .rr-firma-elemento { width: 320px; height: 130px; }
 .rr-firma-datos-elemento { width: 330px; min-height: 62px; }
 .rr-firma-elemento .rr-firma-img { width: 100%; height: 100%; max-width: none; object-fit: contain; filter: none !important; }
+
+.rr-print-pages { display: none; }
+.rr-contenido-impresion { gap: 0; }
+.rr-editor-impresion { flex: 1; min-height: 0; margin-top: 2.1rem; overflow: hidden; }
+.rr-editor-impresion > div { break-inside: avoid; }
 
 .rr-firma-placeholder {
 	width: 170px;
@@ -435,9 +444,18 @@ body {
 		background: #fff;
 	}
 
+	.rr-page-editor { display: none; }
+	.rr-print-pages { display: block; }
+
 	.rr-page {
 		box-shadow: none;
 		width: 210mm;
+		height: 297mm;
 		min-height: 297mm;
+		break-after: page;
+		page-break-after: always;
 	}
+
+	.rr-print-page:last-child { break-after: auto; page-break-after: auto; }
+	.rr-firma-elemento, .rr-firma-datos-elemento { border: 0; overflow: hidden; }
 }

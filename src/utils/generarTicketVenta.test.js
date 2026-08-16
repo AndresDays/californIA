@@ -6,6 +6,7 @@ const mockDoc = {
 	setFont: jest.fn(),
 	setFontSize: jest.fn(),
 	setLineWidth: jest.fn(),
+	setProperties: jest.fn(),
 	splitTextToSize: jest.fn((texto) => [texto]),
 	text: jest.fn(),
 };
@@ -87,5 +88,7 @@ describe('generarTicketVenta', () => {
 			expect.any(Number),
 			expect.objectContaining({ align: 'center' }),
 		);
+		expect(mockDoc.setProperties).toHaveBeenCalledWith({ title: 'Ticket V-001' });
+		expect(window.open).toHaveBeenCalledWith('', '_blank');
 	});
 });
