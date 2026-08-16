@@ -104,7 +104,7 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 			'0708260010',
 			expect.objectContaining({
 				format: 'CODE128',
-				width: 4,
+				width: 2,
 				height: 105,
 				displayValue: false,
 				margin: 0,
