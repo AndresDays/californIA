@@ -5117,7 +5117,7 @@ const VisorDicom = () => {
 									onEliminarEstadoVista={() =>
 										eliminarEstadoVista(imagenesDicomPorId[panelImageIds[i]])
 									}
-									onGuardarVentanaSerie={panelActivo === i && esSerieCtRm
+									onGuardarVentanaSerie={panelActivo === i && Boolean(serieActiva?.id)
 										? (voi) => guardarVentanaSerie(serieActiva, voi)
 										: null}
 									stackImageIds={imageIds}
@@ -5134,7 +5134,7 @@ const VisorDicom = () => {
 									rectExterna={panelActivo === i ? rectanguloGlobal : false}
 									bidiExterna={panelActivo === i ? bidiGlobal : false}
 									presetVentanaId={panelActivo === i ? presetsVentanaPorSerie[serieActivaId] : null}
-									usarVentanaSerie={panelActivo === i && esSerieCtRm}
+									usarVentanaSerie={panelActivo === i && Boolean(serieActiva?.id)}
 									onShortcutTool={handleShortcutTool}
 									onCapturaOk={() =>
 										showNotif("Captura copiada al portapapeles", "exito")

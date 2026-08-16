@@ -47,6 +47,7 @@ export const generarEtiquetasEstudiosLaboratorio = ({
 	}
 
 	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
+	pdf.setProperties({ title: `Etiqueta ${folio}` });
 	const barcode = crearBarcode(folio);
 
 	grupos.forEach((grupo, indice) => {
@@ -72,13 +73,13 @@ export const generarEtiquetasEstudiosLaboratorio = ({
 		pdf.text(String(folio), 25, 24.8, { align: 'center' });
 		pdf.setCharSpace(0);
 		pdf.setFontSize(7.5);
-		pdf.text(grupo.claves.join(', '), 4, 29, { maxWidth: 42 });
+		pdf.text(grupo.claves.join(', '), 4, 27.5, { maxWidth: 42 });
 	});
 
 	const url = URL.createObjectURL(pdf.output('blob'));
-	if (ventana) ventana.location.href = url;
-	else window.open(url, '_blank');
+	abrirPdfEnPestana({ url, titulo: `Etiqueta ${folio}`, ventana });
 	return true;
 };
 import JsBarcode from 'jsbarcode';
 import jsPDF from 'jspdf';
+import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
