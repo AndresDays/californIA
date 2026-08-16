@@ -40,6 +40,7 @@ export const generarReportePdf = async ({
 	membreteSrc = null,
 	qrData = "",
 	nombreArchivo = "reporte.pdf",
+	imprimir = false,
 } = {}) => {
 	const doc = new jsPDF({ unit: "mm", format: "a4" });
 	const membrete = await cargarImagenComoDataUrl(membreteSrc);
@@ -108,6 +109,11 @@ export const generarReportePdf = async ({
 		} catch {}
 	}
 
+	if (imprimir) {
+		doc.autoPrint();
+		window.open(doc.output("bloburl"), "_blank");
+		return;
+	}
 	doc.save(nombreArchivo);
 };
 
