@@ -24,7 +24,7 @@ const crearBarcode = (folio) => {
 	const canvas = document.createElement('canvas');
 	JsBarcode(canvas, String(folio), {
 		format: 'CODE128',
-		width: 4,
+		width: 2,
 		height: 105,
 		displayValue: false,
 		margin: 0,

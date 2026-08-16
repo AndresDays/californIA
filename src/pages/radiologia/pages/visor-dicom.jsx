@@ -56,6 +56,8 @@ import ModalAsignar from "../componentes/ModalAsignar";
 import Mpr2dViewer from "../componentes/Mpr2dViewer";
 import PanelIA from "./Panelia";
 import { MEMBRETE_B64 } from "./reporte-radiologia-template";
+import JSZip from "jszip";
+import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
 import "./ReporteRadiologia.css";
 import "./VisorDicom.css";
 
@@ -288,6 +290,7 @@ const DETALLE_ITEMS = [
 ];
 
 const REPORTE_ITEMS = [
+	{ id: "imprimir", icon: descargarIcon, label: "Imprimir reporte" },
 	{ id: "nueva-pestana", icon: pestanaIcon, label: "Nueva pestaña" },
 	{ id: "plantillas", icon: formatoIcon, label: "Usar plantilla" },
 	{ id: "adjuntar", icon: clipIcon, label: "Adjuntar" },
@@ -2970,6 +2973,21 @@ const VisorDicom = () => {
 	const [membreteReporteSrc, setMembreteReporteSrc] = useState(
 		`data:image/jpeg;base64,${MEMBRETE_B64}`,
 	);
+	useEffect(() => {
+		const cargarMembreteCdc = async () => {
+			try {
+				const archivo = await fetch(cdcPlantillaUrl);
+				const zip = await JSZip.loadAsync(await archivo.arrayBuffer());
+				const imagen = zip.file("word/media/image1.jpg");
+				if (!imagen) return;
+				const base64 = await imagen.async("base64");
+				setMembreteReporteSrc(`data:image/jpeg;base64,${base64}`);
+			} catch (err) {
+				console.error("No fue posible cargar la plantilla CDC:", err);
+			}
+		};
+		cargarMembreteCdc();
+	}, []);
 	const [panelDerecho, setPanelDerecho] = useState(null);
 	const [reporteExpandido, setReporteExpandido] = useState(false);
 	const [seriesContraidas, setSeriesContraidas] = useState(false);
@@ -4226,6 +4244,10 @@ const VisorDicom = () => {
 			abrirSelectorPlantillas();
 			return;
 		}
+		if (id === "imprimir") {
+			descargarReportePdf(true);
+			return;
+		}
 		if (id === "nueva-pestana") {
 			const idEstudio = estudioId || estudioData?.id;
 			const { data: est } = await supabase
@@ -4319,7 +4341,7 @@ const VisorDicom = () => {
 		}
 	};
 
-	const descargarReportePdf = async () => {
+	const descargarReportePdf = async (imprimir = false) => {
 		const id = estudioId || estudioData?.id || "";
 		const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
 		const encabezado = obtenerEncabezadoReporte();
@@ -4333,6 +4355,7 @@ const VisorDicom = () => {
 				membreteSrc: membreteReporteSrc,
 				qrData: id ? `${window.location.origin}/visor-paciente/${id}` : "",
 				nombreArchivo: crearNombreArchivoReporte(pacienteInfo.nombre),
+				imprimir,
 			});
 		} catch (err) {
 			console.error("Error al generar PDF del reporte:", err);

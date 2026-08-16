@@ -1,10 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
+import JSZip from "jszip";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import imprimirIcon from "../../../assets/imprimirIcono.png";
+import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
 import "./ReporteRadiologia.css";
 
 let _supabase = null;
@@ -86,6 +89,10 @@ const ReporteRadiologia = () => {
 	const [guardando, setGuardando] = useState(false);
 	const [notif, setNotif] = useState(null);
 	const [qrUrl, setQrUrl] = useState("");
+	const [membreteSrc, setMembreteSrc] = useState(`data:image/jpeg;base64,${MEMBRETE_B64}`);
+	const encabezadoRef = useRef(null);
+	const arrastreFirmaRef = useRef(null);
+	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, datosX: 0, datosY: 0 });
 
 	const fechaFormateada = fechaEstudio
 		? new Date(fechaEstudio)
@@ -151,12 +158,14 @@ const ReporteRadiologia = () => {
 
 	const renderFirma = () => (
 		<div className="rr-firma-area">
-			<div className="rr-firma-bloque">
+			<div className="rr-firma-elemento" onPointerDown={iniciarArrastre("firma")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px` }}>
 				{firmaUrl ? (
 					<img className="rr-firma-img" src={firmaUrl} alt="firma" />
 				) : (
 					<div className="rr-firma-placeholder" />
 				)}
+			</div>
+			<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px` }}>
 				<p className="rr-firma-nombre">{firmaNombre}</p>
 				{firmaEspecialidad && (
 					<p className="rr-firma-dato">{firmaEspecialidad.toUpperCase()}</p>
@@ -167,11 +176,34 @@ const ReporteRadiologia = () => {
 		</div>
 	);
 
+	const iniciarArrastre = (bloque) => (event) => {
+		arrastreFirmaRef.current = { bloque, x: event.clientX, y: event.clientY, origenX: ajusteFirma[`${bloque}X`], origenY: ajusteFirma[`${bloque}Y`] };
+	};
+	const moverArrastre = (event) => {
+		const arrastre = arrastreFirmaRef.current;
+		if (arrastre) setAjusteFirma((actual) => ({ ...actual, [`${arrastre.bloque}X`]: arrastre.origenX + event.clientX - arrastre.x, [`${arrastre.bloque}Y`]: arrastre.origenY + event.clientY - arrastre.y }));
+	};
+	const terminarArrastre = () => { arrastreFirmaRef.current = null; };
+
 	useEffect(() => {
 		document.title = `Reporte - ${nombrePaciente}`;
 		if (editorRef.current && reporteInicial) {
 			editorRef.current.innerHTML = reporteInicial.replace(/\n/g, "<br>");
 		}
+	}, []);
+
+	useEffect(() => {
+		const cargarMembreteCdc = async () => {
+			try {
+				const respuesta = await fetch(cdcPlantillaUrl);
+				const zip = await JSZip.loadAsync(await respuesta.arrayBuffer());
+				const imagen = zip.file("word/media/image1.jpg");
+				if (imagen) setMembreteSrc(`data:image/jpeg;base64,${await imagen.async("base64")}`);
+			} catch (error) {
+				console.error("No fue posible cargar la plantilla CDC:", error);
+			}
+		};
+		cargarMembreteCdc();
 	}, []);
 
 	const showNotif = (msg, tipo = "ok") => {
@@ -361,13 +393,15 @@ const ReporteRadiologia = () => {
 				<div className="rr-page">
 					<img
 						className="rr-membrete"
-						src={`data:image/jpeg;base64,${MEMBRETE_B64}`}
+						src={membreteSrc}
 						alt="membrete"
 					/>
 
 					<div className="rr-contenido">
-						<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
-						{renderDatosPaciente()}
+						<div ref={encabezadoRef} contentEditable suppressContentEditableWarning spellCheck={false}>
+							<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
+							{renderDatosPaciente()}
+						</div>
 
 						<div
 							ref={editorRef}
@@ -386,7 +420,7 @@ const ReporteRadiologia = () => {
 			{notif && <div className={`rr-notif ${notif.tipo}`}>{notif.msg}</div>}
 
 			<div className="rr-toolbar-print">
-				<button onClick={imprimir}>🖨 Imprimir</button>
+				<button onClick={imprimir}><img src={imprimirIcon} alt="" /> Imprimir</button>
 				<button onClick={() => window.close()}>✕ Cerrar</button>
 			</div>
 		</div>
