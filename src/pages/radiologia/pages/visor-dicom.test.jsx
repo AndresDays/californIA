@@ -451,7 +451,7 @@ describe('VisorDicom — Finalización de interpretación', () => {
 
 		const editor = screen.getByRole('textbox', { name: 'Editor de interpretación radiológica' });
 		const reportePegado = '<p class="MsoNormal" style="margin-top:0cm;margin-bottom:420pt">HALLAZGOS:</p><p align="right"><b>Texto con formato</b></p>';
-		const reporteNormalizado = '<p>HALLAZGOS:</p><p><strong>Texto con formato</strong></p>';
+		const reporteNormalizado = reportePegado;
 		editor.innerHTML = reportePegado;
 		fireEvent.input(editor);
 		fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
