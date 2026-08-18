@@ -6,9 +6,12 @@ import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-v
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { supabase } from "../../lib/supabase-client";
 import {
+	construirCortesDesdeTransacciones,
 	construirCortesEmpleados,
 	construirTransaccionesCorte,
+	construirTransaccionesCortePorArea,
 } from "../../utils/cortes-admin";
+import { GRUPOS_REPORTE_POR_AREA } from "../../utils/reporte-ventas";
 import { construirDocumentoCortes } from "../../utils/cortes-dia-print";
 import {
 	formatearMontoCajaPorForma,
@@ -44,6 +47,7 @@ const CortesDia = () => {
 	const [fecha, setFecha] = useFechaPersistente("cortes-dia", hoyMexico());
 	const [sucursalSeleccionada, setSucursalSeleccionada] = useState("");
 	const [formaPagoSeleccionada, setFormaPagoSeleccionada] = useState("");
+	const [areaImpresionSeleccionada, setAreaImpresionSeleccionada] = useState("laboratorio");
 	const [movimientos, setMovimientos] = useState([]);
 	const [cargandoMovimientos, setCargandoMovimientos] = useState(false);
 	const [errorMovimientos, setErrorMovimientos] = useState("");
@@ -155,18 +159,29 @@ const CortesDia = () => {
 		const sucursal = sucursales.find(
 			(item) => String(item.id_sucursal) === String(sucursalSeleccionada),
 		)?.nombre || "Todas las sucursales";
-		const ventana = window.open("", "_blank");
-		if (!ventana) return;
+		const empleados = new Set(cortesAImprimir.map((corte) => String(corte.empleadoKey)));
+		const transaccionesPorArea = construirTransaccionesCortePorArea({ movimientos, ventas });
 
-		ventana.document.write(construirDocumentoCortes({
-			fecha,
-			sucursal,
-			cortes: cortesAImprimir,
-			transacciones,
-		}));
-		ventana.document.close();
-		ventana.focus();
-		ventana.print();
+		GRUPOS_REPORTE_POR_AREA.filter((grupo) => grupo.id === areaImpresionSeleccionada).forEach((grupo) => {
+			const transaccionesGrupo = (transaccionesPorArea[grupo.id] || []).filter((tx) =>
+				empleados.has(String(tx.empleadoKey)),
+			);
+			if (transaccionesGrupo.length === 0) return;
+			const cortesGrupo = construirCortesDesdeTransacciones(transaccionesGrupo);
+			const ventana = window.open("", "_blank");
+			if (!ventana) return;
+
+			ventana.document.write(construirDocumentoCortes({
+				fecha,
+				sucursal,
+				cortes: cortesGrupo,
+				transacciones: transaccionesGrupo,
+				titulo: `Corte de Caja — ${grupo.nombre}`,
+			}));
+			ventana.document.close();
+			ventana.focus();
+			ventana.print();
+		});
 	};
 
 	const getPrimerNombre = (nombreCompleto) =>
@@ -237,6 +252,9 @@ const CortesDia = () => {
 									{sucursal.nombre}
 								</option>
 							))}
+						</select>
+						<select value={areaImpresionSeleccionada} onChange={(e) => setAreaImpresionSeleccionada(e.target.value)}>
+							{GRUPOS_REPORTE_POR_AREA.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
 						</select>
 						<select
 							value={formaPagoSeleccionada}

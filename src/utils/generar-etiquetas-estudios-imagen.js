@@ -3,7 +3,10 @@ import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
 
 export const agruparEstudiosImagen = (estudios = []) =>
 	estudios
-		.filter((estudio) => estudio?.modulo === 'imagen')
+		.filter((estudio) => {
+			const area = String(estudio?.area || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+			return !area.includes('laboratorio') && estudio?.modulo !== 'laboratorio';
+		})
 		.map((estudio) => String(estudio.descripcion || estudio.descripcion_estudio || '').trim())
 		.filter(Boolean);
 

@@ -82,6 +82,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		cambio,
 		formaPago,
 		vendedor,
+		ventana,
 	} = datosTicket;
 	const rfcEmpresa = resolverRfcTicketEmpresa(empresa);
 	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
@@ -272,5 +273,6 @@ export const generarTicketVenta = async (datosTicket) => {
 	abrirPdfEnPestana({
 		url: URL.createObjectURL(blob),
 		titulo: `Ticket ${folio}`,
+		ventana,
 	});
 };

@@ -14,7 +14,9 @@ import {
 	calcularSaldoVentaReporte,
 	filtrarVentasReporte,
 	formatoMonedaReporte,
+	GRUPOS_REPORTE_POR_AREA,
 	obtenerIdSucursalVenta,
+	partirVentasPorArea,
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
@@ -41,6 +43,7 @@ const ReporteVentas = () => {
 	const [doctorSeleccionado, setDoctorSeleccionado] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
+	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState("laboratorio");
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const {
@@ -103,6 +106,34 @@ const ReporteVentas = () => {
 		[ventas],
 	);
 	const maxVal = Math.max(...ventasPorDia.map((item) => item.total), 1);
+	const ventasPorArea = useMemo(
+		() => {
+			const estudioBuscado = buscarEstudio.trim().toLowerCase();
+			return Object.fromEntries(
+				Object.entries(partirVentasPorArea(ventasFiltradas)).map(([grupo, ventasGrupo]) => [
+					grupo,
+					ventasGrupo.filter((venta) => {
+						if (
+							areaSeleccionada &&
+							!venta.estudios_venta?.some((estudio) => estudio.area === areaSeleccionada)
+						) return false;
+						if (
+							estudioBuscado &&
+							!venta.estudios_venta?.some((estudio) =>
+								[estudio.clave_estudio, estudio.descripcion_estudio]
+									.filter(Boolean)
+									.join(" ")
+									.toLowerCase()
+									.includes(estudioBuscado),
+							)
+						) return false;
+						return true;
+					}),
+				]),
+			);
+		},
+		[ventasFiltradas, areaSeleccionada, buscarEstudio],
+	);
 
 	const setPeriodo = (periodo) => {
 		setPeriodoGrafica(periodo);
@@ -119,8 +150,8 @@ const ReporteVentas = () => {
 	};
 
 	const colsVentas = ["Folio", "Fecha", "Paciente", "Estudios", "Vendedor", "Forma Pago", "Total", "Pagado", "Saldo", "Sucursal"];
-	const filasVentas = () =>
-		ventasFiltradas.map((v) => {
+	const filasVentas = (ventasAExportar) =>
+		ventasAExportar.map((v) => {
 			const saldo = calcularSaldoVentaReporte(v);
 			return [
 				v.folio || v.id_venta || "",
@@ -137,16 +168,28 @@ const ReporteVentas = () => {
 		});
 
 	const descargarExcel = () => {
-		exportarExcel(colsVentas, filasVentas(), `reporte-ventas-${fechaInicial}-${fechaFinal}`);
+		GRUPOS_REPORTE_POR_AREA.filter((grupo) => grupo.id === areaSalidaSeleccionada).forEach((grupo) => {
+			const ventasGrupo = ventasPorArea[grupo.id] || [];
+			if (ventasGrupo.length === 0) return;
+			exportarExcel(
+				colsVentas,
+				filasVentas(ventasGrupo),
+				`reporte-ventas-${fechaInicial}-${fechaFinal}-${grupo.archivo}`,
+			);
+		});
 	};
 
 	const descargarPDF = () => {
-		exportarPDF(
-			`Reporte de Ventas  ${fechaInicial} – ${fechaFinal}`,
-			colsVentas,
-			filasVentas(),
-			`reporte-ventas-${fechaInicial}-${fechaFinal}`,
-		);
+		GRUPOS_REPORTE_POR_AREA.filter((grupo) => grupo.id === areaSalidaSeleccionada).forEach((grupo) => {
+			const ventasGrupo = ventasPorArea[grupo.id] || [];
+			if (ventasGrupo.length === 0) return;
+			exportarPDF(
+				`Reporte de Ventas ${fechaInicial} – ${fechaFinal} — ${grupo.nombre}`,
+				colsVentas,
+				filasVentas(ventasGrupo),
+				`reporte-ventas-${fechaInicial}-${fechaFinal}-${grupo.archivo}`,
+			);
+		});
 	};
 
 	const renderReporte = () => {
@@ -253,6 +296,9 @@ const ReporteVentas = () => {
 				<div className="rv-header">
 					<h1 className="rv-title">Reporte de Ventas</h1>
 					<div className="rv-header-actions">
+						<select value={areaSalidaSeleccionada} onChange={(e) => setAreaSalidaSeleccionada(e.target.value)} className="rv-btn-sm">
+							{GRUPOS_REPORTE_POR_AREA.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
+						</select>
 						<button className="rv-btn-sm" onClick={descargarExcel}>
 							Excel
 						</button>
