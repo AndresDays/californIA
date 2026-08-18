@@ -1065,7 +1065,7 @@
 
 .vd-doc-save-group {
 	display: grid;
-	grid-template-columns: 1fr 42px;
+	grid-template-columns: max-content max-content 42px;
 	overflow: hidden;
 	border-radius: 19px;
 	background: linear-gradient(135deg, #255bd7, #163b98);
@@ -1084,6 +1084,12 @@
 .vd-doc-save-group button + button {
 	border-left: 1px solid rgba(255, 255, 255, 0.14);
 	padding: 0;
+}
+
+.vd-doc-save-group .vd-doc-complete-button {
+	padding: 0 0.9rem;
+	background: linear-gradient(135deg, #16834c, #0f6137);
+	font-weight: 700;
 }
 
 .vd-template-modal-overlay {

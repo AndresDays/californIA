@@ -5,6 +5,7 @@ import {
   buildStudyRow,
   findBestPendingStudyMatch,
   getTag,
+  hasSameNameTokens,
   normalizeModality,
   parseDicomPatientName,
   syncStudy,
@@ -100,6 +101,11 @@ test("parses DICOM patient names and builds patient rows", () => {
   });
 });
 
+test("matches patient names even when DICOM sends given names before surnames", () => {
+  expect(hasSameNameTokens("Diaz Cortes Juan Andres", "JUAN ANDRES DIAZ CORTES")).toBe(true);
+  expect(hasSameNameTokens("Juan Andres Diaz Cortes", "JUAN ANDRES DIAZ")).toBe(false);
+});
+
 test("builds an image row compatible with the viewer schema", () => {
   expect(
     buildImageRow({
@@ -171,6 +177,27 @@ test("selects the only pending radiology study matching patient, modality, and d
       },
     }),
   ).toBe(10);
+});
+
+test("matches pending studies when app date is UTC and DICOM date is Mexico local time", () => {
+  expect(
+    findBestPendingStudyMatch({
+      candidates: [
+        {
+          id_estudio: 185,
+          tipo_estudio: "US",
+          descripcion: "U.S. HEPATO VESICULAR",
+          fecha_estudio: "2026-08-18T00:26:41",
+          storage_path: null,
+        },
+      ],
+      studyRow: {
+        tipo_estudio: "US",
+        descripcion: "US",
+        fecha_estudio: "2026-08-17T19:02:20",
+      },
+    }),
+  ).toBe(185);
 });
 
 test("links a single modality/date candidate even when incoming DICOM description is generic", () => {
@@ -250,6 +277,27 @@ test("does not auto-link when more than one pending radiology study is compatibl
   ).toBeNull();
 });
 
+test("links by patient day without requiring the same study hour or description", () => {
+  expect(
+    findBestPendingStudyMatch({
+      candidates: [
+        {
+          id_estudio: 185,
+          tipo_estudio: "US",
+          descripcion: "U.S. HEPATO VESICULAR",
+          fecha_estudio: "2026-08-18T00:26:41",
+          storage_path: null,
+        },
+      ],
+      studyRow: {
+        tipo_estudio: "US",
+        descripcion: "US",
+        fecha_estudio: "2026-08-17T19:02:20",
+      },
+    }),
+  ).toBe(185);
+});
+
 test("syncStudy links incoming DICOM to a pending radiology card instead of creating a new one", async () => {
   const orthanc = {
     studyTags: jest.fn().mockResolvedValue({
@@ -274,7 +322,10 @@ test("syncStudy links incoming DICOM to a pending radiology card instead of crea
   const supabase = {
     upsertPatient: jest.fn().mockResolvedValue(25),
     findStudyIdByUid: jest.fn().mockResolvedValue(null),
-    findPendingStudyForDicom: jest.fn().mockResolvedValue(16),
+    findPendingStudyForDicom: jest.fn().mockResolvedValue({
+      id_estudio: 16,
+      fecha_estudio: "2026-07-14T22:26:07",
+    }),
     updateStudyFromDicom: jest.fn().mockResolvedValue(undefined),
     updateStudyPatient: jest.fn().mockResolvedValue(undefined),
     createStudy: jest.fn(),
