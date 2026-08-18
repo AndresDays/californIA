@@ -1,3 +1,5 @@
+import { GRUPOS_REPORTE_POR_AREA, partirVentasPorArea } from "./reporte-ventas";
+
 const numero = (valor) => {
 	const monto = Number.parseFloat(valor);
 	return Number.isFinite(monto) ? monto : 0;
@@ -63,6 +65,10 @@ export const construirTransaccionesCorte = ({ movimientos = [], ventas = [] } = 
 
 export const construirCortesEmpleados = ({ movimientos = [], ventas = [] } = {}) => {
 	const transacciones = construirTransaccionesCorte({ movimientos, ventas });
+	return construirCortesDesdeTransacciones(transacciones);
+};
+
+export const construirCortesDesdeTransacciones = (transacciones = []) => {
 	const agrupados = new Map();
 
 	transacciones.forEach((tx) => {
@@ -88,4 +94,51 @@ export const construirCortesEmpleados = ({ movimientos = [], ventas = [] } = {})
 	});
 
 	return [...agrupados.values()].sort((a, b) => b.total - a.total);
+};
+
+const redondearMoneda = (valor) => Math.round((numero(valor) + Number.EPSILON) * 100) / 100;
+
+export const construirTransaccionesCortePorArea = ({ movimientos = [], ventas = [] } = {}) => {
+	const ventasPorArea = partirVentasPorArea(ventas);
+	const fragmentosPorVenta = new Map();
+	GRUPOS_REPORTE_POR_AREA.forEach(({ id }) => {
+		(ventasPorArea[id] || []).forEach((venta) => {
+			const clave = String(venta.id_venta);
+			if (!fragmentosPorVenta.has(clave)) fragmentosPorVenta.set(clave, []);
+			fragmentosPorVenta.get(clave).push(venta);
+		});
+	});
+
+	const resultado = Object.fromEntries(
+		GRUPOS_REPORTE_POR_AREA.map(({ id }) => [id, []]),
+	);
+
+	movimientos
+		.filter((movimiento) => movimiento.id_venta && movimiento.motivo !== "apertura_caja")
+		.forEach((movimiento) => {
+			const fragmentos = fragmentosPorVenta.get(String(movimiento.id_venta)) || [];
+			const transaccionBase = construirTransaccionesCorte({
+				movimientos: [movimiento],
+				ventas,
+			})[0];
+			let montoAcumulado = 0;
+			fragmentos.forEach((fragmento, index) => {
+				const monto = index === fragmentos.length - 1
+					? redondearMoneda(transaccionBase.monto - montoAcumulado)
+					: redondearMoneda(transaccionBase.monto * fragmento.proporcionAreaReporte);
+				montoAcumulado = redondearMoneda(montoAcumulado + monto);
+				resultado[fragmento.areaReporte].push({
+					...transaccionBase,
+					venta: fragmento,
+					monto,
+					totalVenta: numero(fragmento.total),
+					pagoVenta: numero(fragmento.pago_recibido),
+					adeudo: numero(fragmento.saldo_reporte),
+					estudios: fragmento.estudios_venta,
+					areaReporte: fragmento.areaReporte,
+				});
+			});
+		});
+
+	return resultado;
 };

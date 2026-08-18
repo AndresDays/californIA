@@ -31,6 +31,7 @@ const crearQueryVacia = () => {
 	const chain = {
 		select: jest.fn().mockReturnThis(),
 		gte: jest.fn().mockReturnThis(),
+		lt: jest.fn().mockReturnThis(),
 		lte: jest.fn().mockReturnThis(),
 		order: jest.fn().mockReturnThis(),
 		eq: jest.fn().mockReturnThis(),

@@ -19,6 +19,7 @@ import {
 	resolverEmpresaTicketReimpresion,
 } from "../../../utils/generarTicketVenta";
 import { generarEtiquetasEstudiosLaboratorio } from "../../../utils/generar-etiquetas-estudios-laboratorio";
+import { generarEtiquetasEstudiosImagen } from "../../../utils/generar-etiquetas-estudios-imagen";
 import {
 	EVENTOS_SOLICITUD,
 	formatearEventoAuditoria,
@@ -644,6 +645,8 @@ const EditarSolicitud = () => {
 	const imprimirEtiquetasOrden = async (orden, e) => {
 		e?.stopPropagation();
 		if (!orden) return;
+		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
+		const ventanaEtiquetasImagen = window.open("", "_blank");
 		try {
 			const paciente = orden.pacientes;
 			const hoy = new Date();
@@ -662,33 +665,59 @@ const EditarSolicitud = () => {
 				mostrarNotificacion("La orden no tiene estudios para etiquetar", "error");
 				return;
 			}
-			const { data: estudiosCatalogo, error } = await supabase
-				.from("estudios_lab_catalogo")
-				.select("clave, tipo_muestra, recipiente")
-				.in("clave", clavesEstudios);
-			if (error) throw error;
+			const [catalogoLaboratorioResponse, catalogoImagenResponse, doctorResponse] = await Promise.all([
+				supabase
+					.from("estudios_lab_catalogo")
+					.select("clave, tipo_muestra, recipiente")
+					.in("clave", clavesEstudios),
+				supabase
+					.from("estudios_imagen_catalogo")
+					.select("clave")
+					.in("clave", clavesEstudios),
+				orden.id_doctor
+					? supabase.from("doctores").select("nombre").eq("id_doctor", orden.id_doctor).maybeSingle()
+					: Promise.resolve({ data: null, error: null }),
+			]);
+			if (catalogoLaboratorioResponse.error) throw catalogoLaboratorioResponse.error;
+			if (catalogoImagenResponse.error) throw catalogoImagenResponse.error;
+			if (doctorResponse.error) throw doctorResponse.error;
 			const catalogoPorClave = new Map(
-				(estudiosCatalogo || []).map((estudio) => [estudio.clave, estudio]),
+				(catalogoLaboratorioResponse.data || []).map((estudio) => [estudio.clave, estudio]),
 			);
-			const genero = generarEtiquetasEstudiosLaboratorio({
+			const clavesImagen = new Set(
+				(catalogoImagenResponse.data || []).map((estudio) => estudio.clave),
+			);
+			const estudiosEtiquetas = (orden.estudios_venta || []).map((estudio) => {
+				const estudioCatalogo = catalogoPorClave.get(estudio.clave_estudio);
+				return {
+					...estudio,
+					clave: estudio.clave_estudio,
+					descripcion: estudio.descripcion_estudio,
+					modulo: clavesImagen.has(estudio.clave_estudio) ? "imagen" : "laboratorio",
+					...estudioCatalogo,
+				};
+			});
+			const generoLaboratorio = generarEtiquetasEstudiosLaboratorio({
 				folio: orden.folio,
 				paciente: paciente?.nombre,
 				sexo: paciente?.sexo,
 				edad: edadStr,
-				estudios: (orden.estudios_venta || []).map((estudio) => {
-					const estudioCatalogo = catalogoPorClave.get(estudio.clave_estudio);
-					return {
-						...estudio,
-						clave: estudio.clave_estudio,
-						modulo: estudioCatalogo ? "laboratorio" : "imagen",
-						...estudioCatalogo,
-					};
-				}),
+				estudios: estudiosEtiquetas,
+				ventana: ventanaEtiquetasLaboratorio,
 			});
-			if (!genero) {
-				mostrarNotificacion("No hay estudios de laboratorio con recipiente configurado", "error");
+			const generoImagen = generarEtiquetasEstudiosImagen({
+				folio: orden.folio,
+				paciente: paciente?.nombre,
+				doctor: doctorResponse.data?.nombre || "",
+				estudios: estudiosEtiquetas,
+				ventana: ventanaEtiquetasImagen,
+			});
+			if (!generoLaboratorio && !generoImagen) {
+				mostrarNotificacion("No hay estudios con etiquetas configuradas", "error");
 			}
 		} catch (err) {
+			ventanaEtiquetasLaboratorio?.close?.();
+			ventanaEtiquetasImagen?.close?.();
 			console.error("Error al generar etiquetas:", err);
 			mostrarNotificacion("Error al generar las etiquetas", "error");
 		}

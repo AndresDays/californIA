@@ -121,6 +121,7 @@ jest.mock('../../../assets/restaurarIcono.png',   () => 'mock-img');
 jest.mock('../../../assets/scrollIcono.png',      () => 'mock-img');
 jest.mock('../../../assets/solicitudIcono.png',   () => 'mock-img');
 jest.mock('../../../assets/tecnicoIcono.png',     () => 'mock-img');
+jest.mock('../../../assets/CDC Plantilla.docx?url', () => 'mock-cdc-plantilla.docx', { virtual: true });
 
 // Mock de CSS
 jest.mock('./VisorDicom.css', () => ({}));
@@ -131,6 +132,7 @@ let mockEmpleadoVisor = null;
 let mockDicomImages = [];
 let mockEstadosVista = [];
 let mockEstudioId = '123';
+const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -190,6 +192,7 @@ jest.mock('../../../lib/supabase-client', () => ({
       insert:      jest.fn().mockReturnThis(),
       update:      jest.fn().mockReturnThis(),
       delete:      jest.fn().mockReturnThis(),
+      upsert:      mockUpsert,
     })),
     storage: {
       from: jest.fn(() => ({
@@ -246,6 +249,7 @@ afterEach(cleanup);
 describe('VisorDicom — Renderizado general', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpsert.mockResolvedValue({ error: null });
     mockEmpleadoVisor = null;
     mockEstudioId = '123';
   });
@@ -739,17 +743,16 @@ describe('VisorDicom — W/L inicial por serie', () => {
     );
   });
 
-  test('restaura el W/L guardado para una imagen DX', async () => {
+  test('restaura el W/L guardado para una serie DX', async () => {
     mockEstudioId = 'wl-estado-heredado';
     mockDicomImages = [
       { id_imagen: 1, storage_path: 'dx/torax.dcm', series_instance_uid: 'dx', series_description: 'TORAX', instance_number: 1, modality: 'DX' },
     ];
     mockEstadosVista = [{
-      storage_path: 'dx/torax.dcm',
+      storage_path: 'serie:dx',
       estado: {
         version: 1,
-        viewport: { scale: 1, voi: { windowWidth: 2000, windowCenter: 0 }, translation: { x: 0, y: 0 } },
-        overlays: { lineas: [], anotaciones: [], angulos: [], elipses: [], rects: [], bidis: [] },
+        voi: { windowWidth: 2000, windowCenter: 0 },
       },
     }];
 
@@ -766,6 +769,29 @@ describe('VisorDicom — W/L inicial por serie', () => {
         voi: expect.objectContaining({ windowWidth: 2000, windowCenter: 0 }),
       }),
     );
+  });
+
+  test('guarda el W/L de una radiografía por serie', async () => {
+    mockEstudioId = 'wl-dx-por-serie';
+    mockDicomImages = [
+      { id_imagen: 1, storage_path: 'dx/torax.dcm', series_instance_uid: 'dx-torax', series_description: 'TORAX', instance_number: 1, modality: 'DX' },
+    ];
+
+    await renderVisor();
+    await waitFor(() => expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+      'wadouri:https://mock.url/dx/torax.dcm',
+    ));
+
+    fireEvent.click(screen.getByTitle('W/L'));
+    const panel = document.querySelector('.panel-imagen.activo');
+    fireEvent.mouseDown(panel, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.mouseMove(panel, { buttons: 1, clientX: 110, clientY: 105 });
+    fireEvent.mouseUp(panel);
+
+    await waitFor(() => expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ storage_path: 'serie:dx-torax' }),
+      { onConflict: 'id_estudio,storage_path' },
+    ));
   });
 });
 

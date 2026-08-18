@@ -10,6 +10,7 @@ const mockDoc = {
 	setCharSpace: jest.fn(),
 	setFont: jest.fn(),
 	setFontSize: jest.fn(),
+	setProperties: jest.fn(),
 	text: jest.fn(),
 };
 
@@ -98,6 +99,7 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 			format: [50, 30],
 			orientation: 'landscape',
 		});
+		expect(mockDoc.setProperties).toHaveBeenCalledWith({ title: 'Etiqueta 0708260010' });
 		expect(mockDoc.addPage).toHaveBeenCalledWith([50, 30], 'landscape');
 		expect(JsBarcode).toHaveBeenCalledWith(
 			expect.any(HTMLCanvasElement),
@@ -127,8 +129,8 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 		);
 		expect(mockDoc.text).toHaveBeenCalledWith(
 			'EGO',
-			expect.any(Number),
-			expect.any(Number),
+			4,
+			27.5,
 			expect.any(Object),
 		);
 		expect(mockDoc.text).toHaveBeenCalledWith(
@@ -141,12 +143,15 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 	});
 
 	test('carga el PDF en una pestaña reservada desde guardar e imprimir', () => {
-		const ventana = { location: { href: '' } };
+		const ventana = {
+			document: { title: '', open: jest.fn(), write: jest.fn(), close: jest.fn() },
+		};
 		generarEtiquetasEstudiosLaboratorio({
 			folio: '0708260010', paciente: 'Paciente', ventana,
 			estudios: [{ modulo: 'laboratorio', clave: 'EGO', recipiente: 'Frasco estéril' }],
 		});
-		expect(ventana.location.href).toBe('blob:etiquetas');
+		expect(ventana.document.title).toBe('Etiqueta 0708260010');
+		expect(ventana.document.write).toHaveBeenCalledWith(expect.stringContaining('src="blob:etiquetas"'));
 		expect(window.open).not.toHaveBeenCalled();
 	});
 });

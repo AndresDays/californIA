@@ -49,7 +49,7 @@ const totalAdeudos = (transacciones) => {
 	return [...ventas.values()].reduce((total, adeudo) => total + adeudo, 0);
 };
 
-const hojaCorte = ({ corte, transacciones, fecha, sucursal, impresoEl }) => {
+const hojaCorte = ({ corte, transacciones, fecha, sucursal, impresoEl, titulo }) => {
 	const movimientosCorte = transacciones.filter((tx) => tx.motivo !== "apertura_caja" && tx.tipo !== "apertura");
 	const ingresos = movimientosCorte.filter((tx) => tx.monto >= 0);
 	const cancelaciones = movimientosCorte.filter((tx) => tx.monto < 0 && String(tx.tipo).includes("cancel"));
@@ -64,7 +64,7 @@ const hojaCorte = ({ corte, transacciones, fecha, sucursal, impresoEl }) => {
 
 	return `<section class="corte">
 		<header>
-			<h1>Corte de Caja</h1>
+		<h1>${escaparHtml(titulo || "Corte de Caja")}</h1>
 			<p><b>Usuario:</b> ${escaparHtml(corte.empleadoNombre)}</p>
 			<p><b>Sucursal:</b> ${escaparHtml(sucursal)}</p>
 			<p><b>Fecha del corte:</b> ${fechaCorta(fecha)}</p>
@@ -99,17 +99,18 @@ const hojaCorte = ({ corte, transacciones, fecha, sucursal, impresoEl }) => {
 	</section>`;
 };
 
-export const construirDocumentoCortes = ({ fecha, sucursal, cortes = [], transacciones = [] }) => {
+export const construirDocumentoCortes = ({ fecha, sucursal, cortes = [], transacciones = [], titulo = "Corte de Caja" }) => {
 	const impresoEl = new Date().toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
 	const hojas = cortes.map((corte) => hojaCorte({
 		corte,
 		fecha,
 		sucursal,
 		impresoEl,
+		titulo,
 		transacciones: transacciones.filter((tx) => String(tx.empleadoKey) === String(corte.empleadoKey)),
 	})).join("");
 
-	return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cortes de caja</title><style>
+	return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escaparHtml(titulo)}</title><style>
 		@page { size: letter landscape; margin: 12mm; }
 		* { box-sizing: border-box; } body { color: #111; font-family: Arial, sans-serif; font-size: 10px; margin: 0; }
 		.corte { break-after: page; page-break-after: always; } .corte:last-child { break-after: auto; page-break-after: auto; }
