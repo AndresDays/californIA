@@ -47,6 +47,7 @@ import {
 	puedeVerReporteRadiologia,
 } from "../../../utils/radiologia-permisos";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
+import { normalizarHtmlReporteRadiologia } from "../../../utils/reporte-radiologia-html";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import Mpr2dViewer from "../componentes/Mpr2dViewer";
@@ -3225,7 +3226,7 @@ const VisorDicom = () => {
 
 	useEffect(() => {
 		if (panelDerecho !== "reporte" || !reporteEditorRef.current) return;
-		reporteEditorRef.current.innerHTML = (reporteTexto || "").replace(/\n/g, "<br>");
+		reporteEditorRef.current.innerHTML = normalizarHtmlReporteRadiologia(reporteTexto);
 	}, [panelDerecho]);
 
 	const crearImagenesConUrlFirmada = async (imagenes = []) =>
@@ -4306,7 +4307,7 @@ const VisorDicom = () => {
 		const idEstudio = estudioId || estudioData?.id || "";
 		const params = new URLSearchParams({
 			idEstudio,
-			reporte: reporteEditorRef.current?.innerHTML ?? reporteTexto,
+			reporte: normalizarHtmlReporteRadiologia(reporteEditorRef.current?.innerHTML ?? reporteTexto),
 			folio: pacienteInfo.folio || "",
 			telefono: pacienteInfo.telefono || "",
 			radiologo: nombreRadiologo || "",
@@ -4324,7 +4325,7 @@ const VisorDicom = () => {
 			showNotif("No tienes permiso para interpretar este estudio", "error");
 			return;
 		}
-		const contenidoReporte = reporteEditorRef.current?.innerHTML ?? reporteTexto;
+		const contenidoReporte = normalizarHtmlReporteRadiologia(reporteEditorRef.current?.innerHTML ?? reporteTexto);
 		if (finalizar && !contenidoReporte.trim()) {
 			showNotif("Escribe la interpretación antes de completarla", "advertencia");
 			return;

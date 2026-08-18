@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
+import { normalizarHtmlReporteRadiologia } from "../../../utils/reporte-radiologia-html";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
@@ -94,7 +95,7 @@ const ReporteRadiologia = () => {
 	const { empleadoData } = useAuth();
 	const editorRef = useRef(null);
 
-	const reporteInicial = searchParams.get("reporte") || "";
+	const reporteInicial = normalizarHtmlReporteRadiologia(searchParams.get("reporte") || "");
 	const radiologo = searchParams.get("radiologo") || "";
 	const cedula = searchParams.get("cedula") || "";
 	const especialidad = searchParams.get("especialidad") || "";
@@ -209,7 +210,7 @@ const ReporteRadiologia = () => {
 
 	const guardar = async (borrador = false) => {
 		setGuardando(true);
-		const texto = editorRef.current?.innerHTML || "";
+		const texto = normalizarHtmlReporteRadiologia(editorRef.current?.innerHTML || "");
 		const cliente = getSupabase();
 		const { error } = esRadiologoClinicoPermisos(empleadoData?.rol)
 			? await cliente.rpc("actualizar_reporte_radiologo_clinico", {
@@ -231,7 +232,7 @@ const ReporteRadiologia = () => {
 			showNotif("Cargando membrete para impresión", "info");
 			return;
 		}
-		setReporteParaImprimir(editorRef.current?.innerHTML || "");
+		setReporteParaImprimir(normalizarHtmlReporteRadiologia(editorRef.current?.innerHTML || ""));
 		window.setTimeout(() => window.print(), 0);
 	};
 
