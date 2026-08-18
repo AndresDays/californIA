@@ -7,6 +7,7 @@ import { useAuth } from "../../../context/auth-context";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
+	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	crearBloquesReporteParaImprimir,
 	dividirReporteEnPaginas,
 	omitirPaginasVacias,
@@ -247,7 +248,7 @@ const ReporteRadiologia = () => {
 
 	const paginasImpresion = omitirPaginasVacias(dividirReporteEnPaginas(
 		crearBloquesReporteParaImprimir(reporteParaImprimir),
-		330,
+		ALTURA_UTIL_REPORTE_CON_FIRMA,
 	));
 	const renderPaginaImpresion = (pagina, indice) => (
 		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>

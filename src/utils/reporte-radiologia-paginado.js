@@ -1,3 +1,6 @@
+// Alto disponible entre el membrete y el pie/firma de una hoja A4 del reporte.
+export const ALTURA_UTIL_REPORTE_CON_FIRMA = 650;
+
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	if (!bloques.length) return [[]];
 

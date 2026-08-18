@@ -1,4 +1,5 @@
 import {
+	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	crearBloquesReporteParaImprimir,
 	dividirReporteEnPaginas,
 	omitirPaginasVacias,
@@ -32,5 +33,15 @@ describe('dividirReporteEnPaginas', () => {
 		const paginaConTexto = [{ html: '<p>Hallazgo</p>', alto: 35 }];
 		expect(omitirPaginasVacias([[], [{ html: '<p><br></p>', alto: 35 }], paginaConTexto]))
 			.toEqual([paginaConTexto]);
+	});
+
+	test('aprovecha el espacio hasta el footer antes de continuar en otra página', () => {
+		const bloques = Array.from({ length: 3 }, (_, indice) => ({
+			html: `<p>Bloque ${indice + 1}</p>`,
+			alto: 250,
+		}));
+
+		expect(dividirReporteEnPaginas(bloques, ALTURA_UTIL_REPORTE_CON_FIRMA))
+			.toEqual([bloques.slice(0, 2), bloques.slice(2)]);
 	});
 });
