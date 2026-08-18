@@ -371,6 +371,21 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.getByTitle('Nueva pestaña')).toBeInTheDocument();
   });
 
+  test('Imprimir reporte abre la ruta persistente del reporte, no una pestaña about:blank', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
+    window.open = jest.fn();
+    await renderVisor();
+
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Imprimir reporte')); });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/reporte\?.*idEstudio=123.*imprimir=1/),
+      '_blank',
+    );
+  });
+
 
   test('Usar plantilla abre el selector de plantillas guardadas', async () => {
     mockEmpleadoVisor = { rol: 'radiologo' };
