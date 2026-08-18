@@ -233,6 +233,14 @@ export const findBestPendingStudyMatch = ({ candidates = [], studyRow = {} } = {
   return compatibleByDescription.length === 1 ? compatibleByDescription[0].id_estudio : null;
 };
 
+export const findBestPendingStudyMatchForPatient = ({ candidates = [], patientName = "", studyRow = {} } = {}) => {
+  const patientCandidates = candidates.filter((candidate) =>
+    hasSameNameTokens(candidate?.paciente?.nombre || candidate?.pacientes?.nombre, patientName),
+  );
+  const idEstudio = findBestPendingStudyMatch({ candidates: patientCandidates, studyRow });
+  return patientCandidates.find((candidate) => candidate.id_estudio === idEstudio) ?? null;
+};
+
 class OrthancClient {
   constructor({ baseUrl, user, password }) {
     this.baseUrl = trimSlash(baseUrl || DEFAULT_ORTHANC_URL);
@@ -335,20 +343,38 @@ class SupabaseClient {
     return rows[0]?.id_estudio ?? null;
   }
 
-  async findPendingStudyForDicom({ idPaciente, studyRow }) {
-    if (!idPaciente || !studyRow?.tipo_estudio) return null;
+  async findPendingStudyForDicom({ idPaciente, patientRow, studyRow }) {
+    if (!studyRow?.tipo_estudio) return null;
     const modality = normalizeModality(studyRow.tipo_estudio);
-    const url =
+    if (idPaciente) {
+      const url =
+        `${this.restUrl}/estudios_radiologia?` +
+        `id_paciente=eq.${encodeURIComponent(idPaciente)}` +
+        `&tipo_estudio=eq.${encodeURIComponent(modality)}` +
+        `&storage_path=is.null` +
+        `&select=id_estudio,tipo_estudio,descripcion,fecha_estudio,storage_path,estado` +
+        `&order=fecha_estudio.desc` +
+        `&limit=10`;
+      const candidates = await this.request(url).then((response) => response.json());
+      const idEstudio = findBestPendingStudyMatch({ candidates, studyRow });
+      const match = candidates.find((candidate) => candidate.id_estudio === idEstudio);
+      if (match) return match;
+    }
+
+    if (!patientRow?.nombre) return null;
+    const fallbackUrl =
       `${this.restUrl}/estudios_radiologia?` +
-      `id_paciente=eq.${encodeURIComponent(idPaciente)}` +
-      `&tipo_estudio=eq.${encodeURIComponent(modality)}` +
+      `tipo_estudio=eq.${encodeURIComponent(modality)}` +
       `&storage_path=is.null` +
-      `&select=id_estudio,tipo_estudio,descripcion,fecha_estudio,storage_path,estado` +
+      `&select=id_estudio,tipo_estudio,descripcion,fecha_estudio,storage_path,estado,paciente:pacientes(nombre)` +
       `&order=fecha_estudio.desc` +
-      `&limit=10`;
-    const candidates = await this.request(url).then((response) => response.json());
-    const idEstudio = findBestPendingStudyMatch({ candidates, studyRow });
-    return candidates.find((candidate) => candidate.id_estudio === idEstudio) ?? null;
+      `&limit=50`;
+    const fallbackCandidates = await this.request(fallbackUrl).then((response) => response.json());
+    return findBestPendingStudyMatchForPatient({
+      candidates: fallbackCandidates,
+      patientName: patientRow.nombre,
+      studyRow,
+    });
   }
 
   async countImagesByUid(studyInstanceUid) {
@@ -499,7 +525,7 @@ export const syncStudy = async ({ orthanc, supabase, studyId, dryRun = false }) 
   const studyRow = buildStudyRow(studyTags, firstInstanceTags);
 
   if (!idEstudio) {
-    const pendingStudy = await supabase.findPendingStudyForDicom({ idPaciente, studyRow });
+    const pendingStudy = await supabase.findPendingStudyForDicom({ idPaciente, patientRow, studyRow });
     idEstudio = typeof pendingStudy === "object" ? pendingStudy?.id_estudio : pendingStudy;
     if (idEstudio && !dryRun) {
       console.log(`Linking Orthanc study ${studyId} to pending radiology study ${idEstudio}`);
