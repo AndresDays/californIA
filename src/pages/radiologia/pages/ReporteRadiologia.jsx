@@ -204,7 +204,7 @@ const ReporteRadiologia = () => {
 
 	const guardar = async (borrador = false) => {
 		setGuardando(true);
-		const texto = editorRef.current?.innerText || "";
+		const texto = editorRef.current?.innerHTML || "";
 		const cliente = getSupabase();
 		const { error } = esRadiologoClinicoPermisos(empleadoData?.rol)
 			? await cliente.rpc("actualizar_reporte_radiologo_clinico", {

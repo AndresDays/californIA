@@ -4306,7 +4306,7 @@ const VisorDicom = () => {
 		const idEstudio = estudioId || estudioData?.id || "";
 		const params = new URLSearchParams({
 			idEstudio,
-			reporte: reporteEditorRef.current?.innerText ?? reporteTexto,
+			reporte: reporteEditorRef.current?.innerHTML ?? reporteTexto,
 			folio: pacienteInfo.folio || "",
 			telefono: pacienteInfo.telefono || "",
 			radiologo: nombreRadiologo || "",
@@ -4324,8 +4324,8 @@ const VisorDicom = () => {
 			showNotif("No tienes permiso para interpretar este estudio", "error");
 			return;
 		}
-		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
-		if (finalizar && !textoReporte.trim()) {
+		const contenidoReporte = reporteEditorRef.current?.innerHTML ?? reporteTexto;
+		if (finalizar && !contenidoReporte.trim()) {
 			showNotif("Escribe la interpretación antes de completarla", "advertencia");
 			return;
 		}
@@ -4334,7 +4334,7 @@ const VisorDicom = () => {
 		if (esRadiologoClinicoPermisos(empleadoData?.rol)) {
 			const { error } = await supabase.rpc("actualizar_reporte_radiologo_clinico", {
 				p_id_estudio: Number(idEstudio),
-				p_reporte: textoReporte,
+				p_reporte: contenidoReporte,
 				p_estado: "COMPLETADO",
 				p_reporte_encabezado: encabezado,
 			});
@@ -4379,7 +4379,7 @@ const VisorDicom = () => {
 						sucursal: estudioEntrega?.sucursal || empleadoData?.sucursal || "", action_path: "/entrega-resultados",
 					});
 				}
-				setReporteTexto(textoReporte);
+				setReporteTexto(contenidoReporte);
 				showNotif(finalizar ? "Interpretación completada y lista para entrega" : "Reporte guardado", "success");
 			}
 			return;
@@ -4391,7 +4391,7 @@ const VisorDicom = () => {
 				.eq("id_estudio", estudioId || estudioData?.id);
 		const actualizadoEn = new Date().toISOString();
 		let payloadReporte = {
-			reporte: textoReporte,
+			reporte: contenidoReporte,
 			reporte_encabezado: encabezado,
 			estado: "COMPLETADO",
 			listo_entrega: finalizar,
@@ -4415,7 +4415,7 @@ const VisorDicom = () => {
 		}
 		if (error) showNotif("Error al guardar el reporte", "error");
 		else {
-			setReporteTexto(textoReporte);
+			setReporteTexto(contenidoReporte);
 			let { data: estudioEntrega, error: errorEstudioEntrega } = await supabase
 				.from("estudios_radiologia")
 				.select(
@@ -4434,7 +4434,7 @@ const VisorDicom = () => {
 				}
 				estudioEntrega = estudioBasico || null;
 			}
-			if (textoReporte.trim() && estudioEntrega) {
+			if (contenidoReporte.trim() && estudioEntrega) {
 				let idEstudioVenta = estudioEntrega.id_estudio_venta || null;
 				if (!idEstudioVenta && estudioEntrega.id_paciente) {
 					const { data: ventasPaciente, error: errorVentasPaciente } = await supabase
@@ -5307,7 +5307,7 @@ const VisorDicom = () => {
 													role="textbox"
 													aria-label="Editor de interpretación radiológica"
 													data-placeholder="Escribir reporte aquí..."
-													onInput={(e) => setReporteTexto(e.currentTarget.innerText)}
+								onInput={(e) => setReporteTexto(e.currentTarget.innerHTML)}
 												/>
 
 											<div className="rr-firma-area">

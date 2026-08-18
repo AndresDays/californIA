@@ -133,6 +133,7 @@ let mockDicomImages = [];
 let mockEstadosVista = [];
 let mockEstudioId = '123';
 const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
+const mockRpc = jest.fn(() => Promise.resolve({ error: null }));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -162,6 +163,7 @@ jest.mock('../../../context/auth-context', () => ({
 // Mock de Supabase
 jest.mock('../../../lib/supabase-client', () => ({
   supabase: {
+		rpc: (...args) => mockRpc(...args),
     from: jest.fn((table) => ({
       select:      jest.fn().mockReturnThis(),
       eq:          jest.fn().mockReturnThis(),
@@ -441,6 +443,23 @@ describe('VisorDicom — Finalización de interpretación', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Completar interpretación' })).toBeInTheDocument();
   });
+
+	test('guarda el HTML pegado para conservar párrafos y formato al reabrir', async () => {
+		mockEmpleadoVisor = { rol: 'radiologo_clinico' };
+		await renderVisor();
+		await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+
+		const editor = screen.getByRole('textbox', { name: 'Editor de interpretación radiológica' });
+		const reportePegado = '<p>HALLAZGOS:</p><p><strong>Texto con formato</strong></p>';
+		editor.innerHTML = reportePegado;
+		fireEvent.input(editor);
+		fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+		await waitFor(() => expect(mockRpc).toHaveBeenCalledWith(
+			'actualizar_reporte_radiologo_clinico',
+			expect.objectContaining({ p_reporte: reportePegado }),
+		));
+	});
 });
 
 // SUITE 4 — Navegación
