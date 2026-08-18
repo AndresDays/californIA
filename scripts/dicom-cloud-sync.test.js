@@ -4,6 +4,7 @@ import {
   buildStoragePath,
   buildStudyRow,
   findBestPendingStudyMatch,
+  findBestPendingStudyMatchForPatient,
   getTag,
   hasSameNameTokens,
   normalizeModality,
@@ -298,6 +299,68 @@ test("links by patient day without requiring the same study hour or description"
   ).toBe(185);
 });
 
+test("matches pending study by normalized patient name when DICOM patient is duplicated", () => {
+  expect(
+    findBestPendingStudyMatchForPatient({
+      candidates: [
+        {
+          id_estudio: 185,
+          tipo_estudio: "US",
+          descripcion: "U.S. HEPATO VESICULAR",
+          fecha_estudio: "2026-08-17T18:26:41",
+          storage_path: null,
+          paciente: { nombre: "Diaz Cortes Juan Andres" },
+        },
+        {
+          id_estudio: 190,
+          tipo_estudio: "US",
+          descripcion: "US",
+          fecha_estudio: "2026-08-17T19:00:00",
+          storage_path: null,
+          paciente: { nombre: "Otro Paciente" },
+        },
+      ],
+      patientName: "JUAN ANDRES DIAZ CORTES",
+      studyRow: {
+        tipo_estudio: "US",
+        descripcion: "US",
+        fecha_estudio: "2026-08-17T19:02:20",
+      },
+    }),
+  ).toMatchObject({ id_estudio: 185 });
+});
+
+test("does not match by patient name when more than one pending study is compatible", () => {
+  expect(
+    findBestPendingStudyMatchForPatient({
+      candidates: [
+        {
+          id_estudio: 185,
+          tipo_estudio: "US",
+          descripcion: "US",
+          fecha_estudio: "2026-08-17T18:26:41",
+          storage_path: null,
+          paciente: { nombre: "Diaz Cortes Juan Andres" },
+        },
+        {
+          id_estudio: 187,
+          tipo_estudio: "US",
+          descripcion: "US",
+          fecha_estudio: "2026-08-17T20:00:00",
+          storage_path: null,
+          paciente: { nombre: "Diaz Cortes Juan Andres" },
+        },
+      ],
+      patientName: "JUAN ANDRES DIAZ CORTES",
+      studyRow: {
+        tipo_estudio: "US",
+        descripcion: "US",
+        fecha_estudio: "2026-08-17T19:02:20",
+      },
+    }),
+  ).toBeNull();
+});
+
 test("syncStudy links incoming DICOM to a pending radiology card instead of creating a new one", async () => {
   const orthanc = {
     studyTags: jest.fn().mockResolvedValue({
@@ -339,6 +402,9 @@ test("syncStudy links incoming DICOM to a pending radiology card instead of crea
 
   expect(supabase.findPendingStudyForDicom).toHaveBeenCalledWith({
     idPaciente: 25,
+    patientRow: expect.objectContaining({
+      nombre: "PALOMA MORO MIER",
+    }),
     studyRow: {
       tipo_estudio: "US",
       estado: "EN PROCESO",
