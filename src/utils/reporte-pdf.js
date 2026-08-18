@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { PDFDocument } from "pdf-lib";
+import { abrirPdfEnPestana } from "./abrir-pdf-en-pestana";
 import {
 	esEstudioCultivo,
 	hidratarArchivoCultivoUrl,
@@ -31,6 +32,13 @@ const cargarImagenComoDataUrl = async (src) => {
 	}
 };
 
+const obtenerFormatoImagen = (dataUrl) => {
+	const tipo = /^data:image\/([a-z0-9+-]+)(?:;|,)/i.exec(dataUrl)?.[1]?.toLowerCase();
+	if (tipo === "png") return "PNG";
+	if (tipo === "webp") return "WEBP";
+	return "JPEG";
+};
+
 export const generarReportePdf = async ({
 	nombrePaciente = "",
 	doctorNombre = "",
@@ -41,6 +49,7 @@ export const generarReportePdf = async ({
 	qrData = "",
 	nombreArchivo = "reporte.pdf",
 	imprimir = false,
+	ventana = null,
 } = {}) => {
 	const doc = new jsPDF({ unit: "mm", format: "a4" });
 	const membrete = await cargarImagenComoDataUrl(membreteSrc);
@@ -49,7 +58,14 @@ export const generarReportePdf = async ({
 	const dibujarMembrete = () => {
 		if (!membrete) return;
 		try {
-			doc.addImage(membrete, "JPEG", 0, 0, PAGINA_ANCHO, PAGINA_ALTO);
+			doc.addImage(
+				membrete,
+				obtenerFormatoImagen(membrete),
+				0,
+				0,
+				PAGINA_ANCHO,
+				PAGINA_ALTO,
+			);
 		} catch {}
 	};
 
@@ -110,8 +126,11 @@ export const generarReportePdf = async ({
 	}
 
 	if (imprimir) {
-		doc.autoPrint();
-		window.open(doc.output("bloburl"), "_blank");
+		abrirPdfEnPestana({
+			url: URL.createObjectURL(doc.output("blob")),
+			titulo: `Reporte ${nombrePaciente}`,
+			ventana,
+		});
 		return;
 	}
 	doc.save(nombreArchivo);
