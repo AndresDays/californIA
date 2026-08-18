@@ -21,6 +21,7 @@ import {
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import { generarTicketVenta } from "../../utils/generarTicketVenta";
 import { generarEtiquetasEstudiosLaboratorio } from "../../utils/generar-etiquetas-estudios-laboratorio";
+import { generarEtiquetasEstudiosImagen } from "../../utils/generar-etiquetas-estudios-imagen";
 import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
@@ -333,7 +334,8 @@ const NuevoPaciente = () => {
 			alert("Seleccione una empresa antes de registrar la venta");
 			return;
 		}
-		const ventanaEtiquetas = window.open("", "_blank");
+		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
+		const ventanaEtiquetasImagen = window.open("", "_blank");
 
 		try {
 			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
@@ -647,7 +649,14 @@ const NuevoPaciente = () => {
 				sexo,
 				edad: edad ? `${edad} años` : "",
 				estudios: estudiosSeleccionados,
-				ventana: ventanaEtiquetas,
+				ventana: ventanaEtiquetasLaboratorio,
+			});
+			generarEtiquetasEstudiosImagen({
+				folio,
+				paciente: nombreCompleto,
+				doctor: doctorSeleccionado?.nombre || "",
+				estudios: estudiosSeleccionados,
+				ventana: ventanaEtiquetasImagen,
 			});
 
 			alert(
@@ -662,7 +671,8 @@ const NuevoPaciente = () => {
 			limpiarFormulario();
 			navigate("/captura");
 		} catch (error) {
-			ventanaEtiquetas?.close?.();
+			ventanaEtiquetasLaboratorio?.close?.();
+			ventanaEtiquetasImagen?.close?.();
 			console.error("Error al guardar:", error);
 			alert("Error al guardar la venta: " + error.message);
 		}
