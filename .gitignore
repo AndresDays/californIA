@@ -38,3 +38,4 @@ dist-e2e/
 
 # Local k6 load-test reports can contain operational response data.
 load-results/
+.vercel

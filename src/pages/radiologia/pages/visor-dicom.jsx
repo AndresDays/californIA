@@ -3383,6 +3383,16 @@ const VisorDicom = () => {
 		const idEstudio = estudioId || estudioData?.id;
 		const sesionGuardada = cacheSesionVisorDicom.get(String(idEstudio));
 		if (sesionGuardada) {
+			void supabase
+				.from("estudios_radiologia")
+				.select("reporte, reporte_encabezado")
+				.eq("id_estudio", idEstudio)
+				.maybeSingle()
+				.then(({ data, error }) => {
+					if (error || !data) return;
+					setReporteTexto(data.reporte || "");
+					setReporteEncabezado(data.reporte_encabezado || {});
+				});
 			const sesionMpr = leerSesionMpr(idEstudio) || sesionGuardada;
 			mprSesionEstudioRef.current = String(idEstudio);
 			setSeriesDicom(sesionGuardada.seriesDicom);
@@ -4245,7 +4255,13 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "imprimir") {
-			descargarReportePdf(true);
+			const ventana = window.open("", "_blank");
+			if (ventana) {
+				ventana.document.open();
+				ventana.document.write("<title>Generando reporte</title><p style=\"font-family:sans-serif;padding:24px\">Generando reporte…</p>");
+				ventana.document.close();
+			}
+			descargarReportePdf(true, ventana);
 			return;
 		}
 		if (id === "nueva-pestana") {
@@ -4341,11 +4357,11 @@ const VisorDicom = () => {
 		}
 	};
 
-	const descargarReportePdf = async (imprimir = false) => {
-		const id = estudioId || estudioData?.id || "";
-		const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
-		const encabezado = obtenerEncabezadoReporte();
+	const descargarReportePdf = async (imprimir = false, ventana = null) => {
 		try {
+			const id = estudioId || estudioData?.id || "";
+			const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
+			const encabezado = obtenerEncabezadoReporte();
 			await generarReportePdf({
 				nombrePaciente: encabezado.paciente,
 				doctorNombre: encabezado.doctor,
@@ -4356,19 +4372,33 @@ const VisorDicom = () => {
 				qrData: id ? `${window.location.origin}/visor-paciente/${id}` : "",
 				nombreArchivo: crearNombreArchivoReporte(pacienteInfo.nombre),
 				imprimir,
+				ventana,
 			});
 		} catch (err) {
 			console.error("Error al generar PDF del reporte:", err);
+			if (ventana && !ventana.closed) {
+				const detalle = String(err?.message || err || "Error desconocido")
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;");
+				ventana.document.open();
+				ventana.document.write(`<title>Error al generar reporte</title><div style="font-family:sans-serif;padding:24px"><p>No fue posible generar el PDF del reporte.</p><pre style="white-space:pre-wrap">${detalle}</pre></div>`);
+				ventana.document.close();
+			}
 			showNotif("No fue posible generar el PDF del reporte", "error");
 		}
 	};
 
-	const guardarReporte = async () => {
+	const guardarReporte = async ({ finalizar = false } = {}) => {
 		if (!puedeEditarReporteRadiologia(empleadoData)) {
 			showNotif("No tienes permiso para interpretar este estudio", "error");
 			return;
 		}
 		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
+		if (finalizar && !textoReporte.trim()) {
+			showNotif("Escribe la interpretación antes de completarla", "advertencia");
+			return;
+		}
 		const idEstudio = estudioId || estudioData?.id;
 		const encabezado = obtenerEncabezadoReporte();
 		if (esRadiologoClinicoPermisos(empleadoData?.rol)) {
@@ -4380,8 +4410,47 @@ const VisorDicom = () => {
 			});
 			if (error) showNotif("Error al guardar el reporte", "error");
 			else {
+				if (finalizar) {
+					const actualizadoEn = new Date().toISOString();
+					const { data: estudioEntrega } = await supabase
+						.from("estudios_radiologia")
+						.select("id_venta, id_estudio_venta, id_sucursal, sucursal, tipo_estudio, descripcion")
+						.eq("id_estudio", Number(idEstudio))
+						.maybeSingle();
+					const { error: errorLiberar } = await supabase
+						.from("estudios_radiologia")
+						.update({ listo_entrega: true, entregado: false, updated_at: actualizadoEn })
+						.eq("id_estudio", Number(idEstudio));
+					if (errorLiberar) {
+						showNotif("No fue posible liberar el estudio para entrega", "error");
+						return;
+					}
+					if (estudioEntrega?.id_estudio_venta) {
+						const { error: errorEstudioVenta } = await supabase
+							.from("estudios_venta")
+							.update({ estado_captura: "completado", estado_validacion: "validado", updated_at: actualizadoEn })
+							.eq("id_estudio_venta", estudioEntrega.id_estudio_venta);
+						if (errorEstudioVenta) {
+							showNotif("No fue posible validar el estudio para entrega", "error");
+							return;
+						}
+					}
+					await registrarEventoSolicitud(supabase, {
+						id_venta: estudioEntrega?.id_venta,
+						evento: EVENTOS_SOLICITUD.VALIDADA,
+						descripcion: `Interpretación completada y liberada para entrega: ${estudioEntrega?.descripcion || pacienteInfo.tipoEstudio}`,
+						empleado: empleadoData, user, entidad_tipo: "estudio_radiologia", entidad_id: Number(idEstudio),
+					});
+					await crearNotificacion(supabase, {
+						titulo: "Resultado de imagen listo para entregar",
+						mensaje: `${pacienteInfo.nombre} · ${estudioEntrega?.tipo_estudio || pacienteInfo.tipoEstudio}`,
+						tipo: "entrega", canal_destino: "entrega", entidad_tipo: "estudio_radiologia", entidad_id: Number(idEstudio),
+						id_venta: estudioEntrega?.id_venta || null, id_sucursal: estudioEntrega?.id_sucursal || empleadoData?.id_sucursal || null,
+						sucursal: estudioEntrega?.sucursal || empleadoData?.sucursal || "", action_path: "/entrega-resultados",
+					});
+				}
 				setReporteTexto(textoReporte);
-				showNotif("Reporte guardado", "success");
+				showNotif(finalizar ? "Interpretación completada y lista para entrega" : "Reporte guardado", "success");
 			}
 			return;
 		}
@@ -4395,7 +4464,7 @@ const VisorDicom = () => {
 			reporte: textoReporte,
 			reporte_encabezado: encabezado,
 			estado: "COMPLETADO",
-			listo_entrega: false,
+			listo_entrega: finalizar,
 			entregado: false,
 			updated_at: actualizadoEn,
 		};
@@ -4473,7 +4542,7 @@ const VisorDicom = () => {
 						.from("estudios_venta")
 						.update({
 							estado_captura: "completado",
-							estado_validacion: "guardado",
+							estado_validacion: finalizar ? "validado" : "guardado",
 							updated_at: actualizadoEn,
 						})
 						.eq("id_estudio_venta", idEstudioVenta);
@@ -4487,8 +4556,10 @@ const VisorDicom = () => {
 			}
 			await registrarEventoSolicitud(supabase, {
 				id_venta: estudioEntrega?.id_venta,
-				evento: EVENTOS_SOLICITUD.INTERPRETADA,
-				descripcion: `Reporte interpretado para ${estudioEntrega?.descripcion || pacienteInfo.tipoEstudio}`,
+				evento: finalizar ? EVENTOS_SOLICITUD.VALIDADA : EVENTOS_SOLICITUD.INTERPRETADA,
+				descripcion: finalizar
+					? `Interpretación completada y liberada para entrega: ${estudioEntrega?.descripcion || pacienteInfo.tipoEstudio}`
+					: `Reporte interpretado para ${estudioEntrega?.descripcion || pacienteInfo.tipoEstudio}`,
 				empleado: empleadoData,
 				user,
 				entidad_tipo: "estudio_radiologia",
@@ -4498,19 +4569,19 @@ const VisorDicom = () => {
 				},
 			});
 			await crearNotificacion(supabase, {
-				titulo: "Reporte de imagen guardado",
+				titulo: finalizar ? "Resultado de imagen listo para entregar" : "Reporte de imagen guardado",
 				mensaje: `${pacienteInfo.nombre} · ${estudioEntrega?.tipo_estudio || pacienteInfo.tipoEstudio}`,
-				tipo: "captura",
-				canal_destino: "captura",
+				tipo: finalizar ? "entrega" : "captura",
+				canal_destino: finalizar ? "entrega" : "captura",
 				entidad_tipo: "estudio_radiologia",
 				entidad_id: Number(idEstudio),
 				id_venta: estudioEntrega?.id_venta || null,
 				id_sucursal:
 					estudioEntrega?.id_sucursal || empleadoData?.id_sucursal || null,
 				sucursal: estudioEntrega?.sucursal || empleadoData?.sucursal || "",
-				action_path: "/captura",
+				action_path: finalizar ? "/entrega-resultados" : "/captura",
 			});
-			showNotif("Reporte guardado", "exito");
+			showNotif(finalizar ? "Interpretación completada y lista para entrega" : "Reporte guardado", "exito");
 		}
 	};
 
@@ -5230,6 +5301,12 @@ const VisorDicom = () => {
 									<div className="vd-doc-save-group">
 										<button type="button" onClick={guardarReporte}>
 											Guardar
+										</button>
+										<button
+											type="button"
+											className="vd-doc-complete-button"
+											onClick={() => guardarReporte({ finalizar: true })}>
+											Completar interpretación
 										</button>
 										<button type="button" aria-label="Opciones de guardado">
 											⌄

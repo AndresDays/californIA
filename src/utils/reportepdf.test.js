@@ -11,6 +11,7 @@ const mockDoc = {
 	text: jest.fn(),
 	splitTextToSize: jest.fn((texto) => String(texto).split("\n")),
 	link: jest.fn(),
+	autoPrint: jest.fn(),
 	save: jest.fn(),
 	output: jest.fn((tipo) => tipo === "arraybuffer" ? new Uint8Array([7, 8, 9]).buffer : "blob:resultados"),
 };
@@ -23,6 +24,10 @@ jest.mock("qrcode", () => ({
 
 jest.mock("jsbarcode", () => jest.fn());
 
+jest.mock("./abrir-pdf-en-pestana", () => ({
+	abrirPdfEnPestana: jest.fn(),
+}));
+
 jest.mock("pdf-lib", () => ({
 	PDFDocument: {
 		create: jest.fn(),
@@ -34,6 +39,7 @@ import jsPDF from "jspdf";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { PDFDocument } from "pdf-lib";
+import { abrirPdfEnPestana } from "./abrir-pdf-en-pestana";
 import {
 	crearNombreArchivoReporte,
 	generarReportePdf,
@@ -65,6 +71,24 @@ describe("generarReportePdf", () => {
 			expect.objectContaining({ unit: "mm", format: "a4" }),
 		);
 		expect(mockDoc.save).toHaveBeenCalledWith("reporte_maria.pdf");
+	});
+
+	test("abre la impresión en el visor PDF compartido por tickets y etiquetas", async () => {
+		const ventana = { document: {} };
+		const blob = new Blob(["pdf"], { type: "application/pdf" });
+		URL.createObjectURL = jest.fn(() => "blob:reporte-imprimible");
+		mockDoc.output.mockImplementation((tipo) =>
+			tipo === "blob" ? blob : "blob:resultados",
+		);
+
+		await generarReportePdf({ ...opcionesBase, imprimir: true, ventana });
+
+		expect(mockDoc.autoPrint).not.toHaveBeenCalled();
+		expect(abrirPdfEnPestana).toHaveBeenCalledWith({
+			url: "blob:reporte-imprimible",
+			titulo: "Reporte Maria Rosalia Lopez",
+			ventana,
+		});
 	});
 
 	test("incluye los datos del paciente, doctor y estudio", async () => {
@@ -99,6 +123,36 @@ describe("generarReportePdf", () => {
 		expect(mockDoc.addImage).toHaveBeenCalledWith(
 			MEMBRETE_DATA_URL,
 			"JPEG",
+			0,
+			0,
+			210,
+			297,
+		);
+	});
+
+	test("conserva el formato PNG de un membrete configurado", async () => {
+		const membretePng = "data:image/png;base64,MEMBRETEPNG";
+
+		await generarReportePdf({ ...opcionesBase, membreteSrc: membretePng });
+
+		expect(mockDoc.addImage).toHaveBeenCalledWith(
+			membretePng,
+			"PNG",
+			0,
+			0,
+			210,
+			297,
+		);
+	});
+
+	test("conserva el formato WEBP de un membrete configurado", async () => {
+		const membreteWebp = "data:image/webp;base64,MEMBRETEWEBP";
+
+		await generarReportePdf({ ...opcionesBase, membreteSrc: membreteWebp });
+
+		expect(mockDoc.addImage).toHaveBeenCalledWith(
+			membreteWebp,
+			"WEBP",
 			0,
 			0,
 			210,

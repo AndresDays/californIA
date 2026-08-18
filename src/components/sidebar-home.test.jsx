@@ -77,8 +77,10 @@ describe('sidebar-home responsive desktop layout', () => {
 
     expect(screen.getByRole('button', { name: /Inicio/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Captura/i })).not.toBeInTheDocument();
-    // Recepcionista does not see Reportes at all
-    expect(screen.queryByRole('button', { name: /Reportes/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Reportes/i }));
+    expect(screen.getByRole('button', { name: /Ventas/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Cortes del día/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Administrativo/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Administraci/i }));
     expect(screen.getByRole('button', { name: /Pacientes/i })).toBeInTheDocument();

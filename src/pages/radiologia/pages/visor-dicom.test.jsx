@@ -371,6 +371,7 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.getByTitle('Nueva pestaña')).toBeInTheDocument();
   });
 
+
   test('Usar plantilla abre el selector de plantillas guardadas', async () => {
     mockEmpleadoVisor = { rol: 'radiologo' };
     await renderVisor();
@@ -410,6 +411,21 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.queryByTitle('Lupa')).not.toBeInTheDocument();
   });
 
+});
+
+describe('VisorDicom — Finalización de interpretación', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = { rol: 'radiologo' };
+  });
+
+  test('muestra Completar interpretación junto a Guardar para un usuario que puede editar', async () => {
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Completar interpretación' })).toBeInTheDocument();
+  });
 });
 
 // SUITE 4 — Navegación

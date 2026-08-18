@@ -31,9 +31,54 @@ const normalizeText = (value = "") =>
     .replace(/[^A-Z0-9]+/g, " ")
     .trim();
 
+const normalizeNameTokens = (value = "") =>
+  normalizeText(value)
+    .split(" ")
+    .filter((part) => part.length >= 2)
+    .sort();
+
+export const hasSameNameTokens = (left = "", right = "") => {
+  const leftTokens = normalizeNameTokens(left);
+  const rightTokens = normalizeNameTokens(right);
+  if (leftTokens.length === 0 || leftTokens.length !== rightTokens.length) return false;
+  return leftTokens.every((token, index) => token === rightTokens[index]);
+};
+
+const mexicoDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Mexico_City",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const dateOnly = (value) => {
+  if (!value) return null;
+  const text = String(value);
+  const isoDate = text.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) {
+    const parsed = new Date(text);
+    return Number.isNaN(parsed.getTime()) ? isoDate : mexicoDateFormatter.format(parsed);
+  }
+  return isoDate;
+};
+
+const localDateCandidates = (value) => {
+  const baseDate = dateOnly(value);
+  if (!baseDate) return [];
+  const dates = new Set([baseDate]);
+  const text = String(value);
+  if (text.includes("T") && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) {
+    const asUtc = new Date(`${text}Z`);
+    if (!Number.isNaN(asUtc.getTime())) dates.add(mexicoDateFormatter.format(asUtc));
+  }
+  return [...dates];
+};
+
 const sameLocalDate = (a, b) => {
-  if (!a || !b) return false;
-  return String(a).slice(0, 10) === String(b).slice(0, 10);
+  const left = localDateCandidates(a);
+  const right = localDateCandidates(b);
+  return left.some((date) => right.includes(date));
 };
 
 export const getTag = (tags = {}, key) => {
@@ -164,6 +209,7 @@ export const buildImageRow = ({ idEstudio, storagePath, fileSize, tags }) => ({
 export const findBestPendingStudyMatch = ({ candidates = [], studyRow = {} } = {}) => {
   const modality = normalizeModality(studyRow.tipo_estudio);
   const description = normalizeText(studyRow.descripcion);
+  const genericDescription = !description || description === normalizeText(modality);
   const compatibleByCore = candidates.filter((candidate) => {
     if (!candidate?.id_estudio) return false;
     if (candidate.storage_path) return false;
@@ -176,7 +222,7 @@ export const findBestPendingStudyMatch = ({ candidates = [], studyRow = {} } = {
 
   const compatibleByDescription = compatibleByCore.filter((candidate) => {
     const candidateDescription = normalizeText(candidate.descripcion);
-    if (!description || !candidateDescription) return true;
+    if (genericDescription || !candidateDescription) return true;
     return (
       description.includes(candidateDescription) ||
       candidateDescription.includes(description) ||
@@ -301,7 +347,8 @@ class SupabaseClient {
       `&order=fecha_estudio.desc` +
       `&limit=10`;
     const candidates = await this.request(url).then((response) => response.json());
-    return findBestPendingStudyMatch({ candidates, studyRow });
+    const idEstudio = findBestPendingStudyMatch({ candidates, studyRow });
+    return candidates.find((candidate) => candidate.id_estudio === idEstudio) ?? null;
   }
 
   async countImagesByUid(studyInstanceUid) {
@@ -344,6 +391,15 @@ class SupabaseClient {
         `${this.restUrl}/pacientes?nombre=eq.${encodeURIComponent(nombre)}&select=id_paciente&limit=1`,
       ).then((response) => response.json());
       if (rows[0]?.id_paciente) return rows[0].id_paciente;
+
+      const tokens = normalizeNameTokens(nombre);
+      if (tokens.length >= 3) {
+        const partialRows = await this.request(
+          `${this.restUrl}/pacientes?nombre=ilike.*${encodeURIComponent(tokens[0])}*&select=id_paciente,nombre&limit=50`,
+        ).then((response) => response.json());
+        const matchingRows = partialRows.filter((row) => hasSameNameTokens(row.nombre, nombre));
+        if (matchingRows.length === 1) return matchingRows[0].id_paciente;
+      }
     }
     return null;
   }
@@ -443,7 +499,8 @@ export const syncStudy = async ({ orthanc, supabase, studyId, dryRun = false }) 
   const studyRow = buildStudyRow(studyTags, firstInstanceTags);
 
   if (!idEstudio) {
-    idEstudio = await supabase.findPendingStudyForDicom({ idPaciente, studyRow });
+    const pendingStudy = await supabase.findPendingStudyForDicom({ idPaciente, studyRow });
+    idEstudio = typeof pendingStudy === "object" ? pendingStudy?.id_estudio : pendingStudy;
     if (idEstudio && !dryRun) {
       console.log(`Linking Orthanc study ${studyId} to pending radiology study ${idEstudio}`);
       await supabase.updateStudyFromDicom(idEstudio, studyRow);
