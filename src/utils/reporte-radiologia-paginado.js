@@ -33,6 +33,12 @@ const dividirTextoLargo = (texto, caracteresPorBloque) => {
 	}, []);
 };
 
+const crearFragmentoConFormato = (nodo, texto) => {
+	const copia = nodo.cloneNode(false);
+	copia.textContent = texto;
+	return copia.outerHTML;
+};
+
 export const crearBloquesReporteParaImprimir = (html, {
 	caracteresPorLinea = 78,
 	altoLinea = 25,
@@ -47,7 +53,7 @@ export const crearBloquesReporteParaImprimir = (html, {
 	return origen.flatMap((nodo) => {
 		const texto = nodo.textContent || '';
 		const fragmentos = texto.length > caracteresPorBloque
-			? dividirTextoLargo(texto, caracteresPorBloque).map((fragmento) => `<p>${escaparHtml(fragmento)}</p>`)
+			? dividirTextoLargo(texto, caracteresPorBloque).map((fragmento) => crearFragmentoConFormato(nodo, fragmento))
 			: [nodo.outerHTML || `<p>${escaparHtml(texto)}</p>`];
 		return fragmentos.map((fragmento) => ({
 			html: fragmento,
