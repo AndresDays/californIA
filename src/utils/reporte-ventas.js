@@ -1,7 +1,100 @@
 const COLORES_TOP = ["#53B9DB", "#49B2D4", "#106DA0", "#1a7ab8", "#0d5580"];
 export const SIN_SUCURSAL_REPORTE = "__sin_sucursal";
 
+export const GRUPOS_REPORTE_POR_AREA = [
+	{ id: "laboratorio", nombre: "Laboratorio", archivo: "laboratorio" },
+	{
+		id: "resonancias_veterinaria",
+		nombre: "Resonancias y Veterinaria",
+		archivo: "resonancias-y-veterinaria",
+	},
+	{
+		id: "radiologia_imagen",
+		nombre: "Radiología/Imagen",
+		archivo: "radiologia-imagen",
+	},
+];
+
 const numero = (valor) => Number(valor) || 0;
+
+const redondearMoneda = (valor) => Math.round((numero(valor) + Number.EPSILON) * 100) / 100;
+
+const normalizarAreaReporte = (area) =>
+	String(area || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase();
+
+export const obtenerGrupoReportePorEstudio = (estudio = {}) => {
+	const area = normalizarAreaReporte(estudio.area);
+	if (!area) return "";
+	if (area.includes("laboratorio")) return "laboratorio";
+	if (area.includes("resonancia") || area.includes("veterinaria")) {
+		return "resonancias_veterinaria";
+	}
+	return "radiologia_imagen";
+};
+
+const distribuirMonto = (monto, fragmentos) => {
+	let acumulado = 0;
+	return fragmentos.map((fragmento, index) => {
+		if (index === fragmentos.length - 1) return redondearMoneda(numero(monto) - acumulado);
+		const parte = redondearMoneda(numero(monto) * fragmento.proporcion);
+		acumulado = redondearMoneda(acumulado + parte);
+		return parte;
+	});
+};
+
+export const partirVentasPorArea = (ventas = []) => {
+	const resultado = Object.fromEntries(
+		GRUPOS_REPORTE_POR_AREA.map(({ id }) => [id, []]),
+	);
+
+	ventas.forEach((venta) => {
+		const estudiosPorGrupo = new Map();
+		(venta.estudios_venta || []).forEach((estudio) => {
+			const grupo = obtenerGrupoReportePorEstudio(estudio);
+			if (!grupo) return;
+			if (!estudiosPorGrupo.has(grupo)) estudiosPorGrupo.set(grupo, []);
+			estudiosPorGrupo.get(grupo).push(estudio);
+		});
+
+		const precioClasificado = [...estudiosPorGrupo.values()]
+			.flat()
+			.reduce((total, estudio) => total + numero(estudio.precio), 0);
+		if (precioClasificado <= 0) return;
+
+		const fragmentos = GRUPOS_REPORTE_POR_AREA
+			.filter(({ id }) => estudiosPorGrupo.has(id))
+			.map(({ id }) => {
+				const estudios = estudiosPorGrupo.get(id);
+				const importeEstudios = estudios.reduce(
+					(total, estudio) => total + numero(estudio.precio),
+					0,
+				);
+				return { id, estudios, importeEstudios, proporcion: importeEstudios / precioClasificado };
+			});
+
+		const totales = distribuirMonto(venta.total, fragmentos);
+		const pagos = distribuirMonto(venta.pago_recibido, fragmentos);
+		fragmentos.forEach((fragmento, index) => {
+			const total = totales[index];
+			const pagoRecibido = pagos[index];
+			resultado[fragmento.id].push({
+				...venta,
+				estudios_venta: fragmento.estudios,
+				total,
+				pago_recibido: pagoRecibido,
+				saldo_reporte: redondearMoneda(Math.max(total - pagoRecibido, 0)),
+				areaReporte: fragmento.id,
+				proporcionAreaReporte: fragmento.proporcion,
+			});
+		});
+	});
+
+	return resultado;
+};
 
 export const formatoMonedaReporte = (valor) =>
 	`$${numero(valor).toLocaleString("es-MX", {

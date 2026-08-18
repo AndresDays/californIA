@@ -4,6 +4,7 @@ import {
 	agruparVentasPorVendedor,
 	calcularMetricasVentas,
 	filtrarVentasReporte,
+	partirVentasPorArea,
 } from "./reporte-ventas";
 
 const ventas = [
@@ -107,5 +108,43 @@ describe("reporte ventas helpers", () => {
 			{ name: "Ana", amount: 1000, orders: 1 },
 			{ name: "Luis", amount: 500, orders: 1 },
 		]);
+	});
+
+	test("divide una venta mixta por area y prorratea total, pago y saldo", () => {
+		const ventaMixta = {
+			id_venta: 3,
+			total: 500,
+			pago_recibido: 400,
+			estudios_venta: [
+				{ descripcion_estudio: "Glucosa", precio: 200, area: "Laboratorio" },
+				{ descripcion_estudio: "RM Cerebro", precio: 100, area: "Resonancia magnetica" },
+				{ descripcion_estudio: "Consulta mascota", precio: 50, area: "Veterinaria" },
+				{ descripcion_estudio: "Rx Torax", precio: 150, area: "Radiologia" },
+			],
+		};
+
+		expect(partirVentasPorArea([ventaMixta])).toMatchObject({
+			laboratorio: [expect.objectContaining({
+				total: 200,
+				pago_recibido: 160,
+				saldo_reporte: 40,
+				estudios_venta: [expect.objectContaining({ descripcion_estudio: "Glucosa" })],
+			})],
+			resonancias_veterinaria: [expect.objectContaining({
+				total: 150,
+				pago_recibido: 120,
+				saldo_reporte: 30,
+				estudios_venta: [
+					expect.objectContaining({ descripcion_estudio: "RM Cerebro" }),
+					expect.objectContaining({ descripcion_estudio: "Consulta mascota" }),
+				],
+			})],
+			radiologia_imagen: [expect.objectContaining({
+				total: 150,
+				pago_recibido: 120,
+				saldo_reporte: 30,
+				estudios_venta: [expect.objectContaining({ descripcion_estudio: "Rx Torax" })],
+			})],
+		});
 	});
 });

@@ -334,6 +334,7 @@ const NuevoPaciente = () => {
 			alert("Seleccione una empresa antes de registrar la venta");
 			return;
 		}
+		const ventanaTicket = window.open("", "_blank");
 		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
 		const ventanaEtiquetasImagen = window.open("", "_blank");
 
@@ -642,6 +643,7 @@ const NuevoPaciente = () => {
 				formaPago,
 				observaciones,
 				vendedor: empleadoData?.nombre || getPrimerNombre(),
+				ventana: ventanaTicket,
 			});
 			generarEtiquetasEstudiosLaboratorio({
 				folio,
@@ -671,6 +673,7 @@ const NuevoPaciente = () => {
 			limpiarFormulario();
 			navigate("/captura");
 		} catch (error) {
+			ventanaTicket?.close?.();
 			ventanaEtiquetasLaboratorio?.close?.();
 			ventanaEtiquetasImagen?.close?.();
 			console.error("Error al guardar:", error);

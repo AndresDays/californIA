@@ -1,6 +1,7 @@
 import {
 	construirCortesEmpleados,
 	construirTransaccionesCorte,
+	construirTransaccionesCortePorArea,
 } from "./cortes-admin";
 
 const ventas = [
@@ -98,5 +99,33 @@ describe("cortes admin helpers", () => {
 				transacciones: 1,
 			}),
 		]);
+	});
+
+	test("divide los movimientos de una venta mixta sin incluir movimientos manuales", () => {
+		const ventaMixta = {
+			...ventas[0],
+			id_venta: 3,
+			total: 500,
+			pago_recibido: 400,
+			estudios_venta: [
+				{ descripcion_estudio: "Glucosa", precio: 200, area: "Laboratorio" },
+				{ descripcion_estudio: "Rx Torax", precio: 300, area: "Radiologia" },
+			],
+		};
+		const resultado = construirTransaccionesCortePorArea({
+			ventas: [ventaMixta],
+			movimientos: [
+				{ ...movimientos[0], id_venta: 3, monto: 400 },
+				movimientos[2],
+			],
+		});
+
+		expect(resultado.laboratorio).toEqual([
+			expect.objectContaining({ monto: 160, pagoVenta: 160, adeudo: 40 }),
+		]);
+		expect(resultado.radiologia_imagen).toEqual([
+			expect.objectContaining({ monto: 240, pagoVenta: 240, adeudo: 60 }),
+		]);
+		expect(resultado.resonancias_veterinaria).toEqual([]);
 	});
 });
