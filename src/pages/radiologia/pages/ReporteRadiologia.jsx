@@ -9,6 +9,7 @@ import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	crearBloquesReporteParaImprimir,
 	dividirReporteEnPaginas,
+	omitirPaginasVacias,
 } from "../../../utils/reporte-radiologia-paginado";
 import imprimirIcon from "../../../assets/imprimirIcono.png";
 import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
@@ -107,6 +108,7 @@ const ReporteRadiologia = () => {
 	const [notif, setNotif] = useState(null);
 	const [qrUrl, setQrUrl] = useState("");
 	const [membreteSrc, setMembreteSrc] = useState(`data:image/jpeg;base64,${MEMBRETE_B64}`);
+	const [membreteListo, setMembreteListo] = useState(false);
 	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial.replace(/\n/g, "<br>"));
 	const arrastreFirmaRef = useRef(null);
 	const [ajusteFirma, setAjusteFirma] = useState(() => leerAjusteFirma(searchParams.get("ajusteFirma")));
@@ -181,6 +183,8 @@ const ReporteRadiologia = () => {
 				if (imagen) setMembreteSrc(`data:image/jpeg;base64,${await imagen.async("base64")}`);
 			} catch (error) {
 				console.error("No fue posible cargar la plantilla CDC:", error);
+			} finally {
+				setMembreteListo(true);
 			}
 		};
 		cargarMembreteCdc();
@@ -222,25 +226,29 @@ const ReporteRadiologia = () => {
 	};
 
 	const imprimir = () => {
+		if (!membreteListo) {
+			showNotif("Cargando membrete para impresión", "info");
+			return;
+		}
 		setReporteParaImprimir(editorRef.current?.innerHTML || "");
 		window.setTimeout(() => window.print(), 0);
 	};
 
 	useEffect(() => {
-		if (!imprimirAlAbrir) return undefined;
+		if (!imprimirAlAbrir || !membreteListo) return undefined;
 		const temporizador = window.setTimeout(imprimir, 0);
 		return () => window.clearTimeout(temporizador);
-	}, [imprimirAlAbrir]);
+	}, [imprimirAlAbrir, membreteListo]);
 
 	const execFmt = (cmd, arg) => {
 		editorRef.current?.focus();
 		document.execCommand(cmd, false, arg ?? null);
 	};
 
-	const paginasImpresion = dividirReporteEnPaginas(
+	const paginasImpresion = omitirPaginasVacias(dividirReporteEnPaginas(
 		crearBloquesReporteParaImprimir(reporteParaImprimir),
 		330,
-	);
+	));
 	const renderPaginaImpresion = (pagina, indice) => (
 		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
@@ -250,7 +258,7 @@ const ReporteRadiologia = () => {
 						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
 					))}
 				</div>
-				{renderFirma()}
+				{indice === paginasImpresion.length - 1 && renderFirma()}
 			</div>
 		</div>
 	);

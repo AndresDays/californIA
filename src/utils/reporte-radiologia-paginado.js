@@ -10,6 +10,11 @@ export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	}, [[]]);
 };
 
+export const omitirPaginasVacias = (paginas) =>
+	paginas.filter((pagina) =>
+		pagina.some((bloque) => String(bloque.html || '').replace(/<[^>]+>/g, '').trim()),
+	);
+
 const escaparHtml = (texto) => String(texto)
 	.replace(/&/g, '&amp;')
 	.replace(/</g, '&lt;')

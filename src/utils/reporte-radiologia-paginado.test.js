@@ -1,6 +1,7 @@
 import {
 	crearBloquesReporteParaImprimir,
 	dividirReporteEnPaginas,
+	omitirPaginasVacias,
 } from './reporte-radiologia-paginado';
 
 describe('dividirReporteEnPaginas', () => {
@@ -25,5 +26,11 @@ describe('dividirReporteEnPaginas', () => {
 
 		expect(bloques).toHaveLength(20);
 		expect(dividirReporteEnPaginas(bloques, 100)).toHaveLength(20);
+	});
+
+	test('omite páginas sin texto antes de imprimir', () => {
+		const paginaConTexto = [{ html: '<p>Hallazgo</p>', alto: 35 }];
+		expect(omitirPaginasVacias([[], [{ html: '<p><br></p>', alto: 35 }], paginaConTexto]))
+			.toEqual([paginaConTexto]);
 	});
 });
