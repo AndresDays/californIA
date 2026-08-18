@@ -92,11 +92,7 @@ const ReporteRadiologia = () => {
 	const { empleadoData } = useAuth();
 	const editorRef = useRef(null);
 
-	const nombrePaciente = searchParams.get("nombrePaciente") || "";
-	const tipoEstudio = searchParams.get("tipoEstudio") || "";
-	const fechaEstudio = searchParams.get("fechaEstudio") || "";
 	const reporteInicial = searchParams.get("reporte") || "";
-	const doctor = searchParams.get("doctor") || "";
 	const radiologo = searchParams.get("radiologo") || "";
 	const cedula = searchParams.get("cedula") || "";
 	const especialidad = searchParams.get("especialidad") || "";
@@ -112,29 +108,8 @@ const ReporteRadiologia = () => {
 	const [qrUrl, setQrUrl] = useState("");
 	const [membreteSrc, setMembreteSrc] = useState(`data:image/jpeg;base64,${MEMBRETE_B64}`);
 	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial.replace(/\n/g, "<br>"));
-	const encabezadoRef = useRef(null);
 	const arrastreFirmaRef = useRef(null);
 	const [ajusteFirma, setAjusteFirma] = useState(() => leerAjusteFirma(searchParams.get("ajusteFirma")));
-
-	const fechaFormateada = fechaEstudio
-		? new Date(fechaEstudio)
-				.toLocaleDateString("es-MX", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				})
-				.toUpperCase()
-		: new Date()
-				.toLocaleDateString("es-MX", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				})
-				.toUpperCase();
-
-	const fechaEncabezado = searchParams.has("fechaEncabezado")
-		? searchParams.get("fechaEncabezado") || ""
-		: `PUERTO VALLARTA JAL. ${fechaFormateada}.`;
 
 	useEffect(() => {
 		const generarQr = async () => {
@@ -161,25 +136,6 @@ const ReporteRadiologia = () => {
 
 	const firmaNombre = radiologo || "Radiólogo responsable";
 	const firmaEspecialidad = especialidad || "Radiología e Imagen";
-	const doctorReporte = doctor || "Médico referente";
-
-	const renderDatosPaciente = () => (
-		<div className="rr-datos-paciente">
-			<div className="rr-dato-row">
-				<span className="rr-label">PACIENTE:</span>
-				<strong>{nombrePaciente || "Paciente"}</strong>
-			</div>
-			<div className="rr-dato-row">
-				<span className="rr-label">DOCTOR:</span>
-				<strong>{doctorReporte}</strong>
-			</div>
-			<div className="rr-dato-row">
-				<span className="rr-label">ESTUDIO:</span>
-				<strong>{tipoEstudio || "Estudio"}</strong>
-			</div>
-		</div>
-	);
-
 	const renderFirma = () => (
 		<div className="rr-firma-area">
 			<div className="rr-firma-elemento" onPointerDown={iniciarArrastre("firma")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px`, transform: `scale(${ajusteFirma.firmaEscala})` }}>
@@ -210,7 +166,7 @@ const ReporteRadiologia = () => {
 	const terminarArrastre = () => { arrastreFirmaRef.current = null; };
 
 	useEffect(() => {
-		document.title = `Reporte ${idEstudio || nombrePaciente}`;
+		document.title = `Reporte ${idEstudio}`;
 		if (editorRef.current && reporteInicial) {
 			editorRef.current.innerHTML = reporteInicial.replace(/\n/g, "<br>");
 		}
@@ -289,10 +245,6 @@ const ReporteRadiologia = () => {
 		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
 			<div className="rr-contenido rr-contenido-impresion">
-				<div className="rr-encabezado-impresion">
-					<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
-					{renderDatosPaciente()}
-				</div>
 				<div className="rr-editor rr-editor-impresion">
 					{pagina.map((bloque, bloqueIndice) => (
 						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
@@ -453,11 +405,6 @@ const ReporteRadiologia = () => {
 					/>
 
 					<div className="rr-contenido">
-						<div ref={encabezadoRef} contentEditable suppressContentEditableWarning spellCheck={false}>
-							<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
-							{renderDatosPaciente()}
-						</div>
-
 					<div
 						ref={editorRef}
 							className="rr-editor"

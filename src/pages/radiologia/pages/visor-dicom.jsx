@@ -2901,9 +2901,7 @@ const VisorDicom = () => {
 		doctorNombre: "",
 		radiologoNombre: "",
 	});
-	const reporteEncabezadoRef = useRef(null);
 	const arrastreFirmaRef = useRef(null);
-	const [reporteEncabezado, setReporteEncabezado] = useState({});
 	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 });
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
@@ -3049,42 +3047,12 @@ const VisorDicom = () => {
 	const nombreRadiologo = empleadoData?.nombre || "Radiólogo responsable";
 	const especialidadRadiologo = empleadoData?.especialidad || "Radiología e Imagen";
 
-	const fechaReporte = (() => {
-		if (!pacienteInfo.horaFecha || pacienteInfo.horaFecha === "—") {
-			return new Date()
-				.toLocaleDateString("es-MX", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				})
-				.toUpperCase();
-		}
-		const fecha = new Date(pacienteInfo.horaFecha);
-		if (Number.isNaN(fecha.getTime())) return String(pacienteInfo.horaFecha).toUpperCase();
-		return fecha.toLocaleDateString("es-MX", {
-			day: "2-digit",
-			month: "long",
-			year: "numeric",
-		}).toUpperCase();
-	})();
-
-	const fechaReporteEncabezado = `PUERTO VALLARTA JAL. ${fechaReporte}.`;
-	const encabezadoMostrado = {
-		fecha: Object.hasOwn(reporteEncabezado, "fecha") ? reporteEncabezado.fecha : fechaReporteEncabezado,
-		paciente: Object.hasOwn(reporteEncabezado, "paciente") ? reporteEncabezado.paciente : pacienteInfo.nombre,
-		doctor: Object.hasOwn(reporteEncabezado, "doctor") ? reporteEncabezado.doctor : pacienteInfo.doctor,
-		estudio: Object.hasOwn(reporteEncabezado, "estudio") ? reporteEncabezado.estudio : pacienteInfo.tipoEstudio,
-	};
 	const obtenerEncabezadoReporte = () => {
-		const lineas = String(reporteEncabezadoRef.current?.innerText || "")
-			.split("\n")
-			.map((linea) => linea.trim());
-		const valor = (etiqueta) => lineas.find((linea) => linea.toUpperCase().startsWith(etiqueta))?.slice(etiqueta.length).trim() || "";
 		return {
-			fecha: lineas.find((linea) => !/^(PACIENTE|DOCTOR|ESTUDIO):/i.test(linea)) || "",
-			paciente: valor("PACIENTE:"),
-			doctor: valor("DOCTOR:"),
-			estudio: valor("ESTUDIO:"),
+			fecha: "",
+			paciente: "",
+			doctor: "",
+			estudio: "",
 			ajusteFirma,
 		};
 	};
@@ -3389,7 +3357,6 @@ const VisorDicom = () => {
 					if (error || !data) return;
 					setReporteTexto(data.reporte || "");
 					const encabezado = data.reporte_encabezado || {};
-					setReporteEncabezado(encabezado);
 					if (encabezado.ajusteFirma) {
 						setAjusteFirma((actual) => ({ ...actual, ...encabezado.ajusteFirma }));
 					}
@@ -3465,7 +3432,6 @@ const VisorDicom = () => {
 			}
 			if (estudio.reporte) setReporteTexto(estudio.reporte);
 			const encabezado = estudio.reporte_encabezado || {};
-			setReporteEncabezado(encabezado);
 			if (encabezado.ajusteFirma) {
 				setAjusteFirma((actual) => ({ ...actual, ...encabezado.ajusteFirma }));
 			}
@@ -4338,15 +4304,9 @@ const VisorDicom = () => {
 
 	const abrirReporteEnPestana = ({ imprimir = false } = {}) => {
 		const idEstudio = estudioId || estudioData?.id || "";
-		const encabezado = obtenerEncabezadoReporte();
 		const params = new URLSearchParams({
 			idEstudio,
-			nombrePaciente: encabezado.paciente,
-			tipoEstudio: encabezado.estudio,
-			fechaEstudio: pacienteInfo.horaFecha || "",
 			reporte: reporteEditorRef.current?.innerText ?? reporteTexto,
-			doctor: encabezado.doctor,
-			fechaEncabezado: encabezado.fecha,
 			folio: pacienteInfo.folio || "",
 			telefono: pacienteInfo.telefono || "",
 			radiologo: nombreRadiologo || "",
@@ -5338,24 +5298,6 @@ const VisorDicom = () => {
 
 											<div className="rr-contenido vd-rr-contenido">
 												<span className="vd-sr-only">Centro Diagnóstico California</span>
-												<div ref={reporteEncabezadoRef} contentEditable={puedeEditarReporte} suppressContentEditableWarning spellCheck={false} aria-label="Encabezado del reporte">
-													<p className="rr-fecha-encabezado">{encabezadoMostrado.fecha}</p>
-													<div className="rr-datos-paciente">
-													<div className="rr-dato-row">
-														<span className="rr-label">PACIENTE:</span>
-														<strong>{encabezadoMostrado.paciente}</strong>
-													</div>
-													<div className="rr-dato-row">
-														<span className="rr-label">DOCTOR:</span>
-														<strong>{encabezadoMostrado.doctor}</strong>
-													</div>
-													<div className="rr-dato-row">
-														<span className="rr-label">ESTUDIO:</span>
-														<strong>{encabezadoMostrado.estudio}</strong>
-													</div>
-												</div>
-												</div>
-
 												<div
 													ref={reporteEditorRef}
 													className="rr-editor vd-rr-editor"
