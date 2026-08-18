@@ -47,6 +47,22 @@ const PLANTILLAS = [
 	},
 ];
 
+const AJUSTE_FIRMA_POR_DEFECTO = { firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 };
+
+const leerAjusteFirma = (valor) => {
+	try {
+		const ajuste = typeof valor === "string" ? JSON.parse(valor) : valor;
+		return Object.fromEntries(
+			Object.entries(AJUSTE_FIRMA_POR_DEFECTO).map(([campo, predeterminado]) => [
+				campo,
+				Number.isFinite(Number(ajuste?.[campo])) ? Number(ajuste[campo]) : predeterminado,
+			]),
+		);
+	} catch {
+		return AJUSTE_FIRMA_POR_DEFECTO;
+	}
+};
+
 const ToolBtn = ({ title, icon, cmd, arg, editorRef, onAction }) => {
 	const handleClick = () => {
 		if (onAction) {
@@ -88,6 +104,7 @@ const ReporteRadiologia = () => {
 	const idEstudio = searchParams.get("idEstudio") || "";
 	const folio = searchParams.get("folio") || "";
 	const telefono = searchParams.get("telefono") || "";
+	const imprimirAlAbrir = searchParams.get("imprimir") === "1";
 
 	const [plantillaActual, setPlantillaActual] = useState("Plantillas");
 	const [guardando, setGuardando] = useState(false);
@@ -97,7 +114,7 @@ const ReporteRadiologia = () => {
 	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial.replace(/\n/g, "<br>"));
 	const encabezadoRef = useRef(null);
 	const arrastreFirmaRef = useRef(null);
-	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, datosX: 0, datosY: 0 });
+	const [ajusteFirma, setAjusteFirma] = useState(() => leerAjusteFirma(searchParams.get("ajusteFirma")));
 
 	const fechaFormateada = fechaEstudio
 		? new Date(fechaEstudio)
@@ -115,7 +132,9 @@ const ReporteRadiologia = () => {
 				})
 				.toUpperCase();
 
-	const fechaEncabezado = `PUERTO VALLARTA JAL. ${fechaFormateada}.`;
+	const fechaEncabezado = searchParams.has("fechaEncabezado")
+		? searchParams.get("fechaEncabezado") || ""
+		: `PUERTO VALLARTA JAL. ${fechaFormateada}.`;
 
 	useEffect(() => {
 		const generarQr = async () => {
@@ -163,14 +182,14 @@ const ReporteRadiologia = () => {
 
 	const renderFirma = () => (
 		<div className="rr-firma-area">
-			<div className="rr-firma-elemento" onPointerDown={iniciarArrastre("firma")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px` }}>
+			<div className="rr-firma-elemento" onPointerDown={iniciarArrastre("firma")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px`, transform: `scale(${ajusteFirma.firmaEscala})` }}>
 				{firmaUrl ? (
 					<img className="rr-firma-img" src={firmaUrl} alt="firma" />
 				) : (
 					<div className="rr-firma-placeholder" />
 				)}
 			</div>
-			<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px` }}>
+			<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px`, transform: `scale(${ajusteFirma.datosEscala})` }}>
 				<p className="rr-firma-nombre">{firmaNombre}</p>
 				{firmaEspecialidad && (
 					<p className="rr-firma-dato">{firmaEspecialidad.toUpperCase()}</p>
@@ -191,7 +210,7 @@ const ReporteRadiologia = () => {
 	const terminarArrastre = () => { arrastreFirmaRef.current = null; };
 
 	useEffect(() => {
-		document.title = `Reporte - ${nombrePaciente}`;
+		document.title = `Reporte ${idEstudio || nombrePaciente}`;
 		if (editorRef.current && reporteInicial) {
 			editorRef.current.innerHTML = reporteInicial.replace(/\n/g, "<br>");
 		}
@@ -250,6 +269,12 @@ const ReporteRadiologia = () => {
 		setReporteParaImprimir(editorRef.current?.innerHTML || "");
 		window.setTimeout(() => window.print(), 0);
 	};
+
+	useEffect(() => {
+		if (!imprimirAlAbrir) return undefined;
+		const temporizador = window.setTimeout(imprimir, 0);
+		return () => window.clearTimeout(temporizador);
+	}, [imprimirAlAbrir]);
 
 	const execFmt = (cmd, arg) => {
 		editorRef.current?.focus();

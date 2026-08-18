@@ -30,6 +30,7 @@ import {
 	esErrorColumnaSchemaCache,
 	obtenerColumnaSchemaCacheFaltante,
 } from "../../utils/supabase-errors";
+import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
 const leerBorrador = () => {
@@ -382,10 +383,6 @@ const NuevoPaciente = () => {
 
 			const ahora = new Date();
 
-			const fechaMexico = new Date(
-				ahora.toLocaleString("en-US", { timeZone: "America/Mexico_City" }),
-			);
-
 			const ventaPayload = agregarSucursalEmpleadoPayload(
 				{
 					folio: folio,
@@ -395,7 +392,7 @@ const NuevoPaciente = () => {
 					id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
 					id_empresa: empresaActual.id_empresa,
 					id_empleado: empleado?.id_empleado || null,
-					fecha_venta: fechaMexico.toISOString(),
+					fecha_venta: ahora.toISOString(),
 					subtotal: subtotal,
 					iva: 0,
 					descuento: descuento,
@@ -521,7 +518,7 @@ const NuevoPaciente = () => {
 							id_tecnico: null,
 							tipo_estudio: resolverCodigoTipoRadiologia(estudio),
 							descripcion: estudio.descripcion_estudio,
-							fecha_estudio: fechaMexico.toISOString(),
+							fecha_estudio: formatearFechaHoraMexicoLocal(ahora),
 							estado: "POR ASIGNAR",
 							listo_entrega: false,
 							entregado: false,
@@ -618,7 +615,7 @@ const NuevoPaciente = () => {
 						idCita: idCitaPrecargada,
 						nombrePaciente: nombreCompleto,
 						estudios: estudiosGuardados || estudiosSeleccionados,
-						fechaProgramada: fechaMexico.toISOString(),
+						fechaProgramada: ahora.toISOString(),
 					});
 					turnoCreado = true;
 				} catch (error) {

@@ -15,10 +15,6 @@ import {
 	normalizarTelefono10,
 } from "../../../utils/form-validations";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
-import {
-	crearNombreArchivoReporte,
-	generarReportePdf,
-} from "../../../utils/reporte-pdf";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
 	EVENTOS_SOLICITUD,
@@ -3089,6 +3085,7 @@ const VisorDicom = () => {
 			paciente: valor("PACIENTE:"),
 			doctor: valor("DOCTOR:"),
 			estudio: valor("ESTUDIO:"),
+			ajusteFirma,
 		};
 	};
 	const actualizarAjusteFirma = (campo, valor) => setAjusteFirma((actual) => ({ ...actual, [campo]: Number(valor) }));
@@ -3391,7 +3388,11 @@ const VisorDicom = () => {
 				.then(({ data, error }) => {
 					if (error || !data) return;
 					setReporteTexto(data.reporte || "");
-					setReporteEncabezado(data.reporte_encabezado || {});
+					const encabezado = data.reporte_encabezado || {};
+					setReporteEncabezado(encabezado);
+					if (encabezado.ajusteFirma) {
+						setAjusteFirma((actual) => ({ ...actual, ...encabezado.ajusteFirma }));
+					}
 				});
 			const sesionMpr = leerSesionMpr(idEstudio) || sesionGuardada;
 			mprSesionEstudioRef.current = String(idEstudio);
@@ -3463,7 +3464,11 @@ const VisorDicom = () => {
 				throw new Error("No tienes acceso a este estudio");
 			}
 			if (estudio.reporte) setReporteTexto(estudio.reporte);
-			setReporteEncabezado(estudio.reporte_encabezado || {});
+			const encabezado = estudio.reporte_encabezado || {};
+			setReporteEncabezado(encabezado);
+			if (encabezado.ajusteFirma) {
+				setAjusteFirma((actual) => ({ ...actual, ...encabezado.ajusteFirma }));
+			}
 
 			let imagenesDicom = [];
 			const consultaImagenes = supabase
@@ -4255,37 +4260,11 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "imprimir") {
-			const ventana = window.open("", "_blank");
-			if (ventana) {
-				ventana.document.open();
-				ventana.document.write("<title>Generando reporte</title><p style=\"font-family:sans-serif;padding:24px\">Generando reporte…</p>");
-				ventana.document.close();
-			}
-			descargarReportePdf(true, ventana);
+			abrirReporteEnPestana({ imprimir: true });
 			return;
 		}
 		if (id === "nueva-pestana") {
-			const idEstudio = estudioId || estudioData?.id;
-			const { data: est } = await supabase
-				.from("estudios_radiologia")
-				.select("fecha_estudio, reporte, id_radiologo")
-				.eq("id_estudio", idEstudio)
-				.single();
-			const params = new URLSearchParams({
-				idEstudio,
-				nombrePaciente: pacienteInfo.nombre,
-				tipoEstudio: pacienteInfo.tipoEstudio,
-				fechaEstudio: est?.fecha_estudio || "",
-				reporte: est?.reporte || "",
-				doctor: pacienteInfo.doctor || "",
-				folio: pacienteInfo.folio || "",
-				telefono: pacienteInfo.telefono || "",
-				radiologo: nombreRadiologo || "",
-				cedula: empleadoData?.cedula || "",
-				especialidad: especialidadRadiologo || "",
-				firmaUrl: firmaEmpleadoUrl,
-			});
-			window.open(`/reporte?${params.toString()}`, "_blank");
+			abrirReporteEnPestana();
 		}
 		if (id === "adjuntar") {
 			reporteAdjuntoInputRef.current?.click();
@@ -4357,36 +4336,27 @@ const VisorDicom = () => {
 		}
 	};
 
-	const descargarReportePdf = async (imprimir = false, ventana = null) => {
-		try {
-			const id = estudioId || estudioData?.id || "";
-			const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
-			const encabezado = obtenerEncabezadoReporte();
-			await generarReportePdf({
-				nombrePaciente: encabezado.paciente,
-				doctorNombre: encabezado.doctor,
-				estudioDescripcion: encabezado.estudio,
-				fechaEncabezado: encabezado.fecha,
-				reporteTexto: texto,
-				membreteSrc: membreteReporteSrc,
-				qrData: id ? `${window.location.origin}/visor-paciente/${id}` : "",
-				nombreArchivo: crearNombreArchivoReporte(pacienteInfo.nombre),
-				imprimir,
-				ventana,
-			});
-		} catch (err) {
-			console.error("Error al generar PDF del reporte:", err);
-			if (ventana && !ventana.closed) {
-				const detalle = String(err?.message || err || "Error desconocido")
-					.replace(/&/g, "&amp;")
-					.replace(/</g, "&lt;")
-					.replace(/>/g, "&gt;");
-				ventana.document.open();
-				ventana.document.write(`<title>Error al generar reporte</title><div style="font-family:sans-serif;padding:24px"><p>No fue posible generar el PDF del reporte.</p><pre style="white-space:pre-wrap">${detalle}</pre></div>`);
-				ventana.document.close();
-			}
-			showNotif("No fue posible generar el PDF del reporte", "error");
-		}
+	const abrirReporteEnPestana = ({ imprimir = false } = {}) => {
+		const idEstudio = estudioId || estudioData?.id || "";
+		const encabezado = obtenerEncabezadoReporte();
+		const params = new URLSearchParams({
+			idEstudio,
+			nombrePaciente: encabezado.paciente,
+			tipoEstudio: encabezado.estudio,
+			fechaEstudio: pacienteInfo.horaFecha || "",
+			reporte: reporteEditorRef.current?.innerText ?? reporteTexto,
+			doctor: encabezado.doctor,
+			fechaEncabezado: encabezado.fecha,
+			folio: pacienteInfo.folio || "",
+			telefono: pacienteInfo.telefono || "",
+			radiologo: nombreRadiologo || "",
+			cedula: empleadoData?.cedula || "",
+			especialidad: especialidadRadiologo || "",
+			firmaUrl: firmaEmpleadoUrl,
+			ajusteFirma: JSON.stringify(ajusteFirma),
+			...(imprimir ? { imprimir: "1" } : {}),
+		});
+		window.open(`/reporte?${params.toString()}`, "_blank");
 	};
 
 	const guardarReporte = async ({ finalizar = false } = {}) => {
