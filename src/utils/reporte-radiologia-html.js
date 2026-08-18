@@ -1,41 +1,39 @@
-const ETIQUETAS_BLOQUE = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+const ETIQUETAS_DESCARTADAS = new Set([
+	'SCRIPT', 'IFRAME', 'OBJECT', 'EMBED', 'BASE', 'LINK', 'META', 'FORM',
+	'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'OPTION',
+]);
 
-const agregarContenido = (origen, destino) => {
-	Array.from(origen.childNodes).forEach((nodo) => {
-		if (nodo.nodeType === Node.TEXT_NODE) {
-			destino.append(document.createTextNode(nodo.textContent.replace(/\u00a0/g, ' ')));
-			return;
-		}
-		if (nodo.nodeType !== Node.ELEMENT_NODE) return;
+const esUrlPeligrosa = (valor) => /^\s*(javascript:|data:text\/html)/i.test(valor);
 
-		if (nodo.tagName === 'BR') {
-			destino.append(document.createElement('br'));
-			return;
-		}
+const limpiarEstilo = (valor) => String(valor)
+	.replace(/expression\s*\([^)]*\)/gi, '')
+	.replace(/url\s*\(\s*['"]?\s*javascript:[^)]*\)/gi, '');
 
-		const etiqueta = nodo.tagName === 'B' ? 'strong' : nodo.tagName.toLowerCase();
-		if (['strong', 'em', 'i', 'u'].includes(etiqueta)) {
-			const formato = document.createElement(etiqueta === 'i' ? 'em' : etiqueta);
-			agregarContenido(nodo, formato);
-			destino.append(formato);
-			return;
-		}
+const clonarNodoSeguro = (nodo) => {
+	if (nodo.nodeType === Node.TEXT_NODE) return document.createTextNode(nodo.textContent);
+	if (nodo.nodeType !== Node.ELEMENT_NODE || ETIQUETAS_DESCARTADAS.has(nodo.tagName)) return null;
 
-		agregarContenido(nodo, destino);
+	const copia = document.createElement(nodo.tagName.toLowerCase());
+	Array.from(nodo.attributes).forEach((atributo) => {
+		const nombre = atributo.name.toLowerCase();
+		if (nombre.startsWith('on') || nombre === 'srcdoc') return;
+		if (['href', 'src', 'xlink:href'].includes(nombre) && esUrlPeligrosa(atributo.value)) return;
+
+		copia.setAttribute(
+			atributo.name,
+			nombre === 'style' ? limpiarEstilo(atributo.value) : atributo.value,
+		);
 	});
+
+	Array.from(nodo.childNodes).forEach((hijo) => {
+		const copiaHijo = clonarNodoSeguro(hijo);
+		if (copiaHijo) copia.append(copiaHijo);
+	});
+	return copia;
 };
 
-const agregarParrafo = (origen, destino) => {
-	const parrafo = document.createElement('p');
-	if (origen.nodeType === Node.TEXT_NODE) {
-		parrafo.append(document.createTextNode(origen.textContent.replace(/\u00a0/g, ' ')));
-	} else {
-		agregarContenido(origen, parrafo);
-	}
-	if (parrafo.textContent.trim() || parrafo.querySelector('br')) destino.append(parrafo);
-};
-
-// Convierte HTML pegado (especialmente desde Word) a un subconjunto estable sin estilos ni márgenes.
+// Conserva el formato visual del contenido pegado (incluyendo estilos de Word),
+// eliminando únicamente nodos y atributos que pueden ejecutar código.
 export const normalizarHtmlReporteRadiologia = (html) => {
 	if (typeof document === 'undefined') return String(html || '');
 	const origen = document.createElement('div');
@@ -43,16 +41,8 @@ export const normalizarHtmlReporteRadiologia = (html) => {
 	const resultado = document.createElement('div');
 
 	Array.from(origen.childNodes).forEach((nodo) => {
-		if (nodo.nodeType === Node.TEXT_NODE) {
-			if (nodo.textContent.trim()) agregarParrafo(nodo, resultado);
-			return;
-		}
-		if (nodo.nodeType !== Node.ELEMENT_NODE) return;
-		if (ETIQUETAS_BLOQUE.has(nodo.tagName)) {
-			agregarParrafo(nodo, resultado);
-			return;
-		}
-		agregarParrafo(nodo, resultado);
+		const copia = clonarNodoSeguro(nodo);
+		if (copia) resultado.append(copia);
 	});
 
 	return resultado.innerHTML;

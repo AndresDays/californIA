@@ -21,12 +21,19 @@ describe('dividirReporteEnPaginas', () => {
 
 	test('fragmenta un parrafo muy largo antes de paginarlo', () => {
 		const texto = Array.from({ length: 450 }, () => 'hallazgo').join(' ');
-		const bloques = crearBloquesReporteParaImprimir(`<p>${texto}</p>`, {
+		const bloques = crearBloquesReporteParaImprimir('<p class="MsoNormal" align="right" style="font-family:Arial;font-size:12pt;margin-left:4cm">' + texto + '</p>', {
 			caracteresPorBloque: 200,
 		});
 
 		expect(bloques).toHaveLength(20);
 		expect(dividirReporteEnPaginas(bloques, 100)).toHaveLength(20);
+		bloques.forEach(({ html }) => {
+			expect(html).toContain('class="MsoNormal"');
+			expect(html).toContain('align="right"');
+			expect(html).toContain('font-family:Arial');
+			expect(html).toContain('font-size:12pt');
+			expect(html).toContain('margin-left:4cm');
+		});
 	});
 
 	test('omite páginas sin texto antes de imprimir', () => {
