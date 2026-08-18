@@ -1,6 +1,8 @@
 import {
+	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	crearBloquesReporteParaImprimir,
 	dividirReporteEnPaginas,
+	omitirPaginasVacias,
 } from './reporte-radiologia-paginado';
 
 describe('dividirReporteEnPaginas', () => {
@@ -25,5 +27,21 @@ describe('dividirReporteEnPaginas', () => {
 
 		expect(bloques).toHaveLength(20);
 		expect(dividirReporteEnPaginas(bloques, 100)).toHaveLength(20);
+	});
+
+	test('omite páginas sin texto antes de imprimir', () => {
+		const paginaConTexto = [{ html: '<p>Hallazgo</p>', alto: 35 }];
+		expect(omitirPaginasVacias([[], [{ html: '<p><br></p>', alto: 35 }], paginaConTexto]))
+			.toEqual([paginaConTexto]);
+	});
+
+	test('aprovecha el espacio hasta el footer antes de continuar en otra página', () => {
+		const bloques = Array.from({ length: 3 }, (_, indice) => ({
+			html: `<p>Bloque ${indice + 1}</p>`,
+			alto: 250,
+		}));
+
+		expect(dividirReporteEnPaginas(bloques, ALTURA_UTIL_REPORTE_CON_FIRMA))
+			.toEqual([bloques.slice(0, 2), bloques.slice(2)]);
 	});
 });
