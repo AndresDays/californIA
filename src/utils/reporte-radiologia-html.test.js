@@ -1,4 +1,4 @@
-import { htmlReporteRadiologiaParaEditor, normalizarHtmlReporteRadiologia } from './reporte-radiologia-html';
+import { htmlReporteRadiologiaParaEditor, normalizarHtmlReporteRadiologia, sanearMargenesReporteRadiologia } from './reporte-radiologia-html';
 
 describe('normalizarHtmlReporteRadiologia', () => {
 	test('conserva los estilos de Word que determinan la posición y los espacios', () => {
@@ -37,5 +37,25 @@ describe('htmlReporteRadiologiaParaEditor', () => {
 
 	it('escapa el texto plano peligroso', () => {
 		expect(htmlReporteRadiologiaParaEditor('a < b')).toBe('a &lt; b');
+	});
+});
+
+describe('sanearMargenesReporteRadiologia', () => {
+	it('recorta los márgenes de página que Word deja en los párrafos', () => {
+		const resultado = sanearMargenesReporteRadiologia(
+			'<p style="margin-top:0cm;margin-bottom:420pt">PUERTO VALLARTA</p>',
+		);
+
+		expect(resultado).toContain('margin-bottom:24px');
+		expect(resultado).not.toContain('420pt');
+	});
+
+	it('respeta los espacios normales y la sangría horizontal', () => {
+		const resultado = sanearMargenesReporteRadiologia(
+			'<p style="margin-bottom:2.45pt;margin-left:8cm">HALLAZGOS</p>',
+		);
+
+		expect(resultado).toContain('margin-bottom:2.45pt');
+		expect(resultado).toContain('margin-left:8cm');
 	});
 });

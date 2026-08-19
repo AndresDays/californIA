@@ -61,6 +61,33 @@ export const htmlReporteRadiologiaParaEditor = (contenido) => {
 	if (!valor.trim()) return '';
 	const pareceHtml = /<[a-z][^>]*>/i.test(valor);
 	return pareceHtml
-		? normalizarHtmlReporteRadiologia(valor)
+		? sanearMargenesReporteRadiologia(normalizarHtmlReporteRadiologia(valor))
 		: escaparTextoPlano(valor).replace(/\r?\n/g, '<br>');
+};
+
+const MARGEN_VERTICAL_MAXIMO_PX = 24;
+
+const A_PIXELES = { px: 1, pt: 96 / 72, pc: 16, cm: 96 / 2.54, mm: 96 / 25.4, in: 96, em: 16, rem: 16 };
+
+// Word arrastra márgenes de página en los párrafos (por ejemplo
+// `margin-bottom: 420pt`), que abren huecos de media hoja y empujan el texto a
+// páginas de más. Se recortan a un espacio de párrafo razonable.
+const limitarMargenesVerticales = (estilo) => String(estilo).replace(
+	/margin-(top|bottom)\s*:\s*(-?[\d.]+)(px|pt|pc|cm|mm|in|em|rem)/gi,
+	(declaracion, lado, valor, unidad) => {
+		const enPixeles = parseFloat(valor) * (A_PIXELES[unidad.toLowerCase()] ?? 1);
+		return enPixeles > MARGEN_VERTICAL_MAXIMO_PX
+			? `margin-${lado}:${MARGEN_VERTICAL_MAXIMO_PX}px`
+			: declaracion;
+	},
+);
+
+export const sanearMargenesReporteRadiologia = (html) => {
+	if (typeof document === 'undefined') return String(html || '');
+	const contenedor = document.createElement('div');
+	contenedor.innerHTML = String(html || '');
+	contenedor.querySelectorAll('[style]').forEach((elemento) => {
+		elemento.setAttribute('style', limitarMargenesVerticales(elemento.getAttribute('style')));
+	});
+	return contenedor.innerHTML;
 };

@@ -14,6 +14,7 @@ import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	ALTURA_UTIL_REPORTE_SIN_FIRMA,
+	agruparConclusionReporte,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
 	medirBloquesReporte,
@@ -245,11 +246,14 @@ const ReporteRadiologia = () => {
 		else showNotif(borrador ? "Borrador guardado" : "Reporte guardado", "ok");
 	};
 
-	const imprimir = () => {
+	const imprimir = async () => {
 		if (!membreteListo) {
 			showNotif("Cargando membrete para impresión", "info");
 			return;
 		}
+		// Con la tipografía todavía sin cargar las alturas medidas salen cortas y
+		// la paginación mete más texto del que cabe en la hoja.
+		await document.fonts?.ready;
 		// El diálogo de impresión debe abrirse cuando las hojas paginadas ya se
 		// pintaron; de lo contrario el navegador imprime el DOM anterior.
 		flushSync(() => {
@@ -273,7 +277,10 @@ const ReporteRadiologia = () => {
 		() =>
 			omitirPaginasVacias(
 				dividirReporteParaImpresion(
-					medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+					agruparConclusionReporte(
+						medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+						ALTURA_UTIL_REPORTE_CON_FIRMA,
+					),
 					ALTURA_UTIL_REPORTE_SIN_FIRMA,
 					ALTURA_UTIL_REPORTE_CON_FIRMA,
 				),

@@ -1,5 +1,6 @@
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
+	agruparConclusionReporte,
 	medirBloquesReporte,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
@@ -77,9 +78,48 @@ describe('dividirReporteEnPaginas', () => {
 
 		expect(dividirReporteParaImpresion(bloques, 900, 650)).toEqual([
 			bloques.slice(0, 3),
-			bloques.slice(3, 4),
-			bloques.slice(4),
+			bloques.slice(3, 5),
+			bloques.slice(5),
 		]);
+	});
+});
+
+describe('dividirReporteParaImpresion', () => {
+	test('llena las primeras hojas antes de bajar lo que no cabe con la firma', () => {
+		const bloques = Array.from({ length: 4 }, (_, indice) => ({
+			html: `<p>Bloque ${indice + 1}</p>`,
+			alto: 200,
+		}));
+
+		expect(dividirReporteParaImpresion(bloques, 890, 660)).toEqual([
+			bloques.slice(0, 3),
+			bloques.slice(3),
+		]);
+	});
+});
+
+describe('agruparConclusionReporte', () => {
+	const bloques = [
+		{ html: '<p>Hallazgo uno</p>', alto: 200 },
+		{ html: '<p>CONCLUSION:</p>', alto: 30 },
+		{ html: '<p>Artrosis leve.</p>', alto: 30 },
+		{ html: '<p>Tenosinovitis.</p>', alto: 30 },
+	];
+
+	test('mantiene el título y sus renglones en una sola unidad', () => {
+		expect(agruparConclusionReporte(bloques, 660)).toEqual([
+			bloques[0],
+			{ html: '<p>CONCLUSION:</p><p>Artrosis leve.</p><p>Tenosinovitis.</p>', alto: 90 },
+		]);
+	});
+
+	test('reparte normalmente cuando la conclusión no cabe en una hoja', () => {
+		expect(agruparConclusionReporte(bloques, 60)).toEqual(bloques);
+	});
+
+	test('deja el reporte intacto cuando no hay conclusión', () => {
+		const sinConclusion = [{ html: '<p>Hallazgo</p>', alto: 30 }];
+		expect(agruparConclusionReporte(sinConclusion, 660)).toEqual(sinConclusion);
 	});
 });
 
