@@ -203,6 +203,7 @@ describe("generarReportePdf", () => {
 		expect(altoFirma).toBeCloseTo(40.5, 0);
 
 		const textos = mockDoc.text.mock.calls;
+		expect(textos.map(([texto]) => texto)).toContain("MÉDICO RADIÓLOGO");
 		const cedula = textos.find(([texto]) => String(texto).startsWith("CE "));
 		expect(cedula).toBeDefined();
 		// El pie del membrete arranca en ≈262 mm.

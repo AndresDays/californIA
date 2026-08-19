@@ -89,6 +89,9 @@ const TOOLS = [
 	{ id: "pan", icon: moverIcon, label: "Mover" },
 ];
 
+// Cargo con el que firma el radiólogo la interpretación.
+const LEYENDA_FIRMA = "MÉDICO RADIÓLOGO";
+
 // Recorrido mínimo del dedo para pasar a la siguiente imagen.
 const DESPLAZAMIENTO_MINIMO_TOQUE = 28;
 
@@ -734,9 +737,7 @@ const VisorPaciente = () => {
 														<div className="vp-firma-linea" />
 													)}
 													<p className="vp-firma-nombre">{radiologo?.nombre}</p>
-													{radiologo?.especialidad && (
-														<p className="vp-firma-dato">{radiologo.especialidad.toUpperCase()}</p>
-													)}
+													<p className="vp-firma-dato">{LEYENDA_FIRMA}</p>
 													{radiologo?.cedula && (
 														<p className="vp-firma-dato">CE {radiologo.cedula}</p>
 													)}
