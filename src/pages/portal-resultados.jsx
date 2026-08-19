@@ -142,6 +142,21 @@ const PortalResultados = () => {
 		}
 	};
 
+	const verPdfInterpretacion = async (estudio) => {
+		try {
+			const url = await generarResultadosCombinadosPdf({
+				venta,
+				estudios: [estudio],
+				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+				datosQuimicoSrc: obtenerDatosQuimico(venta),
+			});
+			window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
+		} catch (pdfError) {
+			console.error("Error al generar PDF de interpretación:", pdfError);
+			setError("No fue posible generar el PDF de interpretación. Intenta de nuevo.");
+		}
+	};
+
 	return (
 		<div className="portal-resultados">
 			<header className="portal-header">
@@ -248,13 +263,16 @@ const PortalResultados = () => {
 										</div>
 
 										{estudio.tipo === "imagen" ? (
-											<div className="portal-reporte">
-												{String(estudio.reporte || "")
-													.split("\n")
-													.filter(Boolean)
-													.map((linea, index) => (
-														<p key={`${estudio.id}-${index}`}>{linea}</p>
-													))}
+											<div className="portal-estudio-actions">
+												<a
+													href={`/visor-paciente/${estudio.id}`}
+													target="_blank"
+													rel="noopener noreferrer">
+													Ver visor del paciente
+												</a>
+												<button type="button" onClick={() => verPdfInterpretacion(estudio)}>
+													Ver PDF de interpretación
+												</button>
 											</div>
 										) : (
 											<div className="portal-analitos-texto">

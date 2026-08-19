@@ -65,13 +65,13 @@ const Precios = () => {
 					})
 					.eq("id", precioData.id);
 				if (error) throw error;
-				alert("Precio actualizado correctamente");
+				globalThis.mostrarNotificacion("Precio actualizado correctamente");
 			} else {
 				const { error } = await supabase
 					.from("precios_estudios")
 					.insert([precioData]);
 				if (error) throw error;
-				alert("Precio agregado correctamente");
+				globalThis.mostrarNotificacion("Precio agregado correctamente");
 			}
 			cargarPrecios();
 			setModalAbierto(false);
@@ -89,11 +89,11 @@ const Precios = () => {
 					.delete()
 					.eq("id", id);
 				if (error) throw error;
-				alert("Precio eliminado correctamente");
+				globalThis.mostrarNotificacion("Precio eliminado correctamente");
 				cargarPrecios();
 			} catch (error) {
 				console.error("Error:", error);
-				alert("Error al eliminar precio");
+				globalThis.mostrarNotificacion("Error al eliminar precio", "error");
 			}
 		}
 	};

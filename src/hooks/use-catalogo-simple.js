@@ -53,17 +53,17 @@ export function useCatalogoSimple({ tabla, idColumna = "id", storageKey, nombreE
 					.update({ nombre })
 					.eq(idColumna, editando[idColumna]);
 				if (error) throw error;
-				alert(`${nombreEntidad} actualizado correctamente`);
+				globalThis.mostrarNotificacion(`${nombreEntidad} actualizado correctamente`);
 			} else {
 				const { error } = await supabase.from(tabla).insert([{ nombre }]);
 				if (error) throw error;
-				alert(`${nombreEntidad} agregado correctamente`);
+				globalThis.mostrarNotificacion(`${nombreEntidad} agregado correctamente`);
 			}
 			cargar();
 			cerrarModal();
 		} catch (error) {
 			console.error(`Error al guardar ${nombreEntidad}:`, error);
-			alert(`Error al guardar ${nombreEntidad}`);
+			globalThis.mostrarNotificacion(`Error al guardar ${nombreEntidad}`, "error");
 		}
 	};
 
@@ -80,7 +80,7 @@ export function useCatalogoSimple({ tabla, idColumna = "id", storageKey, nombreE
 			setModalOpen(true);
 		} catch (error) {
 			console.error("Error:", error);
-			alert(`Error al cargar ${nombreEntidad}`);
+			globalThis.mostrarNotificacion(`Error al cargar ${nombreEntidad}`, "error");
 		}
 	};
 

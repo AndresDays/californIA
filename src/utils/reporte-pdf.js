@@ -139,6 +139,11 @@ export const generarReportePdf = async ({
 const normalizarPdf = (valor, fallback = "-") =>
 	String(valor ?? fallback)
 		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<\/(?:p|div|li|h[1-6]|tr)>/gi, "\n")
+		.replace(/<li\b[^>]*>/gi, "- ")
+		.replace(/<[^>]+>/g, "")
+		.replace(/&nbsp;/gi, " ")
+		.replace(/&amp;/gi, "&")
 		.normalize("NFD")
 		.replace(/[\u0300-\u036f]/g, "")
 		.trim() || fallback;
