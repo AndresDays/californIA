@@ -6,9 +6,8 @@ jest.mock("./modal-agregar-doctor.css", () => ({}));
 jest.mock("../../../components/admin-entity-modal.css", () => ({}));
 
 describe("ModalAgregarDoctor", () => {
-	test("requiere correo y contraseña al crear el acceso del doctor", () => {
-		const onSave = jest.fn();
-		const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+	test("permite crear un doctor sin acceso a la plataforma", async () => {
+		const onSave = jest.fn().mockResolvedValue(undefined);
 
 		render(<ModalAgregarDoctor isOpen onClose={jest.fn()} onSave={onSave} />);
 		fireEvent.change(screen.getByPlaceholderText("Ingresar Apellido Paterno"), {
@@ -23,11 +22,15 @@ describe("ModalAgregarDoctor", () => {
 
 		fireEvent.click(screen.getByText("Guardar Doctor"));
 
-		expect(onSave).not.toHaveBeenCalled();
-		expect(alertMock).toHaveBeenCalledWith(
-			"El correo y la contraseña son requeridos para crear el acceso del doctor",
+		await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({
+				email: null,
+				usuario: null,
+				contrasena: null,
+			}),
+			false,
 		);
-		alertMock.mockRestore();
 	});
 
 	test("solo permite doctores externos y no pide auth uuid", async () => {

@@ -39,7 +39,7 @@ const createAuthUser = async (
 	return { user: data.user, error: error?.message || null };
 };
 
-const buildDoctorPayload = (doctor: Record<string, unknown>, authUuid: string) => ({
+const buildDoctorPayload = (doctor: Record<string, unknown>, authUuid: string | null) => ({
 	nombre: clean(doctor.nombre),
 	apellido_paterno: clean(doctor.apellido_paterno),
 	apellido_materno: clean(doctor.apellido_materno),
@@ -47,7 +47,7 @@ const buildDoctorPayload = (doctor: Record<string, unknown>, authUuid: string) =
 	fecha_nacimiento: doctor.fecha_nacimiento || null,
 	edad: doctor.edad || null,
 	sexo: clean(doctor.sexo) || null,
-	email: clean(doctor.email),
+	email: clean(doctor.email) || null,
 	telefono: clean(doctor.telefono) || null,
 	usuario: clean(doctor.usuario) || null,
 	tipo_doctor: doctor.tipo_doctor || "particular",
@@ -143,23 +143,28 @@ Deno.serve(async (req) => {
 
 	if (body.action === "createDoctor") {
 		const doctor = body.doctor || {};
-		const { user: authUser, error: authError } = await createAuthUser(
-			adminClient,
-			doctor,
-			"doctor_externo",
-		);
-		if (authError || !authUser) {
-			return responder({ error: authError || "No se pudo crear el usuario" }, 400);
+		const crearAcceso = Boolean(clean(doctor.email) && clean(doctor.contrasena));
+		let authUser: { id: string } | null = null;
+		if (crearAcceso) {
+			const { user, error: authError } = await createAuthUser(
+				adminClient,
+				doctor,
+				"doctor_externo",
+			);
+			if (authError || !user) {
+				return responder({ error: authError || "No se pudo crear el usuario" }, 400);
+			}
+			authUser = user;
 		}
 
 		const { data: doctorCreado, error: doctorError } = await adminClient
 			.from("doctores")
-			.insert([buildDoctorPayload(doctor, authUser.id)])
+			.insert([buildDoctorPayload(doctor, authUser?.id || null)])
 			.select()
 			.single();
 
 		if (doctorError) {
-			await adminClient.auth.admin.deleteUser(authUser.id);
+			if (authUser) await adminClient.auth.admin.deleteUser(authUser.id);
 			return responder({ error: doctorError.message }, 400);
 		}
 
@@ -194,7 +199,9 @@ Deno.serve(async (req) => {
 			return responder({ error: doctorError?.message || "No se pudo actualizar el doctor" }, 400);
 		}
 
-		if (!clean(doctor.contrasena)) return responder({ doctor: doctorActualizado });
+		if (!clean(doctor.email) || !clean(doctor.contrasena)) {
+			return responder({ doctor: doctorActualizado });
+		}
 
 		const { data: doctorAuth, error: doctorAuthError } = await adminClient
 			.from("doctores")

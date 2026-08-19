@@ -416,10 +416,10 @@ const ReporteRadiologia = () => {
 						alt="membrete"
 					/>
 
-					<div className="rr-contenido vd-rr-contenido">
-					<div
-						ref={editorRef}
-							className="rr-editor vd-rr-editor"
+					<div className="rr-contenido">
+						<div
+							ref={editorRef}
+							className="rr-editor"
 							contentEditable
 							suppressContentEditableWarning
 						spellCheck={false}
@@ -427,8 +427,8 @@ const ReporteRadiologia = () => {
 							data-placeholder="Escribir reporte aquí..."
 						/>
 
-					{renderFirma()}
-				</div>
+						{renderFirma()}
+					</div>
 			</div>
 				<div className="rr-print-pages">
 					{paginasImpresion.map(renderPaginaImpresion)}
