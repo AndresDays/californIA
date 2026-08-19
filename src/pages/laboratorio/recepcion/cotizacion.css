@@ -84,6 +84,17 @@
 	min-width: 0;
 }
 
+.selector-label-cot {
+	color: rgba(255, 255, 255, 0.78);
+	font-size: 0.82rem;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.selector-label-sin-icono {
+	padding-left: 0.1rem;
+}
+
 .campo-icon-grupo:focus-within {
 	border-color: #6FB3D2;
 }
@@ -110,6 +121,12 @@
 
 .select-empresa-cot {
 	cursor: pointer;
+}
+
+.select-empresa-cot:disabled,
+.input-buscar-estudios-cot:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
 }
 
 .select-empresa-cot option {
@@ -284,6 +301,9 @@
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
+	position: relative;
+	z-index: 2;
+	overflow: visible;
 }
 
 .agrega-estudios-section {
@@ -297,11 +317,13 @@
 	gap: 1rem;
 	height: 100%;
 	min-width: 0;
+	overflow: visible;
 }
 
 .buscar-estudios-grupo-cot {
 	position: relative;
-	z-index: 10;
+	z-index: 40;
+	isolation: isolate;
 }
 
 .input-buscar-estudios-cot {
@@ -330,15 +352,15 @@
 	top: 100%;
 	left: 0;
 	right: 0;
-	background: rgba(10, 25, 41, 0.98);
+	background: #071625;
 	backdrop-filter: blur(10px);
 	border: 1px solid rgba(111, 179, 210, 0.3);
 	border-radius: 8px;
 	margin-top: 0.4rem;
-	max-height: 280px;
+	max-height: 300px;
 	overflow-y: auto;
-	z-index: 101;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	z-index: 80;
+	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
 }
 
 .search-result-item-cot {
@@ -358,6 +380,12 @@
 
 .search-result-item-cot:last-child {
 	border-bottom: none;
+}
+
+.sin-resultados-cot {
+	cursor: default;
+	color: rgba(255, 255, 255, 0.72);
+	font-style: italic;
 }
 
 .search-result-item-cot strong {

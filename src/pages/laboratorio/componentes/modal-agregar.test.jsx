@@ -94,14 +94,15 @@ describe('ModalAgregar — Envío del formulario', () => {
 
   test('muestra alert y no llama a onGuardar si el valor está vacío', () => {
     const onGuardar = jest.fn();
-    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const notificacionMock = jest.fn();
+    globalThis.mostrarNotificacion = notificacionMock;
     render(<ModalAgregar isOpen={true} onClose={() => {}} onGuardar={onGuardar} />);
 
     fireEvent.click(screen.getByText('Guardar'));
 
-    expect(alertMock).toHaveBeenCalledWith('Por favor, ingrese un valor');
+    expect(notificacionMock).toHaveBeenCalledWith('Por favor, ingrese un valor', 'advertencia');
     expect(onGuardar).not.toHaveBeenCalled();
-    alertMock.mockRestore();
+    delete globalThis.mostrarNotificacion;
   });
 
   test('recorta espacios en blanco antes de guardar', () => {

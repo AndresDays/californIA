@@ -168,17 +168,17 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     e.preventDefault();
 
     if (!apellidoPaterno.trim() || !nombre.trim()) {
-      alert('Por favor, ingresa al menos el apellido paterno y el nombre');
+      globalThis.mostrarNotificacion('Por favor, ingresa al menos el apellido paterno y el nombre', 'advertencia');
       return;
     }
 
     if (email.trim() && !esEmailValido(email)) {
-      alert('Por favor, ingresa un email válido');
+      globalThis.mostrarNotificacion('Por favor, ingresa un email válido', 'advertencia');
       return;
     }
 
     if (telefono && !esTelefono10Digitos(telefono)) {
-      alert('El teléfono debe contener exactamente 10 dígitos numéricos');
+      globalThis.mostrarNotificacion('El teléfono debe contener exactamente 10 dígitos numéricos', 'advertencia');
       return;
     }
 

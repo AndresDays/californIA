@@ -69,9 +69,12 @@ describe('Cotizacion — Renderizado', () => {
     expect(screen.getByPlaceholderText(/Ejemplo: Paciente en ayunas/i)).toBeInTheDocument();
   });
 
-  test('renderiza el selector de empresa', async () => {
+  test('guía la selección de estudios como Nuevo Paciente', async () => {
     await renderCotizacion();
-    expect(screen.getByText('Selecciona una Empresa')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cliente')).toBeInTheDocument();
+    expect(screen.getByLabelText('Empresa')).toBeInTheDocument();
+    expect(screen.getByLabelText('Tipo de estudio')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Selecciona cliente, empresa y tipo primero')).toBeDisabled();
   });
 
   test('muestra el mensaje de sin cotizaciones al cargar vacío', async () => {

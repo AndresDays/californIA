@@ -10,17 +10,25 @@ import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
+import {
+	construirEstudioCatalogoUnificado,
+	filtrarEstudiosCatalogo,
+} from "../../../utils/cita-nuevo-paciente";
 import "./cotizacion.css";
 
 const Cotizacion = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const [nombrePaciente, setNombrePaciente] = useState("");
+	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [condicionesPaciente, setCondicionesPaciente] = useState("");
 	const [buscarCotizacion, setBuscarCotizacion] = useBusquedaPersistente("cotizacion:folio");
 	const [cotizaciones, setCotizaciones] = useState([]);
+	const [clientes, setClientes] = useState([]);
 	const [empresas, setEmpresas] = useState([]);
+	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
+	const [tiposEstudio, setTiposEstudio] = useState([]);
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("cotizacion:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
@@ -36,9 +44,17 @@ const Cotizacion = () => {
 
 	useEffect(() => {
 		cargarCotizaciones();
+		cargarClientes();
 		cargarEmpresas();
 		cargarEstudiosDisponibles();
 	}, []);
+	useEffect(() => {
+		setTipoEstudioSeleccionado("");
+		setBuscarEstudio("");
+		setShowBusquedaEstudios(false);
+		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
+		else setTiposEstudio([]);
+	}, [empresaSeleccionada]);
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
@@ -48,11 +64,24 @@ const Cotizacion = () => {
 	const cerrarNotificacion = () =>
 		setNotificacion({ isOpen: false, mensaje: "", tipo: "exito" });
 
-	const cargarEmpresas = async () => {
+	const cargarClientes = async () => {
 		try {
 			const { data, error } = await supabase
 				.from("clientes")
 				.select("id_cliente, nombre")
+				.order("nombre");
+			if (error) throw error;
+			setClientes(data || []);
+		} catch (error) {
+			console.error("Error al cargar clientes:", error);
+		}
+	};
+
+	const cargarEmpresas = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("empresas")
+				.select("id_empresa, nombre")
 				.order("nombre");
 			if (error) throw error;
 			setEmpresas(data || []);
@@ -61,14 +90,51 @@ const Cotizacion = () => {
 		}
 	};
 
-	const cargarEstudiosDisponibles = async () => {
+	const cargarTiposEstudio = async (idEmpresa) => {
 		try {
 			const { data, error } = await supabase
+				.from("empresa_tipos_estudio")
+				.select("id_tipo_estudio, tipos_estudio (id_tipo_estudio, nombre)")
+				.eq("id_empresa", idEmpresa)
+				.order("tipos_estudio(nombre)");
+			if (error) throw error;
+			setTiposEstudio(
+				(data || [])
+					.filter((item) => item.tipos_estudio)
+					.map((item) => item.tipos_estudio),
+			);
+		} catch (error) {
+			console.error("Error al cargar tipos de estudio:", error);
+			setTiposEstudio([]);
+		}
+	};
+
+	const cargarEstudiosDisponibles = async () => {
+		try {
+			const { data: estudiosLab, error } = await supabase
 				.from("estudios_lab_catalogo")
-				.select("id, clave, descripcion, area")
+				.select("id, clave, descripcion, area, dias_proceso")
 				.order("clave");
 			if (error) throw error;
-			setEstudiosDisponibles(data || []);
+
+			const estudiosLaboratorio = (estudiosLab || []).map((estudio) =>
+				construirEstudioCatalogoUnificado(estudio, "laboratorio"),
+			);
+			const { data: estudiosImagen, error: errorImagen } = await supabase
+				.from("estudios_imagen_catalogo")
+				.select(
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, requiere_contraste, requiere_interpretacion, dias_proceso",
+				)
+				.eq("activo", true)
+				.order("clave");
+			if (errorImagen) throw errorImagen;
+
+			setEstudiosDisponibles([
+				...estudiosLaboratorio,
+				...(estudiosImagen || []).map((estudio) =>
+					construirEstudioCatalogoUnificado(estudio, "imagen"),
+				),
+			]);
 		} catch (error) {
 			console.error("Error al cargar estudios:", error);
 		}
@@ -114,20 +180,21 @@ const Cotizacion = () => {
 			mostrarNotificacion("Este estudio ya fue agregado", "advertencia");
 			return;
 		}
-		const empresaObj = empresas.find(
-			(emp) => emp.id_cliente.toString() === empresaSeleccionada.toString(),
+		const clienteObj = clientes.find(
+			(cliente) =>
+				cliente.id_cliente.toString() === clienteSeleccionado.toString(),
 		);
 		const precioEstudio = await obtenerPrecioEstudio(
 			estudio.clave,
-			empresaObj?.nombre || "",
+			clienteObj?.nombre || "",
 		);
 		setEstudiosSeleccionados([
 			...estudiosSeleccionados,
 			{
 				...estudio,
 				precio: precioEstudio,
-				tipo: estudio.area || "Laboratorio",
-				diasProceso: 1,
+				tipo: estudio.area || estudio.modalidad || "Laboratorio",
+				diasProceso: estudio.diasProceso || 1,
 			},
 		]);
 		setBuscarEstudio("");
@@ -216,7 +283,7 @@ const Cotizacion = () => {
 					{
 						numero_cotizacion: numeroCotizacion,
 						nombre_paciente: nombrePaciente,
-						id_cliente: empresaSeleccionada || null,
+						id_cliente: clienteSeleccionado || null,
 						condiciones_paciente: condicionesPaciente || null,
 						estudios: estudiosSeleccionados.map((est) => ({
 							clave: est.clave,
@@ -250,7 +317,9 @@ const Cotizacion = () => {
 
 	const limpiarFormulario = () => {
 		setNombrePaciente("");
+		setClienteSeleccionado("");
 		setEmpresaSeleccionada("");
+		setTipoEstudioSeleccionado("");
 		setCondicionesPaciente("");
 		setEstudiosSeleccionados([]);
 		setDescuento(0);
@@ -273,15 +342,23 @@ const Cotizacion = () => {
 		);
 	};
 
-	const filtrarEstudios = (termino) => {
-		setShowBusquedaEstudios(termino.length >= 2);
-	};
-
-	const estudiosFiltrados = estudiosDisponibles.filter(
-		(est) =>
-			est.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-			est.clave.toLowerCase().includes(buscarEstudio.toLowerCase()),
+	const empresaActual = empresas.find(
+		(empresa) => empresa.id_empresa?.toString() === empresaSeleccionada?.toString(),
 	);
+	const tipoEstudioActual = tiposEstudio.find(
+		(tipo) =>
+			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
+	);
+	const puedeBuscarEstudios = Boolean(
+		clienteSeleccionado && empresaSeleccionada && tipoEstudioSeleccionado,
+	);
+	const estudiosFiltrados = filtrarEstudiosCatalogo({
+		estudios: estudiosDisponibles,
+		busqueda: buscarEstudio,
+		empresaId: empresaSeleccionada,
+		empresaNombre: empresaActual?.nombre || "",
+		tipoNombre: tipoEstudioActual?.nombre || "",
+	});
 
 	const cotizacionesFiltradas = cotizaciones.filter(
 		(cot) =>
@@ -315,14 +392,65 @@ const Cotizacion = () => {
 							</div>
 							<div className="campo-icon-grupo">
 								<img src={empresaIcono} alt="Cliente" className="icon-img" />
+								<label htmlFor="cotizacion-cliente" className="selector-label-cot">
+									Cliente
+								</label>
 								<select
+									id="cotizacion-cliente"
+									aria-label="Cliente"
+									value={clienteSeleccionado}
+									onChange={(e) => {
+										setClienteSeleccionado(e.target.value);
+										setBuscarEstudio("");
+										setShowBusquedaEstudios(false);
+									}}
+									className="select-empresa-cot">
+									<option value="">Selecciona un Cliente</option>
+									{clientes.map((emp) => (
+										<option key={emp.id_cliente} value={emp.id_cliente}>
+											{emp.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="campo-icon-grupo">
+								<img src={empresaIcono} alt="Empresa" className="icon-img" />
+								<label htmlFor="cotizacion-empresa" className="selector-label-cot">
+									Empresa
+								</label>
+								<select
+									id="cotizacion-empresa"
+									aria-label="Empresa"
 									value={empresaSeleccionada}
 									onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 									className="select-empresa-cot">
 									<option value="">Selecciona una Empresa</option>
 									{empresas.map((emp) => (
-										<option key={emp.id_cliente} value={emp.id_cliente}>
+										<option key={emp.id_empresa} value={emp.id_empresa}>
 											{emp.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="campo-icon-grupo">
+								<label htmlFor="cotizacion-tipo" className="selector-label-cot selector-label-sin-icono">
+									Tipo de estudio
+								</label>
+								<select
+									id="cotizacion-tipo"
+									aria-label="Tipo de estudio"
+									value={tipoEstudioSeleccionado}
+									onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
+									disabled={!empresaSeleccionada}
+									className="select-empresa-cot">
+									<option value="">
+										{empresaSeleccionada
+											? "Selecciona tipo de estudio"
+											: "Primero selecciona una Empresa"}
+									</option>
+									{tiposEstudio.map((tipo) => (
+										<option key={tipo.id_tipo_estudio} value={tipo.id_tipo_estudio}>
+											{tipo.nombre}
 										</option>
 									))}
 								</select>
@@ -417,17 +545,26 @@ const Cotizacion = () => {
 							<div className="buscar-estudios-grupo-cot">
 								<input
 									type="text"
-									placeholder="Busca Estudios Aqui..."
+									placeholder={
+										puedeBuscarEstudios
+											? "Busca estudios aquí..."
+											: "Selecciona cliente, empresa y tipo primero"
+									}
 									value={buscarEstudio}
+									disabled={!puedeBuscarEstudios}
 									onChange={(e) => {
 										setBuscarEstudio(e.target.value);
-										filtrarEstudios(e.target.value);
+										setShowBusquedaEstudios(e.target.value.trim().length >= 2);
 									}}
 									className="input-buscar-estudios-cot"
 								/>
-								{showBusquedaEstudios && buscarEstudio.length >= 2 && (
+								{showBusquedaEstudios && buscarEstudio.trim().length >= 2 && (
 									<div className="search-results-estudios-cot">
-										{estudiosFiltrados.slice(0, 10).map((est) => (
+										{estudiosFiltrados.length === 0 ? (
+											<div className="search-result-item-cot sin-resultados-cot">
+												No se encontraron estudios para la selección actual
+											</div>
+										) : estudiosFiltrados.slice(0, 10).map((est) => (
 											<div
 												key={est.id}
 												className="search-result-item-cot"

@@ -4,6 +4,7 @@ import './App.css';
 import AppBoundary, { LoadingSpinner } from './components/app-boundary';
 import ProtectedRoute from './components/protected-route';
 import PwaUpdatePrompt from './components/pwa-update-prompt';
+import ModalNotificacionGlobal from './components/modal-notificacion-global';
 import { AuthProvider } from './context/auth-context';
 
 const ForgotPassword = lazy(() => import('./pages/forgot-password'));
@@ -110,6 +111,7 @@ function App() {
 					</Routes>
 				</Suspense>
 				<PwaUpdatePrompt />
+				<ModalNotificacionGlobal />
 			</AuthProvider>
 		</Router>
 	);
