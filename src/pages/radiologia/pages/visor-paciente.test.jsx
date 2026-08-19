@@ -249,7 +249,7 @@ describe("VisorPaciente", () => {
 		await screen.findAllByText("Serie AP");
 		fireEvent.click(screen.getByLabelText("Abrir reporte"));
 		expect(await screen.findByText("Dra. Odile Desage")).toBeInTheDocument();
-		expect(screen.getByText("RADIOLOGÍA E IMAGEN")).toBeInTheDocument();
+		expect(screen.getByText("MÉDICO RADIÓLOGO")).toBeInTheDocument();
 		expect(screen.getByText("CE 12345678")).toBeInTheDocument();
 		expect(screen.getByAltText("Firma de Dra. Odile Desage")).toHaveAttribute(
 			"src",

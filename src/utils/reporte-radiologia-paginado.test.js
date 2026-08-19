@@ -61,6 +61,12 @@ describe('dividirReporteEnPaginas', () => {
 			.toEqual([paginaConTexto]);
 	});
 
+	test('los renglones en blanco del editor no sostienen una página suelta', () => {
+		const paginaConTexto = [{ html: '<p>Hallazgo</p>', alto: 35 }];
+		const soloEspacios = [{ html: '<p>&nbsp;</p>', alto: 35 }, { html: '<p>\u00a0</p>', alto: 35 }];
+		expect(omitirPaginasVacias([paginaConTexto, soloEspacios])).toEqual([paginaConTexto]);
+	});
+
 	test('aprovecha el espacio hasta el footer antes de continuar en otra página', () => {
 		const bloques = Array.from({ length: 3 }, (_, indice) => ({
 			html: `<p>Bloque ${indice + 1}</p>`,

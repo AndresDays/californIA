@@ -232,12 +232,15 @@
 
 /* Mismo tamaño que en el editor y en la hoja impresa: el bloque de firma mide
    320 x 130 px con la escala 1.18 que trae por defecto. */
+/* Alto fijo y ancho proporcional: así el trazo llena el recuadro y no queda
+   aire entre la firma y la línea del nombre. */
 .vp-firma-img {
-	width: 378px;
 	height: 153px;
+	width: auto;
+	max-width: 378px;
 	object-fit: contain;
 	/* La línea sube sobre el trazo, igual que en el editor. */
-	margin-bottom: -24px;
+	margin-bottom: -34px;
 }
 
 .vp-firma-linea {

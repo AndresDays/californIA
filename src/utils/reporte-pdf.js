@@ -31,8 +31,10 @@ const FIRMA_ANCHO = Math.round(378 * PX_A_MM * 10) / 10;
 const FIRMA_ALTO = Math.round(153 * PX_A_MM * 10) / 10;
 const FIRMA_ANCHO_LINEA = Math.round(330 * PX_A_MM * 10) / 10;
 // La línea de la firma sube sobre el trazo, como en el editor, para que el
-// bloque ocupe lo mismo que en la hoja impresa.
-const FIRMA_TRASLAPE = Math.round(24 * PX_A_MM * 10) / 10;
+// nombre quede pegado a la rúbrica.
+const FIRMA_TRASLAPE = Math.round(34 * PX_A_MM * 10) / 10;
+// Cargo con el que firma el radiólogo la interpretación.
+const LEYENDA_FIRMA = "MÉDICO RADIÓLOGO";
 // Aire entre la última línea de la firma y el pie del membrete.
 const FIRMA_AIRE_INFERIOR = 11;
 
@@ -128,12 +130,16 @@ export const generarReportePdf = async ({
 	// cabe, se abre una nueva para no encimarla con el texto.
 	const tieneFirma = Boolean(firmaImagen || String(firma?.nombre || "").trim());
 	if (tieneFirma) {
-		const altoBloque =
-			FIRMA_ALTO - FIRMA_TRASLAPE + 5.5 +
-			(firma?.especialidad ? 4.4 : 0) + (firma?.cedula ? 4.4 : 0);
-		// El bloque se apoya en el pie de la hoja, dejando el mismo aire que el
-		// editor deja bajo la firma; si ya no cabe bajo el texto, abre hoja nueva.
-		// `y` quedó en el renglón siguiente al último escrito, de ahí el ajuste.
+		// La firma se mide para pegarle debajo la línea con los datos, sin el
+		// hueco que dejaría un recuadro de alto fijo.
+		const medidasFirma = firmaImagen
+			? ajustarDentro(doc, firmaImagen, FIRMA_ANCHO, FIRMA_ALTO)
+			: { ancho: 0, alto: 0 };
+		const altoRubrica = medidasFirma.alto ? medidasFirma.alto - FIRMA_TRASLAPE : 0;
+		const altoBloque = altoRubrica + 5.5 + 4.4 + (firma?.cedula ? 4.4 : 0);
+
+		// El bloque se apoya en el pie de la hoja; si ya no cabe bajo el texto,
+		// abre hoja nueva. `y` quedó en el renglón siguiente al último escrito.
 		const finTexto = y - REPORTE_INTERLINEADO;
 		if (finTexto + 8 + altoBloque + FIRMA_AIRE_INFERIOR > REPORTE_LIMITE_INFERIOR) {
 			doc.addPage();
@@ -144,32 +150,26 @@ export const generarReportePdf = async ({
 		const centro = PAGINA_ANCHO / 2;
 		if (firmaImagen) {
 			try {
-				// La firma se ajusta dentro del recuadro sin deformarse, igual que
-				// el `object-fit: contain` del visor.
-				const { ancho, alto } = ajustarDentro(doc, firmaImagen, FIRMA_ANCHO, FIRMA_ALTO);
 				doc.addImage(
 					firmaImagen,
 					obtenerFormatoImagen(firmaImagen),
-					centro - ancho / 2,
-					yFirma + (FIRMA_ALTO - alto),
-					ancho,
-					alto,
+					centro - medidasFirma.ancho / 2,
+					yFirma,
+					medidasFirma.ancho,
+					medidasFirma.alto,
 				);
 			} catch {}
 		}
-		yFirma += FIRMA_ALTO - FIRMA_TRASLAPE;
+		yFirma += altoRubrica;
 		doc.setDrawColor(0, 0, 0);
 		doc.line(centro - FIRMA_ANCHO_LINEA / 2, yFirma, centro + FIRMA_ANCHO_LINEA / 2, yFirma);
 		yFirma += 5.5;
 		doc.setFont("helvetica", "bold");
 		doc.setFontSize(12.5);
 		doc.text(String(firma?.nombre || "").toUpperCase(), centro, yFirma, { align: "center" });
-		doc.setFont("helvetica", "bold");
 		doc.setFontSize(9);
-		if (firma?.especialidad) {
-			yFirma += 4.4;
-			doc.text(String(firma.especialidad).toUpperCase(), centro, yFirma, { align: "center" });
-		}
+		yFirma += 4.4;
+		doc.text(LEYENDA_FIRMA, centro, yFirma, { align: "center" });
 		if (firma?.cedula) {
 			yFirma += 4.4;
 			doc.text(`CE ${String(firma.cedula).toUpperCase()}`, centro, yFirma, { align: "center" });

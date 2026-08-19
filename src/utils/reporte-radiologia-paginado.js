@@ -9,8 +9,9 @@ export const ALTURA_UTIL_REPORTE_CON_FIRMA = ALTURA_UTIL_REPORTE_SIN_FIRMA - 230
 // px 169 de la hoja y se corta en el 985, justo antes del pie del membrete. La
 // última hoja además reserva el bloque de firma del radiólogo.
 export const ALTURA_TEXTO_VISOR_SIN_FIRMA = 985 - 169;
-// El bloque de firma ocupa lo mismo que en el editor y en la hoja impresa.
-export const ALTO_FIRMA_REPORTE = 230;
+// Alto real del bloque de firma en el visor: la firma menos el traslape con la
+// línea, el nombre, la leyenda, la cédula y el aire hasta el pie del membrete.
+export const ALTO_FIRMA_REPORTE = 200;
 export const ALTURA_TEXTO_VISOR_CON_FIRMA = ALTURA_TEXTO_VISOR_SIN_FIRMA - ALTO_FIRMA_REPORTE;
 
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
@@ -43,10 +44,17 @@ export const dividirReporteParaImpresion = (bloques, altoSinFirma, altoConFirma)
 	return paginas;
 };
 
+// Los renglones en blanco del editor viajan como `<p>&nbsp;</p>`: sin tratarlos
+// como vacíos, una hoja que sólo los contiene sobrevive y el reporte termina
+// con una página suelta (por ejemplo, la que sólo llevaría la firma).
+const textoVisibleBloque = (html) => String(html || '')
+	.replace(/<[^>]+>/g, '')
+	.replace(/&nbsp;/gi, ' ')
+	.replace(/\u00a0/g, ' ')
+	.trim();
+
 export const omitirPaginasVacias = (paginas) =>
-	paginas.filter((pagina) =>
-		pagina.some((bloque) => String(bloque.html || '').replace(/<[^>]+>/g, '').trim()),
-	);
+	paginas.filter((pagina) => pagina.some((bloque) => textoVisibleBloque(bloque.html)));
 
 const escaparHtml = (texto) => String(texto)
 	.replace(/&/g, '&amp;')
