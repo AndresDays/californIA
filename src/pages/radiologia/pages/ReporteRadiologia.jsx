@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import JSZip from "jszip";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
@@ -13,8 +13,10 @@ import {
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
+	ALTURA_UTIL_REPORTE_SIN_FIRMA,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
+	medirBloquesReporte,
 	omitirPaginasVacias,
 } from "../../../utils/reporte-radiologia-paginado";
 import imprimirIcon from "../../../assets/imprimirIcono.png";
@@ -267,11 +269,17 @@ const ReporteRadiologia = () => {
 		document.execCommand(cmd, false, arg ?? null);
 	};
 
-	const paginasImpresion = omitirPaginasVacias(dividirReporteParaImpresion(
-		crearBloquesReporteParaImprimir(reporteParaImprimir),
-		900,
-		ALTURA_UTIL_REPORTE_CON_FIRMA,
-	));
+	const paginasImpresion = useMemo(
+		() =>
+			omitirPaginasVacias(
+				dividirReporteParaImpresion(
+					medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+					ALTURA_UTIL_REPORTE_SIN_FIRMA,
+					ALTURA_UTIL_REPORTE_CON_FIRMA,
+				),
+			),
+		[reporteParaImprimir],
+	);
 	const renderPaginaImpresion = (pagina, indice) => (
 		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />

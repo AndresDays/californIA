@@ -1,5 +1,6 @@
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
+	medirBloquesReporte,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
 	dividirReporteEnPaginas,
@@ -79,5 +80,21 @@ describe('dividirReporteEnPaginas', () => {
 			bloques.slice(3, 4),
 			bloques.slice(4),
 		]);
+	});
+});
+
+describe('medirBloquesReporte', () => {
+	test('conserva los bloques y no deja rastro en el documento', () => {
+		const bloques = [{ html: '<p>Hallazgo</p>', alto: 35 }];
+
+		const medidos = medirBloquesReporte(bloques);
+
+		expect(medidos).toHaveLength(1);
+		expect(medidos[0].html).toBe('<p>Hallazgo</p>');
+		expect(document.querySelectorAll('.rr-editor')).toHaveLength(0);
+	});
+
+	test('mantiene la altura estimada cuando el entorno no calcula layout', () => {
+		expect(medirBloquesReporte([{ html: '<p>Hallazgo</p>', alto: 35 }])[0].alto).toBe(35);
 	});
 });

@@ -1,6 +1,24 @@
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
+
+// En Vercel el repositorio no siempre trae historial de git, por eso se usa
+// primero la variable que expone la plataforma.
+const obtenerCommit = () => {
+  const desdeEntorno = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA
+  if (desdeEntorno) return desdeEntorno.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    return ''
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -62,6 +80,9 @@ export default defineConfig(({ mode }) => {
     ],
     define: {
       'process.env.VITE_CALIFORNIA_API': JSON.stringify(env.VITE_CALIFORNIA_API || ''),
+      __APP_VERSION__: JSON.stringify(version),
+      __APP_COMMIT__: JSON.stringify(obtenerCommit()),
+      __APP_BUILD_DATE__: JSON.stringify(new Date().toISOString()),
     },
   }
 })
