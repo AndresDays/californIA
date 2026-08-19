@@ -77,8 +77,22 @@ describe('dividirReporteEnPaginas', () => {
 
 		expect(dividirReporteParaImpresion(bloques, 900, 650)).toEqual([
 			bloques.slice(0, 3),
-			bloques.slice(3, 4),
-			bloques.slice(4),
+			bloques.slice(3, 5),
+			bloques.slice(5),
+		]);
+	});
+});
+
+describe('dividirReporteParaImpresion', () => {
+	test('llena las primeras hojas antes de bajar lo que no cabe con la firma', () => {
+		const bloques = Array.from({ length: 4 }, (_, indice) => ({
+			html: `<p>Bloque ${indice + 1}</p>`,
+			alto: 200,
+		}));
+
+		expect(dividirReporteParaImpresion(bloques, 890, 660)).toEqual([
+			bloques.slice(0, 3),
+			bloques.slice(3),
 		]);
 	});
 });

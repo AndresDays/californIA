@@ -47,7 +47,10 @@ import {
 	puedeVerReporteRadiologia,
 } from "../../../utils/radiologia-permisos";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
-import { normalizarHtmlReporteRadiologia } from "../../../utils/reporte-radiologia-html";
+import {
+	htmlReporteRadiologiaParaEditor,
+	normalizarHtmlReporteRadiologia,
+} from "../../../utils/reporte-radiologia-html";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import Mpr2dViewer from "../componentes/Mpr2dViewer";
@@ -3226,7 +3229,7 @@ const VisorDicom = () => {
 
 	useEffect(() => {
 		if (panelDerecho !== "reporte" || !reporteEditorRef.current) return;
-		reporteEditorRef.current.innerHTML = normalizarHtmlReporteRadiologia(reporteTexto);
+		reporteEditorRef.current.innerHTML = htmlReporteRadiologiaParaEditor(reporteTexto);
 	}, [panelDerecho]);
 
 	const crearImagenesConUrlFirmada = async (imagenes = []) =>

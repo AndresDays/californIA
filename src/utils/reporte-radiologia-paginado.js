@@ -18,7 +18,9 @@ export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 };
 
 // Las páginas intermedias pueden usar todo el espacio útil. Sólo la última
-// necesita reservar el área de la firma para que nunca se monte con el texto.
+// necesita reservar el área de la firma, así que lo que ya no cabe ahí baja a
+// una hoja nueva al final: el texto se sigue llenando de arriba hacia abajo y
+// nunca quedan huecos en las primeras páginas.
 export const dividirReporteParaImpresion = (bloques, altoSinFirma, altoConFirma) => {
 	const paginas = dividirReporteEnPaginas(bloques, altoSinFirma);
 	if (paginas.length === 0) return paginas;
@@ -26,11 +28,8 @@ export const dividirReporteParaImpresion = (bloques, altoSinFirma, altoConFirma)
 	const altoPagina = (pagina) => pagina.reduce((total, bloque) => total + bloque.alto, 0);
 	let ultima = paginas[paginas.length - 1];
 	while (ultima.length > 1 && altoPagina(ultima) > altoConFirma) {
-		const bloque = ultima.shift();
-		const anterior = paginas[paginas.length - 2];
-		if (!anterior) paginas.splice(0, 0, [bloque]);
-		else if (altoPagina(anterior) + bloque.alto <= altoSinFirma) anterior.push(bloque);
-		else paginas.splice(paginas.length - 1, 0, [bloque]);
+		const bloque = ultima.pop();
+		paginas.push([bloque]);
 		ultima = paginas[paginas.length - 1];
 	}
 	return paginas;
