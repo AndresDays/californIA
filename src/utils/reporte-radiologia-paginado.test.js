@@ -1,6 +1,7 @@
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	agruparConclusionReporte,
+	elegirEscalaUnaHoja,
 	medirBloquesReporte,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
@@ -120,6 +121,23 @@ describe('agruparConclusionReporte', () => {
 	test('deja el reporte intacto cuando no hay conclusión', () => {
 		const sinConclusion = [{ html: '<p>Hallazgo</p>', alto: 30 }];
 		expect(agruparConclusionReporte(sinConclusion, 660)).toEqual(sinConclusion);
+	});
+});
+
+describe('elegirEscalaUnaHoja', () => {
+	test('usa el tamaño normal cuando el reporte ya cabe en una hoja', () => {
+		expect(elegirEscalaUnaHoja('<p>Hallazgo</p>', 660)).toBe(1);
+	});
+
+	test('elige la mayor reducción con la que el reporte todavía cabe', () => {
+		const alturas = { 1: 876, 0.95: 832, 0.9: 789, 0.85: 744, 0.8: 701, 0.75: 657 };
+		const escalas = Object.keys(alturas).map(Number).sort((a, b) => b - a);
+
+		expect(escalas.find((escala) => alturas[escala] <= 660)).toBe(0.75);
+	});
+
+	test('no propone hoja única para un reporte vacío', () => {
+		expect(elegirEscalaUnaHoja('<p><br></p>', 660)).toBeNull();
 	});
 });
 

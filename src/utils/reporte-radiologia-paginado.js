@@ -163,3 +163,40 @@ export const agruparConclusionReporte = (bloques, altoMaximo) => {
 		{ html: conclusion.map((bloque) => bloque.html).join(''), alto },
 	];
 };
+
+// Reducciones que se prueban para que un reporte que se pasa por poco quepa en
+// una sola hoja, como se ve en el visor. Por debajo de 0.75 el texto empieza a
+// costar trabajo de leer, así que a partir de ahí se pagina normalmente.
+export const ESCALAS_UNA_HOJA = [1, 0.95, 0.9, 0.85, 0.8, 0.75];
+
+export const medirAltoReporteImpreso = (html, { ancho = ANCHO_UTIL_REPORTE, escala = 1 } = {}) => {
+	if (typeof document === 'undefined') return 0;
+	const medidor = document.createElement('div');
+	medidor.className = 'rr-editor';
+	medidor.setAttribute('aria-hidden', 'true');
+	medidor.style.cssText = [
+		'position:absolute',
+		'left:-10000px',
+		'top:0',
+		'visibility:hidden',
+		`width:${ancho}px`,
+		'min-height:0',
+		'margin:0',
+		'padding:0',
+		`zoom:${escala}`,
+	].join(';');
+	medidor.innerHTML = html || '';
+	document.body.append(medidor);
+	try {
+		return medidor.getBoundingClientRect().height;
+	} finally {
+		medidor.remove();
+	}
+};
+
+// Devuelve la mayor escala con la que el reporte completo cabe en una hoja, o
+// null si ni con la reducción máxima alcanza.
+export const elegirEscalaUnaHoja = (html, altoDisponible, escalas = ESCALAS_UNA_HOJA) => {
+	if (!String(html || '').replace(/<[^>]+>/g, '').trim()) return null;
+	return escalas.find((escala) => medirAltoReporteImpreso(html, { escala }) <= altoDisponible) ?? null;
+};
