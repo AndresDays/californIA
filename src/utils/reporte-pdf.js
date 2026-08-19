@@ -138,6 +138,41 @@ export const generarReportePdf = async ({
 		}
 	}
 
+	// La firma de quien interpretó el estudio cierra la última hoja; si ya no
+	// cabe, se abre una nueva para no encimarla con el texto.
+	const tieneFirma = Boolean(firmaImagen || String(firma?.nombre || "").trim());
+	if (tieneFirma) {
+		if (y + REPORTE_ALTO_FIRMA > REPORTE_LIMITE_INFERIOR) {
+			doc.addPage();
+			dibujarMembrete();
+			y = REPORTE_MARGEN_SUPERIOR;
+		}
+		let yFirma = Math.max(y + 8, REPORTE_LIMITE_INFERIOR - REPORTE_ALTO_FIRMA);
+		const centro = PAGINA_ANCHO / 2;
+		if (firmaImagen) {
+			try {
+				doc.addImage(firmaImagen, obtenerFormatoImagen(firmaImagen), centro - 22, yFirma, 44, 17);
+			} catch {}
+		}
+		yFirma += 20;
+		doc.setDrawColor(0, 0, 0);
+		doc.line(centro - 32, yFirma, centro + 32, yFirma);
+		yFirma += 5;
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(10.5);
+		doc.text(String(firma?.nombre || "").toUpperCase(), centro, yFirma, { align: "center" });
+		doc.setFont("helvetica", "normal");
+		doc.setFontSize(9);
+		if (firma?.especialidad) {
+			yFirma += 4.6;
+			doc.text(String(firma.especialidad).toUpperCase(), centro, yFirma, { align: "center" });
+		}
+		if (firma?.cedula) {
+			yFirma += 4.6;
+			doc.text(`CE ${String(firma.cedula).toUpperCase()}`, centro, yFirma, { align: "center" });
+		}
+	}
+
 	if (qrData) {
 		try {
 			const qrDataUrl = await QRCode.toDataURL(qrData, {
