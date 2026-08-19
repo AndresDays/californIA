@@ -166,7 +166,8 @@ describe("generarReportePdf", () => {
 			(llamada) => llamada[0] === "data:image/png;base64,QRMOCK",
 		);
 		const [, , , qrY, , qrAlto] = llamadaQr;
-		expect(qrY + qrAlto).toBeLessThanOrEqual(297 - 46);
+		// El pie del membrete empieza en el px 998 de la hoja (≈262 mm).
+		expect(qrY + qrAlto).toBeLessThanOrEqual(262);
 	});
 
 	test("no genera QR cuando no hay qrData", async () => {

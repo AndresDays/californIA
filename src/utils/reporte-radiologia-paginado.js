@@ -5,6 +5,12 @@
 export const ALTURA_UTIL_REPORTE_SIN_FIRMA = 890;
 export const ALTURA_UTIL_REPORTE_CON_FIRMA = ALTURA_UTIL_REPORTE_SIN_FIRMA - 230;
 
+// El visor del paciente imprime el reporte sin editor: el texto arranca en el
+// px 169 de la hoja y se corta en el 985, justo antes del pie del membrete. La
+// última hoja además reserva el bloque de firma del radiólogo.
+export const ALTURA_TEXTO_VISOR_SIN_FIRMA = 985 - 169;
+export const ALTURA_TEXTO_VISOR_CON_FIRMA = ALTURA_TEXTO_VISOR_SIN_FIRMA - 180;
+
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	if (!bloques.length) return [[]];
 

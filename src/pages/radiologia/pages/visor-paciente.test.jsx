@@ -55,6 +55,7 @@ const ESTUDIO = {
 	descripcion: "Rodillas AP y Lateral",
 	fecha_estudio: "2026-07-10",
 	id_paciente: 7,
+	id_radiologo: 4,
 	doctor: { nombre: "Odile Desage" },
 };
 
@@ -100,6 +101,21 @@ const configurarSupabase = ({ estudio = ESTUDIO, imagenes = IMAGENES } = {}) => 
 						? { data: estudio, error: null }
 						: { data: null, error: { message: "not found" } },
 				),
+			};
+		}
+		if (tabla === "empleados") {
+			return {
+				select: jest.fn().mockReturnThis(),
+				eq: jest.fn().mockReturnThis(),
+				maybeSingle: jest.fn().mockResolvedValue({
+					data: {
+						nombre: "Dra. Odile Desage",
+						cedula: "12345678",
+						especialidad: "Radiología e Imagen",
+						firma_digital: "https://firmas.test/odile.png",
+					},
+					error: null,
+				}),
 			};
 		}
 		if (tabla === "pacientes") {
@@ -226,6 +242,65 @@ describe("VisorPaciente", () => {
 		expect(argumentos).not.toHaveProperty("fechaEncabezado");
 		expect(argumentos).not.toHaveProperty("doctorNombre");
 		expect(argumentos).not.toHaveProperty("estudioDescripcion");
+	});
+
+	test("el reporte cierra con la firma del radiólogo que interpretó", async () => {
+		renderVisor();
+		await screen.findAllByText("Serie AP");
+		fireEvent.click(screen.getByLabelText("Abrir reporte"));
+		expect(await screen.findByText("Dra. Odile Desage")).toBeInTheDocument();
+		expect(screen.getByText("RADIOLOGÍA E IMAGEN")).toBeInTheDocument();
+		expect(screen.getByText("CE 12345678")).toBeInTheDocument();
+		expect(screen.getByAltText("Firma de Dra. Odile Desage")).toHaveAttribute(
+			"src",
+			"https://firmas.test/odile.png",
+		);
+	});
+
+	test("el PDF del visor incluye la firma del radiólogo", async () => {
+		renderVisor();
+		await screen.findAllByText("Serie AP");
+		fireEvent.click(screen.getByLabelText("Abrir reporte"));
+		await screen.findByText("Dra. Odile Desage");
+		fireEvent.click(screen.getByText("Descargar"));
+		await waitFor(() => expect(generarReportePdf).toHaveBeenCalled());
+		expect(generarReportePdf).toHaveBeenCalledWith(
+			expect.objectContaining({
+				firma: expect.objectContaining({
+					nombre: "Dra. Odile Desage",
+					cedula: "12345678",
+					firmaUrl: "https://firmas.test/odile.png",
+				}),
+			}),
+		);
+	});
+
+	test("la barra de imágenes cambia de imagen en el visor", async () => {
+		renderVisor();
+		await screen.findAllByText("Serie AP");
+		const barra = screen.getByLabelText("Cambiar de imagen");
+		expect(barra).toHaveValue("0");
+		fireEvent.change(barra, { target: { value: "1" } });
+		expect(screen.getByLabelText("Cambiar de imagen")).toHaveValue("1");
+	});
+
+	test("cada deslizada del dedo avanza una sola imagen", async () => {
+		renderVisor();
+		await screen.findAllByText("Serie AP");
+		const lienzo = document.querySelector(".vp-canvas");
+
+		fireEvent.touchStart(lienzo, { touches: [{ clientX: 100, clientY: 300 }] });
+		fireEvent.touchMove(lienzo, { touches: [{ clientX: 100, clientY: 200 }] });
+		fireEvent.touchMove(lienzo, { touches: [{ clientX: 100, clientY: 90 }] });
+		fireEvent.touchEnd(lienzo);
+		expect(screen.getByLabelText("Cambiar de imagen")).toHaveValue("1");
+
+		// Deslizar hacia abajo regresa una sola imagen.
+		fireEvent.touchStart(lienzo, { touches: [{ clientX: 100, clientY: 180 }] });
+		fireEvent.touchMove(lienzo, { touches: [{ clientX: 100, clientY: 300 }] });
+		fireEvent.touchMove(lienzo, { touches: [{ clientX: 100, clientY: 420 }] });
+		fireEvent.touchEnd(lienzo);
+		expect(screen.getByLabelText("Cambiar de imagen")).toHaveValue("0");
 	});
 
 	test("muestra error cuando el estudio no existe", async () => {

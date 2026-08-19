@@ -1,24 +1,25 @@
 import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
 
 describe('abrirPdfEnPestana', () => {
-	test('usa el titulo indicado en la pestana que contiene el PDF', () => {
-		const asignarTitulo = jest.fn();
-		const documento = { open: jest.fn(), write: jest.fn(), close: jest.fn() };
-		Object.defineProperty(documento, 'title', { get: () => '', set: asignarTitulo });
-		const ventana = {
-			document: documento,
-		};
+	test('lleva la pestaña directo al PDF en lugar de una página intermedia', () => {
+		const replace = jest.fn();
+		const ventana = { location: { replace } };
 		window.open = jest.fn(() => ventana);
 
 		abrirPdfEnPestana({ url: 'blob:ticket', titulo: 'Ticket V-001' });
 
-		expect(window.open).toHaveBeenCalledWith('', '_blank');
-		expect(asignarTitulo).toHaveBeenLastCalledWith('Ticket V-001');
-		expect(asignarTitulo.mock.invocationCallOrder.at(-1)).toBeGreaterThan(
-			documento.close.mock.invocationCallOrder[0],
-		);
-		expect(ventana.document.write).toHaveBeenCalledWith(
-			expect.stringContaining('src="blob:ticket"'),
-		);
+		expect(window.open).toHaveBeenCalledWith('blob:ticket', '_blank');
+		expect(replace).toHaveBeenCalledWith('blob:ticket');
+	});
+
+	test('reutiliza la pestaña abierta antes de generar el PDF', () => {
+		const replace = jest.fn();
+		const ventana = { location: { replace } };
+		window.open = jest.fn();
+
+		abrirPdfEnPestana({ url: 'blob:reporte', titulo: 'Reporte', ventana });
+
+		expect(window.open).not.toHaveBeenCalled();
+		expect(replace).toHaveBeenCalledWith('blob:reporte');
 	});
 });

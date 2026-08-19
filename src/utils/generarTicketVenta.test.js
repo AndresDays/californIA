@@ -89,6 +89,6 @@ describe('generarTicketVenta', () => {
 			expect.objectContaining({ align: 'center' }),
 		);
 		expect(mockDoc.setProperties).toHaveBeenCalledWith({ title: 'Ticket V-001' });
-		expect(window.open).toHaveBeenCalledWith('', '_blank');
+		expect(window.open).toHaveBeenCalledWith('blob:ticket', '_blank');
 	});
 });

@@ -116,6 +116,20 @@ const PortalResultados = () => {
 		window.open(`/visor-paciente/${estudioImagen.id}?${params.toString()}`, "_blank", "noopener,noreferrer");
 	};
 
+	// Los datos de quien firmó la interpretación viven en el estudio, no en el
+	// listado; se piden al portal antes de armar el PDF.
+	const obtenerRadiologo = async (idEstudio) => {
+		try {
+			const { data } = await supabase.functions.invoke("portal-resultados", {
+				body: { p_folio: folio.trim(), p_telefono: telefono, p_id_estudio: String(idEstudio) },
+			});
+			return data?.radiologo || null;
+		} catch (errorRadiologo) {
+			console.error("No fue posible obtener la firma del radiólogo:", errorRadiologo);
+			return null;
+		}
+	};
+
 	// El PDF tarda en generarse: la pestaña se abre con el clic y se llena
 	// después, porque el navegador bloquea las que se abren ya sin el gesto.
 	const verPdf = async () => {
@@ -128,6 +142,7 @@ const PortalResultados = () => {
 					nombrePaciente: venta?.paciente || "",
 					reporteTexto: textoPlanoReporteRadiologia(estudioImagen.reporte),
 					membreteSrc,
+					firma: await obtenerRadiologo(estudioImagen.id),
 					nombreArchivo: crearNombreArchivoReporte(venta?.paciente),
 					imprimir: true,
 					ventana,
@@ -148,21 +163,6 @@ const PortalResultados = () => {
 			setError("No fue posible abrir el PDF de resultados. Intenta de nuevo.");
 		} finally {
 			setGenerandoPdf(false);
-		}
-	};
-
-	const verPdfInterpretacion = async (estudio) => {
-		try {
-			const url = await generarResultadosCombinadosPdf({
-				venta,
-				estudios: [estudio],
-				membreteSrc,
-				datosQuimicoSrc: obtenerDatosQuimico(venta),
-			});
-			window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
-		} catch (pdfError) {
-			console.error("Error al generar PDF de interpretación:", pdfError);
-			setError("No fue posible generar el PDF de interpretación. Intenta de nuevo.");
 		}
 	};
 
@@ -271,19 +271,7 @@ const PortalResultados = () => {
 											<strong>{estudio.estado}</strong>
 										</div>
 
-										{estudio.tipo === "imagen" ? (
-											<div className="portal-estudio-actions">
-												<a
-													href={`/visor-paciente/${estudio.id}`}
-													target="_blank"
-													rel="noopener noreferrer">
-													Ver visor del paciente
-												</a>
-												<button type="button" onClick={() => verPdfInterpretacion(estudio)}>
-													Ver PDF de interpretación
-												</button>
-											</div>
-										) : (
+										{estudio.tipo === "imagen" ? null : (
 											<div className="portal-analitos-texto">
 												{estudio.archivo_cultivo_url && <p>PDF de cultivo adjunto.</p>}
 												<div className="portal-analitos-header">

@@ -109,6 +109,32 @@ describe("PortalResultados", () => {
 			);
 		});
 
+		test("no repite los botones del estudio de imagen", async () => {
+			await consultar();
+
+			expect(screen.queryByText("Ver visor del paciente")).not.toBeInTheDocument();
+			expect(screen.queryByText("Ver PDF de interpretación")).not.toBeInTheDocument();
+			expect(screen.getByRole("button", { name: "Ver estudio" })).toBeInTheDocument();
+			expect(screen.getByRole("button", { name: "Ver PDF" })).toBeInTheDocument();
+		});
+
+		test("el PDF del portal lleva la firma del radiólogo del estudio", async () => {
+			await consultar();
+			supabase.functions.invoke.mockResolvedValue({
+				data: { radiologo: { nombre: "Dra. Odile Desage", firmaUrl: "https://firmas.test/o.png" } },
+				error: null,
+			});
+
+			fireEvent.click(screen.getByRole("button", { name: "Ver PDF" }));
+
+			await waitFor(() => expect(generarReportePdf).toHaveBeenCalledWith(expect.objectContaining({
+				firma: expect.objectContaining({ nombre: "Dra. Odile Desage" }),
+			})));
+			expect(supabase.functions.invoke).toHaveBeenCalledWith("portal-resultados", {
+				body: { p_folio: "F-17", p_telefono: "3221234567", p_id_estudio: "42" },
+			});
+		});
+
 		test("muestra el PDF del último reporte guardado", async () => {
 			await consultar();
 

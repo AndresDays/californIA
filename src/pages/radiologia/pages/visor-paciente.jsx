@@ -17,10 +17,11 @@ import {
 	textoPlanoReporteRadiologia,
 } from "../../../utils/reporte-radiologia-html";
 import {
-	ALTURA_UTIL_REPORTE_SIN_FIRMA,
+	ALTURA_TEXTO_VISOR_CON_FIRMA,
+	ALTURA_TEXTO_VISOR_SIN_FIRMA,
 	agruparConclusionReporte,
 	crearBloquesReporteParaImprimir,
-	dividirReporteEnPaginas,
+	dividirReporteParaImpresion,
 	medirBloquesReporte,
 	omitirPaginasVacias,
 } from "../../../utils/reporte-radiologia-paginado";
@@ -91,6 +92,9 @@ const TOOLS = [
 	{ id: "pan", icon: moverIcon, label: "Mover" },
 ];
 
+// Recorrido mínimo del dedo para pasar a la siguiente imagen.
+const DESPLAZAMIENTO_MINIMO_TOQUE = 28;
+
 // Ancho de la hoja del reporte (A4 a 96dpi) más el respiro lateral del visor.
 const ANCHO_HOJA_REPORTE = 794;
 const MARGEN_HOJA_REPORTE = 24;
@@ -114,6 +118,7 @@ const VisorPaciente = () => {
 	const imageIdsRef = useRef([]);
 	const indiceRef = useRef(0);
 	const herramientaRef = useRef("scroll");
+	const gestoRef = useRef(null);
 
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -127,6 +132,7 @@ const VisorPaciente = () => {
 	const [zoomInfo, setZoomInfo] = useState(null);
 	const [wlInfo, setWlInfo] = useState(null);
 	const [membreteSrc, setMembreteSrc] = useState(MEMBRETE_FALLBACK);
+	const [radiologo, setRadiologo] = useState(null);
 	const [escalaReporte, setEscalaReporte] = useState(1);
 	const reporteScrollRef = useRef(null);
 
@@ -198,6 +204,7 @@ const VisorPaciente = () => {
 		return {
 			estudio: data.estudio,
 			paciente: data.paciente,
+			radiologo: data.radiologo,
 			imagenes: (data.imagenes || []).map((imagen) => ({ ...imagen, imageId: `wadouri:${imagen.url}` })),
 		};
 	};
@@ -241,12 +248,13 @@ const VisorPaciente = () => {
 					est = datosPortal.estudio;
 					imagenesConUrl = datosPortal.imagenes;
 					if (datosPortal.paciente) setPaciente(datosPortal.paciente);
+					if (datosPortal.radiologo) setRadiologo(datosPortal.radiologo);
 				} else {
 					let errEst;
 					({ data: est, error: errEst } = await supabase
 						.from("estudios_radiologia")
 						.select(`
-							id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente,
+							id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo,
 							doctor:doctores!estudios_radiologia_id_doctor_fkey(nombre)
 						`)
 						.eq("id_estudio", estudioId)
@@ -254,12 +262,28 @@ const VisorPaciente = () => {
 					if (errEst) {
 						({ data: est, error: errEst } = await supabase
 							.from("estudios_radiologia")
-							.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente")
+							.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo")
 							.eq("id_estudio", estudioId)
 							.single());
 					}
 					if (errEst) throw new Error("No encontramos el estudio solicitado");
 					if (cancelado) return;
+
+					if (est?.id_radiologo) {
+						const { data: empleado } = await supabase
+							.from("empleados")
+							.select("nombre, cedula, especialidad, firma_digital, firma_url")
+							.eq("id_empleado", est.id_radiologo)
+							.maybeSingle();
+						if (!cancelado && empleado) {
+							setRadiologo({
+								nombre: empleado.nombre || "",
+								cedula: empleado.cedula || "",
+								especialidad: empleado.especialidad || "",
+								firmaUrl: empleado.firma_digital || empleado.firma_url || "",
+							});
+						}
+					}
 
 					if (est?.id_paciente) {
 						const { data: p } = await supabase
@@ -370,21 +394,27 @@ const VisorPaciente = () => {
 		() => htmlReporteRadiologiaParaEditor(estudio?.reporte),
 		[estudio?.reporte],
 	);
+	const tieneFirma = Boolean(radiologo?.nombre || radiologo?.firmaUrl);
 	// El reporte se reparte en hojas membretadas completas, igual que al
-	// imprimirlo, para que el texto nunca invada el pie del membrete.
+	// imprimirlo, para que el texto nunca invada el pie del membrete. La última
+	// hoja reserva el espacio del bloque de firma.
 	const paginasReporte = useMemo(() => {
 		if (!vistaReporte || !reporteHtml) return [];
+		const altoUltima = tieneFirma
+			? ALTURA_TEXTO_VISOR_CON_FIRMA
+			: ALTURA_TEXTO_VISOR_SIN_FIRMA;
 		const paginas = omitirPaginasVacias(
-			dividirReporteEnPaginas(
+			dividirReporteParaImpresion(
 				agruparConclusionReporte(
 					medirBloquesReporte(crearBloquesReporteParaImprimir(reporteHtml)),
-					ALTURA_UTIL_REPORTE_SIN_FIRMA,
+					altoUltima,
 				),
-				ALTURA_UTIL_REPORTE_SIN_FIRMA,
+				ALTURA_TEXTO_VISOR_SIN_FIRMA,
+				altoUltima,
 			),
 		);
 		return paginas.length ? paginas : [[{ html: reporteHtml, alto: 0 }]];
-	}, [reporteHtml, vistaReporte]);
+	}, [reporteHtml, tieneFirma, vistaReporte]);
 	const totalImagenes = serieActiva?.imagenes?.length || 0;
 
 	const descargarReportePdf = async () => {
@@ -393,6 +423,7 @@ const VisorPaciente = () => {
 				nombrePaciente,
 				reporteTexto: textoPlanoReporteRadiologia(estudio?.reporte),
 				membreteSrc,
+				firma: radiologo,
 				qrData: `${window.location.origin}/visor-paciente/${estudioId}`,
 				nombreArchivo: crearNombreArchivoReporte(nombrePaciente),
 			});
@@ -457,17 +488,30 @@ const VisorPaciente = () => {
 		const toque = event.touches?.[0];
 		if (!toque) return;
 		dragRef.current = { x: toque.clientX, y: toque.clientY };
+		gestoRef.current = { y: toque.clientY, cambiado: false };
 	};
 
 	const onTouchMove = (event) => {
 		const toque = event.touches?.[0];
 		if (!toque || !dragRef.current) return;
 		if (event.cancelable) event.preventDefault();
+		// Con la herramienta de scroll cada deslizada del dedo avanza una sola
+		// imagen: así el paciente no se pasa media serie con un gesto.
+		if (herramientaRef.current === "scroll") {
+			const gesto = gestoRef.current;
+			if (!gesto || gesto.cambiado) return;
+			const recorrido = toque.clientY - gesto.y;
+			if (Math.abs(recorrido) < DESPLAZAMIENTO_MINIMO_TOQUE) return;
+			gesto.cambiado = true;
+			irAImagen(indiceRef.current + (recorrido < 0 ? 1 : -1));
+			return;
+		}
 		moverPuntero({ clientX: toque.clientX, clientY: toque.clientY });
 	};
 
 	const terminarDrag = () => {
 		dragRef.current = null;
+		gestoRef.current = null;
 	};
 
 	const onWheel = (event) => {
@@ -640,6 +684,20 @@ const VisorPaciente = () => {
 								<p className="vd-ov-dato">{formatearFecha(estudio?.fecha_estudio)}</p>
 							</div>
 						</div>
+						{totalImagenes > 1 && (
+							<div className="vp-barra-imagenes">
+								<input
+									type="range"
+									min={0}
+									max={totalImagenes - 1}
+									step={1}
+									value={indiceImagen}
+									onChange={(event) => irAImagen(Number(event.target.value))}
+									aria-label="Cambiar de imagen"
+								/>
+								<span>{indiceImagen + 1}/{totalImagenes}</span>
+							</div>
+						)}
 						<div className="vp-status-bar">
 							<span>Herramienta: {herramientaActiva}</span>
 							{zoomInfo != null && <span>Zoom: {zoomInfo}%</span>}
@@ -667,6 +725,26 @@ const VisorPaciente = () => {
 													/>
 												))}
 											</div>
+											{tieneFirma && indicePagina === paginasReporte.length - 1 && (
+												<div className="vp-firma">
+													{radiologo?.firmaUrl ? (
+														<img
+															className="vp-firma-img"
+															src={radiologo.firmaUrl}
+															alt={`Firma de ${radiologo?.nombre || "radiólogo"}`}
+														/>
+													) : (
+														<div className="vp-firma-linea" />
+													)}
+													<p className="vp-firma-nombre">{radiologo?.nombre}</p>
+													{radiologo?.especialidad && (
+														<p className="vp-firma-dato">{radiologo.especialidad.toUpperCase()}</p>
+													)}
+													{radiologo?.cedula && (
+														<p className="vp-firma-dato">CE {radiologo.cedula}</p>
+													)}
+												</div>
+											)}
 										</div>
 									</div>
 								))}

@@ -203,4 +203,88 @@
 	.vp-publico .vd-rr-page-wrapper {
 		padding: 0.5rem 0 1.5rem;
 	}
+
+	.vp-publico .vp-barra-imagenes {
+		width: calc(100% - 1.6rem);
+		bottom: 2.4rem;
+		padding: 0.5rem 0.9rem;
+	}
+
+	.vp-publico .vp-firma-img {
+		width: 150px;
+	}
+}
+
+/* El pie del membrete arranca en el px 998 de la hoja: el contenido termina
+   antes para que ni el texto ni la firma se le encimen. */
+.vp-reporte-scroll .vd-rr-contenido {
+	padding-bottom: 138px;
+}
+
+/* ── Firma del radiólogo al pie del reporte ───────────────────── */
+.vp-firma {
+	margin-top: auto;
+	padding-top: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	color: #000;
+	text-align: center;
+}
+
+.vp-firma-img {
+	width: 170px;
+	max-height: 80px;
+	object-fit: contain;
+}
+
+.vp-firma-linea {
+	width: 220px;
+	height: 1px;
+	background: #000;
+	margin-bottom: 6px;
+}
+
+.vp-firma-nombre {
+	margin: 0;
+	font-size: 1.02rem;
+	font-weight: 700;
+	border-top: 1px solid #000;
+	padding-top: 4px;
+	min-width: 230px;
+}
+
+.vp-firma-dato {
+	margin: 2px 0 0;
+	font-size: 0.85rem;
+}
+
+/* ── Barra para cambiar de imagen ─────────────────────────────── */
+.vp-barra-imagenes {
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: 2.6rem;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	width: min(420px, 80%);
+	padding: 0.45rem 0.85rem;
+	border-radius: 999px;
+	background: rgba(13, 21, 38, 0.9);
+	border: 1px solid rgba(73, 178, 212, 0.28);
+}
+
+.vp-barra-imagenes input[type="range"] {
+	flex: 1;
+	accent-color: #53B9DB;
+	height: 26px;
+	cursor: pointer;
+}
+
+.vp-barra-imagenes span {
+	color: #7fd2ef;
+	font-size: 0.72rem;
+	min-width: 3.2rem;
+	text-align: right;
 }
