@@ -1,19 +1,14 @@
-import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useActualizacionApp } from '../context/actualizacion-app-context';
 import './pwa-update-prompt.css';
 
 const PwaUpdatePrompt = () => {
 	const {
-		offlineReady: [offlineReady, setOfflineReady],
-		needRefresh: [needRefresh, setNeedRefresh],
-		updateServiceWorker,
-	} = useRegisterSW({
-		onRegistered(registration) {
-			if (!registration) return;
-			setInterval(() => {
-				registration.update();
-			}, 1000 * 60 * 30);
-		},
-	});
+		offlineReady,
+		setOfflineReady,
+		needRefresh,
+		setNeedRefresh,
+		actualizar,
+	} = useActualizacionApp();
 
 	if (!offlineReady && !needRefresh) return null;
 
@@ -40,7 +35,7 @@ const PwaUpdatePrompt = () => {
 					<button
 						type="button"
 						className="pwa-update-btn primary"
-						onClick={() => updateServiceWorker(true)}>
+						onClick={actualizar}>
 						Recargar
 					</button>
 				)}

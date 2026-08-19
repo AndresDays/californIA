@@ -132,6 +132,12 @@ export const sidebarItems = [
 				icon: subIcon,
 				path: "/configuracion/nivel",
 			},
+			{
+				id: "version",
+				label: "Versión de la app",
+				icon: subIcon,
+				path: "/configuracion/version",
+			},
 		],
 	},
 ];

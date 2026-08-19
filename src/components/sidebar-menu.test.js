@@ -45,6 +45,7 @@ describe("sidebar shared menu", () => {
 			"Técnicas",
 			"Recipientes",
 			"Nivel del Mar",
+			"Versión de la app",
 		]);
 	});
 });

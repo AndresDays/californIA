@@ -10,6 +10,7 @@ export default {
   moduleNameMapper: {
     "\\.(png|PNG|jpg|jpeg|gif|svg)$": "<rootDir>/__mocks__/fileMock.js",
     "\\.(css|less|scss|sass)$": "<rootDir>/__mocks__/styleMock.js",
+    "^virtual:pwa-register/react$": "<rootDir>/__mocks__/pwaRegisterMock.js",
     "^@/(.*)$": "<rootDir>/src/$1",
     "^../lib/supabase-client$": "<rootDir>/__mocks__/supabase.js",
     "^../../lib/supabase-client$": "<rootDir>/__mocks__/supabase.js",
