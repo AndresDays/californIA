@@ -10,11 +10,12 @@ import {
 	htmlReporteRadiologiaParaEditor,
 	normalizarHtmlReporteRadiologia,
 } from "../../../utils/reporte-radiologia-html";
-import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import { crearUrlPortalResultados, crearUrlVisorPaciente } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	ALTURA_UTIL_REPORTE_SIN_FIRMA,
 	agruparConclusionReporte,
+	elegirEscalaUnaHoja,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
 	medirBloquesReporte,
@@ -134,7 +135,7 @@ const ReporteRadiologia = () => {
 		const generarQr = async () => {
 			try {
 				const qrData = idEstudio
-					? `${window.location.origin}/visor-paciente/${idEstudio}`
+					? crearUrlVisorPaciente({ idEstudio, folio, telefono })
 					: crearUrlPortalResultados({ folio, telefono });
 				const dataUrl = await QRCode.toDataURL(qrData, {
 					margin: 1,
@@ -273,25 +274,33 @@ const ReporteRadiologia = () => {
 		document.execCommand(cmd, false, arg ?? null);
 	};
 
+	// Si el reporte se pasa de una hoja por poco, se imprime completo en una sola
+	// reduciendo un poco el texto, igual que se ve en el visor.
+	const escalaUnaHoja = useMemo(
+		() => elegirEscalaUnaHoja(reporteParaImprimir, ALTURA_UTIL_REPORTE_CON_FIRMA),
+		[reporteParaImprimir],
+	);
 	const paginasImpresion = useMemo(
 		() =>
-			omitirPaginasVacias(
-				dividirReporteParaImpresion(
-					agruparConclusionReporte(
-						medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+			escalaUnaHoja
+				? [[{ html: reporteParaImprimir, alto: 0 }]]
+				: omitirPaginasVacias(
+					dividirReporteParaImpresion(
+						agruparConclusionReporte(
+							medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+							ALTURA_UTIL_REPORTE_CON_FIRMA,
+						),
+						ALTURA_UTIL_REPORTE_SIN_FIRMA,
 						ALTURA_UTIL_REPORTE_CON_FIRMA,
 					),
-					ALTURA_UTIL_REPORTE_SIN_FIRMA,
-					ALTURA_UTIL_REPORTE_CON_FIRMA,
 				),
-			),
-		[reporteParaImprimir],
+		[reporteParaImprimir, escalaUnaHoja],
 	);
 	const renderPaginaImpresion = (pagina, indice) => (
 		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
 			<div className="rr-contenido rr-contenido-impresion">
-				<div className="rr-editor rr-editor-impresion">
+				<div className="rr-editor rr-editor-impresion" style={escalaUnaHoja ? { zoom: escalaUnaHoja } : undefined}>
 					{pagina.map((bloque, bloqueIndice) => (
 						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
 					))}

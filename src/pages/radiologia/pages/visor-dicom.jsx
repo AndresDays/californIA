@@ -14,7 +14,7 @@ import {
 	esTelefono10Digitos,
 	normalizarTelefono10,
 } from "../../../utils/form-validations";
-import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import { crearUrlPortalResultados, crearUrlVisorPaciente } from "../../../utils/portal-resultados";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
 	EVENTOS_SOLICITUD,
@@ -3158,7 +3158,11 @@ const VisorDicom = () => {
 			try {
 				const id = estudioId || estudioData?.id || "";
 				const qrData = id
-					? `${window.location.origin}/visor-paciente/${id}`
+					? crearUrlVisorPaciente({
+							idEstudio: id,
+							folio: estudioData?.folio,
+							telefono: estudioData?.telefonoPaciente,
+						})
 					: crearUrlPortalResultados({
 							folio: estudioData?.folio,
 							telefono: estudioData?.telefonoPaciente,
