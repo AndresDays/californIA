@@ -343,6 +343,44 @@
 		grid-template-columns: 1fr;
 		gap: 4px;
 	}
+
+	.portal-resultados {
+		min-height: 100dvh;
+		overflow-x: hidden;
+	}
+
+	.portal-header h1 {
+		font-size: 24px;
+	}
+
+	.portal-main {
+		width: calc(100% - 20px);
+		margin: 18px auto;
+	}
+
+	/* Botones a lo ancho para que "Ver estudio" y "Ver PDF" se toquen bien. */
+	.portal-actions {
+		padding: 12px;
+	}
+
+	.portal-actions button,
+	.portal-form button,
+	.portal-estudio-actions a,
+	.portal-estudio-actions button {
+		width: 100%;
+		min-height: 46px;
+	}
+
+	.portal-estudio-actions {
+		display: grid;
+		gap: 10px;
+	}
+
+	.portal-estudio-actions a {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 }
 
 @media print {

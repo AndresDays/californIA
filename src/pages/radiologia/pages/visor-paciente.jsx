@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import logo from "../../../assets/CalifornIA.png";
 import { supabase } from "../../../lib/supabase-client";
@@ -11,7 +11,19 @@ import {
 	crearNombreArchivoReporte,
 	generarReportePdf,
 } from "../../../utils/reporte-pdf";
-import { MEMBRETE_B64 } from "./reporte-radiologia-template";
+import { MEMBRETE_FALLBACK, cargarMembreteCdc } from "../../../utils/membrete-cdc";
+import {
+	htmlReporteRadiologiaParaEditor,
+	textoPlanoReporteRadiologia,
+} from "../../../utils/reporte-radiologia-html";
+import {
+	ALTURA_UTIL_REPORTE_SIN_FIRMA,
+	agruparConclusionReporte,
+	crearBloquesReporteParaImprimir,
+	dividirReporteEnPaginas,
+	medirBloquesReporte,
+	omitirPaginasVacias,
+} from "../../../utils/reporte-radiologia-paginado";
 import "./ReporteRadiologia.css";
 import "./VisorDicom.css";
 import "./VisorPaciente.css";
@@ -79,6 +91,10 @@ const TOOLS = [
 	{ id: "pan", icon: moverIcon, label: "Mover" },
 ];
 
+// Ancho de la hoja del reporte (A4 a 96dpi) más el respiro lateral del visor.
+const ANCHO_HOJA_REPORTE = 794;
+const MARGEN_HOJA_REPORTE = 24;
+
 const formatearFecha = (fecha) => {
 	if (!fecha) return "";
 	const f = new Date(fecha);
@@ -110,6 +126,38 @@ const VisorPaciente = () => {
 	const [vistaReporte, setVistaReporte] = useState(false);
 	const [zoomInfo, setZoomInfo] = useState(null);
 	const [wlInfo, setWlInfo] = useState(null);
+	const [membreteSrc, setMembreteSrc] = useState(MEMBRETE_FALLBACK);
+	const [escalaReporte, setEscalaReporte] = useState(1);
+	const reporteScrollRef = useRef(null);
+
+	useEffect(() => {
+		let cancelado = false;
+		cargarMembreteCdc().then((src) => {
+			if (!cancelado) setMembreteSrc(src);
+		});
+		return () => {
+			cancelado = true;
+		};
+	}, []);
+
+	// En celular la hoja de 794px no cabe: se reduce a escala para que el
+	// reporte se lea completo sin scroll horizontal.
+	useEffect(() => {
+		if (!vistaReporte) return undefined;
+		const ajustarEscala = () => {
+			const ancho = reporteScrollRef.current?.clientWidth || 0;
+			if (!ancho) return;
+			const disponible = ancho - MARGEN_HOJA_REPORTE;
+			setEscalaReporte(Math.max(0.3, Math.min(1, disponible / ANCHO_HOJA_REPORTE)));
+		};
+		ajustarEscala();
+		window.addEventListener("resize", ajustarEscala);
+		window.addEventListener("orientationchange", ajustarEscala);
+		return () => {
+			window.removeEventListener("resize", ajustarEscala);
+			window.removeEventListener("orientationchange", ajustarEscala);
+		};
+	}, [vistaReporte]);
 
 	useEffect(() => {
 		herramientaRef.current = herramienta;
@@ -318,17 +366,33 @@ const VisorPaciente = () => {
 		? [paciente.nombre, paciente.apellido_paterno, paciente.apellido_materno].filter(Boolean).join(" ")
 		: "";
 	const tieneReporte = Boolean(String(estudio?.reporte || "").trim());
+	const reporteHtml = useMemo(
+		() => htmlReporteRadiologiaParaEditor(estudio?.reporte),
+		[estudio?.reporte],
+	);
+	// El reporte se reparte en hojas membretadas completas, igual que al
+	// imprimirlo, para que el texto nunca invada el pie del membrete.
+	const paginasReporte = useMemo(() => {
+		if (!vistaReporte || !reporteHtml) return [];
+		const paginas = omitirPaginasVacias(
+			dividirReporteEnPaginas(
+				agruparConclusionReporte(
+					medirBloquesReporte(crearBloquesReporteParaImprimir(reporteHtml)),
+					ALTURA_UTIL_REPORTE_SIN_FIRMA,
+				),
+				ALTURA_UTIL_REPORTE_SIN_FIRMA,
+			),
+		);
+		return paginas.length ? paginas : [[{ html: reporteHtml, alto: 0 }]];
+	}, [reporteHtml, vistaReporte]);
 	const totalImagenes = serieActiva?.imagenes?.length || 0;
 
 	const descargarReportePdf = async () => {
 		try {
 			await generarReportePdf({
 				nombrePaciente,
-				doctorNombre: estudio?.doctor?.nombre,
-				estudioDescripcion: estudio?.descripcion || estudio?.tipo_estudio,
-				fechaEncabezado: `PUERTO VALLARTA JAL. ${formatearFecha(estudio?.fecha_estudio || new Date())}.`,
-				reporteTexto: String(estudio?.reporte || ""),
-				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+				reporteTexto: textoPlanoReporteRadiologia(estudio?.reporte),
+				membreteSrc,
 				qrData: `${window.location.origin}/visor-paciente/${estudioId}`,
 				nombreArchivo: crearNombreArchivoReporte(nombrePaciente),
 			});
@@ -354,7 +418,7 @@ const VisorPaciente = () => {
 		dragRef.current = { x: event.clientX, y: event.clientY };
 	};
 
-	const onMouseMove = (event) => {
+	const moverPuntero = (event) => {
 		const drag = dragRef.current;
 		const cs = csRef.current;
 		const el = divRef.current;
@@ -383,6 +447,23 @@ const VisorPaciente = () => {
 			}
 			cs.setViewport(el, vp);
 		} catch {}
+	};
+
+	const onMouseMove = (event) => moverPuntero(event);
+
+	// En celular el visor se maneja con el dedo: un toque arrastra igual que el
+	// mouse con la herramienta activa.
+	const onTouchStart = (event) => {
+		const toque = event.touches?.[0];
+		if (!toque) return;
+		dragRef.current = { x: toque.clientX, y: toque.clientY };
+	};
+
+	const onTouchMove = (event) => {
+		const toque = event.touches?.[0];
+		if (!toque || !dragRef.current) return;
+		if (event.cancelable) event.preventDefault();
+		moverPuntero({ clientX: toque.clientX, clientY: toque.clientY });
 	};
 
 	const terminarDrag = () => {
@@ -543,6 +624,10 @@ const VisorPaciente = () => {
 							onMouseMove={onMouseMove}
 							onMouseUp={terminarDrag}
 							onMouseLeave={terminarDrag}
+							onTouchStart={onTouchStart}
+							onTouchMove={onTouchMove}
+							onTouchEnd={terminarDrag}
+							onTouchCancel={terminarDrag}
 							onWheel={onWheel}
 							onContextMenu={(event) => event.preventDefault()}
 						/>
@@ -566,41 +651,25 @@ const VisorPaciente = () => {
 					</div>
 
 					{!loading && !error && vistaReporte && (
-						<div className="vd-doc-scroll vp-reporte-scroll">
-							<div className="rr-page-wrapper vd-rr-page-wrapper">
-								<div className="rr-page vd-rr-page">
-									<img
-										className="rr-membrete"
-										src={`data:image/jpeg;base64,${MEMBRETE_B64}`}
-										alt="membrete"
-									/>
-									<div className="rr-contenido vd-rr-contenido">
-										<p className="rr-fecha-encabezado">
-											{`PUERTO VALLARTA JAL. ${formatearFecha(estudio?.fecha_estudio || new Date())}.`}
-										</p>
-										<div className="rr-datos-paciente">
-											<div className="rr-dato-row">
-												<span className="rr-label">PACIENTE:</span>
-												<strong>{nombrePaciente || "-"}</strong>
-											</div>
-											<div className="rr-dato-row">
-												<span className="rr-label">DOCTOR:</span>
-												<strong>{estudio?.doctor?.nombre || "MÉDICO REFERENTE"}</strong>
-											</div>
-											<div className="rr-dato-row">
-												<span className="rr-label">ESTUDIO:</span>
-												<strong>{estudio?.descripcion || estudio?.tipo_estudio || "-"}</strong>
-											</div>
-										</div>
-										<div className="rr-editor vd-rr-editor vp-reporte-texto">
-											{String(estudio?.reporte || "")
-												.split("\n")
-												.map((linea, index) => (
-													<p key={index}>{linea || " "}</p>
+						<div className="vd-doc-scroll vp-reporte-scroll" ref={reporteScrollRef}>
+							<div
+								className="rr-page-wrapper vd-rr-page-wrapper vp-reporte-hoja"
+								style={escalaReporte < 1 ? { zoom: escalaReporte } : undefined}>
+								{paginasReporte.map((pagina, indicePagina) => (
+									<div className="rr-page vd-rr-page" key={`hoja-${indicePagina}`}>
+										<img className="rr-membrete" src={membreteSrc} alt="membrete" />
+										<div className="rr-contenido vd-rr-contenido">
+											<div className="rr-editor vd-rr-editor vp-reporte-texto">
+												{pagina.map((bloque, indiceBloque) => (
+													<div
+														key={`bloque-${indiceBloque}`}
+														dangerouslySetInnerHTML={{ __html: bloque.html }}
+													/>
 												))}
+											</div>
 										</div>
 									</div>
-								</div>
+								))}
 							</div>
 						</div>
 					)}

@@ -42,8 +42,9 @@ jest.mock("../../../utils/reporte-pdf", () => ({
 	crearNombreArchivoReporte: jest.fn(() => "reporte_test.pdf"),
 }));
 
-jest.mock("./reporte-radiologia-template", () => ({
-	MEMBRETE_B64: "MEMBRETEMOCK",
+jest.mock("../../../utils/membrete-cdc", () => ({
+	MEMBRETE_FALLBACK: "data:image/jpeg;base64,MEMBRETEMOCK",
+	cargarMembreteCdc: jest.fn(() => Promise.resolve("data:image/jpeg;base64,MEMBRETECDC")),
 }));
 
 const ESTUDIO = {
@@ -140,10 +141,9 @@ describe("VisorPaciente", () => {
 
 	test("muestra los datos del paciente y las series al cargar", async () => {
 		renderVisor();
-		expect(await screen.findByText("Serie AP")).toBeInTheDocument();
+		expect((await screen.findAllByText("Serie AP")).length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Maria Rosalia Lopez").length).toBeGreaterThan(0);
-		expect(screen.getByText("Imagen 1")).toBeInTheDocument();
-		expect(screen.getByText("Imagen 2")).toBeInTheDocument();
+		expect(screen.getAllByText(/2 imágenes/).length).toBeGreaterThan(0);
 	});
 
 	test("carga cada imagen DICOM mediante una URL firmada", async () => {
@@ -154,7 +154,7 @@ describe("VisorPaciente", () => {
 		supabase.storage.from.mockReturnValue(storage);
 
 		renderVisor();
-		await screen.findByText("Serie AP");
+		await screen.findAllByText("Serie AP");
 
 		expect(storage.createSignedUrl).toHaveBeenCalledWith("123/img-1.dcm", 900);
 		expect(storage.createSignedUrl).toHaveBeenCalledWith("123/img-2.dcm", 900);
@@ -162,7 +162,7 @@ describe("VisorPaciente", () => {
 
 	test("muestra la toolbar simplificada de herramientas", async () => {
 		renderVisor();
-		await screen.findByText("Serie AP");
+		await screen.findAllByText("Serie AP");
 		["Scroll", "Ampliar", "W/L", "Mover", "Restaurar", "Descargar"].forEach(
 			(etiqueta) => {
 				expect(screen.getByText(etiqueta)).toBeInTheDocument();
@@ -175,41 +175,57 @@ describe("VisorPaciente", () => {
 
 	test("muestra la miniatura REP cuando el estudio tiene reporte", async () => {
 		renderVisor();
-		await screen.findByText("Serie AP");
+		await screen.findAllByText("Serie AP");
 		expect(screen.getByLabelText("Abrir reporte")).toBeInTheDocument();
 	});
 
 	test("no muestra la miniatura REP sin reporte", async () => {
 		configurarSupabase({ estudio: { ...ESTUDIO, reporte: "" } });
 		renderVisor();
-		await screen.findByText("Serie AP");
+		await screen.findAllByText("Serie AP");
 		expect(screen.queryByLabelText("Abrir reporte")).not.toBeInTheDocument();
 	});
 
-	test("al abrir el reporte muestra el documento con membrete y datos", async () => {
+	test("al abrir el reporte muestra la hoja membretada de la plantilla CDC", async () => {
 		renderVisor();
-		await screen.findByText("Serie AP");
+		await screen.findAllByText("Serie AP");
 		fireEvent.click(screen.getByLabelText("Abrir reporte"));
-		expect(screen.getByAltText("membrete")).toBeInTheDocument();
-		expect(screen.getByText("PACIENTE:")).toBeInTheDocument();
-		expect(screen.getByText("DOCTOR:")).toBeInTheDocument();
-		expect(screen.getByText("Odile Desage")).toBeInTheDocument();
+		await waitFor(() =>
+			expect(screen.getByAltText("membrete")).toHaveAttribute(
+				"src",
+				"data:image/jpeg;base64,MEMBRETECDC",
+			),
+		);
 		expect(screen.getByText("Hallazgos sin alteraciones.")).toBeInTheDocument();
+	});
+
+	test("el reporte ya no incluye fecha ni datos de paciente, doctor o estudio", async () => {
+		renderVisor();
+		await screen.findAllByText("Serie AP");
+		fireEvent.click(screen.getByLabelText("Abrir reporte"));
+		expect(screen.queryByText("PACIENTE:")).not.toBeInTheDocument();
+		expect(screen.queryByText("DOCTOR:")).not.toBeInTheDocument();
+		expect(screen.queryByText("ESTUDIO:")).not.toBeInTheDocument();
+		expect(screen.queryByText(/PUERTO VALLARTA/i)).not.toBeInTheDocument();
 	});
 
 	test("en la vista de reporte Descargar genera el PDF con el QR al visor", async () => {
 		renderVisor();
-		await screen.findByText("Serie AP");
+		await screen.findAllByText("Serie AP");
 		fireEvent.click(screen.getByLabelText("Abrir reporte"));
 		fireEvent.click(screen.getByText("Descargar"));
 		await waitFor(() => expect(generarReportePdf).toHaveBeenCalled());
 		expect(generarReportePdf).toHaveBeenCalledWith(
 			expect.objectContaining({
 				nombrePaciente: "Maria Rosalia Lopez",
-				doctorNombre: "Odile Desage",
+				reporteTexto: "Hallazgos sin alteraciones.",
 				qrData: expect.stringContaining("/visor-paciente/123"),
 			}),
 		);
+		const argumentos = generarReportePdf.mock.calls.at(-1)[0];
+		expect(argumentos).not.toHaveProperty("fechaEncabezado");
+		expect(argumentos).not.toHaveProperty("doctorNombre");
+		expect(argumentos).not.toHaveProperty("estudioDescripcion");
 	});
 
 	test("muestra error cuando el estudio no existe", async () => {

@@ -65,6 +65,21 @@ export const htmlReporteRadiologiaParaEditor = (contenido) => {
 		: escaparTextoPlano(valor).replace(/\r?\n/g, '<br>');
 };
 
+// El reporte se guarda como HTML; para el PDF (jsPDF sólo escribe texto) hay
+// que convertirlo a líneas planas conservando los saltos de bloque.
+export const textoPlanoReporteRadiologia = (contenido) =>
+	String(contenido || "")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<\/(?:p|div|li|h[1-6]|tr|table|ul|ol)>/gi, "\n")
+		.replace(/<li\b[^>]*>/gi, "- ")
+		.replace(/<[^>]+>/g, "")
+		.replace(/&nbsp;/gi, " ")
+		.replace(/&amp;/gi, "&")
+		.replace(/&lt;/gi, "<")
+		.replace(/&gt;/gi, ">")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
+
 const MARGEN_VERTICAL_MAXIMO_PX = 24;
 
 const A_PIXELES = { px: 1, pt: 96 / 72, pc: 16, cm: 96 / 2.54, mm: 96 / 25.4, in: 96, em: 16, rem: 16 };

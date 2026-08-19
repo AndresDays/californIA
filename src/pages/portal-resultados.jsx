@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import logo from "../assets/CalifornIA.png";
 import { supabase } from "../lib/supabase-client";
-import { MEMBRETE_B64 } from "./radiologia/pages/reporte-radiologia-template";
+import { MEMBRETE_FALLBACK, cargarMembreteCdc } from "../utils/membrete-cdc";
 import {
 	normalizarTextoResultado,
 	normalizarTelefonoPortal,
@@ -13,6 +13,7 @@ import {
 	generarResultadosCombinadosPdf,
 } from "../utils/reporte-pdf";
 import { obtenerDatosQuimico } from "../utils/datos-quimico";
+import { textoPlanoReporteRadiologia } from "../utils/reporte-radiologia-html";
 import { abrirPdfEnPestana } from "../utils/abrir-pdf-en-pestana";
 import "./portal-resultados.css";
 
@@ -58,9 +59,20 @@ const PortalResultados = () => {
 	const [resultado, setResultado] = useState(null);
 	const [error, setError] = useState("");
 	const [generandoPdf, setGenerandoPdf] = useState(false);
+	const [membreteSrc, setMembreteSrc] = useState(MEMBRETE_FALLBACK);
 
 	const venta = resultado?.venta || null;
 	const estudios = resultado?.estudios || [];
+	useEffect(() => {
+		let cancelado = false;
+		cargarMembreteCdc().then((src) => {
+			if (!cancelado) setMembreteSrc(src);
+		});
+		return () => {
+			cancelado = true;
+		};
+	}, []);
+
 	useEffect(() => {
 		document.title = "Resultados";
 		if (folio && telefono) buscarResultados();
@@ -111,13 +123,10 @@ const PortalResultados = () => {
 		setGenerandoPdf(true);
 		setError("");
 		try {
-			const membreteSrc = `data:image/jpeg;base64,${MEMBRETE_B64}`;
 			if (estudioImagen) {
 				await generarReportePdf({
 					nombrePaciente: venta?.paciente || "",
-					estudioDescripcion: estudioImagen.descripcion || "",
-					fechaEncabezado: formatearFecha(estudioImagen.fecha_estudio || venta?.fecha_venta),
-					reporteTexto: estudioImagen.reporte || "",
+					reporteTexto: textoPlanoReporteRadiologia(estudioImagen.reporte),
 					membreteSrc,
 					nombreArchivo: crearNombreArchivoReporte(venta?.paciente),
 					imprimir: true,
@@ -147,7 +156,7 @@ const PortalResultados = () => {
 			const url = await generarResultadosCombinadosPdf({
 				venta,
 				estudios: [estudio],
-				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+				membreteSrc,
 				datosQuimicoSrc: obtenerDatosQuimico(venta),
 			});
 			window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
@@ -208,7 +217,7 @@ const PortalResultados = () => {
 					<section className="portal-resultados-panel">
 						<div className="portal-membrete-print">
 							<img
-								src={`data:image/jpeg;base64,${MEMBRETE_B64}`}
+								src={membreteSrc}
 								alt="Centro Diagnostico California"
 							/>
 						</div>
