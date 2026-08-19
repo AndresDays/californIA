@@ -1,5 +1,6 @@
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
+	agruparConclusionReporte,
 	medirBloquesReporte,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
@@ -94,6 +95,31 @@ describe('dividirReporteParaImpresion', () => {
 			bloques.slice(0, 3),
 			bloques.slice(3),
 		]);
+	});
+});
+
+describe('agruparConclusionReporte', () => {
+	const bloques = [
+		{ html: '<p>Hallazgo uno</p>', alto: 200 },
+		{ html: '<p>CONCLUSION:</p>', alto: 30 },
+		{ html: '<p>Artrosis leve.</p>', alto: 30 },
+		{ html: '<p>Tenosinovitis.</p>', alto: 30 },
+	];
+
+	test('mantiene el título y sus renglones en una sola unidad', () => {
+		expect(agruparConclusionReporte(bloques, 660)).toEqual([
+			bloques[0],
+			{ html: '<p>CONCLUSION:</p><p>Artrosis leve.</p><p>Tenosinovitis.</p>', alto: 90 },
+		]);
+	});
+
+	test('reparte normalmente cuando la conclusión no cabe en una hoja', () => {
+		expect(agruparConclusionReporte(bloques, 60)).toEqual(bloques);
+	});
+
+	test('deja el reporte intacto cuando no hay conclusión', () => {
+		const sinConclusion = [{ html: '<p>Hallazgo</p>', alto: 30 }];
+		expect(agruparConclusionReporte(sinConclusion, 660)).toEqual(sinConclusion);
 	});
 });
 

@@ -142,3 +142,24 @@ export const medirBloquesReporte = (bloques, { ancho = ANCHO_UTIL_REPORTE } = {}
 		medidor.remove();
 	}
 };
+
+const ES_INICIO_DE_CONCLUSION = /^\s*conclusi[oó]n?e?s?\s*:?/i;
+
+// Partir las conclusiones entre dos hojas deja renglones sueltos y se lee como
+// si faltara texto. Se agrupan desde el título "CONCLUSIÓN:" hasta el final
+// para que viajen juntas a la hoja donde quepan.
+export const agruparConclusionReporte = (bloques, altoMaximo) => {
+	const inicio = bloques.findIndex((bloque) =>
+		ES_INICIO_DE_CONCLUSION.test(String(bloque.html || '').replace(/<[^>]+>/g, '')),
+	);
+	if (inicio === -1 || inicio === bloques.length - 1) return bloques;
+
+	const conclusion = bloques.slice(inicio);
+	const alto = conclusion.reduce((total, bloque) => total + bloque.alto, 0);
+	if (alto > altoMaximo) return bloques;
+
+	return [
+		...bloques.slice(0, inicio),
+		{ html: conclusion.map((bloque) => bloque.html).join(''), alto },
+	];
+};

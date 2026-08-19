@@ -14,6 +14,7 @@ import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	ALTURA_UTIL_REPORTE_SIN_FIRMA,
+	agruparConclusionReporte,
 	crearBloquesReporteParaImprimir,
 	dividirReporteParaImpresion,
 	medirBloquesReporte,
@@ -276,7 +277,10 @@ const ReporteRadiologia = () => {
 		() =>
 			omitirPaginasVacias(
 				dividirReporteParaImpresion(
-					medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+					agruparConclusionReporte(
+						medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+						ALTURA_UTIL_REPORTE_CON_FIRMA,
+					),
 					ALTURA_UTIL_REPORTE_SIN_FIRMA,
 					ALTURA_UTIL_REPORTE_CON_FIRMA,
 				),
