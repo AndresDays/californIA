@@ -183,8 +183,8 @@ body {
 	top: 0;
 	left: 0;
 	width: 100%;
-	height: 100%;
-	object-fit: fill;
+	height: auto;
+	object-fit: contain;
 	pointer-events: none;
 	z-index: 0;
 }
@@ -428,6 +428,12 @@ body {
 @media print {
 	@page { size: A4; margin: 0; }
 
+	html, body {
+		width: 210mm;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
 	.rr-topbar,
 	.rr-toolbar,
 	.rr-toolbar-print,
@@ -452,8 +458,28 @@ body {
 		width: 210mm;
 		height: 297mm;
 		min-height: 297mm;
+		overflow: hidden;
 		break-after: page;
 		page-break-after: always;
+	}
+
+	/* Misma geometría que en pantalla (794px x 1123px), expresada en mm para
+	   que la hoja impresa conserve el formato del reporte del visor. */
+	.rr-membrete {
+		width: 210mm;
+		height: 297mm;
+		object-fit: fill;
+	}
+
+	.rr-contenido {
+		min-height: 297mm;
+		height: 297mm;
+		padding: 35.7mm 16.9mm 16.9mm;
+	}
+
+	.rr-page-wrapper {
+		display: block;
+		gap: 0;
 	}
 
 	.rr-print-page:last-child { break-after: auto; page-break-after: auto; }
