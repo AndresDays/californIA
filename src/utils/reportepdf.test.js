@@ -91,30 +91,14 @@ describe("generarReportePdf", () => {
 		});
 	});
 
-	test("incluye los datos del paciente, doctor y estudio", async () => {
+	test("la hoja sólo lleva el reporte, sin fecha ni datos de paciente", async () => {
 		await generarReportePdf(opcionesBase);
-		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
-		expect(textos).toContain("PACIENTE:");
-		expect(textos).toContain("MARIA ROSALIA LOPEZ");
-		expect(textos).toContain("DOCTOR:");
-		expect(textos).toContain("ODILE DESAGE");
-		expect(textos).toContain("ESTUDIO:");
-		expect(textos).toContain("RODILLAS AP Y LATERAL");
-		expect(textos).toContain("PUERTO VALLARTA JAL. 10 DE JULIO DE 2026.");
-	});
-
-	test("omite fecha y líneas clínicas vacías", async () => {
-		await generarReportePdf({
-			...opcionesBase,
-			fechaEncabezado: "",
-			nombrePaciente: "",
-			doctorNombre: "",
-			estudioDescripcion: "",
-		});
 		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
 		expect(textos).not.toEqual(
 			expect.arrayContaining(["PACIENTE:", "DOCTOR:", "ESTUDIO:", "MÉDICO REFERENTE"]),
 		);
+		expect(textos.join(" ")).not.toMatch(/PUERTO VALLARTA/i);
+		expect(textos.join(" ")).not.toMatch(/MARIA ROSALIA LOPEZ/i);
 	});
 
 

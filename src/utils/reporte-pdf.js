@@ -41,9 +41,6 @@ const obtenerFormatoImagen = (dataUrl) => {
 
 export const generarReportePdf = async ({
 	nombrePaciente = "",
-	doctorNombre = "",
-	estudioDescripcion = "",
-	fechaEncabezado = "",
 	reporteTexto = "",
 	membreteSrc = null,
 	qrData = "",
@@ -71,31 +68,9 @@ export const generarReportePdf = async ({
 
 	dibujarMembrete();
 
+	// La hoja membretada sólo lleva el texto del reporte: los datos de
+	// paciente, doctor, estudio y la fecha ya no se imprimen.
 	let y = MARGEN_SUPERIOR;
-	doc.setFont("helvetica", "normal");
-	doc.setFontSize(10);
-	if (fechaEncabezado) {
-		doc.text(String(fechaEncabezado).toUpperCase(), PAGINA_ANCHO - MARGEN_LATERAL, y, {
-			align: "right",
-		});
-		y += 10;
-	}
-
-	doc.setFont("helvetica", "bold");
-	const datos = [
-		["PACIENTE:", nombrePaciente],
-		["DOCTOR:", doctorNombre],
-		["ESTUDIO:", estudioDescripcion],
-	].filter(([, valor]) => String(valor ?? "").trim());
-	datos.forEach(([etiqueta, valor]) => {
-		doc.text(etiqueta, MARGEN_LATERAL, y);
-		doc.setFont("helvetica", "normal");
-		doc.text(String(valor).toUpperCase(), MARGEN_LATERAL + 28, y);
-		doc.setFont("helvetica", "bold");
-		y += 6;
-	});
-	y += 6;
-
 	doc.setFont("helvetica", "normal");
 	doc.setFontSize(11);
 	const lineas = doc.splitTextToSize(String(reporteTexto || ""), anchoUtil);
