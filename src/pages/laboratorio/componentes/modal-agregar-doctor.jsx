@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
+import ModalNotificacion from '../../../components/ModalNotificacion';
 import './modal-agregar-doctor.css';
 import '../../../components/admin-entity-modal.css';
 
@@ -23,8 +24,11 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   const [institucion, setInstitucion] = useState('');
   const [esRadiologo, setEsRadiologo] = useState(false);
   const [especialidad, setEspecialidad] = useState('');
+  const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: '', tipo: 'exito' });
 
   const isEditMode = !!doctorEditar;
+  const mostrarNotificacion = (mensaje, tipo = 'exito') =>
+    setNotificacion({ isOpen: true, mensaje, tipo });
 
   const dias = Array.from({ length: 31 }, (_, i) => i + 1);
   const meses = [
@@ -113,27 +117,22 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
 
   const handleGuardar = async () => {
     if (!apellidoPaterno || !nombre) {
-      alert('Por favor completa al menos Apellido Paterno y Nombre');
+      mostrarNotificacion('Por favor completa al menos Apellido Paterno y Nombre', 'advertencia');
       return;
     }
 
     if (email.trim() && !esEmailValido(email)) {
-      alert('Por favor ingresa un email válido');
-      return;
-    }
-
-    if (!isEditMode && (!email.trim() || !contrasena.trim())) {
-      alert('El correo y la contraseña son requeridos para crear el acceso del doctor');
+      mostrarNotificacion('Por favor ingresa un email válido', 'advertencia');
       return;
     }
 
     if (telefono && !esTelefono10Digitos(telefono)) {
-      alert('El teléfono debe contener exactamente 10 dígitos numéricos');
+      mostrarNotificacion('El teléfono debe contener exactamente 10 dígitos numéricos', 'advertencia');
       return;
     }
 
     if (!esRadiologo && !especialidad.trim()) {
-      alert('Por favor ingresa la especialidad del doctor');
+      mostrarNotificacion('Por favor ingresa la especialidad del doctor', 'advertencia');
       return;
     }
 
@@ -179,7 +178,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       onClose();
     } catch (error) {
       console.error('Error al guardar doctor:', error);
-      alert('Error al guardar el doctor');
+      mostrarNotificacion('Error al guardar el doctor', 'error');
     }
   };
 
@@ -190,6 +189,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="modal-overlay admin-entity-modal-overlay" onClick={handleCerrar}>
       <div className="modal-container admin-entity-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -309,7 +309,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
 
           <div className="form-section-modal">
             <div className="form-group-modal">
-              <label>Email {!isEditMode && '*'}</label>
+              <label>Email</label>
               <input
                 type="email"
                 value={email}
@@ -402,7 +402,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
 
             <div className="form-group-modal">
-              <label>Contraseña {!isEditMode && '*'}</label>
+              <label>Contraseña</label>
               <input
                 type="password"
                 value={contrasena}
@@ -424,6 +424,13 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
         </div>
       </div>
     </div>
+    <ModalNotificacion
+      isOpen={notificacion.isOpen}
+      onClose={() => setNotificacion((actual) => ({ ...actual, isOpen: false }))}
+      mensaje={notificacion.mensaje}
+      tipo={notificacion.tipo}
+    />
+    </>
   );
 };
 

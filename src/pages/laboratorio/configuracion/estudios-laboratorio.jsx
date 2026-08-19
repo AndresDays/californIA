@@ -386,24 +386,24 @@ const EstudiosLab = () => {
 
 	const validarFormulario = () => {
 		if (!clave.trim() || !descripcion.trim()) {
-			alert("Captura clave y descripciÃ³n del estudio");
+			globalThis.mostrarNotificacion("Captura clave y descripciÃ³n del estudio", "advertencia");
 			return false;
 		}
 		if (empresaSeleccionada && !tipoEstudioSeleccionado) {
-			alert("Selecciona el tipo de estudio");
+			globalThis.mostrarNotificacion("Selecciona el tipo de estudio", "advertencia");
 			return false;
 		}
 		if (esFormularioImagen) {
 			if (!empresaActual) {
-				alert("Selecciona la empresa del estudio");
+				globalThis.mostrarNotificacion("Selecciona la empresa del estudio", "advertencia");
 				return false;
 			}
 			if (!modalidadSeleccionada || modalidadSeleccionada === "laboratorio") {
-				alert("Selecciona un tipo de estudio de imagen");
+				globalThis.mostrarNotificacion("Selecciona un tipo de estudio de imagen", "advertencia");
 				return false;
 			}
 			if (!resolverEmpresaOperativaCatalogo(empresaActual.nombre)) {
-				alert("No se pudo identificar si la empresa es CDC o CDI");
+				globalThis.mostrarNotificacion("No se pudo identificar si la empresa es CDC o CDI", "error");
 				return false;
 			}
 		}
@@ -423,12 +423,12 @@ const EstudiosLab = () => {
 				.from(tabla)
 				.insert([payload]);
 			if (error) throw error;
-			alert("Estudio guardado correctamente");
+			globalThis.mostrarNotificacion("Estudio guardado correctamente");
 			limpiarFormulario();
 			cargarEstudios();
 		} catch (error) {
 			console.error("Error al guardar estudio:", error);
-			alert("Error al guardar estudio");
+			globalThis.mostrarNotificacion("Error al guardar estudio", "error");
 		}
 	};
 
@@ -444,12 +444,12 @@ const EstudiosLab = () => {
 				.update(payload)
 				.eq("id", estudioSeleccionado.id);
 			if (error) throw error;
-			alert("Estudio actualizado correctamente");
+			globalThis.mostrarNotificacion("Estudio actualizado correctamente");
 			limpiarFormulario();
 			cargarEstudios();
 		} catch (error) {
 			console.error("Error al actualizar estudio:", error);
-			alert("Error al actualizar estudio");
+			globalThis.mostrarNotificacion("Error al actualizar estudio", "error");
 		}
 	};
 
@@ -499,11 +499,11 @@ const EstudiosLab = () => {
 					.delete()
 					.eq("id", estudio.id);
 				if (error) throw error;
-				alert("Estudio eliminado correctamente");
+				globalThis.mostrarNotificacion("Estudio eliminado correctamente");
 				cargarEstudios();
 			} catch (error) {
 				console.error("Error al eliminar estudio:", error);
-				alert("Error al eliminar estudio");
+				globalThis.mostrarNotificacion("Error al eliminar estudio", "error");
 			}
 		}
 	};

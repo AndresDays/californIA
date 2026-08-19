@@ -133,6 +133,7 @@ let mockDicomImages = [];
 let mockEstadosVista = [];
 let mockEstudioId = '123';
 const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
+const mockRpc = jest.fn(() => Promise.resolve({ error: null }));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -162,6 +163,7 @@ jest.mock('../../../context/auth-context', () => ({
 // Mock de Supabase
 jest.mock('../../../lib/supabase-client', () => ({
   supabase: {
+		rpc: (...args) => mockRpc(...args),
     from: jest.fn((table) => ({
       select:      jest.fn().mockReturnThis(),
       eq:          jest.fn().mockReturnThis(),
@@ -371,6 +373,21 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(screen.getByTitle('Nueva pestaña')).toBeInTheDocument();
   });
 
+  test('Imprimir reporte abre la ruta persistente del reporte, no una pestaña about:blank', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
+    window.open = jest.fn();
+    await renderVisor();
+
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Imprimir reporte')); });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/reporte\?.*idEstudio=123.*imprimir=1/),
+      '_blank',
+    );
+  });
+
 
   test('Usar plantilla abre el selector de plantillas guardadas', async () => {
     mockEmpleadoVisor = { rol: 'radiologo' };
@@ -426,6 +443,24 @@ describe('VisorDicom — Finalización de interpretación', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Completar interpretación' })).toBeInTheDocument();
   });
+
+	test('guarda el HTML pegado para conservar párrafos y formato al reabrir', async () => {
+		mockEmpleadoVisor = { rol: 'radiologo_clinico' };
+		await renderVisor();
+		await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+
+		const editor = screen.getByRole('textbox', { name: 'Editor de interpretación radiológica' });
+		const reportePegado = '<p class="MsoNormal" style="margin-top:0cm;margin-bottom:420pt">HALLAZGOS:</p><p align="right"><b>Texto con formato</b></p>';
+		const reporteNormalizado = reportePegado;
+		editor.innerHTML = reportePegado;
+		fireEvent.input(editor);
+		fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+		await waitFor(() => expect(mockRpc).toHaveBeenCalledWith(
+			'actualizar_reporte_radiologo_clinico',
+			expect.objectContaining({ p_reporte: reporteNormalizado }),
+		));
+	});
 });
 
 // SUITE 4 — Navegación

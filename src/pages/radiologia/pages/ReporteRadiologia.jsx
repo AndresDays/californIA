@@ -1,14 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import JSZip from "jszip";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
+import {
+	htmlReporteRadiologiaParaEditor,
+	normalizarHtmlReporteRadiologia,
+} from "../../../utils/reporte-radiologia-html";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
+	ALTURA_UTIL_REPORTE_CON_FIRMA,
+	ALTURA_UTIL_REPORTE_SIN_FIRMA,
+	agruparConclusionReporte,
 	crearBloquesReporteParaImprimir,
-	dividirReporteEnPaginas,
+	dividirReporteParaImpresion,
+	medirBloquesReporte,
+	omitirPaginasVacias,
 } from "../../../utils/reporte-radiologia-paginado";
 import imprimirIcon from "../../../assets/imprimirIcono.png";
 import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
@@ -47,6 +57,30 @@ const PLANTILLAS = [
 	},
 ];
 
+const precargarImagen = (src) =>
+	new Promise((resolver) => {
+		const imagen = new Image();
+		imagen.onload = resolver;
+		imagen.onerror = resolver;
+		imagen.src = src;
+	});
+
+const AJUSTE_FIRMA_POR_DEFECTO = { firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 };
+
+const leerAjusteFirma = (valor) => {
+	try {
+		const ajuste = typeof valor === "string" ? JSON.parse(valor) : valor;
+		return Object.fromEntries(
+			Object.entries(AJUSTE_FIRMA_POR_DEFECTO).map(([campo, predeterminado]) => [
+				campo,
+				Number.isFinite(Number(ajuste?.[campo])) ? Number(ajuste[campo]) : predeterminado,
+			]),
+		);
+	} catch {
+		return AJUSTE_FIRMA_POR_DEFECTO;
+	}
+};
+
 const ToolBtn = ({ title, icon, cmd, arg, editorRef, onAction }) => {
 	const handleClick = () => {
 		if (onAction) {
@@ -76,11 +110,7 @@ const ReporteRadiologia = () => {
 	const { empleadoData } = useAuth();
 	const editorRef = useRef(null);
 
-	const nombrePaciente = searchParams.get("nombrePaciente") || "";
-	const tipoEstudio = searchParams.get("tipoEstudio") || "";
-	const fechaEstudio = searchParams.get("fechaEstudio") || "";
-	const reporteInicial = searchParams.get("reporte") || "";
-	const doctor = searchParams.get("doctor") || "";
+	const reporteInicial = htmlReporteRadiologiaParaEditor(searchParams.get("reporte") || "");
 	const radiologo = searchParams.get("radiologo") || "";
 	const cedula = searchParams.get("cedula") || "";
 	const especialidad = searchParams.get("especialidad") || "";
@@ -88,34 +118,17 @@ const ReporteRadiologia = () => {
 	const idEstudio = searchParams.get("idEstudio") || "";
 	const folio = searchParams.get("folio") || "";
 	const telefono = searchParams.get("telefono") || "";
+	const imprimirAlAbrir = searchParams.get("imprimir") === "1";
 
 	const [plantillaActual, setPlantillaActual] = useState("Plantillas");
 	const [guardando, setGuardando] = useState(false);
 	const [notif, setNotif] = useState(null);
 	const [qrUrl, setQrUrl] = useState("");
 	const [membreteSrc, setMembreteSrc] = useState(`data:image/jpeg;base64,${MEMBRETE_B64}`);
-	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial.replace(/\n/g, "<br>"));
-	const encabezadoRef = useRef(null);
+	const [membreteListo, setMembreteListo] = useState(false);
+	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial);
 	const arrastreFirmaRef = useRef(null);
-	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, datosX: 0, datosY: 0 });
-
-	const fechaFormateada = fechaEstudio
-		? new Date(fechaEstudio)
-				.toLocaleDateString("es-MX", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				})
-				.toUpperCase()
-		: new Date()
-				.toLocaleDateString("es-MX", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				})
-				.toUpperCase();
-
-	const fechaEncabezado = `PUERTO VALLARTA JAL. ${fechaFormateada}.`;
+	const [ajusteFirma, setAjusteFirma] = useState(() => leerAjusteFirma(searchParams.get("ajusteFirma")));
 
 	useEffect(() => {
 		const generarQr = async () => {
@@ -142,35 +155,16 @@ const ReporteRadiologia = () => {
 
 	const firmaNombre = radiologo || "Radiólogo responsable";
 	const firmaEspecialidad = especialidad || "Radiología e Imagen";
-	const doctorReporte = doctor || "Médico referente";
-
-	const renderDatosPaciente = () => (
-		<div className="rr-datos-paciente">
-			<div className="rr-dato-row">
-				<span className="rr-label">PACIENTE:</span>
-				<strong>{nombrePaciente || "Paciente"}</strong>
-			</div>
-			<div className="rr-dato-row">
-				<span className="rr-label">DOCTOR:</span>
-				<strong>{doctorReporte}</strong>
-			</div>
-			<div className="rr-dato-row">
-				<span className="rr-label">ESTUDIO:</span>
-				<strong>{tipoEstudio || "Estudio"}</strong>
-			</div>
-		</div>
-	);
-
 	const renderFirma = () => (
 		<div className="rr-firma-area">
-			<div className="rr-firma-elemento" onPointerDown={iniciarArrastre("firma")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px` }}>
+			<div className="rr-firma-elemento" onPointerDown={iniciarArrastre("firma")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 160px + ${ajusteFirma.firmaX}px)`, top: `${28 + ajusteFirma.firmaY}px`, transform: `scale(${ajusteFirma.firmaEscala})` }}>
 				{firmaUrl ? (
 					<img className="rr-firma-img" src={firmaUrl} alt="firma" />
 				) : (
 					<div className="rr-firma-placeholder" />
 				)}
 			</div>
-			<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px` }}>
+			<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px`, transform: `scale(${ajusteFirma.datosEscala})` }}>
 				<p className="rr-firma-nombre">{firmaNombre}</p>
 				{firmaEspecialidad && (
 					<p className="rr-firma-dato">{firmaEspecialidad.toUpperCase()}</p>
@@ -191,9 +185,9 @@ const ReporteRadiologia = () => {
 	const terminarArrastre = () => { arrastreFirmaRef.current = null; };
 
 	useEffect(() => {
-		document.title = `Reporte - ${nombrePaciente}`;
+		document.title = `Reporte ${idEstudio}`;
 		if (editorRef.current && reporteInicial) {
-			editorRef.current.innerHTML = reporteInicial.replace(/\n/g, "<br>");
+			editorRef.current.innerHTML = reporteInicial;
 		}
 	}, []);
 
@@ -203,9 +197,15 @@ const ReporteRadiologia = () => {
 				const respuesta = await fetch(cdcPlantillaUrl);
 				const zip = await JSZip.loadAsync(await respuesta.arrayBuffer());
 				const imagen = zip.file("word/media/image1.jpg");
-				if (imagen) setMembreteSrc(`data:image/jpeg;base64,${await imagen.async("base64")}`);
+				if (imagen) {
+					const src = `data:image/jpeg;base64,${await imagen.async("base64")}`;
+					await precargarImagen(src);
+					setMembreteSrc(src);
+				}
 			} catch (error) {
 				console.error("No fue posible cargar la plantilla CDC:", error);
+			} finally {
+				setMembreteListo(true);
 			}
 		};
 		cargarMembreteCdc();
@@ -229,7 +229,7 @@ const ReporteRadiologia = () => {
 
 	const guardar = async (borrador = false) => {
 		setGuardando(true);
-		const texto = editorRef.current?.innerText || "";
+		const texto = normalizarHtmlReporteRadiologia(editorRef.current?.innerHTML || "");
 		const cliente = getSupabase();
 		const { error } = esRadiologoClinicoPermisos(empleadoData?.rol)
 			? await cliente.rpc("actualizar_reporte_radiologo_clinico", {
@@ -246,34 +246,57 @@ const ReporteRadiologia = () => {
 		else showNotif(borrador ? "Borrador guardado" : "Reporte guardado", "ok");
 	};
 
-	const imprimir = () => {
-		setReporteParaImprimir(editorRef.current?.innerHTML || "");
-		window.setTimeout(() => window.print(), 0);
+	const imprimir = async () => {
+		if (!membreteListo) {
+			showNotif("Cargando membrete para impresión", "info");
+			return;
+		}
+		// Con la tipografía todavía sin cargar las alturas medidas salen cortas y
+		// la paginación mete más texto del que cabe en la hoja.
+		await document.fonts?.ready;
+		// El diálogo de impresión debe abrirse cuando las hojas paginadas ya se
+		// pintaron; de lo contrario el navegador imprime el DOM anterior.
+		flushSync(() => {
+			setReporteParaImprimir(normalizarHtmlReporteRadiologia(editorRef.current?.innerHTML || ""));
+		});
+		window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
 	};
+
+	useEffect(() => {
+		if (!imprimirAlAbrir || !membreteListo) return undefined;
+		const temporizador = window.setTimeout(imprimir, 0);
+		return () => window.clearTimeout(temporizador);
+	}, [imprimirAlAbrir, membreteListo]);
 
 	const execFmt = (cmd, arg) => {
 		editorRef.current?.focus();
 		document.execCommand(cmd, false, arg ?? null);
 	};
 
-	const paginasImpresion = dividirReporteEnPaginas(
-		crearBloquesReporteParaImprimir(reporteParaImprimir),
-		330,
+	const paginasImpresion = useMemo(
+		() =>
+			omitirPaginasVacias(
+				dividirReporteParaImpresion(
+					agruparConclusionReporte(
+						medirBloquesReporte(crearBloquesReporteParaImprimir(reporteParaImprimir)),
+						ALTURA_UTIL_REPORTE_CON_FIRMA,
+					),
+					ALTURA_UTIL_REPORTE_SIN_FIRMA,
+					ALTURA_UTIL_REPORTE_CON_FIRMA,
+				),
+			),
+		[reporteParaImprimir],
 	);
 	const renderPaginaImpresion = (pagina, indice) => (
 		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
 			<div className="rr-contenido rr-contenido-impresion">
-				<div className="rr-encabezado-impresion">
-					<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
-					{renderDatosPaciente()}
-				</div>
 				<div className="rr-editor rr-editor-impresion">
 					{pagina.map((bloque, bloqueIndice) => (
 						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
 					))}
 				</div>
-				{renderFirma()}
+				{indice === paginasImpresion.length - 1 && renderFirma()}
 			</div>
 		</div>
 	);
@@ -428,13 +451,8 @@ const ReporteRadiologia = () => {
 					/>
 
 					<div className="rr-contenido">
-						<div ref={encabezadoRef} contentEditable suppressContentEditableWarning spellCheck={false}>
-							<p className="rr-fecha-encabezado">{fechaEncabezado}</p>
-							{renderDatosPaciente()}
-						</div>
-
-					<div
-						ref={editorRef}
+						<div
+							ref={editorRef}
 							className="rr-editor"
 							contentEditable
 							suppressContentEditableWarning
@@ -443,8 +461,8 @@ const ReporteRadiologia = () => {
 							data-placeholder="Escribir reporte aquí..."
 						/>
 
-					{renderFirma()}
-				</div>
+						{renderFirma()}
+					</div>
 			</div>
 				<div className="rr-print-pages">
 					{paginasImpresion.map(renderPaginaImpresion)}

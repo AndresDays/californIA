@@ -141,7 +141,8 @@ describe('ModalAnalito — Interacción', () => {
   });
 
   test('muestra alert y no llama a onClose si Clave y Descripción están vacíos', async () => {
-    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    const notificacionMock = jest.fn();
+    globalThis.mostrarNotificacion = notificacionMock;
     const onClose = jest.fn();
     renderModal({ onClose });
 
@@ -149,9 +150,9 @@ describe('ModalAnalito — Interacción', () => {
       fireEvent.click(screen.getByText('Guardar'));
     });
 
-    expect(alertMock).toHaveBeenCalledWith('Por favor, complete al menos la Clave y la Descripción');
+    expect(notificacionMock).toHaveBeenCalledWith('Por favor, complete al menos la Clave y la Descripción', 'advertencia');
     expect(onClose).not.toHaveBeenCalled();
-    alertMock.mockRestore();
+    delete globalThis.mostrarNotificacion;
   });
 });
 

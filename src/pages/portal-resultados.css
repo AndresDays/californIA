@@ -178,6 +178,35 @@
 	background: #425d78;
 }
 
+.portal-estudio-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 16px;
+}
+
+.portal-estudio-actions a,
+.portal-estudio-actions button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 42px;
+	border: 0;
+	border-radius: 6px;
+	padding: 0 18px;
+	background: linear-gradient(135deg, #57c7e9, #0d8ec2);
+	color: #ffffff;
+	font: inherit;
+	font-weight: 700;
+	text-decoration: none;
+	cursor: pointer;
+	box-shadow: 0 10px 22px rgba(16, 158, 205, 0.22);
+}
+
+.portal-estudio-actions button {
+	background: #18a970;
+}
+
 .portal-estudios {
 	display: grid;
 	gap: 16px;

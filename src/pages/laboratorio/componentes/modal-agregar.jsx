@@ -23,7 +23,7 @@ const ModalAgregar = ({
     e.preventDefault();
     
     if (!valor.trim()) {
-      alert('Por favor, ingrese un valor');
+      globalThis.mostrarNotificacion('Por favor, ingrese un valor', 'advertencia');
       return;
     }
 

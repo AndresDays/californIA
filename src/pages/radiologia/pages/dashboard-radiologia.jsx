@@ -17,6 +17,7 @@ import {
   puedeAsignarRadiologia,
 } from '../../../utils/radiologia-permisos';
 import { esRadiologoClinicoPermisos, normalizarRolPermisos } from '../../../utils/role-permissions';
+import { formatearFechaHoraMexicoLocal } from '../../../utils/fecha-mexico';
 import './DashboardRadiologia.css';
 
 const ESTADOS_FILTRO = [
@@ -257,19 +258,22 @@ const DashboardRadiologia = () => {
 
         // Formatear fecha/hora
         const fechaEstudio = new Date(estudio.fecha_estudio);
-        const hoy = new Date();
-        const esHoy = fechaEstudio.toDateString() === hoy.toDateString();
+        const fechaEstudioMexico = formatearFechaHoraMexicoLocal(fechaEstudio);
+        const hoyMexico = formatearFechaHoraMexicoLocal(new Date());
+        const esHoy = fechaEstudioMexico.slice(0, 10) === hoyMexico.slice(0, 10);
         
         const horaFecha = esHoy 
           ? fechaEstudio.toLocaleTimeString('es-MX', { 
               hour: '2-digit', 
               minute: '2-digit',
-              hour12: true 
+              hour12: true,
+              timeZone: 'America/Mexico_City',
             })
           : fechaEstudio.toLocaleDateString('es-MX', {
               day: '2-digit',
               month: '2-digit',
-              year: '2-digit'
+              year: '2-digit',
+              timeZone: 'America/Mexico_City',
             });
 
         return {

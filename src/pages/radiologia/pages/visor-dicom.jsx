@@ -15,10 +15,6 @@ import {
 	normalizarTelefono10,
 } from "../../../utils/form-validations";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
-import {
-	crearNombreArchivoReporte,
-	generarReportePdf,
-} from "../../../utils/reporte-pdf";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
 	EVENTOS_SOLICITUD,
@@ -51,6 +47,10 @@ import {
 	puedeVerReporteRadiologia,
 } from "../../../utils/radiologia-permisos";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
+import {
+	htmlReporteRadiologiaParaEditor,
+	normalizarHtmlReporteRadiologia,
+} from "../../../utils/reporte-radiologia-html";
 import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import Mpr2dViewer from "../componentes/Mpr2dViewer";
@@ -2905,9 +2905,7 @@ const VisorDicom = () => {
 		doctorNombre: "",
 		radiologoNombre: "",
 	});
-	const reporteEncabezadoRef = useRef(null);
 	const arrastreFirmaRef = useRef(null);
-	const [reporteEncabezado, setReporteEncabezado] = useState({});
 	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 });
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
@@ -3053,42 +3051,13 @@ const VisorDicom = () => {
 	const nombreRadiologo = empleadoData?.nombre || "Radiólogo responsable";
 	const especialidadRadiologo = empleadoData?.especialidad || "Radiología e Imagen";
 
-	const fechaReporte = (() => {
-		if (!pacienteInfo.horaFecha || pacienteInfo.horaFecha === "—") {
-			return new Date()
-				.toLocaleDateString("es-MX", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				})
-				.toUpperCase();
-		}
-		const fecha = new Date(pacienteInfo.horaFecha);
-		if (Number.isNaN(fecha.getTime())) return String(pacienteInfo.horaFecha).toUpperCase();
-		return fecha.toLocaleDateString("es-MX", {
-			day: "2-digit",
-			month: "long",
-			year: "numeric",
-		}).toUpperCase();
-	})();
-
-	const fechaReporteEncabezado = `PUERTO VALLARTA JAL. ${fechaReporte}.`;
-	const encabezadoMostrado = {
-		fecha: Object.hasOwn(reporteEncabezado, "fecha") ? reporteEncabezado.fecha : fechaReporteEncabezado,
-		paciente: Object.hasOwn(reporteEncabezado, "paciente") ? reporteEncabezado.paciente : pacienteInfo.nombre,
-		doctor: Object.hasOwn(reporteEncabezado, "doctor") ? reporteEncabezado.doctor : pacienteInfo.doctor,
-		estudio: Object.hasOwn(reporteEncabezado, "estudio") ? reporteEncabezado.estudio : pacienteInfo.tipoEstudio,
-	};
 	const obtenerEncabezadoReporte = () => {
-		const lineas = String(reporteEncabezadoRef.current?.innerText || "")
-			.split("\n")
-			.map((linea) => linea.trim());
-		const valor = (etiqueta) => lineas.find((linea) => linea.toUpperCase().startsWith(etiqueta))?.slice(etiqueta.length).trim() || "";
 		return {
-			fecha: lineas.find((linea) => !/^(PACIENTE|DOCTOR|ESTUDIO):/i.test(linea)) || "",
-			paciente: valor("PACIENTE:"),
-			doctor: valor("DOCTOR:"),
-			estudio: valor("ESTUDIO:"),
+			fecha: "",
+			paciente: "",
+			doctor: "",
+			estudio: "",
+			ajusteFirma,
 		};
 	};
 	const actualizarAjusteFirma = (campo, valor) => setAjusteFirma((actual) => ({ ...actual, [campo]: Number(valor) }));
@@ -3260,7 +3229,7 @@ const VisorDicom = () => {
 
 	useEffect(() => {
 		if (panelDerecho !== "reporte" || !reporteEditorRef.current) return;
-		reporteEditorRef.current.innerHTML = (reporteTexto || "").replace(/\n/g, "<br>");
+		reporteEditorRef.current.innerHTML = htmlReporteRadiologiaParaEditor(reporteTexto);
 	}, [panelDerecho]);
 
 	const crearImagenesConUrlFirmada = async (imagenes = []) =>
@@ -3391,7 +3360,10 @@ const VisorDicom = () => {
 				.then(({ data, error }) => {
 					if (error || !data) return;
 					setReporteTexto(data.reporte || "");
-					setReporteEncabezado(data.reporte_encabezado || {});
+					const encabezado = data.reporte_encabezado || {};
+					if (encabezado.ajusteFirma) {
+						setAjusteFirma((actual) => ({ ...actual, ...encabezado.ajusteFirma }));
+					}
 				});
 			const sesionMpr = leerSesionMpr(idEstudio) || sesionGuardada;
 			mprSesionEstudioRef.current = String(idEstudio);
@@ -3463,7 +3435,10 @@ const VisorDicom = () => {
 				throw new Error("No tienes acceso a este estudio");
 			}
 			if (estudio.reporte) setReporteTexto(estudio.reporte);
-			setReporteEncabezado(estudio.reporte_encabezado || {});
+			const encabezado = estudio.reporte_encabezado || {};
+			if (encabezado.ajusteFirma) {
+				setAjusteFirma((actual) => ({ ...actual, ...encabezado.ajusteFirma }));
+			}
 
 			let imagenesDicom = [];
 			const consultaImagenes = supabase
@@ -4255,37 +4230,11 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "imprimir") {
-			const ventana = window.open("", "_blank");
-			if (ventana) {
-				ventana.document.open();
-				ventana.document.write("<title>Generando reporte</title><p style=\"font-family:sans-serif;padding:24px\">Generando reporte…</p>");
-				ventana.document.close();
-			}
-			descargarReportePdf(true, ventana);
+			abrirReporteEnPestana({ imprimir: true });
 			return;
 		}
 		if (id === "nueva-pestana") {
-			const idEstudio = estudioId || estudioData?.id;
-			const { data: est } = await supabase
-				.from("estudios_radiologia")
-				.select("fecha_estudio, reporte, id_radiologo")
-				.eq("id_estudio", idEstudio)
-				.single();
-			const params = new URLSearchParams({
-				idEstudio,
-				nombrePaciente: pacienteInfo.nombre,
-				tipoEstudio: pacienteInfo.tipoEstudio,
-				fechaEstudio: est?.fecha_estudio || "",
-				reporte: est?.reporte || "",
-				doctor: pacienteInfo.doctor || "",
-				folio: pacienteInfo.folio || "",
-				telefono: pacienteInfo.telefono || "",
-				radiologo: nombreRadiologo || "",
-				cedula: empleadoData?.cedula || "",
-				especialidad: especialidadRadiologo || "",
-				firmaUrl: firmaEmpleadoUrl,
-			});
-			window.open(`/reporte?${params.toString()}`, "_blank");
+			abrirReporteEnPestana();
 		}
 		if (id === "adjuntar") {
 			reporteAdjuntoInputRef.current?.click();
@@ -4353,40 +4302,25 @@ const VisorDicom = () => {
 			});
 		else {
 			navigator.clipboard.writeText(window.location.href);
-			alert("URL copiada");
+			globalThis.mostrarNotificacion("URL copiada");
 		}
 	};
 
-	const descargarReportePdf = async (imprimir = false, ventana = null) => {
-		try {
-			const id = estudioId || estudioData?.id || "";
-			const texto = reporteEditorRef.current?.innerText ?? reporteTexto;
-			const encabezado = obtenerEncabezadoReporte();
-			await generarReportePdf({
-				nombrePaciente: encabezado.paciente,
-				doctorNombre: encabezado.doctor,
-				estudioDescripcion: encabezado.estudio,
-				fechaEncabezado: encabezado.fecha,
-				reporteTexto: texto,
-				membreteSrc: membreteReporteSrc,
-				qrData: id ? `${window.location.origin}/visor-paciente/${id}` : "",
-				nombreArchivo: crearNombreArchivoReporte(pacienteInfo.nombre),
-				imprimir,
-				ventana,
-			});
-		} catch (err) {
-			console.error("Error al generar PDF del reporte:", err);
-			if (ventana && !ventana.closed) {
-				const detalle = String(err?.message || err || "Error desconocido")
-					.replace(/&/g, "&amp;")
-					.replace(/</g, "&lt;")
-					.replace(/>/g, "&gt;");
-				ventana.document.open();
-				ventana.document.write(`<title>Error al generar reporte</title><div style="font-family:sans-serif;padding:24px"><p>No fue posible generar el PDF del reporte.</p><pre style="white-space:pre-wrap">${detalle}</pre></div>`);
-				ventana.document.close();
-			}
-			showNotif("No fue posible generar el PDF del reporte", "error");
-		}
+	const abrirReporteEnPestana = ({ imprimir = false } = {}) => {
+		const idEstudio = estudioId || estudioData?.id || "";
+		const params = new URLSearchParams({
+			idEstudio,
+			reporte: normalizarHtmlReporteRadiologia(reporteEditorRef.current?.innerHTML ?? reporteTexto),
+			folio: pacienteInfo.folio || "",
+			telefono: pacienteInfo.telefono || "",
+			radiologo: nombreRadiologo || "",
+			cedula: empleadoData?.cedula || "",
+			especialidad: especialidadRadiologo || "",
+			firmaUrl: firmaEmpleadoUrl,
+			ajusteFirma: JSON.stringify(ajusteFirma),
+			...(imprimir ? { imprimir: "1" } : {}),
+		});
+		window.open(`/reporte?${params.toString()}`, "_blank");
 	};
 
 	const guardarReporte = async ({ finalizar = false } = {}) => {
@@ -4394,8 +4328,8 @@ const VisorDicom = () => {
 			showNotif("No tienes permiso para interpretar este estudio", "error");
 			return;
 		}
-		const textoReporte = reporteEditorRef.current?.innerText ?? reporteTexto;
-		if (finalizar && !textoReporte.trim()) {
+		const contenidoReporte = normalizarHtmlReporteRadiologia(reporteEditorRef.current?.innerHTML ?? reporteTexto);
+		if (finalizar && !contenidoReporte.trim()) {
 			showNotif("Escribe la interpretación antes de completarla", "advertencia");
 			return;
 		}
@@ -4404,7 +4338,7 @@ const VisorDicom = () => {
 		if (esRadiologoClinicoPermisos(empleadoData?.rol)) {
 			const { error } = await supabase.rpc("actualizar_reporte_radiologo_clinico", {
 				p_id_estudio: Number(idEstudio),
-				p_reporte: textoReporte,
+				p_reporte: contenidoReporte,
 				p_estado: "COMPLETADO",
 				p_reporte_encabezado: encabezado,
 			});
@@ -4449,7 +4383,7 @@ const VisorDicom = () => {
 						sucursal: estudioEntrega?.sucursal || empleadoData?.sucursal || "", action_path: "/entrega-resultados",
 					});
 				}
-				setReporteTexto(textoReporte);
+				setReporteTexto(contenidoReporte);
 				showNotif(finalizar ? "Interpretación completada y lista para entrega" : "Reporte guardado", "success");
 			}
 			return;
@@ -4461,7 +4395,7 @@ const VisorDicom = () => {
 				.eq("id_estudio", estudioId || estudioData?.id);
 		const actualizadoEn = new Date().toISOString();
 		let payloadReporte = {
-			reporte: textoReporte,
+			reporte: contenidoReporte,
 			reporte_encabezado: encabezado,
 			estado: "COMPLETADO",
 			listo_entrega: finalizar,
@@ -4485,7 +4419,7 @@ const VisorDicom = () => {
 		}
 		if (error) showNotif("Error al guardar el reporte", "error");
 		else {
-			setReporteTexto(textoReporte);
+			setReporteTexto(contenidoReporte);
 			let { data: estudioEntrega, error: errorEstudioEntrega } = await supabase
 				.from("estudios_radiologia")
 				.select(
@@ -4504,7 +4438,7 @@ const VisorDicom = () => {
 				}
 				estudioEntrega = estudioBasico || null;
 			}
-			if (textoReporte.trim() && estudioEntrega) {
+			if (contenidoReporte.trim() && estudioEntrega) {
 				let idEstudioVenta = estudioEntrega.id_estudio_venta || null;
 				if (!idEstudioVenta && estudioEntrega.id_paciente) {
 					const { data: ventasPaciente, error: errorVentasPaciente } = await supabase
@@ -5368,24 +5302,6 @@ const VisorDicom = () => {
 
 											<div className="rr-contenido vd-rr-contenido">
 												<span className="vd-sr-only">Centro Diagnóstico California</span>
-												<div ref={reporteEncabezadoRef} contentEditable={puedeEditarReporte} suppressContentEditableWarning spellCheck={false} aria-label="Encabezado del reporte">
-													<p className="rr-fecha-encabezado">{encabezadoMostrado.fecha}</p>
-													<div className="rr-datos-paciente">
-													<div className="rr-dato-row">
-														<span className="rr-label">PACIENTE:</span>
-														<strong>{encabezadoMostrado.paciente}</strong>
-													</div>
-													<div className="rr-dato-row">
-														<span className="rr-label">DOCTOR:</span>
-														<strong>{encabezadoMostrado.doctor}</strong>
-													</div>
-													<div className="rr-dato-row">
-														<span className="rr-label">ESTUDIO:</span>
-														<strong>{encabezadoMostrado.estudio}</strong>
-													</div>
-												</div>
-												</div>
-
 												<div
 													ref={reporteEditorRef}
 													className="rr-editor vd-rr-editor"
@@ -5395,7 +5311,7 @@ const VisorDicom = () => {
 													role="textbox"
 													aria-label="Editor de interpretación radiológica"
 													data-placeholder="Escribir reporte aquí..."
-													onInput={(e) => setReporteTexto(e.currentTarget.innerText)}
+								onInput={(e) => setReporteTexto(e.currentTarget.innerHTML)}
 												/>
 
 											<div className="rr-firma-area">

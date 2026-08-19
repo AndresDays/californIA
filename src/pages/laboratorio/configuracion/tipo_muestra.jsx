@@ -48,13 +48,13 @@ const TipoMuestra = () => {
 					.update({ categoria })
 					.eq("id", muestraEditando.id);
 				if (error) throw error;
-				alert("Muestra actualizada correctamente");
+				globalThis.mostrarNotificacion("Muestra actualizada correctamente");
 			} else {
 				const { error } = await supabase
 					.from("tipo_muestra")
 					.insert([{ categoria }]);
 				if (error) throw error;
-				alert("Muestra agregada correctamente");
+				globalThis.mostrarNotificacion("Muestra agregada correctamente");
 			}
 			cargarMuestras();
 			setModalOpen(false);
@@ -62,7 +62,7 @@ const TipoMuestra = () => {
 			setMuestraEditando(null);
 		} catch (error) {
 			console.error("Error al guardar muestra:", error);
-			alert("Error al guardar la muestra");
+			globalThis.mostrarNotificacion("Error al guardar la muestra", "error");
 		}
 	};
 
@@ -79,7 +79,7 @@ const TipoMuestra = () => {
 			setModalOpen(true);
 		} catch (error) {
 			console.error("Error:", error);
-			alert("Error al cargar la muestra");
+			globalThis.mostrarNotificacion("Error al cargar la muestra", "error");
 		}
 	};
 

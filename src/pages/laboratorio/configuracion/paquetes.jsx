@@ -70,7 +70,7 @@ const Paquetes = () => {
 	const handleBuscarEstudio = async (e) => {
 		e.preventDefault();
 		if (!busquedaEstudio.trim()) {
-			alert("Por favor, ingresa una clave o descripción de estudio");
+			globalThis.mostrarNotificacion("Por favor, ingresa una clave o descripción de estudio", "advertencia");
 			return;
 		}
 		try {
@@ -83,24 +83,24 @@ const Paquetes = () => {
 				.limit(1)
 				.single();
 			if (error) {
-				if (error.code === "PGRST116") alert("No se encontró ningún estudio");
+				if (error.code === "PGRST116") globalThis.mostrarNotificacion("No se encontró ningún estudio", "advertencia");
 				else throw error;
 				return;
 			}
 			if (estudiosDelPaquete.some((e) => e.id_estudio === data.id)) {
-				alert("Este estudio ya está agregado al paquete");
+				globalThis.mostrarNotificacion("Este estudio ya está agregado al paquete", "advertencia");
 				return;
 			}
 			await agregarEstudioAlPaquete(data);
 		} catch (error) {
 			console.error("Error al buscar estudio:", error);
-			alert("Error al buscar el estudio");
+			globalThis.mostrarNotificacion("Error al buscar el estudio", "error");
 		}
 	};
 
 	const agregarEstudioAlPaquete = async (estudio) => {
 		if (!paqueteSeleccionado) {
-			alert("Primero debes seleccionar o guardar un paquete");
+			globalThis.mostrarNotificacion("Primero debes seleccionar o guardar un paquete", "advertencia");
 			return;
 		}
 		try {
@@ -129,7 +129,7 @@ const Paquetes = () => {
 			setBusquedaEstudio("");
 		} catch (error) {
 			console.error("Error al agregar estudio:", error);
-			alert("Error al agregar el estudio");
+			globalThis.mostrarNotificacion("Error al agregar el estudio", "error");
 		}
 	};
 
@@ -147,7 +147,7 @@ const Paquetes = () => {
 			);
 		} catch (error) {
 			console.error("Error:", error);
-			alert("Error al eliminar el estudio");
+			globalThis.mostrarNotificacion("Error al eliminar el estudio", "error");
 		}
 	};
 
@@ -164,7 +164,7 @@ const Paquetes = () => {
 
 	const handleGuardar = async () => {
 		if (!clavePerfil.trim() || !descripcionPerfil.trim()) {
-			alert("Por favor, completa al menos la clave y descripción");
+			globalThis.mostrarNotificacion("Por favor, completa al menos la clave y descripción", "advertencia");
 			return;
 		}
 		try {
@@ -181,19 +181,19 @@ const Paquetes = () => {
 				.select()
 				.single();
 			if (error) throw error;
-			alert("Paquete guardado correctamente");
+			globalThis.mostrarNotificacion("Paquete guardado correctamente");
 			setPaqueteSeleccionado(data.id);
 			setModoEdicion(true);
 			cargarPaquetes();
 		} catch (error) {
 			console.error("Error:", error);
-			alert("Error al guardar paquete");
+			globalThis.mostrarNotificacion("Error al guardar paquete", "error");
 		}
 	};
 
 	const handleCargarCambios = async () => {
 		if (!paqueteSeleccionado) {
-			alert("Por favor, selecciona un paquete para actualizar");
+			globalThis.mostrarNotificacion("Por favor, selecciona un paquete para actualizar", "advertencia");
 			return;
 		}
 		try {
@@ -207,11 +207,11 @@ const Paquetes = () => {
 				})
 				.eq("id", paqueteSeleccionado);
 			if (error) throw error;
-			alert("Paquete actualizado correctamente");
+			globalThis.mostrarNotificacion("Paquete actualizado correctamente");
 			cargarPaquetes();
 		} catch (error) {
 			console.error("Error:", error);
-			alert("Error al actualizar paquete");
+			globalThis.mostrarNotificacion("Error al actualizar paquete", "error");
 		}
 	};
 
