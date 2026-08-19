@@ -10,7 +10,7 @@ import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	crearBloquesReporteParaImprimir,
-	dividirReporteEnPaginas,
+	dividirReporteParaImpresion,
 	omitirPaginasVacias,
 } from "../../../utils/reporte-radiologia-paginado";
 import imprimirIcon from "../../../assets/imprimirIcono.png";
@@ -247,8 +247,9 @@ const ReporteRadiologia = () => {
 		document.execCommand(cmd, false, arg ?? null);
 	};
 
-	const paginasImpresion = omitirPaginasVacias(dividirReporteEnPaginas(
+	const paginasImpresion = omitirPaginasVacias(dividirReporteParaImpresion(
 		crearBloquesReporteParaImprimir(reporteParaImprimir),
+		900,
 		ALTURA_UTIL_REPORTE_CON_FIRMA,
 	));
 	const renderPaginaImpresion = (pagina, indice) => (

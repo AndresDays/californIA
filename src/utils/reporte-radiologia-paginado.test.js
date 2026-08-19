@@ -1,6 +1,7 @@
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	crearBloquesReporteParaImprimir,
+	dividirReporteParaImpresion,
 	dividirReporteEnPaginas,
 	omitirPaginasVacias,
 } from './reporte-radiologia-paginado';
@@ -36,6 +37,21 @@ describe('dividirReporteEnPaginas', () => {
 		});
 	});
 
+	test('conserva los estilos anidados cuando un bloque largo se parte para imprimir', () => {
+		const texto = Array.from({ length: 90 }, () => 'hallazgo').join(' ');
+		const bloques = crearBloquesReporteParaImprimir(
+			`<p class="MsoNormal" style="font-size:12pt"><strong><span style="font-family:Arial;color:#123456">${texto}</span></strong></p>`,
+			{ caracteresPorBloque: 120 },
+		);
+
+		expect(bloques.length).toBeGreaterThan(1);
+		bloques.forEach(({ html }) => {
+			expect(html).toContain('<strong>');
+			expect(html).toContain('font-family:Arial');
+			expect(html).toContain('color:#123456');
+		});
+	});
+
 	test('omite páginas sin texto antes de imprimir', () => {
 		const paginaConTexto = [{ html: '<p>Hallazgo</p>', alto: 35 }];
 		expect(omitirPaginasVacias([[], [{ html: '<p><br></p>', alto: 35 }], paginaConTexto]))
@@ -50,5 +66,18 @@ describe('dividirReporteEnPaginas', () => {
 
 		expect(dividirReporteEnPaginas(bloques, ALTURA_UTIL_REPORTE_CON_FIRMA))
 			.toEqual([bloques.slice(0, 2), bloques.slice(2)]);
+	});
+
+	test('reserva el espacio de firma únicamente en la última página', () => {
+		const bloques = Array.from({ length: 6 }, (_, indice) => ({
+			html: `<p>Bloque ${indice + 1}</p>`,
+			alto: 250,
+		}));
+
+		expect(dividirReporteParaImpresion(bloques, 900, 650)).toEqual([
+			bloques.slice(0, 3),
+			bloques.slice(3, 4),
+			bloques.slice(4),
+		]);
 	});
 });
