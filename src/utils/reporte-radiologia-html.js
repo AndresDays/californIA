@@ -47,3 +47,20 @@ export const normalizarHtmlReporteRadiologia = (html) => {
 
 	return resultado.innerHTML;
 };
+
+const escaparTextoPlano = (texto) => String(texto)
+	.replace(/&/g, '&amp;')
+	.replace(/</g, '&lt;')
+	.replace(/>/g, '&gt;');
+
+// El reporte guardado ya viaja como HTML (los saltos de línea sólo son formato
+// del marcado). Convertirlos en <br> duplicaba los espacios al abrirlo fuera del
+// visor, así que sólo se convierten cuando el contenido es texto plano.
+export const htmlReporteRadiologiaParaEditor = (contenido) => {
+	const valor = String(contenido || '');
+	if (!valor.trim()) return '';
+	const pareceHtml = /<[a-z][^>]*>/i.test(valor);
+	return pareceHtml
+		? normalizarHtmlReporteRadiologia(valor)
+		: escaparTextoPlano(valor).replace(/\r?\n/g, '<br>');
+};

@@ -2,10 +2,14 @@ import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import JSZip from "jszip";
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/auth-context";
 import { esRadiologoClinicoPermisos } from "../../../utils/role-permissions";
-import { normalizarHtmlReporteRadiologia } from "../../../utils/reporte-radiologia-html";
+import {
+	htmlReporteRadiologiaParaEditor,
+	normalizarHtmlReporteRadiologia,
+} from "../../../utils/reporte-radiologia-html";
 import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
@@ -16,7 +20,6 @@ import {
 import imprimirIcon from "../../../assets/imprimirIcono.png";
 import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
 import "./ReporteRadiologia.css";
-import "./VisorDicom.css";
 
 let _supabase = null;
 const getSupabase = () => {
@@ -50,6 +53,14 @@ const PLANTILLAS = [
 			"TÉCNICA: Radiografía de tórax en proyección posteroanterior.\n\nHALLAZGOS:\nOpacidad homogénea en la base del hemitórax [derecho/izquierdo] con borramiento del seno costofrénico correspondiente, compatible con derrame pleural de volumen [leve/moderado]. El resto de los campos pulmonares sin alteraciones significativas.\n\nCONCLUSIÓN:\nDerrame pleural [derecho/izquierdo] de volumen [leve/moderado]. Se sugiere correlación clínica.",
 	},
 ];
+
+const precargarImagen = (src) =>
+	new Promise((resolver) => {
+		const imagen = new Image();
+		imagen.onload = resolver;
+		imagen.onerror = resolver;
+		imagen.src = src;
+	});
 
 const AJUSTE_FIRMA_POR_DEFECTO = { firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 };
 
@@ -96,7 +107,7 @@ const ReporteRadiologia = () => {
 	const { empleadoData } = useAuth();
 	const editorRef = useRef(null);
 
-	const reporteInicial = normalizarHtmlReporteRadiologia(searchParams.get("reporte") || "");
+	const reporteInicial = htmlReporteRadiologiaParaEditor(searchParams.get("reporte") || "");
 	const radiologo = searchParams.get("radiologo") || "";
 	const cedula = searchParams.get("cedula") || "";
 	const especialidad = searchParams.get("especialidad") || "";
@@ -112,7 +123,7 @@ const ReporteRadiologia = () => {
 	const [qrUrl, setQrUrl] = useState("");
 	const [membreteSrc, setMembreteSrc] = useState(`data:image/jpeg;base64,${MEMBRETE_B64}`);
 	const [membreteListo, setMembreteListo] = useState(false);
-	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial.replace(/\n/g, "<br>"));
+	const [reporteParaImprimir, setReporteParaImprimir] = useState(reporteInicial);
 	const arrastreFirmaRef = useRef(null);
 	const [ajusteFirma, setAjusteFirma] = useState(() => leerAjusteFirma(searchParams.get("ajusteFirma")));
 
@@ -173,7 +184,7 @@ const ReporteRadiologia = () => {
 	useEffect(() => {
 		document.title = `Reporte ${idEstudio}`;
 		if (editorRef.current && reporteInicial) {
-			editorRef.current.innerHTML = reporteInicial.replace(/\n/g, "<br>");
+			editorRef.current.innerHTML = reporteInicial;
 		}
 	}, []);
 
@@ -183,7 +194,11 @@ const ReporteRadiologia = () => {
 				const respuesta = await fetch(cdcPlantillaUrl);
 				const zip = await JSZip.loadAsync(await respuesta.arrayBuffer());
 				const imagen = zip.file("word/media/image1.jpg");
-				if (imagen) setMembreteSrc(`data:image/jpeg;base64,${await imagen.async("base64")}`);
+				if (imagen) {
+					const src = `data:image/jpeg;base64,${await imagen.async("base64")}`;
+					await precargarImagen(src);
+					setMembreteSrc(src);
+				}
 			} catch (error) {
 				console.error("No fue posible cargar la plantilla CDC:", error);
 			} finally {
@@ -233,8 +248,12 @@ const ReporteRadiologia = () => {
 			showNotif("Cargando membrete para impresión", "info");
 			return;
 		}
-		setReporteParaImprimir(normalizarHtmlReporteRadiologia(editorRef.current?.innerHTML || ""));
-		window.setTimeout(() => window.print(), 0);
+		// El diálogo de impresión debe abrirse cuando las hojas paginadas ya se
+		// pintaron; de lo contrario el navegador imprime el DOM anterior.
+		flushSync(() => {
+			setReporteParaImprimir(normalizarHtmlReporteRadiologia(editorRef.current?.innerHTML || ""));
+		});
+		window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
 	};
 
 	useEffect(() => {
@@ -254,10 +273,10 @@ const ReporteRadiologia = () => {
 		ALTURA_UTIL_REPORTE_CON_FIRMA,
 	));
 	const renderPaginaImpresion = (pagina, indice) => (
-		<div className="rr-page vd-rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
+		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
-			<div className="rr-contenido vd-rr-contenido rr-contenido-impresion">
-				<div className="rr-editor vd-rr-editor rr-editor-impresion">
+			<div className="rr-contenido rr-contenido-impresion">
+				<div className="rr-editor rr-editor-impresion">
 					{pagina.map((bloque, bloqueIndice) => (
 						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
 					))}
@@ -408,8 +427,8 @@ const ReporteRadiologia = () => {
 				<ToolBtn title="Rehacer" icon="↪" cmd="redo" editorRef={editorRef} />
 			</div>
 
-			<div className="rr-page-wrapper vd-rr-page-wrapper">
-				<div className="rr-page vd-rr-page rr-page-editor">
+			<div className="rr-page-wrapper">
+				<div className="rr-page rr-page-editor">
 					<img
 						className="rr-membrete"
 						src={membreteSrc}
