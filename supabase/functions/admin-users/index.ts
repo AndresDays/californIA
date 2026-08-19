@@ -120,11 +120,15 @@ Deno.serve(async (req) => {
 		return responder({ error: empleadoAdminError.message }, 500);
 	}
 
-	if (!empleadoAdmin?.activo || !isAdminRole(empleadoAdmin.rol)) {
+	const body = await req.json();
+	const puedeGestionarDoctor = ["createDoctor", "updateDoctor"].includes(body.action);
+
+	if (
+		!empleadoAdmin?.activo ||
+		(!isAdminRole(empleadoAdmin.rol) && !puedeGestionarDoctor)
+	) {
 		return responder({ error: "No tienes permiso para administrar usuarios" }, 403);
 	}
-
-	const body = await req.json();
 
 	if (body.action === "updatePassword" || body.action === "updateDoctorPassword") {
 		if (!body.auth_uuid || !body.password) {
