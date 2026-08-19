@@ -170,8 +170,8 @@ body {
 
 .rr-page {
 	position: relative;
-	width: min(100%, 794px);
-	min-height: 1123px;
+	width: 794px;
+	height: 1123px;
 	overflow: hidden;
 	background: #fff;
 	color: #000;
@@ -192,11 +192,11 @@ body {
 .rr-contenido {
 	position: relative;
 	z-index: 1;
-	padding: 135px 64px 64px;
+	padding: 136px 64px 52px;
 	display: flex;
 	flex-direction: column;
 	gap: 1.05rem;
-	min-height: 1123px;
+	height: 1123px;
 }
 
 .rr-fecha-encabezado {
@@ -255,7 +255,7 @@ body {
 /* ── Editor ─────────────────────────────────────────────────── */
 .rr-editor {
 	flex: 1;
-	min-height: 400px;
+	min-height: 474px;
 	margin-top: 2.1rem;
 	font-size: 1rem;
 	color: #000;
