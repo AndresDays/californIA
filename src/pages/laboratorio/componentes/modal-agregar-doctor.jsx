@@ -122,11 +122,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       return;
     }
 
-    if (!isEditMode && (!email.trim() || !contrasena.trim())) {
-      alert('El correo y la contraseña son requeridos para crear el acceso del doctor');
-      return;
-    }
-
     if (telefono && !esTelefono10Digitos(telefono)) {
       alert('El teléfono debe contener exactamente 10 dígitos numéricos');
       return;
@@ -309,7 +304,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
 
           <div className="form-section-modal">
             <div className="form-group-modal">
-              <label>Email {!isEditMode && '*'}</label>
+              <label>Email</label>
               <input
                 type="email"
                 value={email}
@@ -402,7 +397,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
             </div>
 
             <div className="form-group-modal">
-              <label>Contraseña {!isEditMode && '*'}</label>
+              <label>Contraseña</label>
               <input
                 type="password"
                 value={contrasena}

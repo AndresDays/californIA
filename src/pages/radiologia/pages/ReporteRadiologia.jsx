@@ -16,7 +16,6 @@ import {
 import imprimirIcon from "../../../assets/imprimirIcono.png";
 import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
 import "./ReporteRadiologia.css";
-import "./VisorDicom.css";
 
 let _supabase = null;
 const getSupabase = () => {
@@ -254,10 +253,10 @@ const ReporteRadiologia = () => {
 		ALTURA_UTIL_REPORTE_CON_FIRMA,
 	));
 	const renderPaginaImpresion = (pagina, indice) => (
-		<div className="rr-page vd-rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
+		<div className="rr-page rr-print-page" key={`pagina-impresion-${indice}`}>
 			<img className="rr-membrete" src={membreteSrc} alt="membrete" />
-			<div className="rr-contenido vd-rr-contenido rr-contenido-impresion">
-				<div className="rr-editor vd-rr-editor rr-editor-impresion">
+			<div className="rr-contenido rr-contenido-impresion">
+				<div className="rr-editor rr-editor-impresion">
 					{pagina.map((bloque, bloqueIndice) => (
 						<div key={bloqueIndice} dangerouslySetInnerHTML={{ __html: bloque.html }} />
 					))}
@@ -408,18 +407,18 @@ const ReporteRadiologia = () => {
 				<ToolBtn title="Rehacer" icon="↪" cmd="redo" editorRef={editorRef} />
 			</div>
 
-			<div className="rr-page-wrapper vd-rr-page-wrapper">
-				<div className="rr-page vd-rr-page rr-page-editor">
+			<div className="rr-page-wrapper">
+				<div className="rr-page rr-page-editor">
 					<img
 						className="rr-membrete"
 						src={membreteSrc}
 						alt="membrete"
 					/>
 
-					<div className="rr-contenido vd-rr-contenido">
-					<div
-						ref={editorRef}
-							className="rr-editor vd-rr-editor"
+					<div className="rr-contenido">
+						<div
+							ref={editorRef}
+							className="rr-editor"
 							contentEditable
 							suppressContentEditableWarning
 						spellCheck={false}
@@ -427,8 +426,8 @@ const ReporteRadiologia = () => {
 							data-placeholder="Escribir reporte aquí..."
 						/>
 
-					{renderFirma()}
-				</div>
+						{renderFirma()}
+					</div>
 			</div>
 				<div className="rr-print-pages">
 					{paginasImpresion.map(renderPaginaImpresion)}

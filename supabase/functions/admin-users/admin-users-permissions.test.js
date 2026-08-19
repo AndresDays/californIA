@@ -12,4 +12,12 @@ describe("permisos de admin-users", () => {
 		expect(fuente).toContain('(!isAdminRole(empleadoAdmin.rol) && !puedeGestionarDoctor)');
 		expect(fuente).toContain('if (body.action === "updatePassword" || body.action === "updateDoctorPassword")');
 	});
+
+	test("crea el registro de un doctor sin cuenta cuando no recibe credenciales", () => {
+		const fuente = fuenteFuncion();
+
+		expect(fuente).toContain('const crearAcceso = Boolean(clean(doctor.email) && clean(doctor.contrasena));');
+		expect(fuente).toContain('buildDoctorPayload(doctor, authUser?.id || null)');
+		expect(fuente).toContain('if (crearAcceso) {');
+	});
 });
