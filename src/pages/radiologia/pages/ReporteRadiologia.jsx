@@ -10,7 +10,7 @@ import {
 	htmlReporteRadiologiaParaEditor,
 	normalizarHtmlReporteRadiologia,
 } from "../../../utils/reporte-radiologia-html";
-import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import { crearUrlPortalResultados, crearUrlVisorPaciente } from "../../../utils/portal-resultados";
 import {
 	ALTURA_UTIL_REPORTE_CON_FIRMA,
 	ALTURA_UTIL_REPORTE_SIN_FIRMA,
@@ -135,7 +135,7 @@ const ReporteRadiologia = () => {
 		const generarQr = async () => {
 			try {
 				const qrData = idEstudio
-					? `${window.location.origin}/visor-paciente/${idEstudio}`
+					? crearUrlVisorPaciente({ idEstudio, folio, telefono })
 					: crearUrlPortalResultados({ folio, telefono });
 				const dataUrl = await QRCode.toDataURL(qrData, {
 					margin: 1,

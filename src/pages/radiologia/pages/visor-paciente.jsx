@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import logo from "../../../assets/CalifornIA.png";
 import { supabase } from "../../../lib/supabase-client";
 import {
@@ -88,6 +88,9 @@ const formatearFecha = (fecha) => {
 
 const VisorPaciente = () => {
 	const { estudioId } = useParams();
+	const [searchParams] = useSearchParams();
+	const folioPortal = searchParams.get("folio") || "";
+	const telefonoPortal = searchParams.get("telefono") || "";
 	const divRef = useRef(null);
 	const csRef = useRef(null);
 	const enabledRef = useRef(false);
@@ -136,6 +139,21 @@ const VisorPaciente = () => {
 			}),
 		);
 
+	// El paciente llega sin sesión (QR o portal) y las políticas de la base sólo
+	// permiten leer estudios a personal autenticado. En ese caso los datos se
+	// piden al portal, que valida folio y teléfono y firma las imágenes.
+	const cargarDesdePortal = async () => {
+		const { data, error } = await supabase.functions.invoke("portal-resultados", {
+			body: { p_folio: folioPortal, p_telefono: telefonoPortal, p_id_estudio: estudioId },
+		});
+		if (error || data?.error) throw new Error(data?.error || "No encontramos el estudio solicitado");
+		return {
+			estudio: data.estudio,
+			paciente: data.paciente,
+			imagenes: (data.imagenes || []).map((imagen) => ({ ...imagen, imageId: `wadouri:${imagen.url}` })),
+		};
+	};
+
 	const cargarImagen = async (imageId) => {
 		const cs = csRef.current;
 		const el = divRef.current;
@@ -163,47 +181,63 @@ const VisorPaciente = () => {
 				const { cornerstone } = await initCornerstone();
 				if (cancelado) return;
 
-				let { data: est, error: errEst } = await supabase
-					.from("estudios_radiologia")
-					.select(`
-						id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente,
-						doctor:doctores!estudios_radiologia_id_doctor_fkey(nombre)
-					`)
-					.eq("id_estudio", estudioId)
-					.single();
-				if (errEst) {
+				const { data: sesion } = await supabase.auth.getSession();
+				const usarPortal = !sesion?.session && folioPortal && telefonoPortal;
+
+				let est = null;
+				let imagenesConUrl = [];
+
+				if (usarPortal) {
+					const datosPortal = await cargarDesdePortal();
+					if (cancelado) return;
+					est = datosPortal.estudio;
+					imagenesConUrl = datosPortal.imagenes;
+					if (datosPortal.paciente) setPaciente(datosPortal.paciente);
+				} else {
+					let errEst;
 					({ data: est, error: errEst } = await supabase
 						.from("estudios_radiologia")
-						.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente")
+						.select(`
+							id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente,
+							doctor:doctores!estudios_radiologia_id_doctor_fkey(nombre)
+						`)
 						.eq("id_estudio", estudioId)
 						.single());
+					if (errEst) {
+						({ data: est, error: errEst } = await supabase
+							.from("estudios_radiologia")
+							.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente")
+							.eq("id_estudio", estudioId)
+							.single());
+					}
+					if (errEst) throw new Error("No encontramos el estudio solicitado");
+					if (cancelado) return;
+
+					if (est?.id_paciente) {
+						const { data: p } = await supabase
+							.from("pacientes")
+							.select("nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo")
+							.eq("id_paciente", est.id_paciente)
+							.maybeSingle();
+						if (!cancelado && p) setPaciente(p);
+					}
+
+					let imagenesDicom = [];
+					const { data: imagenesGuardadas, error: errImagenes } = await supabase
+						.from("estudio_dicom_imagenes")
+						.select("*")
+						.eq("id_estudio", estudioId)
+						.order("instance_number", { ascending: true, nullsFirst: false });
+					if (!errImagenes) imagenesDicom = imagenesGuardadas || [];
+					if (imagenesDicom.length === 0 && est?.storage_path) {
+						imagenesDicom = [crearImagenDicomFallback(est.storage_path, est)];
+					}
+					if (imagenesDicom.length === 0) throw new Error("Este estudio no tiene imagenes disponibles");
+					imagenesConUrl = await crearImagenesConUrlFirmada(imagenesDicom);
 				}
-				if (errEst) throw new Error("No encontramos el estudio solicitado");
-				if (cancelado) return;
+
 				setEstudio(est);
-
-				if (est?.id_paciente) {
-					const { data: p } = await supabase
-						.from("pacientes")
-						.select("nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo")
-						.eq("id_paciente", est.id_paciente)
-						.maybeSingle();
-					if (!cancelado && p) setPaciente(p);
-				}
-
-				let imagenesDicom = [];
-				const { data: imagenesGuardadas, error: errImagenes } = await supabase
-					.from("estudio_dicom_imagenes")
-					.select("*")
-					.eq("id_estudio", estudioId)
-					.order("instance_number", { ascending: true, nullsFirst: false });
-				if (!errImagenes) imagenesDicom = imagenesGuardadas || [];
-				if (imagenesDicom.length === 0 && est?.storage_path) {
-					imagenesDicom = [crearImagenDicomFallback(est.storage_path, est)];
-				}
-				if (imagenesDicom.length === 0) throw new Error("Este estudio no tiene imagenes disponibles");
-
-				const imagenesConUrl = await crearImagenesConUrlFirmada(imagenesDicom);
+				if (imagenesConUrl.length === 0) throw new Error("Este estudio no tiene imagenes disponibles");
 				const seriesAgrupadas = agruparImagenesDicomPorSerie(imagenesConUrl, est);
 				if (cancelado) return;
 				setSeries(seriesAgrupadas);
@@ -239,7 +273,7 @@ const VisorPaciente = () => {
 		return () => {
 			cancelado = true;
 		};
-		}, [estudioId]);
+		}, [estudioId, folioPortal, telefonoPortal]);
 
 	useEffect(() => {
 		if (loading || error || vistaReporte) return;

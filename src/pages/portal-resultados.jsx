@@ -7,8 +7,13 @@ import {
 	normalizarTextoResultado,
 	normalizarTelefonoPortal,
 } from "../utils/portal-resultados";
-import { generarResultadosCombinadosPdf } from "../utils/reporte-pdf";
+import {
+	crearNombreArchivoReporte,
+	generarReportePdf,
+	generarResultadosCombinadosPdf,
+} from "../utils/reporte-pdf";
 import { obtenerDatosQuimico } from "../utils/datos-quimico";
+import { abrirPdfEnPestana } from "../utils/abrir-pdf-en-pestana";
 import "./portal-resultados.css";
 
 const formatearFecha = (fecha) => {
@@ -52,6 +57,7 @@ const PortalResultados = () => {
 	const [cargando, setCargando] = useState(false);
 	const [resultado, setResultado] = useState(null);
 	const [error, setError] = useState("");
+	const [generandoPdf, setGenerandoPdf] = useState(false);
 
 	const venta = resultado?.venta || null;
 	const estudios = resultado?.estudios || [];
@@ -90,14 +96,50 @@ const PortalResultados = () => {
 		if (!data?.encontrado) setError(data?.mensaje || "No encontramos resultados.");
 	};
 
+	const estudioImagen = estudios.find((estudio) => estudio.tipo === "imagen") || null;
+
+	const verEstudio = () => {
+		if (!estudioImagen) return;
+		const params = new URLSearchParams({ folio: folio.trim(), telefono });
+		window.open(`/visor-paciente/${estudioImagen.id}?${params.toString()}`, "_blank", "noopener,noreferrer");
+	};
+
+	// El PDF tarda en generarse: la pestaña se abre con el clic y se llena
+	// después, porque el navegador bloquea las que se abren ya sin el gesto.
 	const verPdf = async () => {
-		const url = await generarResultadosCombinadosPdf({
-			venta,
-			estudios,
-			membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
-			datosQuimicoSrc: obtenerDatosQuimico(venta),
-		});
-		window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
+		const ventana = window.open("", "_blank");
+		setGenerandoPdf(true);
+		setError("");
+		try {
+			const membreteSrc = `data:image/jpeg;base64,${MEMBRETE_B64}`;
+			if (estudioImagen) {
+				await generarReportePdf({
+					nombrePaciente: venta?.paciente || "",
+					estudioDescripcion: estudioImagen.descripcion || "",
+					fechaEncabezado: formatearFecha(estudioImagen.fecha_estudio || venta?.fecha_venta),
+					reporteTexto: estudioImagen.reporte || "",
+					membreteSrc,
+					nombreArchivo: crearNombreArchivoReporte(venta?.paciente),
+					imprimir: true,
+					ventana,
+				});
+				return;
+			}
+			const salida = await generarResultadosCombinadosPdf({
+				venta,
+				estudios,
+				membreteSrc,
+				datosQuimicoSrc: obtenerDatosQuimico(venta),
+			});
+			const url = salida instanceof Blob ? URL.createObjectURL(salida) : salida;
+			abrirPdfEnPestana({ url, titulo: `Resultados ${venta?.folio || ""}`, ventana });
+		} catch (errorPdf) {
+			ventana?.close();
+			console.error("Error al generar el PDF de resultados:", errorPdf);
+			setError("No fue posible abrir el PDF de resultados. Intenta de nuevo.");
+		} finally {
+			setGenerandoPdf(false);
+		}
 	};
 
 	return (
@@ -177,7 +219,14 @@ const PortalResultados = () => {
 						</div>
 
 						<div className="portal-actions">
-							<button type="button" onClick={verPdf}>Ver PDF</button>
+							{estudioImagen && (
+								<button type="button" onClick={verEstudio}>
+									Ver estudio
+								</button>
+							)}
+							<button type="button" onClick={verPdf} disabled={generandoPdf}>
+								{generandoPdf ? "Abriendo PDF..." : "Ver PDF"}
+							</button>
 						</div>
 
 						{estudios.length === 0 ? (

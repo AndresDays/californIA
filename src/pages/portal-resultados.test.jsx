@@ -7,12 +7,17 @@ jest.mock("./radiologia/pages/reporte-radiologia-template", () => ({ MEMBRETE_B6
 jest.mock("../lib/supabase-client", () => ({
 	supabase: { functions: { invoke: jest.fn() }, rpc: jest.fn() },
 }));
-jest.mock("../utils/reporte-pdf", () => ({ generarResultadosCombinadosPdf: jest.fn() }));
+jest.mock("../utils/reporte-pdf", () => ({
+	generarResultadosCombinadosPdf: jest.fn(),
+	generarReportePdf: jest.fn(),
+	crearNombreArchivoReporte: () => "reporte.pdf",
+}));
+jest.mock("../utils/abrir-pdf-en-pestana", () => ({ abrirPdfEnPestana: jest.fn() }));
 jest.mock("react-router-dom", () => ({ useSearchParams: () => [new URLSearchParams()] }));
 
 import PortalResultados from "./portal-resultados";
 import { supabase } from "../lib/supabase-client";
-import { generarResultadosCombinadosPdf } from "../utils/reporte-pdf";
+import { generarReportePdf, generarResultadosCombinadosPdf } from "../utils/reporte-pdf";
 
 const resultadoSeguro = {
 	encontrado: true,
@@ -36,7 +41,8 @@ describe("PortalResultados", () => {
 		jest.clearAllMocks();
 		supabase.functions.invoke.mockResolvedValue({ data: resultadoSeguro, error: null });
 		generarResultadosCombinadosPdf.mockResolvedValue("blob:combinado");
-		window.open = jest.fn();
+		generarReportePdf.mockResolvedValue(undefined);
+		window.open = jest.fn(() => ({ close: jest.fn() }));
 	});
 
 	test("consulta el Edge Function y muestra que el cultivo está adjunto sin exponer rutas", async () => {
@@ -65,5 +71,54 @@ describe("PortalResultados", () => {
 			venta: resultadoSeguro.venta,
 			estudios: resultadoSeguro.estudios,
 		})));
+	});
+
+	describe("estudios de imagen", () => {
+		const conImagen = {
+			...resultadoSeguro,
+			estudios: [
+				{
+					id: 42,
+					tipo: "imagen",
+					descripcion: "R. M. de hombro",
+					estado: "interpretado",
+					reporte: "HALLAZGOS: sin alteraciones.",
+					fecha_estudio: "2026-08-10",
+				},
+			],
+		};
+
+		const consultar = async () => {
+			supabase.functions.invoke.mockResolvedValue({ data: conImagen, error: null });
+			render(<PortalResultados />);
+			fireEvent.change(screen.getByPlaceholderText("Ej. 1105260004"), { target: { value: "F-17" } });
+			fireEvent.change(screen.getByPlaceholderText("10 digitos"), { target: { value: "3221234567" } });
+			fireEvent.click(screen.getByRole("button", { name: "Consultar" }));
+			await screen.findByText("R. M. de hombro");
+		};
+
+		test("abre el visor del estudio con el folio y teléfono consultados", async () => {
+			await consultar();
+
+			fireEvent.click(screen.getByRole("button", { name: "Ver estudio" }));
+
+			expect(window.open).toHaveBeenCalledWith(
+				"/visor-paciente/42?folio=F-17&telefono=3221234567",
+				"_blank",
+				"noopener,noreferrer",
+			);
+		});
+
+		test("muestra el PDF del último reporte guardado", async () => {
+			await consultar();
+
+			fireEvent.click(screen.getByRole("button", { name: "Ver PDF" }));
+
+			await waitFor(() => expect(generarReportePdf).toHaveBeenCalledWith(expect.objectContaining({
+				reporteTexto: "HALLAZGOS: sin alteraciones.",
+				imprimir: true,
+			})));
+			expect(generarResultadosCombinadosPdf).not.toHaveBeenCalled();
+		});
 	});
 });
