@@ -13,6 +13,25 @@ export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	}, [[]]);
 };
 
+// Las páginas intermedias pueden usar todo el espacio útil. Sólo la última
+// necesita reservar el área de la firma para que nunca se monte con el texto.
+export const dividirReporteParaImpresion = (bloques, altoSinFirma, altoConFirma) => {
+	const paginas = dividirReporteEnPaginas(bloques, altoSinFirma);
+	if (paginas.length === 0) return paginas;
+
+	const altoPagina = (pagina) => pagina.reduce((total, bloque) => total + bloque.alto, 0);
+	let ultima = paginas[paginas.length - 1];
+	while (ultima.length > 1 && altoPagina(ultima) > altoConFirma) {
+		const bloque = ultima.shift();
+		const anterior = paginas[paginas.length - 2];
+		if (!anterior) paginas.splice(0, 0, [bloque]);
+		else if (altoPagina(anterior) + bloque.alto <= altoSinFirma) anterior.push(bloque);
+		else paginas.splice(paginas.length - 1, 0, [bloque]);
+		ultima = paginas[paginas.length - 1];
+	}
+	return paginas;
+};
+
 export const omitirPaginasVacias = (paginas) =>
 	paginas.filter((pagina) =>
 		pagina.some((bloque) => String(bloque.html || '').replace(/<[^>]+>/g, '').trim()),
@@ -22,6 +41,17 @@ const escaparHtml = (texto) => String(texto)
 	.replace(/&/g, '&amp;')
 	.replace(/</g, '&lt;')
 	.replace(/>/g, '&gt;');
+
+const obtenerNodosTexto = (nodo) => {
+	const walker = document.createTreeWalker(nodo, NodeFilter.SHOW_TEXT);
+	const nodos = [];
+	let actual = walker.nextNode();
+	while (actual) {
+		nodos.push(actual);
+		actual = walker.nextNode();
+	}
+	return nodos;
+};
 
 const dividirTextoLargo = (texto, caracteresPorBloque) => {
 	const palabras = String(texto).trim().split(/\s+/).filter(Boolean);
@@ -33,10 +63,20 @@ const dividirTextoLargo = (texto, caracteresPorBloque) => {
 	}, []);
 };
 
-const crearFragmentoConFormato = (nodo, texto) => {
-	const copia = nodo.cloneNode(false);
-	copia.textContent = texto;
-	return copia.outerHTML;
+// Clonamos el árbol completo y repartimos los nodos de texto; de este modo no
+// se pierden <strong>, <span>, tipografías ni otros estilos pegados desde Word.
+const dividirNodoLargoConFormato = (nodo, caracteresPorBloque) => {
+	const originales = obtenerNodosTexto(nodo);
+	if (!originales.length) return [nodo.outerHTML];
+
+	return dividirTextoLargo(nodo.textContent, caracteresPorBloque).map((fragmento) => {
+		const copia = nodo.cloneNode(true);
+		const textosCopia = obtenerNodosTexto(copia);
+		textosCopia.forEach((texto, indice) => {
+			texto.textContent = indice === 0 ? fragmento : '';
+		});
+		return copia.outerHTML;
+	});
 };
 
 export const crearBloquesReporteParaImprimir = (html, {
@@ -53,7 +93,7 @@ export const crearBloquesReporteParaImprimir = (html, {
 	return origen.flatMap((nodo) => {
 		const texto = nodo.textContent || '';
 		const fragmentos = texto.length > caracteresPorBloque
-			? dividirTextoLargo(texto, caracteresPorBloque).map((fragmento) => crearFragmentoConFormato(nodo, fragmento))
+			? dividirNodoLargoConFormato(nodo, caracteresPorBloque)
 			: [nodo.outerHTML || `<p>${escaparHtml(texto)}</p>`];
 		return fragmentos.map((fragmento) => ({
 			html: fragmento,
