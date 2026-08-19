@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { PDFDocument } from "pdf-lib";
 import { abrirPdfEnPestana } from "./abrir-pdf-en-pestana";
+import { dibujarHtmlEnPdf } from "./reporte-pdf-html";
 import {
 	esEstudioCultivo,
 	hidratarArchivoCultivoUrl,
@@ -82,20 +83,24 @@ export const generarReportePdf = async ({
 
 	dibujarMembrete();
 
-	// La hoja membretada sólo lleva el texto del reporte: los datos de
-	// paciente, doctor, estudio y la fecha ya no se imprimen.
-	let y = REPORTE_MARGEN_SUPERIOR;
+	// La hoja membretada sólo lleva el reporte: los datos de paciente, doctor,
+	// estudio y la fecha ya no se imprimen. El contenido llega como el HTML que
+	// guardó el radiólogo, así que se dibuja conservando negritas, títulos,
+	// alineación y listas.
 	doc.setFont("helvetica", "normal");
 	doc.setFontSize(REPORTE_FUENTE_PT);
-	const lineas = doc.splitTextToSize(String(reporteTexto || ""), anchoUtil);
-	lineas.forEach((linea) => {
-		if (y > REPORTE_LIMITE_INFERIOR) {
+	let y = dibujarHtmlEnPdf(doc, reporteTexto, {
+		x: REPORTE_MARGEN_LATERAL,
+		y: REPORTE_MARGEN_SUPERIOR,
+		ancho: anchoUtil,
+		limiteInferior: REPORTE_LIMITE_INFERIOR,
+		tamanoBase: REPORTE_FUENTE_PT,
+		interlineado: REPORTE_INTERLINEADO,
+		nuevaPagina: () => {
 			doc.addPage();
 			dibujarMembrete();
-			y = REPORTE_MARGEN_SUPERIOR;
-		}
-		doc.text(linea, REPORTE_MARGEN_LATERAL, y);
-		y += REPORTE_INTERLINEADO;
+			return REPORTE_MARGEN_SUPERIOR;
+		},
 	});
 
 	// La firma de quien interpretó el estudio cierra la última hoja; si ya no

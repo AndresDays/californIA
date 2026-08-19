@@ -12,10 +12,7 @@ import {
 	generarReportePdf,
 } from "../../../utils/reporte-pdf";
 import { MEMBRETE_FALLBACK, cargarMembreteCdc } from "../../../utils/membrete-cdc";
-import {
-	htmlReporteRadiologiaParaEditor,
-	textoPlanoReporteRadiologia,
-} from "../../../utils/reporte-radiologia-html";
+import { htmlReporteRadiologiaParaEditor } from "../../../utils/reporte-radiologia-html";
 import {
 	ALTURA_TEXTO_VISOR_CON_FIRMA,
 	ALTURA_TEXTO_VISOR_SIN_FIRMA,
@@ -421,7 +418,7 @@ const VisorPaciente = () => {
 		try {
 			await generarReportePdf({
 				nombrePaciente,
-				reporteTexto: textoPlanoReporteRadiologia(estudio?.reporte),
+				reporteTexto: reporteHtml,
 				membreteSrc,
 				firma: radiologo,
 				qrData: `${window.location.origin}/visor-paciente/${estudioId}`,
