@@ -25,8 +25,16 @@ const REPORTE_MARGEN_SUPERIOR = Math.round((135 + 34) * PX_A_MM * 10) / 10;
 const REPORTE_LIMITE_INFERIOR = Math.round(985 * PX_A_MM * 10) / 10;
 const REPORTE_FUENTE_PT = 10;
 const REPORTE_INTERLINEADO = 4.9;
-// Espacio del bloque de firma al pie de la última hoja.
-const REPORTE_ALTO_FIRMA = 46;
+// Bloque de firma al pie de la última hoja, con las mismas medidas que el
+// editor y el visor: una firma de 378 x 153 px sobre la línea con los datos.
+const FIRMA_ANCHO = Math.round(378 * PX_A_MM * 10) / 10;
+const FIRMA_ALTO = Math.round(153 * PX_A_MM * 10) / 10;
+const FIRMA_ANCHO_LINEA = Math.round(330 * PX_A_MM * 10) / 10;
+// La línea de la firma sube sobre el trazo, como en el editor, para que el
+// bloque ocupe lo mismo que en la hoja impresa.
+const FIRMA_TRASLAPE = Math.round(24 * PX_A_MM * 10) / 10;
+// Aire entre la última línea de la firma y el pie del membrete.
+const FIRMA_AIRE_INFERIOR = 11;
 
 const cargarImagenComoDataUrl = async (src) => {
 	if (!src) return null;
@@ -42,6 +50,19 @@ const cargarImagenComoDataUrl = async (src) => {
 		});
 	} catch {
 		return null;
+	}
+};
+
+// Escala una imagen para que quepa completa en el recuadro conservando su
+// proporción; si no se pueden leer sus medidas se usa el recuadro tal cual.
+const ajustarDentro = (doc, dataUrl, anchoMaximo, altoMaximo) => {
+	try {
+		const { width, height } = doc.getImageProperties(dataUrl);
+		if (!width || !height) return { ancho: anchoMaximo, alto: altoMaximo };
+		const factor = Math.min(anchoMaximo / width, altoMaximo / height);
+		return { ancho: width * factor, alto: height * factor };
+	} catch {
+		return { ancho: anchoMaximo, alto: altoMaximo };
 	}
 };
 
@@ -107,33 +128,50 @@ export const generarReportePdf = async ({
 	// cabe, se abre una nueva para no encimarla con el texto.
 	const tieneFirma = Boolean(firmaImagen || String(firma?.nombre || "").trim());
 	if (tieneFirma) {
-		if (y + REPORTE_ALTO_FIRMA > REPORTE_LIMITE_INFERIOR) {
+		const altoBloque =
+			FIRMA_ALTO - FIRMA_TRASLAPE + 5.5 +
+			(firma?.especialidad ? 4.4 : 0) + (firma?.cedula ? 4.4 : 0);
+		// El bloque se apoya en el pie de la hoja, dejando el mismo aire que el
+		// editor deja bajo la firma; si ya no cabe bajo el texto, abre hoja nueva.
+		// `y` quedó en el renglón siguiente al último escrito, de ahí el ajuste.
+		const finTexto = y - REPORTE_INTERLINEADO;
+		if (finTexto + 8 + altoBloque + FIRMA_AIRE_INFERIOR > REPORTE_LIMITE_INFERIOR) {
 			doc.addPage();
 			dibujarMembrete();
 			y = REPORTE_MARGEN_SUPERIOR;
 		}
-		let yFirma = Math.max(y + 8, REPORTE_LIMITE_INFERIOR - REPORTE_ALTO_FIRMA);
+		let yFirma = REPORTE_LIMITE_INFERIOR - FIRMA_AIRE_INFERIOR - altoBloque;
 		const centro = PAGINA_ANCHO / 2;
 		if (firmaImagen) {
 			try {
-				doc.addImage(firmaImagen, obtenerFormatoImagen(firmaImagen), centro - 22, yFirma, 44, 17);
+				// La firma se ajusta dentro del recuadro sin deformarse, igual que
+				// el `object-fit: contain` del visor.
+				const { ancho, alto } = ajustarDentro(doc, firmaImagen, FIRMA_ANCHO, FIRMA_ALTO);
+				doc.addImage(
+					firmaImagen,
+					obtenerFormatoImagen(firmaImagen),
+					centro - ancho / 2,
+					yFirma + (FIRMA_ALTO - alto),
+					ancho,
+					alto,
+				);
 			} catch {}
 		}
-		yFirma += 20;
+		yFirma += FIRMA_ALTO - FIRMA_TRASLAPE;
 		doc.setDrawColor(0, 0, 0);
-		doc.line(centro - 32, yFirma, centro + 32, yFirma);
-		yFirma += 5;
+		doc.line(centro - FIRMA_ANCHO_LINEA / 2, yFirma, centro + FIRMA_ANCHO_LINEA / 2, yFirma);
+		yFirma += 5.5;
 		doc.setFont("helvetica", "bold");
-		doc.setFontSize(10.5);
+		doc.setFontSize(12.5);
 		doc.text(String(firma?.nombre || "").toUpperCase(), centro, yFirma, { align: "center" });
-		doc.setFont("helvetica", "normal");
+		doc.setFont("helvetica", "bold");
 		doc.setFontSize(9);
 		if (firma?.especialidad) {
-			yFirma += 4.6;
+			yFirma += 4.4;
 			doc.text(String(firma.especialidad).toUpperCase(), centro, yFirma, { align: "center" });
 		}
 		if (firma?.cedula) {
-			yFirma += 4.6;
+			yFirma += 4.4;
 			doc.text(`CE ${String(firma.cedula).toUpperCase()}`, centro, yFirma, { align: "center" });
 		}
 	}

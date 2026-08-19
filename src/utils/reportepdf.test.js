@@ -183,6 +183,32 @@ describe("generarReportePdf", () => {
 		expect(qrY + qrAlto).toBeLessThanOrEqual(262);
 	});
 
+	test("dibuja la firma al mismo tamaño que el visor y sin salirse del pie", async () => {
+		const firma = {
+			nombre: "Juan Andres Diaz",
+			especialidad: "Radiología e Imagen",
+			cedula: "12345678",
+			firmaUrl: "data:image/png;base64,FIRMAMOCK",
+		};
+
+		await generarReportePdf({ ...opcionesBase, firma });
+
+		const llamadaFirma = mockDoc.addImage.mock.calls.find(
+			(llamada) => llamada[0] === "data:image/png;base64,FIRMAMOCK",
+		);
+		expect(llamadaFirma).toBeDefined();
+		const [, , , , anchoFirma, altoFirma] = llamadaFirma;
+		// 378 x 153 px de la hoja de 794 px equivalen a 100 x 40.5 mm.
+		expect(anchoFirma).toBeCloseTo(100, 0);
+		expect(altoFirma).toBeCloseTo(40.5, 0);
+
+		const textos = mockDoc.text.mock.calls;
+		const cedula = textos.find(([texto]) => String(texto).startsWith("CE "));
+		expect(cedula).toBeDefined();
+		// El pie del membrete arranca en ≈262 mm.
+		expect(cedula[2]).toBeLessThanOrEqual(255);
+	});
+
 	test("no genera QR cuando no hay qrData", async () => {
 		await generarReportePdf({ ...opcionesBase, qrData: "" });
 		expect(QRCode.toDataURL).not.toHaveBeenCalled();

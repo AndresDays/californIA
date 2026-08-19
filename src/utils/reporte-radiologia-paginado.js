@@ -9,7 +9,9 @@ export const ALTURA_UTIL_REPORTE_CON_FIRMA = ALTURA_UTIL_REPORTE_SIN_FIRMA - 230
 // px 169 de la hoja y se corta en el 985, justo antes del pie del membrete. La
 // última hoja además reserva el bloque de firma del radiólogo.
 export const ALTURA_TEXTO_VISOR_SIN_FIRMA = 985 - 169;
-export const ALTURA_TEXTO_VISOR_CON_FIRMA = ALTURA_TEXTO_VISOR_SIN_FIRMA - 180;
+// El bloque de firma ocupa lo mismo que en el editor y en la hoja impresa.
+export const ALTO_FIRMA_REPORTE = 230;
+export const ALTURA_TEXTO_VISOR_CON_FIRMA = ALTURA_TEXTO_VISOR_SIN_FIRMA - ALTO_FIRMA_REPORTE;
 
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	if (!bloques.length) return [[]];
