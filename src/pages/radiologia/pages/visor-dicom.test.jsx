@@ -134,6 +134,7 @@ let mockEstadosVista = [];
 let mockEstudioId = '123';
 const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
 const mockRpc = jest.fn(() => Promise.resolve({ error: null }));
+const mockUpdate = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -192,7 +193,7 @@ jest.mock('../../../lib/supabase-client', () => ({
         error: null,
       }),
       insert:      jest.fn().mockReturnThis(),
-      update:      jest.fn().mockReturnThis(),
+      update:      function (payload) { mockUpdate(table, payload); return this; },
       delete:      jest.fn().mockReturnThis(),
       upsert:      mockUpsert,
     })),
@@ -443,6 +444,22 @@ describe('VisorDicom — Finalización de interpretación', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Completar interpretación' })).toBeInTheDocument();
   });
+
+	test('sella el estudio con el radiólogo que firma la interpretación', async () => {
+		mockEmpleadoVisor = { rol: 'radiologo', id_empleado: 9 };
+		await renderVisor();
+		await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+
+		const editor = screen.getByRole('textbox', { name: 'Editor de interpretación radiológica' });
+		editor.innerHTML = '<p>Sin alteraciones.</p>';
+		fireEvent.input(editor);
+		fireEvent.click(screen.getByRole('button', { name: 'Completar interpretación' }));
+
+		await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+			'estudios_radiologia',
+			expect.objectContaining({ id_radiologo: 9, reporte: '<p>Sin alteraciones.</p>' }),
+		));
+	});
 
 	test('guarda el HTML pegado para conservar párrafos y formato al reabrir', async () => {
 		mockEmpleadoVisor = { rol: 'radiologo_clinico' };

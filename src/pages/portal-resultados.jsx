@@ -13,7 +13,7 @@ import {
 	generarResultadosCombinadosPdf,
 } from "../utils/reporte-pdf";
 import { obtenerDatosQuimico } from "../utils/datos-quimico";
-import { textoPlanoReporteRadiologia } from "../utils/reporte-radiologia-html";
+import { htmlReporteRadiologiaParaEditor } from "../utils/reporte-radiologia-html";
 import { abrirPdfEnPestana } from "../utils/abrir-pdf-en-pestana";
 import "./portal-resultados.css";
 
@@ -140,7 +140,7 @@ const PortalResultados = () => {
 			if (estudioImagen) {
 				await generarReportePdf({
 					nombrePaciente: venta?.paciente || "",
-					reporteTexto: textoPlanoReporteRadiologia(estudioImagen.reporte),
+					reporteTexto: htmlReporteRadiologiaParaEditor(estudioImagen.reporte),
 					membreteSrc,
 					firma: await obtenerRadiologo(estudioImagen.id),
 					nombreArchivo: crearNombreArchivoReporte(venta?.paciente),
