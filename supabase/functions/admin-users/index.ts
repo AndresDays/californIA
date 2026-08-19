@@ -121,11 +121,11 @@ Deno.serve(async (req) => {
 	}
 
 	const body = await req.json();
-	const puedeCrearDoctor = body.action === "createDoctor";
+	const puedeGestionarDoctor = ["createDoctor", "updateDoctor"].includes(body.action);
 
 	if (
 		!empleadoAdmin?.activo ||
-		(!isAdminRole(empleadoAdmin.rol) && !puedeCrearDoctor)
+		(!isAdminRole(empleadoAdmin.rol) && !puedeGestionarDoctor)
 	) {
 		return responder({ error: "No tienes permiso para administrar usuarios" }, 403);
 	}
