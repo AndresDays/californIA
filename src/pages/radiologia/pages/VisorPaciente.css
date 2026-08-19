@@ -209,10 +209,6 @@
 		bottom: 2.4rem;
 		padding: 0.5rem 0.9rem;
 	}
-
-	.vp-publico .vp-firma-img {
-		width: 150px;
-	}
 }
 
 /* El pie del membrete arranca en el px 998 de la hoja: el contenido termina
@@ -224,7 +220,9 @@
 /* ── Firma del radiólogo al pie del reporte ───────────────────── */
 .vp-firma {
 	margin-top: auto;
-	padding-top: 1.5rem;
+	padding-top: 0.6rem;
+	/* Aire bajo la firma para no pegarla al pie del membrete. */
+	padding-bottom: 30px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -232,14 +230,18 @@
 	text-align: center;
 }
 
+/* Mismo tamaño que en el editor y en la hoja impresa: el bloque de firma mide
+   320 x 130 px con la escala 1.18 que trae por defecto. */
 .vp-firma-img {
-	width: 170px;
-	max-height: 80px;
+	width: 378px;
+	height: 153px;
 	object-fit: contain;
+	/* La línea sube sobre el trazo, igual que en el editor. */
+	margin-bottom: -24px;
 }
 
 .vp-firma-linea {
-	width: 220px;
+	width: 330px;
 	height: 1px;
 	background: #000;
 	margin-bottom: 6px;
@@ -247,16 +249,18 @@
 
 .vp-firma-nombre {
 	margin: 0;
-	font-size: 1.02rem;
+	font-size: 1.06rem;
 	font-weight: 700;
 	border-top: 1px solid #000;
-	padding-top: 4px;
-	min-width: 230px;
+	padding-top: 5px;
+	min-width: 330px;
 }
 
 .vp-firma-dato {
 	margin: 2px 0 0;
-	font-size: 0.85rem;
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
 }
 
 /* ── Barra para cambiar de imagen ─────────────────────────────── */
