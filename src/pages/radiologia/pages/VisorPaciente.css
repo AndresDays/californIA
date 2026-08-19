@@ -230,14 +230,15 @@
 	text-align: center;
 }
 
-/* Mismo tamaño que en el editor y en la hoja impresa: el bloque de firma mide
-   320 x 130 px con la escala 1.18 que trae por defecto. */
-/* Alto fijo y ancho proporcional: así el trazo llena el recuadro y no queda
-   aire entre la firma y la línea del nombre. */
+/* Mismo tamaño que en el editor y en la hoja impresa (320 x 130 px con la
+   escala 1.18 que trae por defecto).
+   El elemento toma el alto proporcional a la rúbrica: con un alto fijo, una
+   firma más ancha que el recuadro dejaba aire arriba y abajo y se despegaba de
+   la línea del nombre. */
 .vp-firma-img {
-	height: 153px;
-	width: auto;
-	max-width: 378px;
+	width: 378px;
+	height: auto;
+	max-height: 153px;
 	object-fit: contain;
 	/* La línea sube sobre el trazo, igual que en el editor. */
 	margin-bottom: -34px;

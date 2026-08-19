@@ -12,6 +12,11 @@ export const ALTURA_TEXTO_VISOR_SIN_FIRMA = 985 - 169;
 // Alto real del bloque de firma en el visor: la firma menos el traslape con la
 // línea, el nombre, la leyenda, la cédula y el aire hasta el pie del membrete.
 export const ALTO_FIRMA_REPORTE = 200;
+
+// El medidor calcula el alto del reporte fuera de la hoja y se queda corto
+// frente al render real (márgenes que allí no colapsan igual). Este colchón
+// evita elegir una escala que después no quepa por unos pocos píxeles.
+export const MARGEN_MEDICION_REPORTE = 30;
 export const ALTURA_TEXTO_VISOR_CON_FIRMA = ALTURA_TEXTO_VISOR_SIN_FIRMA - ALTO_FIRMA_REPORTE;
 
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
