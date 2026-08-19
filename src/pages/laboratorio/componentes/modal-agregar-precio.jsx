@@ -90,17 +90,17 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
 
   const handleGuardar = async () => {
     if (!estudioSeleccionado) {
-      alert('Por favor selecciona un estudio');
+      globalThis.mostrarNotificacion('Por favor selecciona un estudio', 'advertencia');
       return;
     }
 
     if (!empresaSeleccionada) {
-      alert('Por favor selecciona una empresa');
+      globalThis.mostrarNotificacion('Por favor selecciona una empresa', 'advertencia');
       return;
     }
 
     if (!precio || parseFloat(precio) <= 0) {
-      alert('Por favor ingresa un precio válido');
+      globalThis.mostrarNotificacion('Por favor ingresa un precio válido', 'advertencia');
       return;
     }
 
@@ -122,7 +122,7 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
       onClose();
     } catch (error) {
       console.error('Error al guardar precio:', error);
-      alert('Error al guardar el precio');
+      globalThis.mostrarNotificacion('Error al guardar el precio', 'error');
     }
   };
 

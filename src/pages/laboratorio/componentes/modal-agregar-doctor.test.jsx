@@ -4,8 +4,21 @@ import ModalAgregarDoctor from "./modal-agregar-doctor";
 
 jest.mock("./modal-agregar-doctor.css", () => ({}));
 jest.mock("../../../components/admin-entity-modal.css", () => ({}));
+jest.mock("../../../components/ModalNotificacion", () => ({ isOpen, mensaje }) =>
+	isOpen ? <div role="alert">{mensaje}</div> : null,
+);
 
 describe("ModalAgregarDoctor", () => {
+	test("muestra una notificación al faltar los datos obligatorios", async () => {
+		render(<ModalAgregarDoctor isOpen onClose={jest.fn()} onSave={jest.fn()} />);
+
+		fireEvent.click(screen.getByText("Guardar Doctor"));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Por favor completa al menos Apellido Paterno y Nombre",
+		);
+	});
+
 	test("permite crear un doctor sin acceso a la plataforma", async () => {
 		const onSave = jest.fn().mockResolvedValue(undefined);
 

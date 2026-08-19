@@ -72,13 +72,13 @@ const ModalReferencias = ({ isOpen, onClose, onGuardar }) => {
 
   const handleGuardar = () => {
     if (referencias.length === 0) {
-      alert('Agrega al menos una referencia');
+      globalThis.mostrarNotificacion('Agrega al menos una referencia', 'advertencia');
       return;
     }
 
     for (const r of referencias) {
       if (r.edad_inicial === '' || r.edad_final === '') {
-        alert('Completa Edad Inicial y Edad Final en todas las filas.');
+        globalThis.mostrarNotificacion('Completa Edad Inicial y Edad Final en todas las filas.', 'advertencia');
         return;
       }
     }

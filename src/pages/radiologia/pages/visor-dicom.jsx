@@ -4302,7 +4302,7 @@ const VisorDicom = () => {
 			});
 		else {
 			navigator.clipboard.writeText(window.location.href);
-			alert("URL copiada");
+			globalThis.mostrarNotificacion("URL copiada");
 		}
 	};
 

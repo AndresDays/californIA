@@ -89,7 +89,7 @@ const ModalAgregarAnalitoEstudio = ({
 
 	const handleGuardar = () => {
 		if (analitosSeleccionados.length === 0) {
-			alert("Por favor selecciona al menos un analito");
+			globalThis.mostrarNotificacion("Por favor selecciona al menos un analito", "advertencia");
 			return;
 		}
 

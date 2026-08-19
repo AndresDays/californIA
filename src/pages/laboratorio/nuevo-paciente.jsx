@@ -306,33 +306,33 @@ const NuevoPaciente = () => {
 
 	const guardarYPagar = async () => {
 		if (!nombreCompleto.trim()) {
-			alert("Por favor ingrese el nombre del paciente");
+			globalThis.mostrarNotificacion("Por favor ingrese el nombre del paciente", "advertencia");
 			return;
 		}
 
 		if (telefono && !esTelefono10Digitos(telefono)) {
-			alert("El teléfono debe contener exactamente 10 dígitos numéricos");
+			globalThis.mostrarNotificacion("El teléfono debe contener exactamente 10 dígitos numéricos", "advertencia");
 			return;
 		}
 
 		if (correo.trim() && !esEmailValido(correo)) {
-			alert("Por favor ingrese un correo válido");
+			globalThis.mostrarNotificacion("Por favor ingrese un correo válido", "advertencia");
 			return;
 		}
 
 		if (Number(descuentoPercent) > 100) {
-			alert("El descuento no puede ser mayor al 100%");
+			globalThis.mostrarNotificacion("El descuento no puede ser mayor al 100%", "advertencia");
 			setDescuentoPercent(100);
 			return;
 		}
 
 		if (estudiosSeleccionados.length === 0) {
-			alert("Por favor agregue al menos un estudio");
+			globalThis.mostrarNotificacion("Por favor agregue al menos un estudio", "advertencia");
 			return;
 		}
 
 		if (!empresaActual?.id_empresa || !empresaActual.nombre) {
-			alert("Seleccione una empresa antes de registrar la venta");
+			globalThis.mostrarNotificacion("Seleccione una empresa antes de registrar la venta", "advertencia");
 			return;
 		}
 		const ventanaTicket = window.open("", "_blank");
@@ -658,7 +658,7 @@ const NuevoPaciente = () => {
 				ventana: ventanaEtiquetasImagen,
 			});
 
-			alert(
+			globalThis.mostrarNotificacion(
 				`¡Venta registrada exitosamente!\nFolio: ${folio}${
 					turnoCreado
 						? "\nTurno agregado a sala de espera."
@@ -674,7 +674,7 @@ const NuevoPaciente = () => {
 			ventanaEtiquetasLaboratorio?.close?.();
 			ventanaEtiquetasImagen?.close?.();
 			console.error("Error al guardar:", error);
-			alert("Error al guardar la venta: " + error.message);
+			globalThis.mostrarNotificacion("Error al guardar la venta: " + error.message, "error");
 		}
 	};
 
@@ -936,7 +936,7 @@ const NuevoPaciente = () => {
 				.single();
 
 			if (error) throw error;
-			alert("Paciente guardado correctamente");
+			globalThis.mostrarNotificacion("Paciente guardado correctamente");
 			seleccionarPaciente(data);
 		};
 
@@ -964,7 +964,7 @@ const NuevoPaciente = () => {
 					.eq("id_paciente", pacienteData.id);
 
 				if (error) throw error;
-				alert("Paciente actualizado correctamente");
+				globalThis.mostrarNotificacion("Paciente actualizado correctamente");
 			} else {
 				const duplicado = await buscarDuplicadoRegistro({
 					supabase,
@@ -984,21 +984,21 @@ const NuevoPaciente = () => {
 			}
 		} catch (error) {
 			console.error("Error al guardar paciente:", error);
-			alert("Error al guardar paciente: " + error.message);
+			globalThis.mostrarNotificacion("Error al guardar paciente: " + error.message, "error");
 		}
 	};
 
 	const handleGuardarDoctorModal = async (doctorData, isEditMode) => {
 		const insertarDoctor = async () => {
 			const data = await crearDoctorConAuthentication(supabase, doctorData);
-			alert("Doctor guardado correctamente");
+			globalThis.mostrarNotificacion("Doctor guardado correctamente");
 			seleccionarDoctor(data.doctor || data);
 		};
 
 		try {
 			if (isEditMode) {
 				await actualizarDoctorConAuthentication(supabase, doctorData);
-				alert("Doctor actualizado correctamente");
+				globalThis.mostrarNotificacion("Doctor actualizado correctamente");
 			} else {
 				const duplicado = await buscarDuplicadoRegistro({
 					supabase,
@@ -1018,7 +1018,7 @@ const NuevoPaciente = () => {
 			}
 		} catch (error) {
 			console.error("Error al guardar doctor:", error);
-			alert("Error al guardar doctor: " + error.message);
+			globalThis.mostrarNotificacion("Error al guardar doctor: " + error.message, "error");
 		}
 	};
 
@@ -1075,7 +1075,7 @@ const NuevoPaciente = () => {
 
 	const agregarEstudio = async (estudio) => {
 		if (estudiosSeleccionados.find((e) => e.clave === estudio.clave)) {
-			alert("Este estudio ya fue agregado");
+			globalThis.mostrarNotificacion("Este estudio ya fue agregado", "advertencia");
 			return;
 		}
 

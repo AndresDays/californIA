@@ -247,14 +247,14 @@ const ModalAnalito = ({ isOpen, onClose, analitoInicial = null, modoEdicion = fa
 
   const handleGuardarImagen = async () => {
     if (!archivoImagen) {
-      alert('Selecciona una imagen primero');
+      globalThis.mostrarNotificacion('Selecciona una imagen primero', 'advertencia');
       return;
     }
     if (typeof onGuardarImagen === 'function') {
       await onGuardarImagen({ file: archivoImagen, ancho, alto, alineacion, saltarPagina });
       return;
     }
-    alert('Configura onGuardarImagen para subir a Storage');
+    globalThis.mostrarNotificacion('Configura onGuardarImagen para subir a Storage', 'advertencia');
   };
 
   const guardarReferenciasEnBD = async (idAnalito, refs) => {
@@ -290,7 +290,7 @@ const ModalAnalito = ({ isOpen, onClose, analitoInicial = null, modoEdicion = fa
     e.preventDefault();
 
     if (!clave.trim() || !descripcion.trim()) {
-      alert('Por favor, complete al menos la Clave y la Descripción');
+      globalThis.mostrarNotificacion('Por favor, complete al menos la Clave y la Descripción', 'advertencia');
       return;
     }
 
@@ -361,7 +361,7 @@ const ModalAnalito = ({ isOpen, onClose, analitoInicial = null, modoEdicion = fa
       onClose();
     } catch (err) {
       console.error(err);
-      alert(`Error guardando analito: ${err?.message || err}`);
+      globalThis.mostrarNotificacion(`Error guardando analito: ${err?.message || err}`, 'error');
     }
   };
 

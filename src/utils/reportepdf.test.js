@@ -257,6 +257,22 @@ describe("generarResultadosPortalPdf", () => {
 		expect(textos).toEqual(expect.arrayContaining(["Mujeres: 0.5 - 1.2", "Hombres: 0.6 - 1.5"]));
 	});
 
+	test("convierte la interpretación HTML de imagen en texto legible", async () => {
+		await generarResultadosPortalPdf({
+			venta: { paciente: "Paciente", folio: "F-1" },
+			estudios: [{
+				tipo: "imagen",
+				descripcion: "RX tórax",
+				reporte: "<p>Sin hallazgos.</p><p>Correlacionar clínicamente.</p>",
+			}],
+		});
+
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto).join(" ");
+		expect(textos).toContain("Sin hallazgos.");
+		expect(textos).toContain("Correlacionar clinicamente.");
+		expect(textos).not.toContain("<p>");
+	});
+
 	test("dibuja los datos del quimico en el pie de cada resultado", async () => {
 		await generarResultadosPortalPdf({
 			venta: { paciente: "Paciente", folio: "F-1" },

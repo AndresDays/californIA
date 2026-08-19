@@ -83,7 +83,7 @@ const Clientes = () => {
         .insert([pacienteData]);
 
       if (error) throw error;
-      alert('Cliente guardado correctamente');
+      globalThis.mostrarNotificacion('Cliente guardado correctamente');
       refrescarClientes();
       setModalAgregarPacienteOpen(false);
     };
@@ -111,7 +111,7 @@ const Clientes = () => {
           .eq('id_paciente', pacienteData.id);
 
         if (error) throw error;
-        alert('Cliente actualizado correctamente');
+        globalThis.mostrarNotificacion('Cliente actualizado correctamente');
       } else {
         const duplicado = await buscarDuplicadoRegistro({
           supabase,
@@ -136,7 +136,7 @@ const Clientes = () => {
       }
     } catch (error) {
       console.error('Error al guardar cliente:', error);
-      alert('Error al guardar cliente: ' + error.message);
+      globalThis.mostrarNotificacion('Error al guardar cliente: ' + error.message, 'error');
     }
   };
 

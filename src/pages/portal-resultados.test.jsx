@@ -66,4 +66,35 @@ describe("PortalResultados", () => {
 			estudios: resultadoSeguro.estudios,
 		})));
 	});
+
+	test("muestra acciones por estudio de imagen sin exponer la interpretación HTML", async () => {
+		const imagen = {
+			id: 19,
+			tipo: "imagen",
+			descripcion: "RX de tórax",
+			estado: "interpretado",
+			reporte: "<p>Sin hallazgos agudos.</p>",
+		};
+		supabase.functions.invoke.mockResolvedValue({
+			data: { ...resultadoSeguro, estudios: [imagen] },
+			error: null,
+		});
+		render(<PortalResultados />);
+		fireEvent.change(screen.getByPlaceholderText("Ej. 1105260004"), { target: { value: "F-17" } });
+		fireEvent.change(screen.getByPlaceholderText("10 digitos"), { target: { value: "3221234567" } });
+		fireEvent.click(screen.getByRole("button", { name: "Consultar" }));
+
+		const visor = await screen.findByRole("link", { name: "Ver visor del paciente" });
+		expect(visor).toHaveAttribute("href", "/visor-paciente/19");
+		expect(visor).toHaveAttribute("target", "_blank");
+		expect(visor).toHaveAttribute("rel", "noopener noreferrer");
+		expect(screen.queryByText("<p>Sin hallazgos agudos.</p>")).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Ver PDF de interpretación" }));
+		await waitFor(() => expect(generarResultadosCombinadosPdf).toHaveBeenCalledWith(expect.objectContaining({
+			venta: resultadoSeguro.venta,
+			estudios: [imagen],
+		})));
+		expect(window.open).toHaveBeenCalledWith("blob:combinado", "_blank", "noopener,noreferrer");
+	});
 });
