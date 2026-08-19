@@ -1,5 +1,9 @@
-// Alto disponible entre el membrete y el pie/firma de una hoja A4 del reporte.
-export const ALTURA_UTIL_REPORTE_CON_FIRMA = 650;
+// Geometría de una hoja A4 del reporte (794 x 1123 px):
+// 1123 - 135 de margen superior - 64 de margen inferior = 924 px de área útil,
+// menos los 34 px de separación con que arranca el editor = 890 px de texto.
+// La última página además reserva los 230 px del bloque de firma y QR.
+export const ALTURA_UTIL_REPORTE_SIN_FIRMA = 890;
+export const ALTURA_UTIL_REPORTE_CON_FIRMA = ALTURA_UTIL_REPORTE_SIN_FIRMA - 230;
 
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	if (!bloques.length) return [[]];
@@ -100,4 +104,42 @@ export const crearBloquesReporteParaImprimir = (html, {
 			alto: Math.max(altoLinea + 10, Math.ceil((fragmento.replace(/<[^>]+>/g, '').length || 1) / caracteresPorLinea) * altoLinea + 10),
 		}));
 	});
+};
+
+// Ancho útil del texto en la hoja: 794px de A4 menos los 64px de margen a cada
+// lado que define `.rr-contenido`.
+export const ANCHO_UTIL_REPORTE = 666;
+
+// Las alturas estimadas por número de caracteres cortaban las páginas mucho
+// antes de tiempo. Medimos cada bloque con la tipografía real de la hoja para
+// que la impresión respete el mismo flujo que se ve en el visor.
+export const medirBloquesReporte = (bloques, { ancho = ANCHO_UTIL_REPORTE } = {}) => {
+	if (typeof document === 'undefined' || !bloques.length) return bloques;
+
+	const medidor = document.createElement('div');
+	medidor.className = 'rr-editor';
+	medidor.setAttribute('aria-hidden', 'true');
+	medidor.style.cssText = [
+		'position:absolute',
+		'left:-10000px',
+		'top:0',
+		'visibility:hidden',
+		`width:${ancho}px`,
+		'min-height:0',
+		'margin:0',
+		'padding:0',
+	].join(';');
+	document.body.append(medidor);
+
+	try {
+		return bloques.map((bloque) => {
+			// `flow-root` evita que los márgenes del párrafo se colapsen hacia
+			// afuera y queden fuera de la medición.
+			medidor.innerHTML = `<div style="display:flow-root">${bloque.html}</div>`;
+			const alto = medidor.firstElementChild?.getBoundingClientRect().height || 0;
+			return alto > 0 ? { ...bloque, alto } : bloque;
+		});
+	} finally {
+		medidor.remove();
+	}
 };

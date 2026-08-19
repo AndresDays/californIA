@@ -1,0 +1,147 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.version-app-wrapper {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	font-family: 'Codec Pro', sans-serif;
+	color: white;
+	background: transparent !important;
+	background-image: none !important;
+	overflow-x: hidden;
+	box-sizing: border-box;
+}
+
+.version-app-header {
+	padding: 1rem 2rem 1rem 120px;
+	background: rgba(10, 25, 41, 0.8);
+	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.version-app-title {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 400;
+	letter-spacing: 1px;
+}
+
+.version-app-subtitulo {
+	margin: 0.35rem 0 0;
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 0.85rem;
+}
+
+.version-app-content {
+	flex: 1;
+	padding: 1.5rem 1.5rem 1.5rem 120px;
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 900px;
+}
+
+.version-app-estado {
+	border: 1px solid rgba(83, 185, 219, 0.3);
+	border-radius: 10px;
+	background: rgba(10, 25, 41, 0.72);
+	padding: 0.95rem 1.15rem;
+}
+
+.version-app-estado strong {
+	display: block;
+	margin-bottom: 0.2rem;
+	font-size: 0.95rem;
+}
+
+.version-app-estado p {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.65);
+	font-size: 0.82rem;
+	line-height: 1.4;
+}
+
+.version-app-estado.al-dia strong {
+	color: #4ddb9c;
+}
+
+.version-app-estado.pendiente {
+	border-color: rgba(240, 180, 60, 0.45);
+}
+
+.version-app-estado.pendiente strong {
+	color: #f0b43c;
+}
+
+.version-app-datos {
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: 0.75rem;
+}
+
+.version-app-dato {
+	border: 1px solid rgba(111, 179, 210, 0.2);
+	border-radius: 10px;
+	background: rgba(10, 25, 41, 0.62);
+	padding: 0.85rem 1rem;
+}
+
+.version-app-dato dt {
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 0.74rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.version-app-dato dd {
+	margin: 0.3rem 0 0;
+	font-size: 1rem;
+	font-weight: 600;
+	word-break: break-word;
+}
+
+.version-app-acciones {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+}
+
+.version-app-btn {
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	border-radius: 7px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.8);
+	cursor: pointer;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.85rem;
+	font-weight: 600;
+	padding: 0.6rem 1.2rem;
+	transition: all 0.2s;
+}
+
+.version-app-btn:hover:not(:disabled) {
+	border-color: rgba(83, 185, 219, 0.5);
+	color: #fff;
+}
+
+.version-app-btn:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.version-app-btn.primario {
+	border-color: transparent;
+	background: linear-gradient(135deg, #106DA0, #49B2D4);
+	color: #fff;
+}
+
+@media (max-width: 768px) {
+	.version-app-header,
+	.version-app-content {
+		padding-left: 1.2rem;
+	}
+}
