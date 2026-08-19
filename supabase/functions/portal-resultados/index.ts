@@ -87,11 +87,30 @@ Deno.serve(async (req) => {
 
 		const { data: estudio, error: estudioError } = await admin
 			.from("estudios_radiologia")
-			.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente")
+			.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo")
 			.eq("id_estudio", p_id_estudio)
 			.maybeSingle();
 		if (estudioError) return responder({ error: estudioError.message }, 500);
 		if (!estudio) return responder({ error: "Estudio no disponible" }, 404);
+
+		// Datos de quien firmó la interpretación: el reporte del paciente los
+		// muestra al pie, igual que la hoja impresa.
+		let radiologo = null;
+		if (estudio.id_radiologo) {
+			const { data: empleado } = await admin
+				.from("empleados")
+				.select("nombre, cedula, especialidad, firma_digital, firma_url")
+				.eq("id_empleado", estudio.id_radiologo)
+				.maybeSingle();
+			if (empleado) {
+				radiologo = {
+					nombre: empleado.nombre || "",
+					cedula: empleado.cedula || "",
+					especialidad: empleado.especialidad || "",
+					firmaUrl: empleado.firma_digital || empleado.firma_url || "",
+				};
+			}
+		}
 
 		const { data: paciente } = await admin
 			.from("pacientes")
@@ -133,6 +152,7 @@ Deno.serve(async (req) => {
 			autorizado: true,
 			estudio: { ...estudio, storage_path: undefined },
 			paciente: paciente || null,
+			radiologo,
 			imagenes: imagenes.filter(Boolean),
 		});
 	}

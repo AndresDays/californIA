@@ -11,9 +11,21 @@ import {
 
 const PAGINA_ANCHO = 210;
 const PAGINA_ALTO = 297;
-const MARGEN_LATERAL = 20;
-const MARGEN_SUPERIOR = 42;
 const MARGEN_INFERIOR = 72;
+
+// El reporte del visor se escribe sobre una hoja de 794 x 1123 px, así que cada
+// medida se traduce a milímetros (210 mm / 794 px) para que el PDF conserve el
+// mismo tamaño de letra y la misma cantidad de texto por hoja.
+const PX_A_MM = PAGINA_ANCHO / 794;
+const REPORTE_MARGEN_LATERAL = Math.round(64 * PX_A_MM * 10) / 10;
+const REPORTE_MARGEN_SUPERIOR = Math.round((135 + 34) * PX_A_MM * 10) / 10;
+// El pie del membrete arranca en el px 998 de la hoja; el texto se corta antes
+// para no encimarse con los datos de las sucursales.
+const REPORTE_LIMITE_INFERIOR = Math.round(985 * PX_A_MM * 10) / 10;
+const REPORTE_FUENTE_PT = 10;
+const REPORTE_INTERLINEADO = 4.9;
+// Espacio del bloque de firma al pie de la última hoja.
+const REPORTE_ALTO_FIRMA = 46;
 
 const cargarImagenComoDataUrl = async (src) => {
 	if (!src) return null;
@@ -44,13 +56,15 @@ export const generarReportePdf = async ({
 	reporteTexto = "",
 	membreteSrc = null,
 	qrData = "",
+	firma = null,
 	nombreArchivo = "reporte.pdf",
 	imprimir = false,
 	ventana = null,
 } = {}) => {
 	const doc = new jsPDF({ unit: "mm", format: "a4" });
 	const membrete = await cargarImagenComoDataUrl(membreteSrc);
-	const anchoUtil = PAGINA_ANCHO - MARGEN_LATERAL * 2;
+	const firmaImagen = await cargarImagenComoDataUrl(firma?.firmaUrl);
+	const anchoUtil = PAGINA_ANCHO - REPORTE_MARGEN_LATERAL * 2;
 
 	const dibujarMembrete = () => {
 		if (!membrete) return;
@@ -70,20 +84,54 @@ export const generarReportePdf = async ({
 
 	// La hoja membretada sólo lleva el texto del reporte: los datos de
 	// paciente, doctor, estudio y la fecha ya no se imprimen.
-	let y = MARGEN_SUPERIOR;
+	let y = REPORTE_MARGEN_SUPERIOR;
 	doc.setFont("helvetica", "normal");
-	doc.setFontSize(11);
+	doc.setFontSize(REPORTE_FUENTE_PT);
 	const lineas = doc.splitTextToSize(String(reporteTexto || ""), anchoUtil);
-	const interlineado = 5.4;
 	lineas.forEach((linea) => {
-		if (y > PAGINA_ALTO - MARGEN_INFERIOR) {
+		if (y > REPORTE_LIMITE_INFERIOR) {
 			doc.addPage();
 			dibujarMembrete();
-			y = MARGEN_SUPERIOR;
+			y = REPORTE_MARGEN_SUPERIOR;
 		}
-		doc.text(linea, MARGEN_LATERAL, y);
-		y += interlineado;
+		doc.text(linea, REPORTE_MARGEN_LATERAL, y);
+		y += REPORTE_INTERLINEADO;
 	});
+
+	// La firma de quien interpretó el estudio cierra la última hoja; si ya no
+	// cabe, se abre una nueva para no encimarla con el texto.
+	const tieneFirma = Boolean(firmaImagen || String(firma?.nombre || "").trim());
+	if (tieneFirma) {
+		if (y + REPORTE_ALTO_FIRMA > REPORTE_LIMITE_INFERIOR) {
+			doc.addPage();
+			dibujarMembrete();
+			y = REPORTE_MARGEN_SUPERIOR;
+		}
+		let yFirma = Math.max(y + 8, REPORTE_LIMITE_INFERIOR - REPORTE_ALTO_FIRMA);
+		const centro = PAGINA_ANCHO / 2;
+		if (firmaImagen) {
+			try {
+				doc.addImage(firmaImagen, obtenerFormatoImagen(firmaImagen), centro - 22, yFirma, 44, 17);
+			} catch {}
+		}
+		yFirma += 20;
+		doc.setDrawColor(0, 0, 0);
+		doc.line(centro - 32, yFirma, centro + 32, yFirma);
+		yFirma += 5;
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(10.5);
+		doc.text(String(firma?.nombre || "").toUpperCase(), centro, yFirma, { align: "center" });
+		doc.setFont("helvetica", "normal");
+		doc.setFontSize(9);
+		if (firma?.especialidad) {
+			yFirma += 4.6;
+			doc.text(String(firma.especialidad).toUpperCase(), centro, yFirma, { align: "center" });
+		}
+		if (firma?.cedula) {
+			yFirma += 4.6;
+			doc.text(`CE ${String(firma.cedula).toUpperCase()}`, centro, yFirma, { align: "center" });
+		}
+	}
 
 	if (qrData) {
 		try {
@@ -92,9 +140,9 @@ export const generarReportePdf = async ({
 				width: 220,
 				color: { dark: "#111111", light: "#ffffff" },
 			});
-			const qrTamano = 28;
-			const qrX = PAGINA_ANCHO - MARGEN_LATERAL - qrTamano;
-			const qrY = PAGINA_ALTO - MARGEN_INFERIOR - qrTamano - 4;
+			const qrTamano = 24;
+			const qrX = PAGINA_ANCHO - REPORTE_MARGEN_LATERAL - qrTamano;
+			const qrY = REPORTE_LIMITE_INFERIOR - qrTamano;
 			doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrTamano, qrTamano);
 			doc.link(qrX, qrY, qrTamano, qrTamano, { url: qrData });
 		} catch {}
