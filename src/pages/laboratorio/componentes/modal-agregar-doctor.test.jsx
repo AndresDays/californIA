@@ -8,7 +8,92 @@ jest.mock("../../../components/ModalNotificacion", () => ({ isOpen, mensaje }) =
 	isOpen ? <div role="alert">{mensaje}</div> : null,
 );
 
+describe("ModalAgregarDoctor: borrador de la captura", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+	});
+
+	const abrirModal = (props = {}) =>
+		render(<ModalAgregarDoctor isOpen onClose={jest.fn()} onSave={jest.fn()} {...props} />);
+
+	const capturarDoctor = () => {
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Apellido Paterno"), {
+			target: { value: "Desage" },
+		});
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+			target: { value: "Odile" },
+		});
+	};
+
+	test("conserva lo capturado cuando el navegador descarta la página", () => {
+		const { unmount } = abrirModal();
+		capturarDoctor();
+		unmount();
+
+		abrirModal();
+
+		expect(screen.getByPlaceholderText("Ingresar Apellido Paterno")).toHaveValue("Desage");
+		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("Odile");
+	});
+
+	test("un toque en el fondo no descarta lo capturado", () => {
+		const onClose = jest.fn();
+		abrirModal({ onClose });
+		capturarDoctor();
+
+		fireEvent.click(document.querySelector(".modal-overlay"));
+
+		expect(onClose).not.toHaveBeenCalled();
+		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("Odile");
+	});
+
+	test("el fondo sí cierra el modal vacío", () => {
+		const onClose = jest.fn();
+		abrirModal({ onClose });
+
+		fireEvent.click(document.querySelector(".modal-overlay"));
+
+		expect(onClose).toHaveBeenCalled();
+	});
+
+	test("descarta el borrador al cancelar", () => {
+		const { unmount } = abrirModal();
+		capturarDoctor();
+
+		fireEvent.click(screen.getByText("Cancelar"));
+		unmount();
+
+		abrirModal();
+		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("");
+	});
+
+	test("al editar no deja borrador que se arrastre a un alta nueva", () => {
+		const { unmount } = abrirModal({
+			doctorEditar: { id: 3, nombre: "Scarlett", apellidoPaterno: "Utrilla" },
+		});
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+			target: { value: "Scarlett Editada" },
+		});
+		unmount();
+
+		abrirModal();
+		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("");
+	});
+
+	test("la contraseña no se respalda en el navegador", () => {
+		const { unmount } = abrirModal();
+		capturarDoctor();
+		unmount();
+
+		expect(JSON.stringify(sessionStorage)).not.toMatch(/contrasena/i);
+	});
+});
+
 describe("ModalAgregarDoctor", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+	});
+
 	test("muestra una notificación al faltar los datos obligatorios", async () => {
 		render(<ModalAgregarDoctor isOpen onClose={jest.fn()} onSave={jest.fn()} />);
 

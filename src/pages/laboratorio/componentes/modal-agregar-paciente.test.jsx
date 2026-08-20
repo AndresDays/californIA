@@ -34,6 +34,11 @@ describe("ModalAgregarPaciente", () => {
 		globalThis.mostrarNotificacion = jest.fn();
 	});
 
+	test("los valores por defecto no dejan el alta como pendiente", () => {
+		abrirModal();
+		expect(hayBorradorPersistente("modal-paciente:")).toBe(false);
+	});
+
 	test("conserva lo capturado cuando el navegador descarta la página", () => {
 		const { unmount } = abrirModal();
 		capturarPaciente();
@@ -55,6 +60,41 @@ describe("ModalAgregarPaciente", () => {
 
 		expect(onClose).toHaveBeenCalled();
 		expect(hayBorradorPersistente("modal-paciente:")).toBe(false);
+	});
+
+	test("al editar no deja borrador que se arrastre a un alta nueva", () => {
+		const { unmount } = abrirModal({
+			pacienteEditar: { id: 7, nombre: "Pedro", apellidoPaterno: "Monroy" },
+		});
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+			target: { value: "Pedro Editado" },
+		});
+		unmount();
+
+		expect(hayBorradorPersistente("modal-paciente:")).toBe(false);
+
+		abrirModal();
+		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("");
+	});
+
+	test("un toque en el fondo no descarta lo capturado", () => {
+		const onClose = jest.fn();
+		abrirModal({ onClose });
+		capturarPaciente();
+
+		fireEvent.click(document.querySelector(".modal-overlay-paciente"));
+
+		expect(onClose).not.toHaveBeenCalled();
+		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("Maria Rosalia");
+	});
+
+	test("el fondo sí cierra el modal vacío", () => {
+		const onClose = jest.fn();
+		abrirModal({ onClose });
+
+		fireEvent.click(document.querySelector(".modal-overlay-paciente"));
+
+		expect(onClose).toHaveBeenCalled();
 	});
 
 	test("descarta el borrador al guardar el paciente", () => {

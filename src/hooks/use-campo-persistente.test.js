@@ -4,6 +4,7 @@ import {
 	leerCampoPersistente,
 	limpiarBorradorPersistente,
 	useCampoPersistente,
+	useModalPersistente,
 } from "./use-campo-persistente";
 
 describe("useCampoPersistente", () => {
@@ -42,6 +43,23 @@ describe("useCampoPersistente", () => {
 		expect(hayBorradorPersistente("paciente:")).toBe(false);
 	});
 
+	test("el valor por defecto no cuenta como captura", () => {
+		renderHook(() => useCampoPersistente("paciente:pais", "México"));
+		expect(hayBorradorPersistente("paciente:")).toBe(false);
+	});
+
+	test("no guarda nada cuando la persistencia está apagada", () => {
+		const { result, unmount } = renderHook(() =>
+			useCampoPersistente("paciente:nombre", "", { persistir: false }),
+		);
+		act(() => result.current[1]("Maria"));
+		unmount();
+
+		expect(hayBorradorPersistente("paciente:")).toBe(false);
+		const { result: nuevo } = renderHook(() => useCampoPersistente("paciente:nombre"));
+		expect(nuevo.current[0]).toBe("");
+	});
+
 	test("limpiar borra sólo las claves del formulario indicado", () => {
 		const { result: nombre } = renderHook(() => useCampoPersistente("paciente:nombre"));
 		const { result: otro } = renderHook(() => useCampoPersistente("doctor:nombre"));
@@ -52,5 +70,41 @@ describe("useCampoPersistente", () => {
 
 		expect(hayBorradorPersistente("paciente:")).toBe(false);
 		expect(leerCampoPersistente("doctor:nombre")).toBe("Odile");
+	});
+});
+
+describe("useModalPersistente", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+	});
+
+	test("el modal abierto se reabre cuando el navegador descarta la página", () => {
+		const { result, unmount } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		act(() => result.current[1](true));
+		unmount();
+
+		const { result: recuperado } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		expect(recuperado.current[0]).toBe(true);
+	});
+
+	test("al cerrarlo deja de reabrirse", () => {
+		const { result, unmount } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		act(() => result.current[1](true));
+		act(() => result.current[1](false));
+		unmount();
+
+		const { result: recuperado } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		expect(recuperado.current[0]).toBe(false);
+	});
+
+	test("no se reabre el modal de edición", () => {
+		const { result, unmount } = renderHook(() =>
+			useModalPersistente("modal-paciente:abierto", { persistir: false }),
+		);
+		act(() => result.current[1](true));
+		unmount();
+
+		const { result: recuperado } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		expect(recuperado.current[0]).toBe(false);
 	});
 });

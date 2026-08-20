@@ -13,7 +13,7 @@ import {
 } from '../../utils/duplicados-registro.js';
 import './clientes.css';
 import ModalAgregarPaciente from './componentes/modal-agregar-paciente.jsx';
-import { hayBorradorPersistente } from '../../hooks/use-campo-persistente';
+import { useModalPersistente } from '../../hooks/use-campo-persistente';
 
 const Clientes = () => {
   const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
@@ -22,12 +22,13 @@ const Clientes = () => {
 
   const [buscarCliente, setBuscarCliente] = useBusquedaPersistente('clientes:termino');
   const [paginaActual, setPaginaActual] = useState(1);
-  // Si el navegador descartó la página con el alta a medias, el modal se
-  // reabre con lo que ya se había capturado.
-  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(
-    () => hayBorradorPersistente('modal-paciente:'),
-  );
   const [pacienteEditar, setPacienteEditar] = useState(null);
+  // Si el navegador descarta la página, el modal se reabre con lo capturado en
+  // lugar de dejar al usuario en la lista creyendo que perdió el alta.
+  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useModalPersistente(
+    'modal-paciente:abierto',
+    { persistir: !pacienteEditar },
+  );
   const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
   const clientesPorPagina = 500;
 

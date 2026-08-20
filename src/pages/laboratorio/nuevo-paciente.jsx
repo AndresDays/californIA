@@ -8,9 +8,9 @@ import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
-	hayBorradorPersistente,
 	limpiarBorradorPersistente,
 	useCampoPersistente,
+	useModalPersistente,
 } from "../../hooks/use-campo-persistente";
 import {
 	construirEstudioCatalogoUnificado,
@@ -126,12 +126,12 @@ const NuevoPaciente = () => {
 	const citaPrecargadaRef = useRef(null);
 	const tipoEstudioPendienteRef = useRef(leerBorrador().tipoEstudioSeleccionado || "");
 
-	// Si el navegador descartó la página con el alta a medias, el modal se
-	// reabre con lo que ya se había capturado.
-	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(() =>
-		hayBorradorPersistente("modal-paciente:"),
-	);
-	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
+	// Si el navegador descarta la página, el modal se reabre con lo capturado en
+	// lugar de dejar al usuario en la solicitud creyendo que perdió el alta.
+	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] =
+		useModalPersistente("modal-paciente:abierto");
+	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] =
+		useModalPersistente("modal-doctor:abierto");
 	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
