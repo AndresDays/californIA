@@ -21,23 +21,26 @@ import {
 const BORRADOR = 'modal-paciente:';
 
 const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = null }) => {
-  const [apellidoPaterno, setApellidoPaterno] = useCampoPersistente(`${BORRADOR}apellidoPaterno`, '');
-  const [apellidoMaterno, setApellidoMaterno] = useCampoPersistente(`${BORRADOR}apellidoMaterno`, '');
-  const [nombre, setNombre] = useCampoPersistente(`${BORRADOR}nombre`, '');
+  // Al editar no se guarda borrador: esos datos ya viven en la base y
+  // arrastrarlos a un alta nueva crearía un duplicado.
+  const borrador = { persistir: !pacienteEditar };
+  const [apellidoPaterno, setApellidoPaterno] = useCampoPersistente(`${BORRADOR}apellidoPaterno`, '', borrador);
+  const [apellidoMaterno, setApellidoMaterno] = useCampoPersistente(`${BORRADOR}apellidoMaterno`, '', borrador);
+  const [nombre, setNombre] = useCampoPersistente(`${BORRADOR}nombre`, '', borrador);
   
-  const [dia, setDia] = useCampoPersistente(`${BORRADOR}dia`, '');
-  const [mes, setMes] = useCampoPersistente(`${BORRADOR}mes`, '');
-  const [ano, setAno] = useCampoPersistente(`${BORRADOR}ano`, '');
-  const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, '');
-  const [unidadEdad, setUnidadEdad] = useCampoPersistente(`${BORRADOR}unidadEdad`, 'Años'); 
+  const [dia, setDia] = useCampoPersistente(`${BORRADOR}dia`, '', borrador);
+  const [mes, setMes] = useCampoPersistente(`${BORRADOR}mes`, '', borrador);
+  const [ano, setAno] = useCampoPersistente(`${BORRADOR}ano`, '', borrador);
+  const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, '', borrador);
+  const [unidadEdad, setUnidadEdad] = useCampoPersistente(`${BORRADOR}unidadEdad`, 'Años', borrador); 
   
-  const [sexo, setSexo] = useCampoPersistente(`${BORRADOR}sexo`, '');
-  const [direccion, setDireccion] = useCampoPersistente(`${BORRADOR}direccion`, '');
-  const [cedula, setCedula] = useCampoPersistente(`${BORRADOR}cedula`, '');
-  const [condicionEspecial, setCondicionEspecial] = useCampoPersistente(`${BORRADOR}condicionEspecial`, '');
-  const [email, setEmail] = useCampoPersistente(`${BORRADOR}email`, '');
-  const [pais, setPais] = useCampoPersistente(`${BORRADOR}pais`, 'México');
-  const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, '');
+  const [sexo, setSexo] = useCampoPersistente(`${BORRADOR}sexo`, '', borrador);
+  const [direccion, setDireccion] = useCampoPersistente(`${BORRADOR}direccion`, '', borrador);
+  const [cedula, setCedula] = useCampoPersistente(`${BORRADOR}cedula`, '', borrador);
+  const [condicionEspecial, setCondicionEspecial] = useCampoPersistente(`${BORRADOR}condicionEspecial`, '', borrador);
+  const [email, setEmail] = useCampoPersistente(`${BORRADOR}email`, '', borrador);
+  const [pais, setPais] = useCampoPersistente(`${BORRADOR}pais`, 'México', borrador);
+  const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, '', borrador);
 
   const [nivelesMAR, setNivelesMAR] = useState([]);
 
@@ -229,6 +232,17 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     onClose();
   };
 
+  // Un toque en el fondo cerraba el modal y descartaba todo, y es fácil de dar
+  // por accidente al volver a la app. Con algo capturado el fondo ya no cierra:
+  // para salir están la ✕ y el botón Salir.
+  const hayCaptura = () =>
+    [apellidoPaterno, apellidoMaterno, nombre, dia, mes, ano, sexo, direccion, cedula, condicionEspecial, email, telefono]
+      .some((valor) => String(valor ?? '').trim());
+
+  const handleClickFondo = () => {
+    if (!hayCaptura()) handleClose();
+  };
+
   if (!isOpen) return null;
 
   const dias = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -250,7 +264,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   const anos = Array.from({ length: 120 }, (_, i) => anoActual - i);
 
   return (
-    <div className="modal-overlay-paciente admin-entity-modal-overlay" onClick={handleClose}>
+    <div className="modal-overlay-paciente admin-entity-modal-overlay" onClick={handleClickFondo}>
       <div className="modal-contenedor-paciente admin-entity-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-paciente">
           <h2 className="modal-titulo-paciente">

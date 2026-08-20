@@ -25,7 +25,7 @@ describe("nuevo-paciente: borrador de la captura", () => {
 		expect(fuente).toContain("limpiarBorradorPersistente(BORRADOR)");
 	});
 
-	test("el modal de alta se reabre si quedó captura a medias", () => {
-		expect(fuente).toContain('hayBorradorPersistente("modal-paciente:")');
+	test("el modal de alta se reabre si el navegador descarta la página", () => {
+		expect(fuente).toContain('useModalPersistente("modal-paciente:abierto")');
 	});
 });
