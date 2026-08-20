@@ -24,9 +24,7 @@ import {
 	tipoEstudioEsImagen,
 } from "../../utils/cita-nuevo-paciente";
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
-import { generarTicketVenta } from "../../utils/generarTicketVenta";
-import { generarEtiquetasEstudiosLaboratorio } from "../../utils/generar-etiquetas-estudios-laboratorio";
-import { generarEtiquetasEstudiosImagen } from "../../utils/generar-etiquetas-estudios-imagen";
+import { imprimirComprobantesVenta } from "../../utils/imprimir-comprobantes-venta";
 import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
@@ -129,9 +127,9 @@ const NuevoPaciente = () => {
 	// Si el navegador descarta la página, el modal se reabre con lo capturado en
 	// lugar de dejar al usuario en la solicitud creyendo que perdió el alta.
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] =
-		useModalPersistente("modal-paciente:abierto");
+		useModalPersistente("modal-paciente:abierto:nuevo-paciente");
 	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] =
-		useModalPersistente("modal-doctor:abierto");
+		useModalPersistente("modal-doctor:abierto:nuevo-paciente");
 	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
@@ -636,38 +634,43 @@ const NuevoPaciente = () => {
 				}
 			}
 
-			await generarTicketVenta({
-				folio,
-				fecha: new Date(),
-				paciente: nombreCompleto,
-				empresa: empresaActual.nombre,
-				telefono,
-				email: correo,
-				estudios: estudiosSeleccionados,
-				subtotal,
-				descuento,
-				total: granTotal,
-				pagoRecibido: pagoNormalizado,
-				cambio: cambioVenta,
-				formaPago,
-				observaciones,
-				vendedor: empleadoData?.nombre || getPrimerNombre(),
-				ventana: ventanaTicket,
-			});
-			generarEtiquetasEstudiosLaboratorio({
-				folio,
-				paciente: nombreCompleto,
-				sexo,
-				edad: edad ? `${edad} años` : "",
-				estudios: estudiosSeleccionados,
-				ventana: ventanaEtiquetasLaboratorio,
-			});
-			generarEtiquetasEstudiosImagen({
-				folio,
-				paciente: nombreCompleto,
-				doctor: doctorSeleccionado?.nombre || "",
-				estudios: estudiosSeleccionados,
-				ventana: ventanaEtiquetasImagen,
+			// La venta ya quedó registrada: si algo falla al armar el ticket o las
+			// etiquetas se avisa, pero no se tira el flujo ni se cierra lo que sí
+			// alcanzó a abrirse.
+			const impresion = await imprimirComprobantesVenta({
+				ticket: {
+					folio,
+					fecha: new Date(),
+					paciente: nombreCompleto,
+					empresa: empresaActual.nombre,
+					telefono,
+					email: correo,
+					estudios: estudiosSeleccionados,
+					subtotal,
+					descuento,
+					total: granTotal,
+					pagoRecibido: pagoNormalizado,
+					cambio: cambioVenta,
+					formaPago,
+					observaciones,
+					vendedor: empleadoData?.nombre || getPrimerNombre(),
+					ventana: ventanaTicket,
+				},
+				etiquetasLaboratorio: {
+					folio,
+					paciente: nombreCompleto,
+					sexo,
+					edad: edad ? `${edad} años` : "",
+					estudios: estudiosSeleccionados,
+					ventana: ventanaEtiquetasLaboratorio,
+				},
+				etiquetasImagen: {
+					folio,
+					paciente: nombreCompleto,
+					doctor: doctorSeleccionado?.nombre || "",
+					estudios: estudiosSeleccionados,
+					ventana: ventanaEtiquetasImagen,
+				},
 			});
 
 			globalThis.mostrarNotificacion(
@@ -677,7 +680,8 @@ const NuevoPaciente = () => {
 						: errorTurno
 							? `\nNo se pudo crear el turno: ${errorTurno}`
 							: ""
-				}`,
+				}${impresion.error ? `\n${impresion.error}` : ""}`,
+				impresion.error ? "advertencia" : undefined,
 			);
 			limpiarFormulario();
 			navigate("/captura");
@@ -1315,6 +1319,10 @@ const NuevoPaciente = () => {
 		setEstudiosSeleccionados([]);
 		sessionStorage.removeItem(CLAVE_BORRADOR);
 		limpiarBorradorPersistente(BORRADOR);
+		// La solicitud quedó registrada: los modales de alta tampoco tienen nada
+		// pendiente que recuperar.
+		limpiarBorradorPersistente("modal-paciente:");
+		limpiarBorradorPersistente("modal-doctor:");
 		setBuscarPaciente("");
 		setBuscarEstudio("");
 		setPagoRecibido("");

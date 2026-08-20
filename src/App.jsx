@@ -3,6 +3,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import './App.css';
 import AppBoundary, { LoadingSpinner } from './components/app-boundary';
 import ProtectedRoute from './components/protected-route';
+import ModalNotificacionGlobal from './components/modal-notificacion-global';
 import PwaUpdatePrompt from './components/pwa-update-prompt';
 import { ActualizacionAppProvider } from './context/actualizacion-app-context';
 import { AuthProvider } from './context/auth-context';
@@ -113,6 +114,7 @@ function App() {
 							<Route path="*" element={<Navigate to="/login" replace />} />
 						</Routes>
 					</Suspense>
+					<ModalNotificacionGlobal />
 					<PwaUpdatePrompt />
 				</AuthProvider>
 			</ActualizacionAppProvider>

@@ -59,6 +59,25 @@ describe('generarTicketVenta', () => {
 		window.open = jest.fn();
 	});
 
+	test('imprime el ticket aunque la empresa no tenga RFC configurado', async () => {
+		jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+		await generarTicketVenta({
+			folio: 'V-002',
+			fecha: new Date('2026-08-05T12:00:00'),
+			paciente: 'Paciente',
+			empresa: 'Veterinaria PVR',
+			telefono: '3221234567',
+			email: 'paciente@example.com',
+			estudios: [],
+		});
+
+		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
+		expect(textos).toContain('Paulina Diaz Cortes');
+		expect(textos.join(' ')).not.toMatch(/RFC:/);
+		expect(mockDoc.output).toHaveBeenCalled();
+	});
+
 	test('escribe el RFC de CDI en el encabezado', async () => {
 		await generarTicketVenta({
 			folio: 'V-001',

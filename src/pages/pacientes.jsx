@@ -29,7 +29,7 @@ const Pacientes = () => {
   // Si el navegador descarta la página, el modal se reabre con lo capturado en
   // lugar de dejar al usuario en la lista creyendo que perdió el alta.
   const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useModalPersistente(
-    'modal-paciente:abierto',
+    'modal-paciente:abierto:pacientes',
     { persistir: !pacienteEditar },
   );
   const pacientesPorPagina = 500;
