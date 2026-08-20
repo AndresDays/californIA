@@ -79,30 +79,40 @@ describe("useModalPersistente", () => {
 	});
 
 	test("el modal abierto se reabre cuando el navegador descarta la página", () => {
-		const { result, unmount } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		const { result } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
 		act(() => result.current[1](true));
-		unmount();
 
+		// Al descartar la página no corre ninguna limpieza de React: se monta de
+		// nuevo con lo que quedó guardado.
 		const { result: recuperado } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
 		expect(recuperado.current[0]).toBe(true);
 	});
 
 	test("al cerrarlo deja de reabrirse", () => {
-		const { result, unmount } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		const { result } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
 		act(() => result.current[1](true));
 		act(() => result.current[1](false));
-		unmount();
 
 		const { result: recuperado } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
 		expect(recuperado.current[0]).toBe(false);
 	});
 
+	test("salir de la pantalla con el modal abierto no deja la marca pegada", () => {
+		const { result, unmount } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
+		act(() => result.current[1](true));
+
+		// Al navegar dentro de la app React sí ejecuta la limpieza; cuando el
+		// navegador descarta la página no corre nada y la marca sobrevive.
+		unmount();
+
+		expect(leerCampoPersistente("modal-paciente:abierto", false)).toBe(false);
+	});
+
 	test("no se reabre el modal de edición", () => {
-		const { result, unmount } = renderHook(() =>
+		const { result } = renderHook(() =>
 			useModalPersistente("modal-paciente:abierto", { persistir: false }),
 		);
 		act(() => result.current[1](true));
-		unmount();
 
 		const { result: recuperado } = renderHook(() => useModalPersistente("modal-paciente:abierto"));
 		expect(recuperado.current[0]).toBe(false);

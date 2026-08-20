@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 jest.mock("./pacientes.css", () => ({}));
 jest.mock("./laboratorio/componentes/modal-agregar-paciente.css", () => ({}), { virtual: true });
@@ -34,28 +34,40 @@ describe("Pacientes: el alta sobrevive a que el navegador descarte la página", 
 		globalThis.mostrarNotificacion = jest.fn();
 	});
 
+	// Al descartar la página el navegador no ejecuta ninguna limpieza de React,
+	// así que se monta la pantalla de nuevo sin desmontar la anterior.
+	const volverTrasDescartarLaPagina = () => within(render(<Pacientes />).container);
+
 	test("el modal se reabre con lo capturado al volver a la pestaña", () => {
-		const { unmount } = render(<Pacientes />);
+		render(<Pacientes />);
 		fireEvent.click(screen.getByAltText("Agregar Paciente"));
 		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
 			target: { value: "Maria Rosalia" },
 		});
 
-		// El navegador descarta la página y al volver se monta de nuevo.
-		unmount();
-		render(<Pacientes />);
+		const pantalla = volverTrasDescartarLaPagina();
 
-		expect(screen.getByPlaceholderText("Ingresar Nombre")).toHaveValue("Maria Rosalia");
+		expect(pantalla.getByPlaceholderText("Ingresar Nombre")).toHaveValue("Maria Rosalia");
 	});
 
 	test("el modal sigue abierto aunque todavía no se capture nada", () => {
+		render(<Pacientes />);
+		fireEvent.click(screen.getByAltText("Agregar Paciente"));
+
+		const pantalla = volverTrasDescartarLaPagina();
+
+		expect(pantalla.getByPlaceholderText("Ingresar Nombre")).toBeInTheDocument();
+	});
+
+	test("salir de la pantalla con el modal abierto no lo deja marcado", () => {
 		const { unmount } = render(<Pacientes />);
 		fireEvent.click(screen.getByAltText("Agregar Paciente"));
 
+		// Navegar dentro de la app sí ejecuta la limpieza de React.
 		unmount();
 		render(<Pacientes />);
 
-		expect(screen.getByPlaceholderText("Ingresar Nombre")).toBeInTheDocument();
+		expect(screen.queryByPlaceholderText("Ingresar Nombre")).not.toBeInTheDocument();
 	});
 
 	test("sin alta a medias la lista abre sin modal", () => {
@@ -64,16 +76,15 @@ describe("Pacientes: el alta sobrevive a que el navegador descarte la página", 
 	});
 
 	test("al salir del modal deja de reabrirse", () => {
-		const { unmount } = render(<Pacientes />);
+		render(<Pacientes />);
 		fireEvent.click(screen.getByAltText("Agregar Paciente"));
 		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
 			target: { value: "Maria Rosalia" },
 		});
 		fireEvent.click(screen.getByText("Salir"));
 
-		unmount();
-		render(<Pacientes />);
+		const pantalla = volverTrasDescartarLaPagina();
 
-		expect(screen.queryByPlaceholderText("Ingresar Nombre")).not.toBeInTheDocument();
+		expect(pantalla.queryByPlaceholderText("Ingresar Nombre")).not.toBeInTheDocument();
 	});
 });

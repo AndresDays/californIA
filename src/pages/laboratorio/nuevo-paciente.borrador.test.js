@@ -26,6 +26,11 @@ describe("nuevo-paciente: borrador de la captura", () => {
 	});
 
 	test("el modal de alta se reabre si el navegador descarta la página", () => {
-		expect(fuente).toContain('useModalPersistente("modal-paciente:abierto")');
+		expect(fuente).toContain('useModalPersistente("modal-paciente:abierto:nuevo-paciente")');
+	});
+
+	test("al registrar la solicitud tampoco queda pendiente el alta de los modales", () => {
+		expect(fuente).toContain('limpiarBorradorPersistente("modal-paciente:")');
+		expect(fuente).toContain('limpiarBorradorPersistente("modal-doctor:")');
 	});
 });

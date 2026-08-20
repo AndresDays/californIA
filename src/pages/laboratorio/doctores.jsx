@@ -36,7 +36,7 @@ const Doctores = () => {
 	const [doctorEditar, setDoctorEditar] = useState(null);
 	// Si el navegador descarta la página, el modal se reabre con lo capturado en
 	// lugar de dejar al usuario en la lista creyendo que perdió el alta.
-	const [modalAbierto, setModalAbierto] = useModalPersistente("modal-doctor:abierto", {
+	const [modalAbierto, setModalAbierto] = useModalPersistente("modal-doctor:abierto:doctores", {
 		persistir: !doctorEditar,
 	});
 	const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
