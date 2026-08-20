@@ -51,7 +51,9 @@ describe("imprimirComprobantesVenta", () => {
 		expect(generarEtiquetasEstudiosLaboratorio).toHaveBeenCalled();
 		expect(ventanaTicket.close).toHaveBeenCalled();
 		expect(ventanaEtiquetas.close).not.toHaveBeenCalled();
-		expect(resultado.error).toBe("No fue posible abrir el ticket.");
+		expect(resultado.error).toBe(
+			"No fue posible abrir el ticket: No existe RFC configurado para la empresa seleccionada",
+		);
 	});
 
 	test("reporta todo lo que no se pudo abrir", async () => {
@@ -66,6 +68,6 @@ describe("imprimirComprobantesVenta", () => {
 			etiquetasImagen: { folio: "F-1", ventana: crearVentana() },
 		});
 
-		expect(resultado.error).toBe("No fue posible abrir el ticket ni las etiquetas de imagen.");
+		expect(resultado.error).toBe("No fue posible abrir el ticket ni las etiquetas de imagen: falla");
 	});
 });

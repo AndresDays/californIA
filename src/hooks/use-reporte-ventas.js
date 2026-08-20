@@ -5,7 +5,7 @@ import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 const SELECT_BASE = `
   id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
-  forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor,
+  forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, observaciones,
   pacientes ( id_paciente, nombre ),
   clientes ( id_cliente, nombre ),
   empleados ( id_empleado, nombre ),
@@ -27,7 +27,7 @@ const SELECT_CON_CITA = SELECT_SUCURSAL.replace(
 
 const SELECT_FULL = `
   id_venta, folio, fecha_venta, estado, subtotal, iva, descuento, total,
-  forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor,
+  forma_pago, pago_recibido, cambio, id_empleado, id_cliente, id_doctor, observaciones,
   id_cita, id_sucursal, sucursal,
   pacientes ( id_paciente, nombre ),
   clientes ( id_cliente, nombre ),
@@ -35,21 +35,6 @@ const SELECT_FULL = `
   citas ( id_cita, id_sucursal, sucursales ( id_sucursal, nombre ) ),
   estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
 `;
-
-// El detalle del folio necesita más de lo que pinta la tabla: el teléfono del
-// paciente, la empresa que facturó y el doctor que refirió. Va como un intento
-// aparte para que un entorno sin esas columnas siga cayendo a los selects de
-// siempre en lugar de quedarse sin reporte.
-const SELECT_DETALLE = SELECT_FULL.replace(
-  'id_cita, id_sucursal, sucursal,',
-  'id_cita, id_sucursal, sucursal, id_empresa, observaciones,',
-).replace(
-  'pacientes ( id_paciente, nombre ),',
-  'pacientes ( id_paciente, nombre, telefono, email, edad, sexo ),',
-).replace(
-  'clientes ( id_cliente, nombre ),',
-  'clientes ( id_cliente, nombre ),\n  doctores ( id_doctor, nombre ),\n  empresas ( id_empresa, nombre ),',
-);
 
 const puedeReintentarSinCita = (error) => {
   const msg = error?.message || '';
@@ -75,6 +60,43 @@ const cargarCitasDeVentas = async (ventas = []) => {
   return ventas.map((v) => ({ ...v, citas: citasPorId.get(v.id_cita) || v.citas }));
 };
 
+// El detalle del folio pide datos que no todos los entornos tienen. Se cargan
+// por separado para que una columna faltante sólo deje ese dato vacío en lugar
+// de hacer caer el select completo del reporte.
+const completarDatosDePacientes = async (ventas = []) => {
+  const ids = [...new Set(ventas.map((venta) => venta.pacientes?.id_paciente).filter(Boolean))];
+  if (ids.length === 0) return ventas;
+
+  const { data, error } = await supabase
+    .from('pacientes')
+    .select('id_paciente, telefono, email, edad, sexo')
+    .in('id_paciente', ids);
+  if (error) return ventas;
+
+  const porId = new Map(data.map((paciente) => [paciente.id_paciente, paciente]));
+  return ventas.map((venta) => {
+    const datos = porId.get(venta.pacientes?.id_paciente);
+    return datos ? { ...venta, pacientes: { ...venta.pacientes, ...datos } } : venta;
+  });
+};
+
+const completarEmpresasDeVentas = async (ventas = []) => {
+  const ids = ventas.map((venta) => venta.id_venta).filter(Boolean);
+  if (ids.length === 0) return ventas;
+
+  const { data, error } = await supabase
+    .from('ventas')
+    .select('id_venta, id_empresa')
+    .in('id_venta', ids);
+  if (error) return ventas;
+
+  const porVenta = new Map(data.map((venta) => [venta.id_venta, venta.id_empresa]));
+  return ventas.map((venta) => ({ ...venta, id_empresa: porVenta.get(venta.id_venta) ?? null }));
+};
+
+export const completarDatosDelDetalle = async (ventas = []) =>
+  completarEmpresasDeVentas(await completarDatosDePacientes(ventas));
+
 const fetchVentasConFallback = async ({ fechaInicial, fechaFinal }) => {
 	const rango = crearRangoFechaMexico(fechaInicial, fechaFinal);
 	const crearQuery = (select) =>
@@ -86,36 +108,30 @@ const fetchVentasConFallback = async ({ fechaInicial, fechaFinal }) => {
 		.lt('fecha_venta', rango.fin)
       .order('fecha_venta', { ascending: false });
 
-  // Intento 1: con los datos del detalle del folio
-  let { data, error } = await crearQuery(SELECT_DETALLE);
+  // Intento 1: query completo
+  let { data, error } = await crearQuery(SELECT_FULL);
 
-  // Intento 2: query completo de siempre
-  if (error) {
-    const r = await crearQuery(SELECT_FULL);
-    data = r.data; error = r.error;
-  }
-
-  // Intento 3: sin relación citas
+  // Intento 2: sin relación citas
   if (error && puedeReintentarSinCita(error)) {
     const r = await crearQuery(SELECT_CON_CITA);
     data = r.data; error = r.error;
     if (!error) data = await cargarCitasDeVentas(data ?? []);
   }
 
-  // Intento 4: sin columnas de sucursal
+  // Intento 3: sin columnas de sucursal
   if (error && (esErrorColumnaSchemaCache(error, 'id_sucursal') || esErrorColumnaSchemaCache(error, 'sucursal'))) {
     const r = await crearQuery(SELECT_SUCURSAL);
     data = r.data; error = r.error;
   }
 
-  // Intento 5: base mínima
+  // Intento 4: base mínima
   if (error) {
     const r = await crearQuery(SELECT_BASE);
     data = r.data; error = r.error;
   }
 
   if (error) throw error;
-  return data ?? [];
+  return completarDatosDelDetalle(data ?? []);
 };
 
 // ── Hook de ventas con caché ──────────────────────────────────────────────────
@@ -132,12 +148,13 @@ export const useCatalogosReporte = () =>
   useQuery({
     queryKey: ['catalogos-reporte'],
     queryFn: async () => {
-      const [sucursalesR, vendedoresR, clientesR, doctoresR, areasR] = await Promise.all([
+      const [sucursalesR, vendedoresR, clientesR, doctoresR, areasR, empresasR] = await Promise.all([
         supabase.from('sucursales').select('id_sucursal, nombre').order('nombre'),
         supabase.from('empleados').select('id_empleado, nombre').order('nombre'),
         supabase.from('clientes').select('id_cliente, nombre').order('nombre'),
         supabase.from('doctores').select('*').order('nombre'),
         supabase.from('areas').select('id_area, nombre').order('nombre'),
+        supabase.from('empresas').select('id_empresa, nombre').order('nombre'),
       ]);
       return {
         sucursales: sucursalesR.data ?? [],
@@ -145,6 +162,7 @@ export const useCatalogosReporte = () =>
         clientes:   clientesR.data ?? [],
         doctores:   doctoresR.data ?? [],
         areas:      areasR.data ?? [],
+        empresas:   empresasR.data ?? [],
       };
     },
     staleTime: 1000 * 60 * 30,

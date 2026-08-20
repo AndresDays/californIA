@@ -12,7 +12,7 @@ const ejecutar = async (nombre, tarea, ventana, fallos) => {
 	} catch (error) {
 		console.error(`Error al generar ${nombre}:`, error);
 		ventana?.close?.();
-		fallos.push(nombre);
+		fallos.push({ nombre, motivo: error?.message || "" });
 	}
 };
 
@@ -43,7 +43,13 @@ export const imprimirComprobantesVenta = async ({
 		);
 	}
 
+	if (fallos.length === 0) return { error: "" };
+
+	// El motivo va en la notificación: sin él, un comprobante que no abre sólo
+	// deja una pestaña en blanco y nadie sabe qué pasó.
+	const motivos = [...new Set(fallos.map(({ motivo }) => motivo).filter(Boolean))];
+	const listado = fallos.map(({ nombre }) => nombre).join(" ni ");
 	return {
-		error: fallos.length ? `No fue posible abrir ${fallos.join(" ni ")}.` : "",
+		error: `No fue posible abrir ${listado}${motivos.length ? `: ${motivos.join(" · ")}` : "."}`,
 	};
 };
