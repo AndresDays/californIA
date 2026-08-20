@@ -26,14 +26,19 @@ import {
 	crearDoctorConAuthentication,
 } from "../../utils/doctores-auth.js";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
+import { useModalPersistente } from "../../hooks/use-campo-persistente";
 
 const Doctores = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const queryClient = useQueryClient();
 	const [buscarDoctor, setBuscarDoctor] = useBusquedaPersistente("doctores:termino");
 	const [paginaActual, setPaginaActual] = useState(1);
-	const [modalAbierto, setModalAbierto] = useState(false);
 	const [doctorEditar, setDoctorEditar] = useState(null);
+	// Si el navegador descarta la página, el modal se reabre con lo capturado en
+	// lugar de dejar al usuario en la lista creyendo que perdió el alta.
+	const [modalAbierto, setModalAbierto] = useModalPersistente("modal-doctor:abierto", {
+		persistir: !doctorEditar,
+	});
 	const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
 	const [doctorAEliminar, setDoctorAEliminar] = useState(null);
 	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);

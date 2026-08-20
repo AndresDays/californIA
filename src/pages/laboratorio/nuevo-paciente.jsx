@@ -130,7 +130,8 @@ const NuevoPaciente = () => {
 	// lugar de dejar al usuario en la solicitud creyendo que perdió el alta.
 	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] =
 		useModalPersistente("modal-paciente:abierto");
-	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
+	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] =
+		useModalPersistente("modal-doctor:abierto");
 	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =

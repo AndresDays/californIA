@@ -164,7 +164,6 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     setEmail('');
     setPais('México');
     setTelefono('');
-    limpiarBorradorPersistente(BORRADOR);
   };
 
   const handleTelefonoChange = (e) => {
@@ -223,12 +222,12 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     }
 
     onGuardar(pacienteData, isEditMode);
-    limpiarCampos();
+    limpiarBorradorPersistente(BORRADOR);
     onClose();
   };
 
   const handleClose = () => {
-    limpiarCampos();
+    limpiarBorradorPersistente(BORRADOR);
     onClose();
   };
 
