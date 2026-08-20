@@ -73,21 +73,46 @@ const encontrarRadiologiaParaEstudio = (
 	);
 };
 
+const indexarRadiologiaPorEstudioVenta = (estudiosRadiologia = []) => {
+	const mapa = new Map();
+	for (const estudio of estudiosRadiologia) {
+		const id = estudio.id_estudio_venta
+			? String(estudio.id_estudio_venta)
+			: "";
+		if (!id || mapa.has(id)) continue;
+		mapa.set(id, estudio);
+	}
+	return mapa;
+};
+
 export const aplicarEstadoRadiologiaACaptura = (
 	estudiosVenta = [],
 	estudiosRadiologia = [],
 ) => {
-	const estudiosRadiologiaListos = (estudiosRadiologia || []).filter(
-		estudioRadiologiaListoCaptura,
+	const todos = estudiosRadiologia || [];
+	const radiologiaPorEstudioVenta = indexarRadiologiaPorEstudioVenta(todos);
+	// Un estudio de radiología que ya pertenece a una partida de venta no puede
+	// prestarle su estado a otra partida parecida (por ejemplo, la resonancia
+	// que el mismo paciente se hizo en una venta anterior).
+	const estudiosRadiologiaListos = todos.filter(
+		(estudio) =>
+			!estudio.id_estudio_venta && estudioRadiologiaListoCaptura(estudio),
 	);
 
 	return (estudiosVenta || []).map((estudio) => {
 		if (!esEstudioImagenCaptura(estudio)) return estudio;
 
-		const estudioRadiologia = encontrarRadiologiaParaEstudio(
-			estudio,
-			estudiosRadiologiaListos,
-		);
+		const vinculado = estudio.id_estudio_venta
+			? radiologiaPorEstudioVenta.get(String(estudio.id_estudio_venta))
+			: null;
+
+		// Cuando la partida ya tiene su propio estudio de radiología, ése manda:
+		// mientras el radiólogo no guarde el reporte, la partida sigue pendiente.
+		const estudioRadiologia = vinculado
+			? estudioRadiologiaListoCaptura(vinculado)
+				? vinculado
+				: null
+			: encontrarRadiologiaParaEstudio(estudio, estudiosRadiologiaListos);
 		if (!estudioRadiologia) return estudio;
 
 		return {

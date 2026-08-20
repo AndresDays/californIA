@@ -146,6 +146,57 @@ describe("captura-row-status helpers", () => {
 		]);
 	});
 
+	test("no hereda el estado de una resonancia previa del mismo paciente", () => {
+		const estudiosVenta = [
+			{
+				id_estudio_venta: 31,
+				clave_estudio: "RM-RODILLA",
+				descripcion_estudio: "RM RODILLA DERECHA",
+				estado_captura: "pendiente",
+				estado_validacion: "captura",
+			},
+			{
+				id_estudio_venta: 32,
+				clave_estudio: "QS3",
+				descripcion_estudio: "QUIMICA SANGUINEA DE 3 ELEMENTOS",
+				estado_captura: "pendiente",
+				estado_validacion: "captura",
+			},
+		];
+		const estudiosRadiologia = [
+			// El estudio recien creado por la venta: el radiologo aun no lo toca.
+			{
+				id_estudio: 90,
+				id_estudio_venta: 31,
+				tipo_estudio: "RM",
+				descripcion: "RM RODILLA DERECHA",
+				estado: "POR ASIGNAR",
+				listo_entrega: false,
+				reporte: "",
+			},
+			// El mismo estudio, hecho en una venta anterior y ya reportado.
+			{
+				id_estudio: 12,
+				tipo_estudio: "RM",
+				descripcion: "RM RODILLA DERECHA",
+				estado: "COMPLETADO",
+				listo_entrega: false,
+				reporte: "Reporte de la venta anterior",
+			},
+		];
+
+		expect(
+			aplicarEstadoRadiologiaACaptura(estudiosVenta, estudiosRadiologia),
+		).toMatchObject([
+			{
+				id_estudio_venta: 31,
+				estado_captura: "pendiente",
+				estado_validacion: "captura",
+			},
+			{ id_estudio_venta: 32, estado_validacion: "captura" },
+		]);
+	});
+
 	test("empareja radiologia lista por descripcion cuando falta id_estudio_venta", () => {
 		const estudiosVenta = [
 			{
