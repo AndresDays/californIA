@@ -10,6 +10,7 @@ const mockDoc = {
 	line: jest.fn(),
 	text: jest.fn(),
 	splitTextToSize: jest.fn((texto) => String(texto).split("\n")),
+	getTextWidth: jest.fn((texto) => String(texto).length * 2),
 	link: jest.fn(),
 	autoPrint: jest.fn(),
 	save: jest.fn(),
@@ -54,7 +55,7 @@ const opcionesBase = {
 	doctorNombre: "Odile Desage",
 	estudioDescripcion: "Rodillas AP y Lateral",
 	fechaEncabezado: "PUERTO VALLARTA JAL. 10 DE JULIO DE 2026.",
-	reporteTexto: "Hallazgos normales.",
+	reporteTexto: "<p>Hallazgos <strong>normales</strong>.</p>",
 	membreteSrc: MEMBRETE_DATA_URL,
 	qrData: "https://california.test/visor-paciente/123",
 	nombreArchivo: "reporte_maria.pdf",
@@ -91,30 +92,26 @@ describe("generarReportePdf", () => {
 		});
 	});
 
-	test("incluye los datos del paciente, doctor y estudio", async () => {
-		await generarReportePdf(opcionesBase);
-		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
-		expect(textos).toContain("PACIENTE:");
-		expect(textos).toContain("MARIA ROSALIA LOPEZ");
-		expect(textos).toContain("DOCTOR:");
-		expect(textos).toContain("ODILE DESAGE");
-		expect(textos).toContain("ESTUDIO:");
-		expect(textos).toContain("RODILLAS AP Y LATERAL");
-		expect(textos).toContain("PUERTO VALLARTA JAL. 10 DE JULIO DE 2026.");
-	});
-
-	test("omite fecha y líneas clínicas vacías", async () => {
+	test("conserva el formato guardado por el radiólogo", async () => {
 		await generarReportePdf({
 			...opcionesBase,
-			fechaEncabezado: "",
-			nombrePaciente: "",
-			doctorNombre: "",
-			estudioDescripcion: "",
+			reporteTexto: '<p style="text-align:center"><strong>CONCLUSION</strong></p><p>Sin datos patológicos.</p>',
 		});
+		const escritos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
+		expect(escritos).toEqual(expect.arrayContaining(["CONCLUSION", "Sin", "datos", "patológicos."]));
+		expect(mockDoc.setFont).toHaveBeenCalledWith("helvetica", "bold");
+		// El marcado nunca se imprime como texto.
+		expect(escritos.join(" ")).not.toMatch(/</);
+	});
+
+	test("la hoja sólo lleva el reporte, sin fecha ni datos de paciente", async () => {
+		await generarReportePdf(opcionesBase);
 		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
 		expect(textos).not.toEqual(
 			expect.arrayContaining(["PACIENTE:", "DOCTOR:", "ESTUDIO:", "MÉDICO REFERENTE"]),
 		);
+		expect(textos.join(" ")).not.toMatch(/PUERTO VALLARTA/i);
+		expect(textos.join(" ")).not.toMatch(/MARIA ROSALIA LOPEZ/i);
 	});
 
 
@@ -182,7 +179,35 @@ describe("generarReportePdf", () => {
 			(llamada) => llamada[0] === "data:image/png;base64,QRMOCK",
 		);
 		const [, , , qrY, , qrAlto] = llamadaQr;
-		expect(qrY + qrAlto).toBeLessThanOrEqual(297 - 46);
+		// El pie del membrete empieza en el px 998 de la hoja (≈262 mm).
+		expect(qrY + qrAlto).toBeLessThanOrEqual(262);
+	});
+
+	test("dibuja la firma al mismo tamaño que el visor y sin salirse del pie", async () => {
+		const firma = {
+			nombre: "Juan Andres Diaz",
+			especialidad: "Radiología e Imagen",
+			cedula: "12345678",
+			firmaUrl: "data:image/png;base64,FIRMAMOCK",
+		};
+
+		await generarReportePdf({ ...opcionesBase, firma });
+
+		const llamadaFirma = mockDoc.addImage.mock.calls.find(
+			(llamada) => llamada[0] === "data:image/png;base64,FIRMAMOCK",
+		);
+		expect(llamadaFirma).toBeDefined();
+		const [, , , , anchoFirma, altoFirma] = llamadaFirma;
+		// 378 x 153 px de la hoja de 794 px equivalen a 100 x 40.5 mm.
+		expect(anchoFirma).toBeCloseTo(100, 0);
+		expect(altoFirma).toBeCloseTo(40.5, 0);
+
+		const textos = mockDoc.text.mock.calls;
+		expect(textos.map(([texto]) => texto)).toContain("MÉDICO RADIÓLOGO");
+		const cedula = textos.find(([texto]) => String(texto).startsWith("CE "));
+		expect(cedula).toBeDefined();
+		// El pie del membrete arranca en ≈262 mm.
+		expect(cedula[2]).toBeLessThanOrEqual(255);
 	});
 
 	test("no genera QR cuando no hay qrData", async () => {
@@ -192,7 +217,7 @@ describe("generarReportePdf", () => {
 	});
 
 	test("agrega paginas nuevas con membrete cuando el texto es largo", async () => {
-		const textoLargo = Array.from({ length: 120 }, (_, i) => `Linea ${i + 1}`).join("\n");
+		const textoLargo = Array.from({ length: 120 }, (_, i) => `<p>Linea ${i + 1}</p>`).join("");
 		await generarReportePdf({ ...opcionesBase, reporteTexto: textoLargo });
 		expect(mockDoc.addPage).toHaveBeenCalled();
 		const membretes = mockDoc.addImage.mock.calls.filter(

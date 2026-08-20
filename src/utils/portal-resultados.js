@@ -24,3 +24,18 @@ export const normalizarTextoResultado = (valor = "") =>
 		.replace(/&nbsp;/gi, " ")
 		.replace(/&amp;/gi, "&")
 		.trim();
+
+// El visor es público: sin folio y teléfono el paciente no puede autorizarse y
+// el estudio aparece como no encontrado.
+export const crearUrlVisorPaciente = ({
+	idEstudio,
+	folio,
+	telefono,
+	origin = window.location.origin,
+} = {}) => {
+	const params = new URLSearchParams();
+	if (folio) params.set("folio", folio);
+	if (telefono) params.set("telefono", normalizarTelefonoPortal(telefono));
+	const query = params.toString();
+	return `${origin}/visor-paciente/${idEstudio}${query ? `?${query}` : ""}`;
+};

@@ -143,15 +143,13 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 	});
 
 	test('carga el PDF en una pestaña reservada desde guardar e imprimir', () => {
-		const ventana = {
-			document: { title: '', open: jest.fn(), write: jest.fn(), close: jest.fn() },
-		};
+		const replace = jest.fn();
+		const ventana = { location: { replace } };
 		generarEtiquetasEstudiosLaboratorio({
 			folio: '0708260010', paciente: 'Paciente', ventana,
 			estudios: [{ modulo: 'laboratorio', clave: 'EGO', recipiente: 'Frasco estéril' }],
 		});
-		expect(ventana.document.title).toBe('Etiqueta 0708260010');
-		expect(ventana.document.write).toHaveBeenCalledWith(expect.stringContaining('src="blob:etiquetas"'));
+		expect(replace).toHaveBeenCalledWith('blob:etiquetas');
 		expect(window.open).not.toHaveBeenCalled();
 	});
 });

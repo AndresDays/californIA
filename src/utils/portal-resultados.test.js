@@ -1,6 +1,7 @@
 import {
 	crearTextoCompartirResultados,
 	crearUrlPortalResultados,
+	crearUrlVisorPaciente,
 	normalizarTextoResultado,
 	normalizarTelefonoPortal,
 } from "./portal-resultados";
@@ -34,5 +35,21 @@ describe("portal-resultados", () => {
 		expect(normalizarTextoResultado("Mujeres: 0.5 - 1.2<BR>Hombres: 0.6 - 1.5")).toBe(
 			"Mujeres: 0.5 - 1.2\nHombres: 0.6 - 1.5",
 		);
+	});
+});
+
+describe('crearUrlVisorPaciente', () => {
+	it('lleva folio y teléfono para que el paciente pueda autorizarse', () => {
+		expect(crearUrlVisorPaciente({
+			idEstudio: 42,
+			folio: 'F-17',
+			telefono: '(322) 123-4567',
+			origin: 'https://app.test',
+		})).toBe('https://app.test/visor-paciente/42?folio=F-17&telefono=3221234567');
+	});
+
+	it('funciona sin datos de portal', () => {
+		expect(crearUrlVisorPaciente({ idEstudio: 9, origin: 'https://app.test' }))
+			.toBe('https://app.test/visor-paciente/9');
 	});
 });

@@ -4,7 +4,6 @@ import './App.css';
 import AppBoundary, { LoadingSpinner } from './components/app-boundary';
 import ProtectedRoute from './components/protected-route';
 import PwaUpdatePrompt from './components/pwa-update-prompt';
-import ModalNotificacionGlobal from './components/modal-notificacion-global';
 import { ActualizacionAppProvider } from './context/actualizacion-app-context';
 import { AuthProvider } from './context/auth-context';
 
@@ -115,7 +114,6 @@ function App() {
 						</Routes>
 					</Suspense>
 					<PwaUpdatePrompt />
-					<ModalNotificacionGlobal />
 				</AuthProvider>
 			</ActualizacionAppProvider>
 		</Router>

@@ -8,6 +8,11 @@ import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
+	limpiarBorradorPersistente,
+	useCampoPersistente,
+	useModalPersistente,
+} from "../../hooks/use-campo-persistente";
+import {
 	construirEstudioCatalogoUnificado,
 	construirEstudioSeleccionado,
 	dividirEstudiosCita,
@@ -33,6 +38,9 @@ import {
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
+// Los datos capturados del paciente sobreviven a que el navegador descarte la
+// página al cambiar de pestaña o de app; se limpian al registrar la solicitud.
+const BORRADOR = "nuevo-paciente:";
 const leerBorrador = () => {
 	try { return JSON.parse(sessionStorage.getItem(CLAVE_BORRADOR) || "{}"); } catch { return {}; }
 };
@@ -118,8 +126,12 @@ const NuevoPaciente = () => {
 	const citaPrecargadaRef = useRef(null);
 	const tipoEstudioPendienteRef = useRef(leerBorrador().tipoEstudioSeleccionado || "");
 
-	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
-	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
+	// Si el navegador descarta la página, el modal se reabre con lo capturado en
+	// lugar de dejar al usuario en la solicitud creyendo que perdió el alta.
+	const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] =
+		useModalPersistente("modal-paciente:abierto");
+	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] =
+		useModalPersistente("modal-doctor:abierto");
 	const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 	const [modalBuscarCotizacionOpen, setModalBuscarCotizacionOpen] = useState(false);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
@@ -132,22 +144,22 @@ const NuevoPaciente = () => {
 
 	const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente("nuevo-paciente:paciente");
 	const [pacientesEncontrados, setPacientesEncontrados] = useState([]);
-	const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
+	const [pacienteSeleccionado, setPacienteSeleccionado] = useCampoPersistente(`${BORRADOR}pacienteSeleccionado`, null);
 	const [showBusquedaPacientes, setShowBusquedaPacientes] = useState(false);
 
-	const [nombreCompleto, setNombreCompleto] = useState("");
-	const [edad, setEdad] = useState("");
-	const [sexo, setSexo] = useState("");
-	const [telefono, setTelefono] = useState("");
-	const [correo, setCorreo] = useState("");
-	const [rfc, setRfc] = useState("");
+	const [nombreCompleto, setNombreCompleto] = useCampoPersistente(`${BORRADOR}nombreCompleto`, "");
+	const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, "");
+	const [sexo, setSexo] = useCampoPersistente(`${BORRADOR}sexo`, "");
+	const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, "");
+	const [correo, setCorreo] = useCampoPersistente(`${BORRADOR}correo`, "");
+	const [rfc, setRfc] = useCampoPersistente(`${BORRADOR}rfc`, "");
 
-	const [doctorBusqueda, setDoctorBusqueda] = useState("");
+	const [doctorBusqueda, setDoctorBusqueda] = useCampoPersistente(`${BORRADOR}doctorBusqueda`, "");
 	const [doctoresEncontrados, setDoctoresEncontrados] = useState([]);
-	const [doctorSeleccionado, setDoctorSeleccionado] = useState(null);
+	const [doctorSeleccionado, setDoctorSeleccionado] = useCampoPersistente(`${BORRADOR}doctorSeleccionado`, null);
 	const [showBusquedaDoctores, setShowBusquedaDoctores] = useState(false);
 
-	const [observaciones, setObservaciones] = useState("");
+	const [observaciones, setObservaciones] = useCampoPersistente(`${BORRADOR}observaciones`, "");
 
 	const [clienteSeleccionado, setClienteSeleccionado] = useState(() => leerBorrador().clienteSeleccionado || "");
 	const [clientes, setClientes] = useState([]);
@@ -1302,6 +1314,7 @@ const NuevoPaciente = () => {
 		setTipoEstudioSeleccionado("");
 		setEstudiosSeleccionados([]);
 		sessionStorage.removeItem(CLAVE_BORRADOR);
+		limpiarBorradorPersistente(BORRADOR);
 		setBuscarPaciente("");
 		setBuscarEstudio("");
 		setPagoRecibido("");

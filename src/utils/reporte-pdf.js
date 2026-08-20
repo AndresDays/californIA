@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { PDFDocument } from "pdf-lib";
 import { abrirPdfEnPestana } from "./abrir-pdf-en-pestana";
+import { dibujarHtmlEnPdf } from "./reporte-pdf-html";
 import {
 	esEstudioCultivo,
 	hidratarArchivoCultivoUrl,
@@ -11,9 +12,31 @@ import {
 
 const PAGINA_ANCHO = 210;
 const PAGINA_ALTO = 297;
-const MARGEN_LATERAL = 20;
-const MARGEN_SUPERIOR = 42;
 const MARGEN_INFERIOR = 72;
+
+// El reporte del visor se escribe sobre una hoja de 794 x 1123 px, así que cada
+// medida se traduce a milímetros (210 mm / 794 px) para que el PDF conserve el
+// mismo tamaño de letra y la misma cantidad de texto por hoja.
+const PX_A_MM = PAGINA_ANCHO / 794;
+const REPORTE_MARGEN_LATERAL = Math.round(64 * PX_A_MM * 10) / 10;
+const REPORTE_MARGEN_SUPERIOR = Math.round((135 + 34) * PX_A_MM * 10) / 10;
+// El pie del membrete arranca en el px 998 de la hoja; el texto se corta antes
+// para no encimarse con los datos de las sucursales.
+const REPORTE_LIMITE_INFERIOR = Math.round(985 * PX_A_MM * 10) / 10;
+const REPORTE_FUENTE_PT = 10;
+const REPORTE_INTERLINEADO = 4.9;
+// Bloque de firma al pie de la última hoja, con las mismas medidas que el
+// editor y el visor: una firma de 378 x 153 px sobre la línea con los datos.
+const FIRMA_ANCHO = Math.round(378 * PX_A_MM * 10) / 10;
+const FIRMA_ALTO = Math.round(153 * PX_A_MM * 10) / 10;
+const FIRMA_ANCHO_LINEA = Math.round(330 * PX_A_MM * 10) / 10;
+// La línea de la firma sube sobre el trazo, como en el editor, para que el
+// nombre quede pegado a la rúbrica.
+const FIRMA_TRASLAPE = Math.round(34 * PX_A_MM * 10) / 10;
+// Cargo con el que firma el radiólogo la interpretación.
+const LEYENDA_FIRMA = "MÉDICO RADIÓLOGO";
+// Aire entre la última línea de la firma y el pie del membrete.
+const FIRMA_AIRE_INFERIOR = 11;
 
 const cargarImagenComoDataUrl = async (src) => {
 	if (!src) return null;
@@ -32,6 +55,19 @@ const cargarImagenComoDataUrl = async (src) => {
 	}
 };
 
+// Escala una imagen para que quepa completa en el recuadro conservando su
+// proporción; si no se pueden leer sus medidas se usa el recuadro tal cual.
+const ajustarDentro = (doc, dataUrl, anchoMaximo, altoMaximo) => {
+	try {
+		const { width, height } = doc.getImageProperties(dataUrl);
+		if (!width || !height) return { ancho: anchoMaximo, alto: altoMaximo };
+		const factor = Math.min(anchoMaximo / width, altoMaximo / height);
+		return { ancho: width * factor, alto: height * factor };
+	} catch {
+		return { ancho: anchoMaximo, alto: altoMaximo };
+	}
+};
+
 const obtenerFormatoImagen = (dataUrl) => {
 	const tipo = /^data:image\/([a-z0-9+-]+)(?:;|,)/i.exec(dataUrl)?.[1]?.toLowerCase();
 	if (tipo === "png") return "PNG";
@@ -41,19 +77,18 @@ const obtenerFormatoImagen = (dataUrl) => {
 
 export const generarReportePdf = async ({
 	nombrePaciente = "",
-	doctorNombre = "",
-	estudioDescripcion = "",
-	fechaEncabezado = "",
 	reporteTexto = "",
 	membreteSrc = null,
 	qrData = "",
+	firma = null,
 	nombreArchivo = "reporte.pdf",
 	imprimir = false,
 	ventana = null,
 } = {}) => {
 	const doc = new jsPDF({ unit: "mm", format: "a4" });
 	const membrete = await cargarImagenComoDataUrl(membreteSrc);
-	const anchoUtil = PAGINA_ANCHO - MARGEN_LATERAL * 2;
+	const firmaImagen = await cargarImagenComoDataUrl(firma?.firmaUrl);
+	const anchoUtil = PAGINA_ANCHO - REPORTE_MARGEN_LATERAL * 2;
 
 	const dibujarMembrete = () => {
 		if (!membrete) return;
@@ -71,44 +106,75 @@ export const generarReportePdf = async ({
 
 	dibujarMembrete();
 
-	let y = MARGEN_SUPERIOR;
+	// La hoja membretada sólo lleva el reporte: los datos de paciente, doctor,
+	// estudio y la fecha ya no se imprimen. El contenido llega como el HTML que
+	// guardó el radiólogo, así que se dibuja conservando negritas, títulos,
+	// alineación y listas.
 	doc.setFont("helvetica", "normal");
-	doc.setFontSize(10);
-	if (fechaEncabezado) {
-		doc.text(String(fechaEncabezado).toUpperCase(), PAGINA_ANCHO - MARGEN_LATERAL, y, {
-			align: "right",
-		});
-		y += 10;
-	}
-
-	doc.setFont("helvetica", "bold");
-	const datos = [
-		["PACIENTE:", nombrePaciente],
-		["DOCTOR:", doctorNombre],
-		["ESTUDIO:", estudioDescripcion],
-	].filter(([, valor]) => String(valor ?? "").trim());
-	datos.forEach(([etiqueta, valor]) => {
-		doc.text(etiqueta, MARGEN_LATERAL, y);
-		doc.setFont("helvetica", "normal");
-		doc.text(String(valor).toUpperCase(), MARGEN_LATERAL + 28, y);
-		doc.setFont("helvetica", "bold");
-		y += 6;
-	});
-	y += 6;
-
-	doc.setFont("helvetica", "normal");
-	doc.setFontSize(11);
-	const lineas = doc.splitTextToSize(String(reporteTexto || ""), anchoUtil);
-	const interlineado = 5.4;
-	lineas.forEach((linea) => {
-		if (y > PAGINA_ALTO - MARGEN_INFERIOR) {
+	doc.setFontSize(REPORTE_FUENTE_PT);
+	let y = dibujarHtmlEnPdf(doc, reporteTexto, {
+		x: REPORTE_MARGEN_LATERAL,
+		y: REPORTE_MARGEN_SUPERIOR,
+		ancho: anchoUtil,
+		limiteInferior: REPORTE_LIMITE_INFERIOR,
+		tamanoBase: REPORTE_FUENTE_PT,
+		interlineado: REPORTE_INTERLINEADO,
+		nuevaPagina: () => {
 			doc.addPage();
 			dibujarMembrete();
-			y = MARGEN_SUPERIOR;
-		}
-		doc.text(linea, MARGEN_LATERAL, y);
-		y += interlineado;
+			return REPORTE_MARGEN_SUPERIOR;
+		},
 	});
+
+	// La firma de quien interpretó el estudio cierra la última hoja; si ya no
+	// cabe, se abre una nueva para no encimarla con el texto.
+	const tieneFirma = Boolean(firmaImagen || String(firma?.nombre || "").trim());
+	if (tieneFirma) {
+		// La firma se mide para pegarle debajo la línea con los datos, sin el
+		// hueco que dejaría un recuadro de alto fijo.
+		const medidasFirma = firmaImagen
+			? ajustarDentro(doc, firmaImagen, FIRMA_ANCHO, FIRMA_ALTO)
+			: { ancho: 0, alto: 0 };
+		const altoRubrica = medidasFirma.alto ? medidasFirma.alto - FIRMA_TRASLAPE : 0;
+		const altoBloque = altoRubrica + 5.5 + 4.4 + (firma?.cedula ? 4.4 : 0);
+
+		// El bloque se apoya en el pie de la hoja; si ya no cabe bajo el texto,
+		// abre hoja nueva. `y` quedó en el renglón siguiente al último escrito.
+		const finTexto = y - REPORTE_INTERLINEADO;
+		if (finTexto + 8 + altoBloque + FIRMA_AIRE_INFERIOR > REPORTE_LIMITE_INFERIOR) {
+			doc.addPage();
+			dibujarMembrete();
+			y = REPORTE_MARGEN_SUPERIOR;
+		}
+		let yFirma = REPORTE_LIMITE_INFERIOR - FIRMA_AIRE_INFERIOR - altoBloque;
+		const centro = PAGINA_ANCHO / 2;
+		if (firmaImagen) {
+			try {
+				doc.addImage(
+					firmaImagen,
+					obtenerFormatoImagen(firmaImagen),
+					centro - medidasFirma.ancho / 2,
+					yFirma,
+					medidasFirma.ancho,
+					medidasFirma.alto,
+				);
+			} catch {}
+		}
+		yFirma += altoRubrica;
+		doc.setDrawColor(0, 0, 0);
+		doc.line(centro - FIRMA_ANCHO_LINEA / 2, yFirma, centro + FIRMA_ANCHO_LINEA / 2, yFirma);
+		yFirma += 5.5;
+		doc.setFont("helvetica", "bold");
+		doc.setFontSize(12.5);
+		doc.text(String(firma?.nombre || "").toUpperCase(), centro, yFirma, { align: "center" });
+		doc.setFontSize(9);
+		yFirma += 4.4;
+		doc.text(LEYENDA_FIRMA, centro, yFirma, { align: "center" });
+		if (firma?.cedula) {
+			yFirma += 4.4;
+			doc.text(`CE ${String(firma.cedula).toUpperCase()}`, centro, yFirma, { align: "center" });
+		}
+	}
 
 	if (qrData) {
 		try {
@@ -117,9 +183,9 @@ export const generarReportePdf = async ({
 				width: 220,
 				color: { dark: "#111111", light: "#ffffff" },
 			});
-			const qrTamano = 28;
-			const qrX = PAGINA_ANCHO - MARGEN_LATERAL - qrTamano;
-			const qrY = PAGINA_ALTO - MARGEN_INFERIOR - qrTamano - 4;
+			const qrTamano = 24;
+			const qrX = PAGINA_ANCHO - REPORTE_MARGEN_LATERAL - qrTamano;
+			const qrY = REPORTE_LIMITE_INFERIOR - qrTamano;
 			doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrTamano, qrTamano);
 			doc.link(qrX, qrY, qrTamano, qrTamano, { url: qrData });
 		} catch {}

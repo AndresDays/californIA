@@ -2,13 +2,19 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import logo from "../assets/CalifornIA.png";
 import { supabase } from "../lib/supabase-client";
-import { MEMBRETE_B64 } from "./radiologia/pages/reporte-radiologia-template";
+import { MEMBRETE_FALLBACK, cargarMembreteCdc } from "../utils/membrete-cdc";
 import {
 	normalizarTextoResultado,
 	normalizarTelefonoPortal,
 } from "../utils/portal-resultados";
-import { generarResultadosCombinadosPdf } from "../utils/reporte-pdf";
+import {
+	crearNombreArchivoReporte,
+	generarReportePdf,
+	generarResultadosCombinadosPdf,
+} from "../utils/reporte-pdf";
 import { obtenerDatosQuimico } from "../utils/datos-quimico";
+import { htmlReporteRadiologiaParaEditor } from "../utils/reporte-radiologia-html";
+import { abrirPdfEnPestana } from "../utils/abrir-pdf-en-pestana";
 import "./portal-resultados.css";
 
 const formatearFecha = (fecha) => {
@@ -52,9 +58,21 @@ const PortalResultados = () => {
 	const [cargando, setCargando] = useState(false);
 	const [resultado, setResultado] = useState(null);
 	const [error, setError] = useState("");
+	const [generandoPdf, setGenerandoPdf] = useState(false);
+	const [membreteSrc, setMembreteSrc] = useState(MEMBRETE_FALLBACK);
 
 	const venta = resultado?.venta || null;
 	const estudios = resultado?.estudios || [];
+	useEffect(() => {
+		let cancelado = false;
+		cargarMembreteCdc().then((src) => {
+			if (!cancelado) setMembreteSrc(src);
+		});
+		return () => {
+			cancelado = true;
+		};
+	}, []);
+
 	useEffect(() => {
 		document.title = "Resultados";
 		if (folio && telefono) buscarResultados();
@@ -90,28 +108,61 @@ const PortalResultados = () => {
 		if (!data?.encontrado) setError(data?.mensaje || "No encontramos resultados.");
 	};
 
-	const verPdf = async () => {
-		const url = await generarResultadosCombinadosPdf({
-			venta,
-			estudios,
-			membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
-			datosQuimicoSrc: obtenerDatosQuimico(venta),
-		});
-		window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
+	const estudioImagen = estudios.find((estudio) => estudio.tipo === "imagen") || null;
+
+	const verEstudio = () => {
+		if (!estudioImagen) return;
+		const params = new URLSearchParams({ folio: folio.trim(), telefono });
+		window.open(`/visor-paciente/${estudioImagen.id}?${params.toString()}`, "_blank", "noopener,noreferrer");
 	};
 
-	const verPdfInterpretacion = async (estudio) => {
+	// Los datos de quien firmó la interpretación viven en el estudio, no en el
+	// listado; se piden al portal antes de armar el PDF.
+	const obtenerRadiologo = async (idEstudio) => {
 		try {
-			const url = await generarResultadosCombinadosPdf({
+			const { data } = await supabase.functions.invoke("portal-resultados", {
+				body: { p_folio: folio.trim(), p_telefono: telefono, p_id_estudio: String(idEstudio) },
+			});
+			return data?.radiologo || null;
+		} catch (errorRadiologo) {
+			console.error("No fue posible obtener la firma del radiólogo:", errorRadiologo);
+			return null;
+		}
+	};
+
+	// El PDF tarda en generarse: la pestaña se abre con el clic y se llena
+	// después, porque el navegador bloquea las que se abren ya sin el gesto.
+	const verPdf = async () => {
+		const ventana = window.open("", "_blank");
+		setGenerandoPdf(true);
+		setError("");
+		try {
+			if (estudioImagen) {
+				await generarReportePdf({
+					nombrePaciente: venta?.paciente || "",
+					reporteTexto: htmlReporteRadiologiaParaEditor(estudioImagen.reporte),
+					membreteSrc,
+					firma: await obtenerRadiologo(estudioImagen.id),
+					nombreArchivo: crearNombreArchivoReporte(venta?.paciente),
+					imprimir: true,
+					ventana,
+				});
+				return;
+			}
+			const salida = await generarResultadosCombinadosPdf({
 				venta,
-				estudios: [estudio],
-				membreteSrc: `data:image/jpeg;base64,${MEMBRETE_B64}`,
+				estudios,
+				membreteSrc,
 				datosQuimicoSrc: obtenerDatosQuimico(venta),
 			});
-			window.open(url instanceof Blob ? URL.createObjectURL(url) : url, "_blank", "noopener,noreferrer");
-		} catch (pdfError) {
-			console.error("Error al generar PDF de interpretación:", pdfError);
-			setError("No fue posible generar el PDF de interpretación. Intenta de nuevo.");
+			const url = salida instanceof Blob ? URL.createObjectURL(salida) : salida;
+			abrirPdfEnPestana({ url, titulo: `Resultados ${venta?.folio || ""}`, ventana });
+		} catch (errorPdf) {
+			ventana?.close();
+			console.error("Error al generar el PDF de resultados:", errorPdf);
+			setError("No fue posible abrir el PDF de resultados. Intenta de nuevo.");
+		} finally {
+			setGenerandoPdf(false);
 		}
 	};
 
@@ -166,7 +217,7 @@ const PortalResultados = () => {
 					<section className="portal-resultados-panel">
 						<div className="portal-membrete-print">
 							<img
-								src={`data:image/jpeg;base64,${MEMBRETE_B64}`}
+								src={membreteSrc}
 								alt="Centro Diagnostico California"
 							/>
 						</div>
@@ -192,7 +243,14 @@ const PortalResultados = () => {
 						</div>
 
 						<div className="portal-actions">
-							<button type="button" onClick={verPdf}>Ver PDF</button>
+							{estudioImagen && (
+								<button type="button" onClick={verEstudio}>
+									Ver estudio
+								</button>
+							)}
+							<button type="button" onClick={verPdf} disabled={generandoPdf}>
+								{generandoPdf ? "Abriendo PDF..." : "Ver PDF"}
+							</button>
 						</div>
 
 						{estudios.length === 0 ? (
@@ -213,19 +271,7 @@ const PortalResultados = () => {
 											<strong>{estudio.estado}</strong>
 										</div>
 
-										{estudio.tipo === "imagen" ? (
-											<div className="portal-estudio-actions">
-												<a
-													href={`/visor-paciente/${estudio.id}`}
-													target="_blank"
-													rel="noopener noreferrer">
-													Ver visor del paciente
-												</a>
-												<button type="button" onClick={() => verPdfInterpretacion(estudio)}>
-													Ver PDF de interpretación
-												</button>
-											</div>
-										) : (
+										{estudio.tipo === "imagen" ? null : (
 											<div className="portal-analitos-texto">
 												{estudio.archivo_cultivo_url && <p>PDF de cultivo adjunto.</p>}
 												<div className="portal-analitos-header">

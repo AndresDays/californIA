@@ -16,6 +16,7 @@ import {
   crearMensajeRegistroDuplicado,
 } from '../utils/duplicados-registro.js';
 import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
+import { useModalPersistente } from '../hooks/use-campo-persistente';
 import './pacientes.css';
 
 const Pacientes = () => {
@@ -24,8 +25,13 @@ const Pacientes = () => {
 
   const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente('pacientes:termino');
   const [paginaActual, setPaginaActual] = useState(1);
-  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
   const [pacienteEditar, setPacienteEditar] = useState(null);
+  // Si el navegador descarta la página, el modal se reabre con lo capturado en
+  // lugar de dejar al usuario en la lista creyendo que perdió el alta.
+  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useModalPersistente(
+    'modal-paciente:abierto',
+    { persistir: !pacienteEditar },
+  );
   const pacientesPorPagina = 500;
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
   const [pacienteAEliminar, setPacienteAEliminar] = useState(null);

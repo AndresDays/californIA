@@ -1,29 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
 import ModalNotificacion from '../../../components/ModalNotificacion';
+import {
+  hayBorradorPersistente,
+  limpiarBorradorPersistente,
+  useCampoPersistente,
+} from '../../../hooks/use-campo-persistente';
 import './modal-agregar-doctor.css';
 import '../../../components/admin-entity-modal.css';
 
+// Lo capturado sobrevive a que el navegador descarte la página al cambiar de
+// pestaña o de app; se descarta al guardar o al cerrar el modal.
+const BORRADOR = 'modal-doctor:';
+
 const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) => {
-  const [apellidoPaterno, setApellidoPaterno] = useState('');
-  const [apellidoMaterno, setApellidoMaterno] = useState('');
-  const [nombre, setNombre] = useState('');
+  // Al editar no se guarda borrador: esos datos ya viven en la base y
+  // arrastrarlos a un alta nueva crearía un duplicado.
+  const borrador = { persistir: !doctorEditar };
+  const [apellidoPaterno, setApellidoPaterno] = useCampoPersistente(`${BORRADOR}apellidoPaterno`, '', borrador);
+  const [apellidoMaterno, setApellidoMaterno] = useCampoPersistente(`${BORRADOR}apellidoMaterno`, '', borrador);
+  const [nombre, setNombre] = useCampoPersistente(`${BORRADOR}nombre`, '', borrador);
   
-  const [dia, setDia] = useState('');
-  const [mes, setMes] = useState('');
-  const [ano, setAno] = useState('');
-  const [edad, setEdad] = useState('');
+  const [dia, setDia] = useCampoPersistente(`${BORRADOR}dia`, '', borrador);
+  const [mes, setMes] = useCampoPersistente(`${BORRADOR}mes`, '', borrador);
+  const [ano, setAno] = useCampoPersistente(`${BORRADOR}ano`, '', borrador);
+  const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, '', borrador);
   
-  const [sexo, setSexo] = useState('');
-  const [email, setEmail] = useState('');
-  const [telefono, setTelefono] = useState('');
+  const [sexo, setSexo] = useCampoPersistente(`${BORRADOR}sexo`, '', borrador);
+  const [email, setEmail] = useCampoPersistente(`${BORRADOR}email`, '', borrador);
+  const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, '', borrador);
   
-  const [usuario, setUsuario] = useState('');
+  const [usuario, setUsuario] = useCampoPersistente(`${BORRADOR}usuario`, '', borrador);
+  // La contraseña nunca se respalda en el navegador.
   const [contrasena, setContrasena] = useState('');
-  const [tipoDoctor, setTipoDoctor] = useState('particular');
-  const [institucion, setInstitucion] = useState('');
-  const [esRadiologo, setEsRadiologo] = useState(false);
-  const [especialidad, setEspecialidad] = useState('');
+  const [tipoDoctor, setTipoDoctor] = useCampoPersistente(`${BORRADOR}tipoDoctor`, 'particular', borrador);
+  const [institucion, setInstitucion] = useCampoPersistente(`${BORRADOR}institucion`, '', borrador);
+  const [esRadiologo, setEsRadiologo] = useCampoPersistente(`${BORRADOR}esRadiologo`, false, borrador);
+  const [especialidad, setEspecialidad] = useCampoPersistente(`${BORRADOR}especialidad`, '', borrador);
   const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: '', tipo: 'exito' });
 
   const isEditMode = !!doctorEditar;
@@ -65,7 +78,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       }
       
       setEdad(doctorEditar.edad?.toString() || '');
-    } else if (isOpen && !doctorEditar) {
+    } else if (isOpen && !doctorEditar && !hayBorradorPersistente(BORRADOR)) {
       limpiarCampos();
     }
   }, [isOpen, doctorEditar]);
@@ -174,7 +187,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       if (onSave) {
         await onSave(doctorData, isEditMode);
       }
-      
+
+      limpiarBorradorPersistente(BORRADOR);
       onClose();
     } catch (error) {
       console.error('Error al guardar doctor:', error);
@@ -183,14 +197,26 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   };
 
   const handleCerrar = () => {
+    limpiarBorradorPersistente(BORRADOR);
     onClose();
+  };
+
+  // Un toque en el fondo cerraba el modal y descartaba todo, y es fácil de dar
+  // por accidente al volver a la app. Con algo capturado el fondo ya no cierra:
+  // para salir están la ✕ y el botón Cancelar.
+  const hayCaptura = () =>
+    [apellidoPaterno, apellidoMaterno, nombre, dia, mes, ano, sexo, email, telefono, usuario, contrasena, institucion, especialidad]
+      .some((valor) => String(valor ?? '').trim());
+
+  const handleClickFondo = () => {
+    if (!hayCaptura()) handleCerrar();
   };
 
   if (!isOpen) return null;
 
   return (
     <>
-    <div className="modal-overlay admin-entity-modal-overlay" onClick={handleCerrar}>
+    <div className="modal-overlay admin-entity-modal-overlay" onClick={handleClickFondo}>
       <div className="modal-container admin-entity-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isEditMode ? 'Editar Doctor' : 'Agregar Doctor'}</h2>

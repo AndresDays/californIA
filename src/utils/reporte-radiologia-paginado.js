@@ -5,6 +5,20 @@
 export const ALTURA_UTIL_REPORTE_SIN_FIRMA = 890;
 export const ALTURA_UTIL_REPORTE_CON_FIRMA = ALTURA_UTIL_REPORTE_SIN_FIRMA - 230;
 
+// El visor del paciente imprime el reporte sin editor: el texto arranca en el
+// px 169 de la hoja y se corta en el 985, justo antes del pie del membrete. La
+// última hoja además reserva el bloque de firma del radiólogo.
+export const ALTURA_TEXTO_VISOR_SIN_FIRMA = 985 - 169;
+// Alto real del bloque de firma en el visor: la firma menos el traslape con la
+// línea, el nombre, la leyenda, la cédula y el aire hasta el pie del membrete.
+export const ALTO_FIRMA_REPORTE = 200;
+
+// El medidor calcula el alto del reporte fuera de la hoja y se queda corto
+// frente al render real (márgenes que allí no colapsan igual). Este colchón
+// evita elegir una escala que después no quepa por unos pocos píxeles.
+export const MARGEN_MEDICION_REPORTE = 30;
+export const ALTURA_TEXTO_VISOR_CON_FIRMA = ALTURA_TEXTO_VISOR_SIN_FIRMA - ALTO_FIRMA_REPORTE;
+
 export const dividirReporteEnPaginas = (bloques, altoUtil) => {
 	if (!bloques.length) return [[]];
 
@@ -35,10 +49,17 @@ export const dividirReporteParaImpresion = (bloques, altoSinFirma, altoConFirma)
 	return paginas;
 };
 
+// Los renglones en blanco del editor viajan como `<p>&nbsp;</p>`: sin tratarlos
+// como vacíos, una hoja que sólo los contiene sobrevive y el reporte termina
+// con una página suelta (por ejemplo, la que sólo llevaría la firma).
+const textoVisibleBloque = (html) => String(html || '')
+	.replace(/<[^>]+>/g, '')
+	.replace(/&nbsp;/gi, ' ')
+	.replace(/\u00a0/g, ' ')
+	.trim();
+
 export const omitirPaginasVacias = (paginas) =>
-	paginas.filter((pagina) =>
-		pagina.some((bloque) => String(bloque.html || '').replace(/<[^>]+>/g, '').trim()),
-	);
+	paginas.filter((pagina) => pagina.some((bloque) => textoVisibleBloque(bloque.html)));
 
 const escaparHtml = (texto) => String(texto)
 	.replace(/&/g, '&amp;')
@@ -162,4 +183,41 @@ export const agruparConclusionReporte = (bloques, altoMaximo) => {
 		...bloques.slice(0, inicio),
 		{ html: conclusion.map((bloque) => bloque.html).join(''), alto },
 	];
+};
+
+// Reducciones que se prueban para que un reporte que se pasa por poco quepa en
+// una sola hoja, como se ve en el visor. Por debajo de 0.75 el texto empieza a
+// costar trabajo de leer, así que a partir de ahí se pagina normalmente.
+export const ESCALAS_UNA_HOJA = [1, 0.95, 0.9, 0.85, 0.8, 0.75];
+
+export const medirAltoReporteImpreso = (html, { ancho = ANCHO_UTIL_REPORTE, escala = 1 } = {}) => {
+	if (typeof document === 'undefined') return 0;
+	const medidor = document.createElement('div');
+	medidor.className = 'rr-editor';
+	medidor.setAttribute('aria-hidden', 'true');
+	medidor.style.cssText = [
+		'position:absolute',
+		'left:-10000px',
+		'top:0',
+		'visibility:hidden',
+		`width:${ancho}px`,
+		'min-height:0',
+		'margin:0',
+		'padding:0',
+		`zoom:${escala}`,
+	].join(';');
+	medidor.innerHTML = html || '';
+	document.body.append(medidor);
+	try {
+		return medidor.getBoundingClientRect().height;
+	} finally {
+		medidor.remove();
+	}
+};
+
+// Devuelve la mayor escala con la que el reporte completo cabe en una hoja, o
+// null si ni con la reducción máxima alcanza.
+export const elegirEscalaUnaHoja = (html, altoDisponible, escalas = ESCALAS_UNA_HOJA) => {
+	if (!String(html || '').replace(/<[^>]+>/g, '').trim()) return null;
+	return escalas.find((escala) => medirAltoReporteImpreso(html, { escala }) <= altoDisponible) ?? null;
 };

@@ -14,7 +14,7 @@ import {
 	esTelefono10Digitos,
 	normalizarTelefono10,
 } from "../../../utils/form-validations";
-import { crearUrlPortalResultados } from "../../../utils/portal-resultados";
+import { crearUrlPortalResultados, crearUrlVisorPaciente } from "../../../utils/portal-resultados";
 import { crearNotificacion } from "../../../utils/notificaciones";
 import {
 	EVENTOS_SOLICITUD,
@@ -3106,13 +3106,13 @@ const VisorDicom = () => {
 				}
 				let { data, error } = await supabase
 					.from("empleados")
-					.select("nombre, rol, cedula, especialidad, firma_url, firma_digital, sucursal, id_doctor")
+					.select("id_empleado, nombre, rol, cedula, especialidad, firma_url, firma_digital, sucursal, id_doctor")
 					.eq("auth_uuid", user.id)
 					.maybeSingle();
 				if (esErrorColumnaFaltante(error, "id_doctor")) {
 					({ data } = await supabase
 						.from("empleados")
-						.select("nombre, rol, cedula, especialidad, firma_url, firma_digital, id_sucursal, sucursal")
+						.select("id_empleado, nombre, rol, cedula, especialidad, firma_url, firma_digital, id_sucursal, sucursal")
 						.eq("auth_uuid", user.id)
 						.maybeSingle());
 				}
@@ -3158,7 +3158,11 @@ const VisorDicom = () => {
 			try {
 				const id = estudioId || estudioData?.id || "";
 				const qrData = id
-					? `${window.location.origin}/visor-paciente/${id}`
+					? crearUrlVisorPaciente({
+							idEstudio: id,
+							folio: estudioData?.folio,
+							telefono: estudioData?.telefonoPaciente,
+						})
 					: crearUrlPortalResultados({
 							folio: estudioData?.folio,
 							telefono: estudioData?.telefonoPaciente,
@@ -4401,6 +4405,9 @@ const VisorDicom = () => {
 			listo_entrega: finalizar,
 			entregado: false,
 			updated_at: actualizadoEn,
+			// El reporte lo firma quien lo interpreta: se guarda para que el
+			// visor del paciente y el PDF muestren su firma y cédula.
+			...(empleadoData?.id_empleado ? { id_radiologo: empleadoData.id_empleado } : {}),
 		};
 		let { error } = await actualizarReporte(payloadReporte);
 		while (error) {
@@ -4409,6 +4416,7 @@ const VisorDicom = () => {
 				![
 					"listo_entrega",
 					"entregado",
+					"id_radiologo",
 				].includes(columna)
 			) {
 				break;
