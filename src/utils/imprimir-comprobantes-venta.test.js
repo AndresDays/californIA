@@ -56,6 +56,24 @@ describe("imprimirComprobantesVenta", () => {
 		);
 	});
 
+	test("un comprobante colgado no deja la venta a medias", async () => {
+		jest.useFakeTimers();
+		// Una promesa que nunca resuelve: es lo que pasaba cuando el logo del
+		// ticket no cargaba, y ningún catch lo atrapaba.
+		generarTicketVenta.mockImplementationOnce(() => new Promise(() => {}));
+		const ventanaTicket = crearVentana();
+
+		const promesa = imprimirComprobantesVenta({
+			ticket: { folio: "F-1", ventana: ventanaTicket },
+		});
+		await jest.advanceTimersByTimeAsync(15000);
+		const resultado = await promesa;
+
+		expect(ventanaTicket.close).toHaveBeenCalled();
+		expect(resultado.error).toContain("tardó demasiado en generarse");
+		jest.useRealTimers();
+	});
+
 	test("reporta todo lo que no se pudo abrir", async () => {
 		generarTicketVenta.mockRejectedValueOnce(new Error("falla"));
 		generarEtiquetasEstudiosImagen.mockImplementationOnce(() => {

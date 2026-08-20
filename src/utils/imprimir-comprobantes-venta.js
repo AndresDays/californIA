@@ -6,9 +6,22 @@ import { generarEtiquetasEstudiosLaboratorio } from "./generar-etiquetas-estudio
 // que un tropiezo aquí (un dato que le falta al ticket, un PDF que no se pudo
 // armar) no debe tirar el registro ni cerrar la pestaña que sí se abrió. Cada
 // comprobante va por su cuenta y lo que falle se reporta al final.
+// Tope por comprobante: si algo se queda colgado, la venta igual termina de
+// registrarse y el usuario se entera, en lugar de quedarse con una pestaña en
+// blanco y la pantalla sin avanzar.
+const ESPERA_MAXIMA_MS = 15000;
+
+const conLimiteDeEspera = (promesa) =>
+	Promise.race([
+		Promise.resolve(promesa),
+		new Promise((_, reject) =>
+			setTimeout(() => reject(new Error("tardó demasiado en generarse")), ESPERA_MAXIMA_MS),
+		),
+	]);
+
 const ejecutar = async (nombre, tarea, ventana, fallos) => {
 	try {
-		await tarea();
+		await conLimiteDeEspera(tarea());
 	} catch (error) {
 		console.error(`Error al generar ${nombre}:`, error);
 		ventana?.close?.();
