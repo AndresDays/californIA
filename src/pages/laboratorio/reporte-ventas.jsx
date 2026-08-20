@@ -44,6 +44,7 @@ const ReporteVentas = () => {
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
 	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState("laboratorio");
+	const [ventaDetalle, setVentaDetalle] = useState(null);
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
 	const {
@@ -61,6 +62,16 @@ const ReporteVentas = () => {
 	const areas      = catalogos?.areas      ?? [];
 
 	const errorReporte = errorQuery?.message ?? "";
+
+	// Las ventas guardadas antes de que el reporte trajera la relación con
+	// doctores sólo tienen el id, así que se resuelve con el catálogo.
+	const doctorPorId = useMemo(
+		() => new Map(doctores.map((doctor) => [String(doctor.id_doctor), doctor.nombre])),
+		[doctores],
+	);
+
+	const nombreDoctorVenta = (venta) =>
+		venta?.doctores?.nombre || doctorPorId.get(String(venta?.id_doctor || "")) || "-";
 
 	const ventasFiltradas = useMemo(
 		() =>
@@ -271,7 +282,15 @@ const ReporteVentas = () => {
 					<tbody>
 						{ventasFiltradas.map((venta) => (
 							<tr key={venta.id_venta}>
-								<td>{venta.folio}</td>
+								<td>
+									<button
+										type="button"
+										className="rv-folio-link"
+										onClick={() => setVentaDetalle(venta)}
+										title="Ver detalle del folio">
+										{venta.folio}
+									</button>
+								</td>
 								<td>{new Date(venta.fecha_venta).toLocaleDateString("es-MX")}</td>
 								<td>{venta.pacientes?.nombre || "Sin paciente"}</td>
 								<td>{venta.clientes?.nombre || "Particular"}</td>
@@ -593,6 +612,98 @@ const ReporteVentas = () => {
 					</div>
 				</div>
 			</div>
+
+			{ventaDetalle && (
+				<div className="rv-modal-overlay" onClick={() => setVentaDetalle(null)}>
+					<div className="rv-modal" onClick={(evento) => evento.stopPropagation()}>
+						<div className="rv-modal-header">
+							<div>
+								<h2>Detalle del folio</h2>
+								<p>
+									{new Date(ventaDetalle.fecha_venta).toLocaleString("es-MX")} ·{" "}
+									{ventaDetalle.empleados?.nombre || "Sin vendedor"}
+								</p>
+							</div>
+							<button
+								className="rv-modal-close"
+								onClick={() => setVentaDetalle(null)}
+								aria-label="Cerrar">
+								×
+							</button>
+						</div>
+
+						<div className="rv-modal-summary">
+							<div>
+								<span>Folio</span>
+								<strong>{ventaDetalle.folio || "-"}</strong>
+							</div>
+							<div>
+								<span>Paciente</span>
+								<strong>{ventaDetalle.pacientes?.nombre || "Sin paciente"}</strong>
+							</div>
+							<div>
+								<span>Total</span>
+								<strong>{formatoMonedaReporte(ventaDetalle.total)}</strong>
+							</div>
+						</div>
+
+						<div className="rv-modal-cuerpo">
+						<div className="rv-modal-grid">
+							<div><span>Celular</span><strong>{ventaDetalle.pacientes?.telefono || "-"}</strong></div>
+							<div><span>Correo</span><strong>{ventaDetalle.pacientes?.email || "-"}</strong></div>
+							<div><span>Edad</span><strong>{ventaDetalle.pacientes?.edad ? `${ventaDetalle.pacientes.edad} años` : "-"}</strong></div>
+							<div><span>Sexo</span><strong>{ventaDetalle.pacientes?.sexo || "-"}</strong></div>
+							<div><span>Empresa</span><strong>{ventaDetalle.empresas?.nombre || "-"}</strong></div>
+							<div><span>Cliente</span><strong>{ventaDetalle.clientes?.nombre || "Particular"}</strong></div>
+							<div><span>Doctor</span><strong>{nombreDoctorVenta(ventaDetalle)}</strong></div>
+							<div><span>Sucursal</span><strong>{ventaDetalle.sucursal || ventaDetalle.citas?.sucursales?.nombre || "Sin sucursal"}</strong></div>
+							<div><span>Vendedor</span><strong>{ventaDetalle.empleados?.nombre || "-"}</strong></div>
+							<div><span>Forma de pago</span><strong>{ventaDetalle.forma_pago || "-"}</strong></div>
+							<div><span>Subtotal</span><strong>{formatoMonedaReporte(ventaDetalle.subtotal)}</strong></div>
+							<div><span>Descuento</span><strong>{formatoMonedaReporte(ventaDetalle.descuento)}</strong></div>
+							<div><span>Pagado</span><strong>{formatoMonedaReporte(ventaDetalle.pago_recibido)}</strong></div>
+							<div><span>Cambio</span><strong>{formatoMonedaReporte(ventaDetalle.cambio)}</strong></div>
+							<div><span>Adeudo</span><strong>{formatoMonedaReporte(calcularSaldoVentaReporte(ventaDetalle))}</strong></div>
+						</div>
+
+						{ventaDetalle.observaciones && (
+							<div className="rv-modal-observaciones">
+								<span>Observaciones</span>
+								<p>{ventaDetalle.observaciones}</p>
+							</div>
+						)}
+
+						<div className="rv-modal-estudios">
+							<h3>Estudios</h3>
+							{(ventaDetalle.estudios_venta || []).length === 0 ? (
+								<p>Este folio no tiene estudios registrados.</p>
+							) : (
+								<table>
+									<thead>
+										<tr>
+											<th>Clave</th>
+											<th>Estudio</th>
+											<th>Área</th>
+											<th>Precio</th>
+										</tr>
+									</thead>
+									<tbody>
+										{(ventaDetalle.estudios_venta || []).map((estudio) => (
+											<tr key={estudio.id_estudio_venta || estudio.clave_estudio}>
+												<td>{estudio.clave_estudio || "-"}</td>
+												<td>{estudio.descripcion_estudio || "-"}</td>
+												<td>{estudio.area || "-"}</td>
+												<td>{formatoMonedaReporte(estudio.precio)}</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							)}
+						</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</PageLayout>
 	);
 };
