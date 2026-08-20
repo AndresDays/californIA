@@ -1,0 +1,42 @@
+// Venta de ejemplo para las pruebas del detalle del folio.
+export const VENTA_MOCK = {
+	id_venta: 1,
+	folio: "1708260004",
+	fecha_venta: "2026-08-17T18:00:00.000Z",
+	subtotal: 1200,
+	descuento: 200,
+	total: 1000,
+	pago_recibido: 600,
+	cambio: 0,
+	forma_pago: "Efectivo",
+	observaciones: "Paciente en ayuno",
+	id_doctor: 9,
+	sucursal: "Matriz Francisco Villa",
+	pacientes: {
+		id_paciente: 7,
+		nombre: "Maria Rosalia Lopez",
+		telefono: "3221234567",
+		email: "maria@example.com",
+		edad: 42,
+		sexo: "Femenino",
+	},
+	clientes: { id_cliente: 3, nombre: "Seguros del Pacífico" },
+	empresas: { id_empresa: 2, nombre: "Centro Diagnóstico por Imagen" },
+	empleados: { id_empleado: 5, nombre: "Ana Torres" },
+	estudios_venta: [
+		{
+			id_estudio_venta: 11,
+			clave_estudio: "US-HEP",
+			descripcion_estudio: "U.S. Hepato Vesicular",
+			area: "Ultrasonido",
+			precio: 700,
+		},
+		{
+			id_estudio_venta: 12,
+			clave_estudio: "BHC",
+			descripcion_estudio: "Biometría Hemática",
+			area: "Laboratorio",
+			precio: 300,
+		},
+	],
+};

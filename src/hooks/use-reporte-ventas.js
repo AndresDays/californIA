@@ -36,6 +36,21 @@ const SELECT_FULL = `
   estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
 `;
 
+// El detalle del folio necesita más de lo que pinta la tabla: el teléfono del
+// paciente, la empresa que facturó y el doctor que refirió. Va como un intento
+// aparte para que un entorno sin esas columnas siga cayendo a los selects de
+// siempre en lugar de quedarse sin reporte.
+const SELECT_DETALLE = SELECT_FULL.replace(
+  'id_cita, id_sucursal, sucursal,',
+  'id_cita, id_sucursal, sucursal, id_empresa, observaciones,',
+).replace(
+  'pacientes ( id_paciente, nombre ),',
+  'pacientes ( id_paciente, nombre, telefono, email, edad, sexo ),',
+).replace(
+  'clientes ( id_cliente, nombre ),',
+  'clientes ( id_cliente, nombre ),\n  doctores ( id_doctor, nombre ),\n  empresas ( id_empresa, nombre ),',
+);
+
 const puedeReintentarSinCita = (error) => {
   const msg = error?.message || '';
   return (
@@ -71,23 +86,29 @@ const fetchVentasConFallback = async ({ fechaInicial, fechaFinal }) => {
 		.lt('fecha_venta', rango.fin)
       .order('fecha_venta', { ascending: false });
 
-  // Intento 1: query completo
-  let { data, error } = await crearQuery(SELECT_FULL);
+  // Intento 1: con los datos del detalle del folio
+  let { data, error } = await crearQuery(SELECT_DETALLE);
 
-  // Intento 2: sin relación citas
+  // Intento 2: query completo de siempre
+  if (error) {
+    const r = await crearQuery(SELECT_FULL);
+    data = r.data; error = r.error;
+  }
+
+  // Intento 3: sin relación citas
   if (error && puedeReintentarSinCita(error)) {
     const r = await crearQuery(SELECT_CON_CITA);
     data = r.data; error = r.error;
     if (!error) data = await cargarCitasDeVentas(data ?? []);
   }
 
-  // Intento 3: sin columnas de sucursal
+  // Intento 4: sin columnas de sucursal
   if (error && (esErrorColumnaSchemaCache(error, 'id_sucursal') || esErrorColumnaSchemaCache(error, 'sucursal'))) {
     const r = await crearQuery(SELECT_SUCURSAL);
     data = r.data; error = r.error;
   }
 
-  // Intento 4: base mínima
+  // Intento 5: base mínima
   if (error) {
     const r = await crearQuery(SELECT_BASE);
     data = r.data; error = r.error;
