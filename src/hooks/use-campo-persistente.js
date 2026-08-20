@@ -65,6 +65,22 @@ export const useModalPersistente = (clave, { persistir = true } = {}) => {
 		}
 	}, [abierto, clave, persistir]);
 
+	// Salir de la pantalla con el modal abierto no deja el aviso puesto: sin
+	// esto la marca quedaba pegada y el modal reaparecía en cualquier pantalla
+	// que compartiera la clave. Cuando el navegador descarta la página no corre
+	// ninguna limpieza, que es justo el caso en el que sí queremos reabrirlo.
+	useEffect(
+		() => () => {
+			if (!hayAlmacenamiento()) return;
+			try {
+				sessionStorage.removeItem(`${PREFIJO}${clave}`);
+			} catch {
+				// El borrador es una ayuda, no un requisito.
+			}
+		},
+		[clave],
+	);
+
 	return [abierto, setAbierto];
 };
 
