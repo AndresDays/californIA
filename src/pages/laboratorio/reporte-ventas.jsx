@@ -60,6 +60,7 @@ const ReporteVentas = () => {
 	const clientes   = catalogos?.clientes   ?? [];
 	const doctores   = catalogos?.doctores   ?? [];
 	const areas      = catalogos?.areas      ?? [];
+	const empresas   = catalogos?.empresas   ?? [];
 
 	const errorReporte = errorQuery?.message ?? "";
 
@@ -72,6 +73,14 @@ const ReporteVentas = () => {
 
 	const nombreDoctorVenta = (venta) =>
 		venta?.doctores?.nombre || doctorPorId.get(String(venta?.id_doctor || "")) || "-";
+
+	const empresaPorId = useMemo(
+		() => new Map(empresas.map((empresa) => [String(empresa.id_empresa), empresa.nombre])),
+		[empresas],
+	);
+
+	const nombreEmpresaVenta = (venta) =>
+		venta?.empresas?.nombre || empresaPorId.get(String(venta?.id_empresa || "")) || "-";
 
 	const ventasFiltradas = useMemo(
 		() =>
@@ -653,7 +662,7 @@ const ReporteVentas = () => {
 							<div><span>Correo</span><strong>{ventaDetalle.pacientes?.email || "-"}</strong></div>
 							<div><span>Edad</span><strong>{ventaDetalle.pacientes?.edad ? `${ventaDetalle.pacientes.edad} años` : "-"}</strong></div>
 							<div><span>Sexo</span><strong>{ventaDetalle.pacientes?.sexo || "-"}</strong></div>
-							<div><span>Empresa</span><strong>{ventaDetalle.empresas?.nombre || "-"}</strong></div>
+							<div><span>Empresa</span><strong>{nombreEmpresaVenta(ventaDetalle)}</strong></div>
 							<div><span>Cliente</span><strong>{ventaDetalle.clientes?.nombre || "Particular"}</strong></div>
 							<div><span>Doctor</span><strong>{nombreDoctorVenta(ventaDetalle)}</strong></div>
 							<div><span>Sucursal</span><strong>{ventaDetalle.sucursal || ventaDetalle.citas?.sucursales?.nombre || "Sin sucursal"}</strong></div>

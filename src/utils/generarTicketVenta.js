@@ -23,18 +23,35 @@ export const resolverEmpresaTicketReimpresion = (empresa) => empresa || 'CDC';
 
 const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
 
+const ESPERA_MAXIMA_LOGO_MS = 4000;
+
+// Nada de lo que tarde en cargar puede dejar el ticket a medias: un chunk que no
+// baja o una imagen que nunca dispara onload ni onerror colgaban la promesa, y
+// un cuelgue no lo atrapa ningún catch: la venta se quedaba sin comprobante,
+// sin aviso y sin salir de la pantalla.
+const conLimiteDeEspera = (promesa, ms = ESPERA_MAXIMA_LOGO_MS) =>
+	Promise.race([
+		promesa,
+		new Promise((_, reject) => setTimeout(() => reject(new Error('Tardó demasiado en cargar')), ms)),
+	]);
+
 const getImageBase64 = (url) =>
 	new Promise((resolve, reject) => {
 		const img = new Image();
+		const rendirse = setTimeout(() => reject(new Error('La imagen tardó demasiado')), ESPERA_MAXIMA_LOGO_MS);
+		const terminar = (accion) => (valor) => {
+			clearTimeout(rendirse);
+			accion(valor);
+		};
 		img.crossOrigin = 'Anonymous';
 		img.onload = () => {
 			const canvas = document.createElement('canvas');
 			canvas.width = img.width;
 			canvas.height = img.height;
 			canvas.getContext('2d').drawImage(img, 0, 0);
-			resolve(canvas.toDataURL('image/jpeg'));
+			terminar(resolve)(canvas.toDataURL('image/jpeg'));
 		};
-		img.onerror = reject;
+		img.onerror = terminar(reject);
 		img.src = url;
 	});
 
@@ -84,7 +101,14 @@ export const generarTicketVenta = async (datosTicket) => {
 		vendedor,
 		ventana,
 	} = datosTicket;
-	const rfcEmpresa = resolverRfcTicketEmpresa(empresa);
+	// Una empresa sin RFC configurado no puede dejar al paciente sin ticket: se
+	// imprime igual, sin esa línea. El ticket no es comprobante fiscal.
+	let rfcEmpresa = '';
+	try {
+		rfcEmpresa = resolverRfcTicketEmpresa(empresa);
+	} catch (error) {
+		console.warn(`Ticket sin RFC (${empresa || 'sin empresa'}):`, error.message);
+	}
 	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
 
 	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
@@ -94,7 +118,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	let y = 6;
 
 	try {
-		const logoMod = await import('../assets/logoCDC.jpg');
+		const logoMod = await conLimiteDeEspera(import('../assets/logoCDC.jpg'));
 		const logoB64 = await getImageBase64(logoMod.default);
 		pdf.addImage(logoB64, 'JPEG', mg, y, W - mg * 2, 22);
 		y += 24;
@@ -108,7 +132,7 @@ export const generarTicketVenta = async (datosTicket) => {
 		'Paulina Diaz Cortes',
 		'Dirección: Av. Francisco Villa 880, C.P. 48328, Colonia',
 		'Gaviotas, Puerto Vallarta, Jalisco, México.',
-		`RFC: ${rfcEmpresa}`,
+		...(rfcEmpresa ? [`RFC: ${rfcEmpresa}`] : []),
 		'Correo: labcalifornia01@gmail.com',
 	];
 	lineasEncabezado.forEach((l) => {
@@ -252,7 +276,7 @@ export const generarTicketVenta = async (datosTicket) => {
 	}
 
 	try {
-		const qrImg = await generarQR(urlPortalResultados);
+		const qrImg = await conLimiteDeEspera(generarQR(urlPortalResultados));
 		const qrSize = 22;
 		pdf.addImage(qrImg, 'PNG', (W - qrSize) / 2, y, qrSize, qrSize);
 		y += qrSize + 4;
