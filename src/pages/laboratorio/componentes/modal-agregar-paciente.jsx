@@ -10,25 +10,34 @@ import nivelIcono from '../../../assets/nivelIcono.png';
 import correoIcono from '../../../assets/correoIcono.png';
 import telefonoIcono from '../../../assets/telefonoIcono.png';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
+import {
+  hayBorradorPersistente,
+  limpiarBorradorPersistente,
+  useCampoPersistente,
+} from '../../../hooks/use-campo-persistente';
+
+// Lo capturado sobrevive a que el navegador descarte la página al cambiar de
+// pestaña o de app; se descarta al guardar o al cerrar el modal.
+const BORRADOR = 'modal-paciente:';
 
 const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = null }) => {
-  const [apellidoPaterno, setApellidoPaterno] = useState('');
-  const [apellidoMaterno, setApellidoMaterno] = useState('');
-  const [nombre, setNombre] = useState('');
+  const [apellidoPaterno, setApellidoPaterno] = useCampoPersistente(`${BORRADOR}apellidoPaterno`, '');
+  const [apellidoMaterno, setApellidoMaterno] = useCampoPersistente(`${BORRADOR}apellidoMaterno`, '');
+  const [nombre, setNombre] = useCampoPersistente(`${BORRADOR}nombre`, '');
   
-  const [dia, setDia] = useState('');
-  const [mes, setMes] = useState('');
-  const [ano, setAno] = useState('');
-  const [edad, setEdad] = useState('');
-  const [unidadEdad, setUnidadEdad] = useState('Años'); 
+  const [dia, setDia] = useCampoPersistente(`${BORRADOR}dia`, '');
+  const [mes, setMes] = useCampoPersistente(`${BORRADOR}mes`, '');
+  const [ano, setAno] = useCampoPersistente(`${BORRADOR}ano`, '');
+  const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, '');
+  const [unidadEdad, setUnidadEdad] = useCampoPersistente(`${BORRADOR}unidadEdad`, 'Años'); 
   
-  const [sexo, setSexo] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [cedula, setCedula] = useState('');
-  const [condicionEspecial, setCondicionEspecial] = useState('');
-  const [email, setEmail] = useState('');
-  const [pais, setPais] = useState('México');
-  const [telefono, setTelefono] = useState('');
+  const [sexo, setSexo] = useCampoPersistente(`${BORRADOR}sexo`, '');
+  const [direccion, setDireccion] = useCampoPersistente(`${BORRADOR}direccion`, '');
+  const [cedula, setCedula] = useCampoPersistente(`${BORRADOR}cedula`, '');
+  const [condicionEspecial, setCondicionEspecial] = useCampoPersistente(`${BORRADOR}condicionEspecial`, '');
+  const [email, setEmail] = useCampoPersistente(`${BORRADOR}email`, '');
+  const [pais, setPais] = useCampoPersistente(`${BORRADOR}pais`, 'México');
+  const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, '');
 
   const [nivelesMAR, setNivelesMAR] = useState([]);
 
@@ -70,7 +79,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       }
       
       setEdad(pacienteEditar.edad?.toString() || '');
-    } else if (isOpen && !pacienteEditar) {
+    } else if (isOpen && !pacienteEditar && !hayBorradorPersistente(BORRADOR)) {
       limpiarCampos();
     }
   }, [isOpen, pacienteEditar]);
@@ -152,6 +161,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     setEmail('');
     setPais('México');
     setTelefono('');
+    limpiarBorradorPersistente(BORRADOR);
   };
 
   const handleTelefonoChange = (e) => {
@@ -210,10 +220,12 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     }
 
     onGuardar(pacienteData, isEditMode);
+    limpiarCampos();
     onClose();
   };
 
   const handleClose = () => {
+    limpiarCampos();
     onClose();
   };
 

@@ -16,8 +16,10 @@ import { htmlReporteRadiologiaParaEditor } from "../../../utils/reporte-radiolog
 import {
 	ALTURA_TEXTO_VISOR_CON_FIRMA,
 	ALTURA_TEXTO_VISOR_SIN_FIRMA,
+	MARGEN_MEDICION_REPORTE,
 	agruparConclusionReporte,
 	crearBloquesReporteParaImprimir,
+	elegirEscalaUnaHoja,
 	dividirReporteParaImpresion,
 	medirBloquesReporte,
 	omitirPaginasVacias,
@@ -398,11 +400,22 @@ const VisorPaciente = () => {
 	// El reporte se reparte en hojas membretadas completas, igual que al
 	// imprimirlo, para que el texto nunca invada el pie del membrete. La última
 	// hoja reserva el espacio del bloque de firma.
+	const altoUltimaHoja = tieneFirma
+		? ALTURA_TEXTO_VISOR_CON_FIRMA
+		: ALTURA_TEXTO_VISOR_SIN_FIRMA;
+	// Si el reporte se pasa de una hoja por poco, se reduce un poco el texto
+	// para que quepa completo, igual que al imprimirlo desde el editor.
+	const escalaUnaHoja = useMemo(
+		() =>
+			vistaReporte && reporteHtml
+				? elegirEscalaUnaHoja(reporteHtml, altoUltimaHoja - MARGEN_MEDICION_REPORTE)
+				: null,
+		[altoUltimaHoja, reporteHtml, vistaReporte],
+	);
 	const paginasReporte = useMemo(() => {
 		if (!vistaReporte || !reporteHtml) return [];
-		const altoUltima = tieneFirma
-			? ALTURA_TEXTO_VISOR_CON_FIRMA
-			: ALTURA_TEXTO_VISOR_SIN_FIRMA;
+		if (escalaUnaHoja) return [[{ html: reporteHtml, alto: 0 }]];
+		const altoUltima = altoUltimaHoja;
 		const paginas = omitirPaginasVacias(
 			dividirReporteParaImpresion(
 				agruparConclusionReporte(
@@ -414,7 +427,7 @@ const VisorPaciente = () => {
 			),
 		);
 		return paginas.length ? paginas : [[{ html: reporteHtml, alto: 0 }]];
-	}, [reporteHtml, tieneFirma, vistaReporte]);
+	}, [altoUltimaHoja, escalaUnaHoja, reporteHtml, vistaReporte]);
 	const totalImagenes = serieActiva?.imagenes?.length || 0;
 
 	const descargarReportePdf = async () => {
@@ -717,7 +730,9 @@ const VisorPaciente = () => {
 									<div className="rr-page vd-rr-page" key={`hoja-${indicePagina}`}>
 										<img className="rr-membrete" src={membreteSrc} alt="membrete" />
 										<div className="rr-contenido vd-rr-contenido">
-											<div className="rr-editor vd-rr-editor vp-reporte-texto">
+											<div
+												className="rr-editor vd-rr-editor vp-reporte-texto"
+												style={escalaUnaHoja ? { zoom: escalaUnaHoja } : undefined}>
 												{pagina.map((bloque, indiceBloque) => (
 													<div
 														key={`bloque-${indiceBloque}`}

@@ -16,6 +16,7 @@ import {
   crearMensajeRegistroDuplicado,
 } from '../utils/duplicados-registro.js';
 import ModalAgregarPaciente from './laboratorio/componentes/modal-agregar-paciente.jsx';
+import { hayBorradorPersistente } from '../hooks/use-campo-persistente';
 import './pacientes.css';
 
 const Pacientes = () => {
@@ -24,7 +25,11 @@ const Pacientes = () => {
 
   const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente('pacientes:termino');
   const [paginaActual, setPaginaActual] = useState(1);
-  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(false);
+  // Si el navegador descartó la página con el alta a medias, el modal se
+  // reabre con lo que ya se había capturado.
+  const [modalAgregarPacienteOpen, setModalAgregarPacienteOpen] = useState(
+    () => hayBorradorPersistente('modal-paciente:'),
+  );
   const [pacienteEditar, setPacienteEditar] = useState(null);
   const pacientesPorPagina = 500;
   const [modalEliminarOpen, setModalEliminarOpen] = useState(false);
