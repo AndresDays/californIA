@@ -1,7 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
+import ModalNotificacion from "../../components/ModalNotificacion";
+import { useAuth } from "../../context/auth-context";
+import { supabase } from "../../lib/supabase-client";
+import { registrarAbonoVenta } from "../../utils/abono-venta";
+import {
+	esPagoConTarjeta,
+	normalizarCodigoAprobacion,
+	normalizarUltimos4,
+} from "../../utils/pago-tarjeta";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
@@ -45,7 +54,14 @@ const ReporteVentas = () => {
 	const [tipoReporte, setTipoReporte] = useState("general");
 	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState("laboratorio");
 	const [ventaDetalle, setVentaDetalle] = useState(null);
+	const [montoAbono, setMontoAbono] = useState("");
+	const [formaPagoAbono, setFormaPagoAbono] = useState("efectivo");
+	const [ultimos4Abono, setUltimos4Abono] = useState("");
+	const [codigoAprobacionAbono, setCodigoAprobacionAbono] = useState("");
+	const [cobrandoAdeudo, setCobrandoAdeudo] = useState(false);
+	const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
+	const { user } = useAuth();
 
 	const {
 		data: ventas = [],
@@ -313,6 +329,56 @@ const ReporteVentas = () => {
 				</table>
 			</div>
 		);
+	};
+
+	const saldoVentaDetalle = ventaDetalle
+		? calcularSaldoVentaReporte(ventaDetalle)
+		: 0;
+
+	// Al abrir un folio el cobro arranca con el adeudo completo, que es lo que
+	// se cobra la mayoría de las veces.
+	useEffect(() => {
+		if (!ventaDetalle) return;
+		const saldo = calcularSaldoVentaReporte(ventaDetalle);
+		setMontoAbono(saldo > 0 ? String(saldo) : "");
+		setFormaPagoAbono(ventaDetalle.forma_pago || "efectivo");
+		setUltimos4Abono("");
+		setCodigoAprobacionAbono("");
+	}, [ventaDetalle]);
+
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
+		setNotificacion({ isOpen: true, mensaje, tipo });
+
+	const cobrarAdeudo = async () => {
+		if (!ventaDetalle) return;
+		setCobrandoAdeudo(true);
+		try {
+			const { pagoRecibido, adeudo } = await registrarAbonoVenta(supabase, {
+				venta: ventaDetalle,
+				monto: montoAbono,
+				formaPago: formaPagoAbono,
+				ultimos4: ultimos4Abono,
+				codigoAprobacion: codigoAprobacionAbono,
+				motivo: "Cobro de adeudo desde el reporte de ventas",
+				empleado: empleadoData,
+				user,
+			});
+			mostrarNotificacion(
+				adeudo > 0
+					? `Abono registrado. Adeudo restante ${formatoMonedaReporte(adeudo)}`
+					: "Adeudo liquidado correctamente",
+			);
+			// El folio abierto refleja el cobro sin esperar a que vuelva la consulta.
+			setVentaDetalle((actual) =>
+				actual ? { ...actual, pago_recibido: pagoRecibido, forma_pago: formaPagoAbono } : actual,
+			);
+			await refrescarVentas();
+		} catch (error) {
+			console.error("Error al cobrar el adeudo:", error);
+			mostrarNotificacion(error.message || "No se pudo registrar el cobro", "advertencia");
+		} finally {
+			setCobrandoAdeudo(false);
+		}
 	};
 
 	return (
@@ -675,6 +741,93 @@ const ReporteVentas = () => {
 							<div><span>Adeudo</span><strong>{formatoMonedaReporte(calcularSaldoVentaReporte(ventaDetalle))}</strong></div>
 						</div>
 
+						{saldoVentaDetalle > 0 ? (
+							<div className="rv-modal-cobro">
+								<h3>Cobrar adeudo</h3>
+								<p className="rv-cobro-saldo">
+									Adeudo actual: <strong>{formatoMonedaReporte(saldoVentaDetalle)}</strong>
+								</p>
+								<div className="rv-cobro-campos">
+									<label>
+										<span>Monto</span>
+										<input
+											type="number"
+											min="0"
+											step="0.01"
+											value={montoAbono}
+											onChange={(evento) => setMontoAbono(evento.target.value)}
+											disabled={cobrandoAdeudo}
+										/>
+									</label>
+									<label>
+										<span>Forma de pago</span>
+										<select
+											value={formaPagoAbono}
+											onChange={(evento) => setFormaPagoAbono(evento.target.value)}
+											disabled={cobrandoAdeudo}>
+											<option value="efectivo">Efectivo</option>
+											<option value="tarjeta_debito">Tarjeta Débito</option>
+											<option value="tarjeta_credito">Tarjeta Crédito</option>
+											<option value="transferencia">Transferencia</option>
+										</select>
+									</label>
+									{esPagoConTarjeta(formaPagoAbono) && (
+										<>
+											<label>
+												<span>Últimos 4</span>
+												<input
+													type="text"
+													inputMode="numeric"
+													maxLength={4}
+													value={ultimos4Abono}
+													onChange={(evento) =>
+														setUltimos4Abono(normalizarUltimos4(evento.target.value))
+													}
+													disabled={cobrandoAdeudo}
+													placeholder="1234"
+												/>
+											</label>
+											<label>
+												<span>Cód. aprobación</span>
+												<input
+													type="text"
+													maxLength={12}
+													value={codigoAprobacionAbono}
+													onChange={(evento) =>
+														setCodigoAprobacionAbono(
+															normalizarCodigoAprobacion(evento.target.value),
+														)
+													}
+													disabled={cobrandoAdeudo}
+													placeholder="A1B2C3"
+												/>
+											</label>
+										</>
+									)}
+								</div>
+								<div className="rv-cobro-acciones">
+									<button
+										type="button"
+										className="rv-btn-sm"
+										onClick={() => setMontoAbono(String(saldoVentaDetalle))}
+										disabled={cobrandoAdeudo}>
+										Liquidar todo
+									</button>
+									<button
+										type="button"
+										className="rv-btn-cobrar"
+										onClick={cobrarAdeudo}
+										disabled={cobrandoAdeudo}>
+										{cobrandoAdeudo ? "Registrando..." : "Registrar cobro"}
+									</button>
+								</div>
+							</div>
+						) : (
+							<div className="rv-modal-cobro rv-modal-cobro-liquidado">
+								Este folio no tiene adeudo pendiente.
+							</div>
+						)}
+
 						{ventaDetalle.observaciones && (
 							<div className="rv-modal-observaciones">
 								<span>Observaciones</span>
@@ -713,6 +866,13 @@ const ReporteVentas = () => {
 					</div>
 				</div>
 			)}
+
+			<ModalNotificacion
+				isOpen={notificacion.isOpen}
+				onClose={() => setNotificacion((actual) => ({ ...actual, isOpen: false }))}
+				mensaje={notificacion.mensaje}
+				tipo={notificacion.tipo}
+			/>
 		</PageLayout>
 	);
 };

@@ -1880,7 +1880,6 @@ const NuevoPaciente = () => {
 												<th>Descripción</th>
 												<th>Cliente</th>
 												<th>Precio</th>
-												<th>Días Proceso</th>
 												<th>Borrar</th>
 											</tr>
 										</thead>
@@ -1900,7 +1899,6 @@ const NuevoPaciente = () => {
 													</td>
 														<td>{est.cliente}</td>
 														<td>${est.precio.toFixed(2)}</td>
-														<td>{est.diasProceso} días</td>
 														<td>
 															<button
 																className="btn-delete"
@@ -1916,7 +1914,7 @@ const NuevoPaciente = () => {
 													</tr>
 													{est.muestra_pendiente && (
 														<tr className="estudio-muestra-pendiente-row">
-															<td colSpan="6">
+															<td colSpan="5">
 																Muestra pendiente para {est.clave}
 															</td>
 														</tr>
@@ -1925,7 +1923,7 @@ const NuevoPaciente = () => {
 											))}
 											{estudiosSeleccionados.length === 0 && (
 												<tr>
-													<td colSpan="6" className="empty-message"></td>
+													<td colSpan="5" className="empty-message"></td>
 												</tr>
 											)}
 										</tbody>
