@@ -999,7 +999,33 @@ const NuevoPaciente = () => {
 		return data || [];
 	}, []);
 
-	const seleccionarPaciente = (paciente) => {
+	// Los datos de la orden anterior no se arrastran al paciente que se acaba de
+	// elegir: cada paciente empieza su propia orden. No aplica cuando el
+	// paciente viene de un alta, de una cita o de una cotización, porque ahí la
+	// captura de la orden ya está hecha o se llena enseguida.
+	const limpiarDatosOrden = () => {
+		setDoctorSeleccionado(null);
+		setDoctorBusqueda("");
+		setObservaciones("");
+		setClienteSeleccionado("");
+		setEmpresaSeleccionada("");
+		setTipoEstudioSeleccionado("");
+		setEstudiosSeleccionados([]);
+		setBuscarEstudio("");
+		setShowBusquedaEstudios(false);
+		setPagoRecibido("");
+		setDescuentoPercent(0);
+		setFormaPago("efectivo");
+		setTarjetaUltimos4("");
+		setCodigoAprobacion("");
+		setAgregarASalaEspera(true);
+		setDestinoTurno("");
+		setDestinoTurnoManual(false);
+		setPrioridadTurno("0");
+	};
+
+	const seleccionarPaciente = (paciente, { limpiarOrden = false } = {}) => {
+		if (limpiarOrden) limpiarDatosOrden();
 		setPacienteSeleccionado(paciente);
 		setNombreCompleto(paciente.nombre);
 		setTelefono(normalizarTelefono10(paciente.telefono || ""));
@@ -1506,7 +1532,9 @@ const NuevoPaciente = () => {
 								<div className="search-container">
 									<SearchAutocomplete
 										buscar={buscarPacientesAsync}
-										onSeleccionar={(pac) => pac && seleccionarPaciente(pac)}
+										onSeleccionar={(pac) =>
+											pac && seleccionarPaciente(pac, { limpiarOrden: true })
+										}
 										getLabel={(pac) => pac?.nombre ?? ''}
 										placeholder="Buscar por nombre o teléfono"
 										value={pacienteSeleccionado}

@@ -74,7 +74,7 @@ import NuevoPaciente from "./nuevo-paciente";
 
 beforeEach(() => sessionStorage.clear());
 
-test("seleccionar un paciente conserva doctor, empresa, cliente y el cobro", async () => {
+test("seleccionar un paciente limpia empresa, cliente y el cobro de la orden anterior", async () => {
 	await act(async () => {
 		render(<NuevoPaciente />);
 	});
@@ -114,10 +114,11 @@ test("seleccionar un paciente conserva doctor, empresa, cliente y el cobro", asy
 	});
 
 	expect(screen.getAllByDisplayValue("JUAN PEREZ").length).toBeGreaterThan(0);
-	expect(selectEmpresa.value).toBe("2");
-	expect(selectCliente.value).toBe("1");
-	expect(pago.value).toBe("500");
-	expect(document.querySelector(".pago-grid select")?.value).toBe("tarjeta_debito");
+	// La orden arranca en blanco para el paciente recién elegido.
+	expect(selectEmpresa.value).toBe("");
+	expect(selectCliente.value).toBe("");
+	expect(pago.value).toBe("");
+	expect(document.querySelector(".pago-grid select")?.value).toBe("efectivo");
 });
 
 test("al remontar la pantalla el borrador restaura la captura", async () => {
@@ -157,7 +158,7 @@ test("al remontar la pantalla el borrador restaura la captura", async () => {
 	expect(formaPago2.value).toBe("transferencia");
 });
 
-test("seleccionar un paciente conserva tipo de estudio, doctor y los estudios agregados", async () => {
+test("seleccionar un paciente limpia tipo de estudio, doctor y los estudios agregados", async () => {
 	await act(async () => {
 		render(<NuevoPaciente />);
 	});
@@ -198,8 +199,8 @@ test("seleccionar un paciente conserva tipo de estudio, doctor y los estudios ag
 		fireEvent.click(screen.getByText("Dr. ANA LOPEZ"));
 	});
 
-	const tipoAntes = document.querySelectorAll(".form-group-inline select")[2].value;
-	const estudiosAntes = document.querySelectorAll(".estudios-table tbody tr").length;
+	expect(document.querySelectorAll(".form-group-inline select")[2].value).toBe("7");
+	expect(document.querySelectorAll(".estudios-table tbody tr").length).toBeGreaterThan(0);
 
 	// seleccionar paciente
 	const input = screen.getByPlaceholderText(/Buscar por nombre o teléfono/i);
@@ -211,7 +212,7 @@ test("seleccionar un paciente conserva tipo de estudio, doctor y los estudios ag
 		fireEvent.click(screen.getByText("JUAN PEREZ"));
 	});
 
-	expect(document.querySelectorAll(".form-group-inline select")[2].value).toBe(tipoAntes);
-	expect(document.querySelectorAll(".estudios-table tbody tr").length).toBe(estudiosAntes);
-	expect(screen.getByText("Dr. ANA LOPEZ")).toBeInTheDocument();
+	expect(document.querySelectorAll(".form-group-inline select")[2].value).toBe("");
+	expect(document.querySelectorAll(".estudios-table tbody tr").length).toBe(1);
+	expect(screen.queryByText("Dr. ANA LOPEZ")).not.toBeInTheDocument();
 });
