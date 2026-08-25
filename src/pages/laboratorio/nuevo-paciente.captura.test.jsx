@@ -39,6 +39,14 @@ jest.mock("../../lib/supabase-client", () => {
 		clientes: [{ id_cliente: 1, nombre: "IMSS" }],
 		empresas: [{ id_empresa: 2, nombre: "CDI" }],
 		pacientes: [{ id_paciente: 9, nombre: "JUAN PEREZ", telefono: "6141234567", edad: 30, sexo: "M" }],
+		doctores: [{ id_doctor: 4, nombre: "ANA LOPEZ", especialidad: "General" }],
+		empresa_tipos_estudio: [
+			{ id_tipo_estudio: 7, tipos_estudio: { id_tipo_estudio: 7, nombre: "Laboratorio" } },
+		],
+		estudios_lab_catalogo: [
+			{ id: 30, clave: "BH", descripcion: "BIOMETRIA HEMATICA", area: "Hematologia", dias_proceso: 1 },
+		],
+		precios_estudios: [],
 	};
 	const crearCadena = (tabla) => {
 		const datos = respuestaPorTabla[tabla] || [];
@@ -147,4 +155,63 @@ test("al remontar la pantalla el borrador restaura la captura", async () => {
 	expect(cliente2.value).toBe("1");
 	expect(pago2.value).toBe("500");
 	expect(formaPago2.value).toBe("transferencia");
+});
+
+test("seleccionar un paciente conserva tipo de estudio, doctor y los estudios agregados", async () => {
+	await act(async () => {
+		render(<NuevoPaciente />);
+	});
+
+	// empresa → cliente → tipo de estudio
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona una Empresa"), {
+			target: { value: "2" },
+		});
+	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona un Cliente"), {
+			target: { value: "1" },
+		});
+	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona Tipo de Estudio"), {
+			target: { value: "7" },
+		});
+	});
+
+	// estudio agregado desde el buscador
+	const buscarEstudio = screen.getByPlaceholderText(/Buscar Estudios/i);
+	await act(async () => {
+		fireEvent.change(buscarEstudio, { target: { value: "bio" } });
+	});
+	await act(async () => {
+		fireEvent.click(screen.getByText(/BIOMETRIA HEMATICA/i));
+	});
+
+	// doctor
+	const inputDoctor = screen.getByPlaceholderText(/Buscar doctor/i);
+	await act(async () => {
+		fireEvent.change(inputDoctor, { target: { value: "ana" } });
+	});
+	await waitFor(() => screen.getByText("Dr. ANA LOPEZ"));
+	await act(async () => {
+		fireEvent.click(screen.getByText("Dr. ANA LOPEZ"));
+	});
+
+	const tipoAntes = document.querySelectorAll(".form-group-inline select")[2].value;
+	const estudiosAntes = document.querySelectorAll(".estudios-table tbody tr").length;
+
+	// seleccionar paciente
+	const input = screen.getByPlaceholderText(/Buscar por nombre o teléfono/i);
+	await act(async () => {
+		fireEvent.change(input, { target: { value: "juan" } });
+	});
+	await waitFor(() => screen.getByText("JUAN PEREZ"));
+	await act(async () => {
+		fireEvent.click(screen.getByText("JUAN PEREZ"));
+	});
+
+	expect(document.querySelectorAll(".form-group-inline select")[2].value).toBe(tipoAntes);
+	expect(document.querySelectorAll(".estudios-table tbody tr").length).toBe(estudiosAntes);
+	expect(screen.getByText("Dr. ANA LOPEZ")).toBeInTheDocument();
 });
