@@ -30,7 +30,10 @@ import {
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
-import { cargarClavesConPrecioCliente } from "../../utils/precios-cliente";
+import {
+	cargarPreciosCliente,
+	resolverClavesConPrecio,
+} from "../../utils/precios-cliente";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
 import {
 	construirDatosTarjeta,
@@ -177,7 +180,7 @@ const NuevoPaciente = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
-	const [clavesConPrecio, setClavesConPrecio] = useState(null);
+	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -247,12 +250,12 @@ const NuevoPaciente = () => {
 		)?.nombre;
 
 		if (!clienteSeleccionado || !nombreCliente) {
-			setClavesConPrecio(null);
+			setPreciosCliente(null);
 			return undefined;
 		}
 
-		cargarClavesConPrecioCliente(supabase, nombreCliente).then((claves) => {
-			if (!cancelado) setClavesConPrecio(claves);
+		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+			if (!cancelado) setPreciosCliente(precios);
 		});
 
 		return () => {
@@ -1411,14 +1414,35 @@ const NuevoPaciente = () => {
 		(tipo) =>
 			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
 	);
-	const estudiosFiltrados = filtrarEstudiosCatalogo({
+	// Se resuelve contra el catálogo cargado: si el tarifario del cliente no
+	// cruza con ninguna clave, no se filtra nada en lugar de dejar la búsqueda
+	// vacía.
+	const clavesConPrecio = resolverClavesConPrecio(
+		preciosCliente,
+		estudiosDisponibles,
+	);
+	const filtrosCatalogo = {
 		estudios: estudiosDisponibles,
 		busqueda: buscarEstudio,
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+	};
+	const estudiosConPrecio = filtrarEstudiosCatalogo({
+		...filtrosCatalogo,
 		clavesConPrecio,
 	});
+	// Si el convenio no tiene precio para lo que se está buscando, se ofrece el
+	// catálogo avisando que ese estudio no está en su tarifario: dejar la
+	// búsqueda vacía impedía capturar la solicitud.
+	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
+	const mostrandoEstudiosSinPrecio =
+		Boolean(clavesConPrecio?.size) &&
+		estudiosConPrecio.length === 0 &&
+		estudiosSinFiltroPrecio.length > 0;
+	const estudiosFiltrados = mostrandoEstudiosSinPrecio
+		? estudiosSinFiltroPrecio
+		: estudiosConPrecio;
 
 	useEffect(() => {
 		if (!showBusquedaEstudios || buscarEstudio.trim().length < 2) return;
@@ -1776,9 +1800,15 @@ const NuevoPaciente = () => {
 								)}
 
 								{clienteSeleccionado && clavesConPrecio?.size > 0 && (
-									<p className="nota-precios-cliente">
-										Sólo se muestran los estudios con precio registrado para{" "}
-										{clienteActual?.nombre || "el cliente"}.
+									<p
+										className={
+											mostrandoEstudiosSinPrecio
+												? "nota-precios-cliente nota-precios-cliente-aviso"
+												: "nota-precios-cliente"
+										}>
+										{mostrandoEstudiosSinPrecio
+											? `${clienteActual?.nombre || "El cliente"} no tiene precio registrado para estos estudios: se cobrarán al precio por defecto.`
+											: `Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
 									</p>
 								)}
 
@@ -1819,9 +1849,7 @@ const NuevoPaciente = () => {
 														{buscandoImagen
 															? "Buscando estudios de imagen..."
 															: catalogoImagenError ||
-															(clavesConPrecio?.size > 0
-																? `No hay estudios con precio registrado para ${clienteActual?.nombre || "este cliente"} con ese filtro`
-																: "No hay estudios que coincidan con ese filtro")}
+															"No hay estudios que coincidan con ese filtro"}
 													</div>
 												)}
 											</div>

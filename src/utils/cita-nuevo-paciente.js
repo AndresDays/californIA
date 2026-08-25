@@ -7,6 +7,10 @@ const normalizarTexto = (valor = "") =>
 		.replace(/\s+/g, " ")
 		.trim();
 
+// La descripción sirve de respaldo para cruzar la lista de precios con el
+// catálogo cuando las claves de una y otro no se capturaron igual.
+export const normalizarDescripcionEstudio = (valor = "") => normalizarTexto(valor);
+
 export const resolverEmpresaOperativaCatalogo = (empresaNombre = "") => {
 	const texto = normalizarTexto(empresaNombre);
 	if (/\bcdi\b|integral|diagnostico por imagen|imagen pvr/.test(texto)) return "CDI";

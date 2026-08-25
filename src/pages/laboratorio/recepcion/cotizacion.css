@@ -613,3 +613,9 @@
 	object-fit: contain;
 	display: block;
 }
+
+.nota-precios-cliente-cot {
+	margin: 0.25rem 0 0 0;
+	font-size: 0.78rem;
+	color: rgba(255, 193, 7, 0.95);
+}

@@ -14,7 +14,10 @@ import {
 	construirEstudioCatalogoUnificado,
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
-import { cargarClavesConPrecioCliente } from "../../../utils/precios-cliente";
+import {
+	cargarPreciosCliente,
+	resolverClavesConPrecio,
+} from "../../../utils/precios-cliente";
 import "./cotizacion.css";
 
 const Cotizacion = () => {
@@ -27,7 +30,7 @@ const Cotizacion = () => {
 	const [buscarCotizacion, setBuscarCotizacion] = useBusquedaPersistente("cotizacion:folio");
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [clientes, setClientes] = useState([]);
-	const [clavesConPrecio, setClavesConPrecio] = useState(null);
+	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [empresas, setEmpresas] = useState([]);
 	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
 	const [tiposEstudio, setTiposEstudio] = useState([]);
@@ -67,12 +70,12 @@ const Cotizacion = () => {
 		)?.nombre;
 
 		if (!clienteSeleccionado || !nombreCliente) {
-			setClavesConPrecio(null);
+			setPreciosCliente(null);
 			return undefined;
 		}
 
-		cargarClavesConPrecioCliente(supabase, nombreCliente).then((claves) => {
-			if (!cancelado) setClavesConPrecio(claves);
+		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+			if (!cancelado) setPreciosCliente(precios);
 		});
 
 		return () => {
@@ -376,14 +379,31 @@ const Cotizacion = () => {
 	const puedeBuscarEstudios = Boolean(
 		clienteSeleccionado && empresaSeleccionada && tipoEstudioSeleccionado,
 	);
-	const estudiosFiltrados = filtrarEstudiosCatalogo({
+	const clavesConPrecio = resolverClavesConPrecio(
+		preciosCliente,
+		estudiosDisponibles,
+	);
+	const filtrosCatalogo = {
 		estudios: estudiosDisponibles,
 		busqueda: buscarEstudio,
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+	};
+	const estudiosConPrecio = filtrarEstudiosCatalogo({
+		...filtrosCatalogo,
 		clavesConPrecio,
 	});
+	// Un convenio sin precio para lo buscado no deja la cotización sin opciones:
+	// se ofrece el catálogo avisando que va al precio por defecto.
+	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
+	const mostrandoEstudiosSinPrecio =
+		Boolean(clavesConPrecio?.size) &&
+		estudiosConPrecio.length === 0 &&
+		estudiosSinFiltroPrecio.length > 0;
+	const estudiosFiltrados = mostrandoEstudiosSinPrecio
+		? estudiosSinFiltroPrecio
+		: estudiosConPrecio;
 
 	const cotizacionesFiltradas = cotizaciones.filter(
 		(cot) =>
@@ -588,13 +608,17 @@ const Cotizacion = () => {
 									}}
 									className="input-buscar-estudios-cot"
 								/>
+								{mostrandoEstudiosSinPrecio && (
+									<p className="nota-precios-cliente-cot">
+										Este cliente no tiene precio registrado para estos estudios:
+										se cotizan al precio por defecto.
+									</p>
+								)}
 								{showBusquedaEstudios && buscarEstudio.trim().length >= 2 && (
 									<div className="search-results-estudios-cot">
 										{estudiosFiltrados.length === 0 ? (
 											<div className="search-result-item-cot sin-resultados-cot">
-												{clavesConPrecio?.size > 0
-													? "No hay estudios con precio registrado para este cliente en la selección actual"
-													: "No se encontraron estudios para la selección actual"}
+												No se encontraron estudios para la selección actual
 											</div>
 										) : estudiosFiltrados.slice(0, 10).map((est) => (
 											<div
