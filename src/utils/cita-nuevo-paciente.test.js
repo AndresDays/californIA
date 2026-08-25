@@ -106,6 +106,75 @@ describe("cita-nuevo-paciente helpers", () => {
 		).toHaveLength(0);
 	});
 
+	test("con convenio sólo ofrece los estudios con precio registrado", () => {
+		const estudios = [
+			construirEstudioCatalogoUnificado(
+				{
+					id: 30,
+					clave: "US-ABDOMEN",
+					descripcion: "US ABDOMEN COMPLETO",
+					id_empresa: 2,
+					empresa_operativa: "CDI",
+					modalidad: "ultrasonido",
+					area: "Ultrasonidos",
+				},
+				"imagen",
+			),
+			construirEstudioCatalogoUnificado(
+				{
+					id: 31,
+					clave: "US-RENAL",
+					descripcion: "US RENAL",
+					id_empresa: 2,
+					empresa_operativa: "CDI",
+					modalidad: "ultrasonido",
+					area: "Ultrasonidos",
+				},
+				"imagen",
+			),
+		];
+
+		const filtrados = filtrarEstudiosCatalogo({
+			estudios,
+			busqueda: "us",
+			empresaId: "2",
+			empresaNombre: "CDI",
+			tipoNombre: "Ultrasonidos",
+			clavesConPrecio: new Set(["US-ABDOMEN"]),
+		});
+
+		expect(filtrados.map((est) => est.clave)).toEqual(["US-ABDOMEN"]);
+	});
+
+	test("acepta la lista de claves como arreglo y sin importar mayúsculas", () => {
+		const estudios = [
+			construirEstudioCatalogoUnificado(catalogo[0], "laboratorio"),
+			construirEstudioCatalogoUnificado(catalogo[1], "laboratorio"),
+		];
+
+		const filtrados = filtrarEstudiosCatalogo({
+			estudios,
+			busqueda: "",
+			clavesConPrecio: ["bh"],
+		});
+
+		expect(filtrados.map((est) => est.clave)).toEqual(["BH"]);
+	});
+
+	test("sin lista de precios el catálogo se ofrece completo", () => {
+		const estudios = [
+			construirEstudioCatalogoUnificado(catalogo[0], "laboratorio"),
+			construirEstudioCatalogoUnificado(catalogo[1], "laboratorio"),
+		];
+
+		expect(
+			filtrarEstudiosCatalogo({ estudios, busqueda: "", clavesConPrecio: null }),
+		).toHaveLength(2);
+		expect(
+			filtrarEstudiosCatalogo({ estudios, busqueda: "", clavesConPrecio: [] }),
+		).toHaveLength(2);
+	});
+
 	test("no vacía imagen cuando el tipo seleccionado no se reconoce exactamente", () => {
 		const estudios = [
 			construirEstudioCatalogoUnificado(catalogo[0], "laboratorio"),

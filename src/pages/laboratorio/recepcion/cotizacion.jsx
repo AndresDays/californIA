@@ -14,6 +14,7 @@ import {
 	construirEstudioCatalogoUnificado,
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
+import { cargarClavesConPrecioCliente } from "../../../utils/precios-cliente";
 import "./cotizacion.css";
 
 const Cotizacion = () => {
@@ -26,6 +27,7 @@ const Cotizacion = () => {
 	const [buscarCotizacion, setBuscarCotizacion] = useBusquedaPersistente("cotizacion:folio");
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [clientes, setClientes] = useState([]);
+	const [clavesConPrecio, setClavesConPrecio] = useState(null);
 	const [empresas, setEmpresas] = useState([]);
 	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
 	const [tiposEstudio, setTiposEstudio] = useState([]);
@@ -56,6 +58,27 @@ const Cotizacion = () => {
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
 	}, [empresaSeleccionada]);
+	// Los convenios sólo tienen precio para parte del catálogo: la búsqueda se
+	// acota a las claves con precio del cliente elegido.
+	useEffect(() => {
+		let cancelado = false;
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+
+		if (!clienteSeleccionado || !nombreCliente) {
+			setClavesConPrecio(null);
+			return undefined;
+		}
+
+		cargarClavesConPrecioCliente(supabase, nombreCliente).then((claves) => {
+			if (!cancelado) setClavesConPrecio(claves);
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
@@ -359,6 +382,7 @@ const Cotizacion = () => {
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+		clavesConPrecio,
 	});
 
 	const cotizacionesFiltradas = cotizaciones.filter(
@@ -568,7 +592,9 @@ const Cotizacion = () => {
 									<div className="search-results-estudios-cot">
 										{estudiosFiltrados.length === 0 ? (
 											<div className="search-result-item-cot sin-resultados-cot">
-												No se encontraron estudios para la selección actual
+												{clavesConPrecio?.size > 0
+													? "No hay estudios con precio registrado para este cliente en la selección actual"
+													: "No se encontraron estudios para la selección actual"}
 											</div>
 										) : estudiosFiltrados.slice(0, 10).map((est) => (
 											<div

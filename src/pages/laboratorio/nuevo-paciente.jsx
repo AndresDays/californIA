@@ -30,6 +30,7 @@ import {
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
+import { cargarClavesConPrecioCliente } from "../../utils/precios-cliente";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
 import {
 	construirDatosTarjeta,
@@ -176,6 +177,7 @@ const NuevoPaciente = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
+	const [clavesConPrecio, setClavesConPrecio] = useState(null);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -235,6 +237,28 @@ const NuevoPaciente = () => {
 			setDestinoTurno(resolverDestinoTurnoDesdeEstudios(estudiosSeleccionados));
 		}
 	}, [estudiosSeleccionados, destinoTurnoManual]);
+
+	// Las claves con precio del cliente acotan la búsqueda de estudios: un
+	// convenio sólo ofrece lo que tiene pactado.
+	useEffect(() => {
+		let cancelado = false;
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+
+		if (!clienteSeleccionado || !nombreCliente) {
+			setClavesConPrecio(null);
+			return undefined;
+		}
+
+		cargarClavesConPrecioCliente(supabase, nombreCliente).then((claves) => {
+			if (!cancelado) setClavesConPrecio(claves);
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
 
 	useEffect(() => {
 		if (empresaSeleccionada) {
@@ -1377,6 +1401,9 @@ const NuevoPaciente = () => {
 		setPrioridadTurno("0");
 	};
 
+	const clienteActual = clientes.find(
+		(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+	);
 	const empresaActual = empresas.find(
 		(emp) => emp.id_empresa?.toString() === empresaSeleccionada?.toString(),
 	);
@@ -1390,6 +1417,7 @@ const NuevoPaciente = () => {
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+		clavesConPrecio,
 	});
 
 	useEffect(() => {
@@ -1747,6 +1775,13 @@ const NuevoPaciente = () => {
 									</div>
 								)}
 
+								{clienteSeleccionado && clavesConPrecio?.size > 0 && (
+									<p className="nota-precios-cliente">
+										Sólo se muestran los estudios con precio registrado para{" "}
+										{clienteActual?.nombre || "el cliente"}.
+									</p>
+								)}
+
 								<div className="search-container" style={{ position: "relative" }}>
 									<input
 										type="text"
@@ -1784,7 +1819,9 @@ const NuevoPaciente = () => {
 														{buscandoImagen
 															? "Buscando estudios de imagen..."
 															: catalogoImagenError ||
-															"No hay estudios que coincidan con ese filtro"}
+															(clavesConPrecio?.size > 0
+																? `No hay estudios con precio registrado para ${clienteActual?.nombre || "este cliente"} con ese filtro`
+																: "No hay estudios que coincidan con ese filtro")}
 													</div>
 												)}
 											</div>
