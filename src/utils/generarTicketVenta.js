@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
 import { resolverEmpresaOperativaCatalogo } from './cita-nuevo-paciente';
 import { crearUrlPortalResultados } from './portal-resultados';
+import { describirPagoTarjeta, esPagoConTarjeta } from './pago-tarjeta';
 
 const RFC_POR_EMPRESA = {
 	CDC: 'CDC031217UMA',
@@ -98,6 +99,8 @@ export const generarTicketVenta = async (datosTicket) => {
 		pagoRecibido,
 		cambio,
 		formaPago,
+		tarjetaUltimos4,
+		codigoAprobacion,
 		vendedor,
 		ventana,
 	} = datosTicket;
@@ -269,6 +272,17 @@ export const generarTicketVenta = async (datosTicket) => {
 	const formaPagoTexto = (formaPago || 'Efectivo').charAt(0).toUpperCase() + (formaPago || 'efectivo').slice(1);
 	pdf.text(`Forma de Pago: ${formaPagoTexto}`, mg, y);
 	y += 5;
+
+	// El cobro con tarjeta se aclara en el ticket para poder conciliarlo con el
+	// voucher de la terminal.
+	const datosTarjetaTexto = describirPagoTarjeta({
+		ultimos4: tarjetaUltimos4,
+		codigoAprobacion,
+	});
+	if (esPagoConTarjeta(formaPago) && datosTarjetaTexto) {
+		pdf.text(`Tarjeta: ${datosTarjetaTexto}`, mg, y);
+		y += 5;
+	}
 
 	if (vendedor) {
 		pdf.text(`Vendedor: ${vendedor.toUpperCase()}.`, mg, y);

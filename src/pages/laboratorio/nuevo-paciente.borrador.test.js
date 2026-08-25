@@ -31,6 +31,8 @@ describe("nuevo-paciente: borrador de la captura", () => {
 		"destinoTurno",
 		"destinoTurnoManual",
 		"prioridadTurno",
+		"tarjetaUltimos4",
+		"codigoAprobacion",
 	])("el dato de pago %s se guarda mientras se captura", (campo) => {
 		expect(fuente).toContain(`useCampoPersistente(\`\${BORRADOR}${campo}\``);
 	});

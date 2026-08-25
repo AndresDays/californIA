@@ -32,6 +32,13 @@ import {
 	registrarMovimientoPagoVenta,
 } from "../../../utils/pagos-ventas";
 import {
+	construirDatosTarjeta,
+	esPagoConTarjeta,
+	normalizarCodigoAprobacion,
+	normalizarUltimos4,
+	validarPagoTarjeta,
+} from "../../../utils/pago-tarjeta";
+import {
 	esErrorColumnaSchemaCache,
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
@@ -62,6 +69,8 @@ const EditarSolicitud = () => {
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [formaPago, setFormaPago] = useState("efectivo");
+	const [tarjetaUltimos4, setTarjetaUltimos4] = useState("");
+	const [codigoAprobacion, setCodigoAprobacion] = useState("");
 	const [ivaPercent, setIvaPercent] = useState(0);
 	const [descuentoPercent, setDescuentoPercent] = useState(0);
 	const [subtotal, setSubtotal] = useState(0);
@@ -276,6 +285,10 @@ const EditarSolicitud = () => {
 				: 0,
 		);
 		setFormaPago(orden.forma_pago || "efectivo");
+		// El abono que se capture es un cobro nuevo: los datos de la tarjeta
+		// anterior no se arrastran.
+		setTarjetaUltimos4("");
+		setCodigoAprobacion("");
 		setAbono(parseFloat(orden.pago_recibido) || 0);
 		if (orden.id_doctor) {
 			try {
@@ -391,9 +404,24 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Ingrese el motivo de modificación", "advertencia");
 			return;
 		}
+		const pagoNuevoCapturado = parseFloat(pago) || 0;
+		const validacionTarjeta = validarPagoTarjeta({
+			formaPago,
+			ultimos4: tarjetaUltimos4,
+			codigoAprobacion,
+		});
+		if (pagoNuevoCapturado > 0 && !validacionTarjeta.valido) {
+			mostrarNotificacion(validacionTarjeta.mensaje, "advertencia");
+			return;
+		}
 		try {
 			const totalPagado = abono + (parseFloat(pago) || 0);
 			const pagoNuevo = parseFloat(pago) || 0;
+			const datosTarjeta = construirDatosTarjeta({
+				formaPago,
+				ultimos4: tarjetaUltimos4,
+				codigoAprobacion,
+			});
 			const { error: errorVenta } = await supabase
 				.from("ventas")
 				.update({
@@ -404,6 +432,7 @@ const EditarSolicitud = () => {
 					descuento,
 					total: granTotal,
 					forma_pago: formaPago,
+					...(pagoNuevo > 0 ? datosTarjeta : {}),
 					pago_recibido: totalPagado,
 					observaciones: motivoModificacion,
 					updated_at: new Date().toISOString(),
@@ -417,6 +446,8 @@ const EditarSolicitud = () => {
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.ABONO,
 					monto: pagoNuevo,
 					forma_pago: formaPago,
+					ultimos4: tarjetaUltimos4,
+					codigoAprobacion,
 					motivo: motivoModificacion,
 					empleado: empleadoData,
 					user,
@@ -598,6 +629,8 @@ const EditarSolicitud = () => {
 				tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.DEVOLUCION,
 				monto: montoDevolucion,
 				forma_pago: formaPago,
+				ultimos4: tarjetaUltimos4,
+				codigoAprobacion,
 				motivo: motivoModificacion,
 				empleado: empleadoData,
 				user,
@@ -1149,6 +1182,41 @@ const EditarSolicitud = () => {
 										<option value="transferencia">Transferencia</option>
 									</select>
 								</div>
+								{esPagoConTarjeta(formaPago) && (
+									<>
+										<div className="campo-total">
+											<label htmlFor="editar-tarjeta-ultimos4">Últimos 4</label>
+											<input
+												id="editar-tarjeta-ultimos4"
+												type="text"
+												inputMode="numeric"
+												maxLength={4}
+												value={tarjetaUltimos4}
+												onChange={(e) =>
+													setTarjetaUltimos4(normalizarUltimos4(e.target.value))
+												}
+												className="input-total"
+												placeholder="1234"
+											/>
+										</div>
+										<div className="campo-total">
+											<label htmlFor="editar-codigo-aprobacion">Cód. aprobación</label>
+											<input
+												id="editar-codigo-aprobacion"
+												type="text"
+												maxLength={12}
+												value={codigoAprobacion}
+												onChange={(e) =>
+													setCodigoAprobacion(
+														normalizarCodigoAprobacion(e.target.value),
+													)
+												}
+												className="input-total"
+												placeholder="A1B2C3"
+											/>
+										</div>
+									</>
+								)}
 								<div className="campo-total">
 									<label>IVA %</label>
 									<input

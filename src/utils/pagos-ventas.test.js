@@ -1,5 +1,6 @@
 import {
 	TIPOS_MOVIMIENTO_PAGO,
+	registrarMovimientoPagoVenta,
 	movimientoSumaCaja,
 	puedeAutorizarEntregaConAdeudo,
 	resumirMovimientosCaja,
@@ -40,5 +41,83 @@ describe("pagos-ventas helpers", () => {
 		expect(puedeAutorizarEntregaConAdeudo({ rol: "admin" })).toBe(true);
 		expect(puedeAutorizarEntregaConAdeudo({ rol: "desarrollador" })).toBe(true);
 		expect(puedeAutorizarEntregaConAdeudo({ rol: "recepcionista" })).toBe(false);
+	});
+});
+
+const supabaseFalso = (errores = []) => {
+	const inserts = [];
+	let intento = 0;
+	return {
+		inserts,
+		from: () => ({
+			insert: (payload) => {
+				inserts.push(payload);
+				const error = errores[intento] || null;
+				intento += 1;
+				return Promise.resolve({ error });
+			},
+		}),
+	};
+};
+
+describe("registrarMovimientoPagoVenta con tarjeta", () => {
+	test("guarda los ultimos 4 digitos, el codigo y la referencia", async () => {
+		const supabase = supabaseFalso();
+
+		await registrarMovimientoPagoVenta(supabase, {
+			id_venta: 7,
+			folio: "F-7",
+			tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
+			monto: 250,
+			forma_pago: "tarjeta_credito",
+			ultimos4: "1234",
+			codigoAprobacion: "ab12cd",
+		});
+
+		expect(supabase.inserts).toHaveLength(1);
+		expect(supabase.inserts[0]).toMatchObject({
+			tarjeta_ultimos4: "1234",
+			codigo_aprobacion: "AB12CD",
+			referencia: "****1234 · Aprob. AB12CD",
+		});
+	});
+
+	test("no guarda datos de tarjeta cuando el pago es en efectivo", async () => {
+		const supabase = supabaseFalso();
+
+		await registrarMovimientoPagoVenta(supabase, {
+			id_venta: 7,
+			tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.ABONO,
+			monto: 100,
+			forma_pago: "efectivo",
+			ultimos4: "1234",
+			codigoAprobacion: "AB12",
+		});
+
+		expect(supabase.inserts[0]).toMatchObject({
+			tarjeta_ultimos4: null,
+			codigo_aprobacion: null,
+			referencia: "",
+		});
+	});
+
+	test("reintenta sin las columnas nuevas si la base no tiene la migracion", async () => {
+		const supabase = supabaseFalso([
+			{ message: "Could not find the 'tarjeta_ultimos4' column of 'movimientos_pago_venta' in the schema cache" },
+		]);
+
+		const resultado = await registrarMovimientoPagoVenta(supabase, {
+			id_venta: 7,
+			tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
+			monto: 250,
+			forma_pago: "tarjeta_debito",
+			ultimos4: "1234",
+			codigoAprobacion: "AB12",
+		});
+
+		expect(resultado).toBeNull();
+		expect(supabase.inserts).toHaveLength(2);
+		expect(supabase.inserts[1]).not.toHaveProperty("tarjeta_ultimos4");
+		expect(supabase.inserts[1].referencia).toBe("****1234 · Aprob. AB12");
 	});
 });

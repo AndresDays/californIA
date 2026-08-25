@@ -29,11 +29,15 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
-import {
-	esErrorColumnaSchemaCache,
-	obtenerColumnaSchemaCacheFaltante,
-} from "../../utils/supabase-errors";
+import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
+import {
+	construirDatosTarjeta,
+	esPagoConTarjeta,
+	normalizarCodigoAprobacion,
+	normalizarUltimos4,
+	validarPagoTarjeta,
+} from "../../utils/pago-tarjeta";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
 // Los datos capturados del paciente sobreviven a que el navegador descarte la
@@ -184,6 +188,8 @@ const NuevoPaciente = () => {
 	const [cambio, setCambio] = useState(0);
 
 	const [formaPago, setFormaPago] = useCampoPersistente(`${BORRADOR}formaPago`, "efectivo");
+	const [tarjetaUltimos4, setTarjetaUltimos4] = useCampoPersistente(`${BORRADOR}tarjetaUltimos4`, "");
+	const [codigoAprobacion, setCodigoAprobacion] = useCampoPersistente(`${BORRADOR}codigoAprobacion`, "");
 	const [agregarASalaEspera, setAgregarASalaEspera] = useCampoPersistente(`${BORRADOR}agregarASalaEspera`, true);
 	const [destinoTurno, setDestinoTurno] = useCampoPersistente(`${BORRADOR}destinoTurno`, "");
 	const [destinoTurnoManual, setDestinoTurnoManual] = useCampoPersistente(`${BORRADOR}destinoTurnoManual`, false);
@@ -345,12 +351,27 @@ const NuevoPaciente = () => {
 			globalThis.mostrarNotificacion("Seleccione una empresa antes de registrar la venta", "advertencia");
 			return;
 		}
+
+		const pagoTarjeta = validarPagoTarjeta({
+			formaPago,
+			ultimos4: tarjetaUltimos4,
+			codigoAprobacion,
+		});
+		if (normalizarPagoRecibido(pagoRecibido) > 0 && !pagoTarjeta.valido) {
+			globalThis.mostrarNotificacion(pagoTarjeta.mensaje, "advertencia");
+			return;
+		}
 		const ventanaTicket = window.open("", "_blank");
 		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
 		const ventanaEtiquetasImagen = window.open("", "_blank");
 
 		try {
 			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
+			const datosTarjetaVenta = construirDatosTarjeta({
+				formaPago,
+				ultimos4: tarjetaUltimos4,
+				codigoAprobacion,
+			});
 			const pagoAplicado = calcularPagoAplicadoVenta(granTotal, pagoNormalizado);
 			const cambioVenta = Math.max(pagoNormalizado - granTotal, 0);
 			let idPaciente = pacienteSeleccionado?.id_paciente;
@@ -408,6 +429,7 @@ const NuevoPaciente = () => {
 					descuento: descuento,
 					total: granTotal,
 					forma_pago: formaPago,
+					...datosTarjetaVenta,
 					pago_recibido: pagoAplicado,
 					cambio: cambioVenta,
 					observaciones: observaciones,
@@ -423,8 +445,22 @@ const NuevoPaciente = () => {
 			let { data: venta, error: errorVenta } = await insertarVenta(ventaPayload);
 			let ventaPayloadFallback = { ...ventaPayload };
 
-			for (const columna of ["id_sucursal", "sucursal", "id_cita"]) {
-				if (!errorVenta || !esErrorColumnaSchemaCache(errorVenta, columna)) break;
+			// Se reintenta quitando la columna que la base todavía no tiene, sea
+			// cual sea de las opcionales: parar en la primera dejaría la venta sin
+			// guardar en un ambiente sin migrar.
+			while (errorVenta) {
+				const columna = obtenerColumnaSchemaCacheFaltante(errorVenta);
+				if (
+					![
+						"id_sucursal",
+						"sucursal",
+						"id_cita",
+						"tarjeta_ultimos4",
+						"codigo_aprobacion",
+					].includes(columna)
+				) {
+					break;
+				}
 				delete ventaPayloadFallback[columna];
 				({ data: venta, error: errorVenta } = await insertarVenta(
 					ventaPayloadFallback,
@@ -439,6 +475,8 @@ const NuevoPaciente = () => {
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
 					monto: pagoAplicado,
 					forma_pago: formaPago,
+					ultimos4: tarjetaUltimos4,
+					codigoAprobacion,
 					motivo: "Pago inicial de solicitud",
 					id_sucursal: sucursalEmpleado.id_sucursal,
 					sucursal: sucursalEmpleado.sucursal,
@@ -468,6 +506,7 @@ const NuevoPaciente = () => {
 				user,
 				detalles: {
 					forma_pago: formaPago,
+					...datosTarjetaVenta,
 					total: granTotal,
 					pago_recibido: pagoAplicado,
 					adeudo: Math.max(granTotal - pagoAplicado, 0),
@@ -652,6 +691,8 @@ const NuevoPaciente = () => {
 					pagoRecibido: pagoNormalizado,
 					cambio: cambioVenta,
 					formaPago,
+					tarjetaUltimos4: datosTarjetaVenta.tarjeta_ultimos4 || "",
+					codigoAprobacion: datosTarjetaVenta.codigo_aprobacion || "",
 					observaciones,
 					vendedor: empleadoData?.nombre || getPrimerNombre(),
 					ventana: ventanaTicket,
@@ -1328,6 +1369,8 @@ const NuevoPaciente = () => {
 		setPagoRecibido("");
 		setDescuentoPercent(0);
 		setFormaPago("efectivo");
+		setTarjetaUltimos4("");
+		setCodigoAprobacion("");
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
@@ -1880,6 +1923,43 @@ const NuevoPaciente = () => {
 										/>
 									</div>
 								</div>
+
+								{esPagoConTarjeta(formaPago) && (
+									<div className="pago-grid pago-grid-tarjeta">
+										<div className="pago-item">
+											<label htmlFor="tarjeta-ultimos4">Últimos 4 dígitos</label>
+											<input
+												id="tarjeta-ultimos4"
+												type="text"
+												inputMode="numeric"
+												maxLength={4}
+												value={tarjetaUltimos4}
+												onChange={(e) =>
+													setTarjetaUltimos4(normalizarUltimos4(e.target.value))
+												}
+												className="form-input-small"
+												placeholder="1234"
+											/>
+										</div>
+
+										<div className="pago-item">
+											<label htmlFor="codigo-aprobacion">Código de aprobación</label>
+											<input
+												id="codigo-aprobacion"
+												type="text"
+												maxLength={12}
+												value={codigoAprobacion}
+												onChange={(e) =>
+													setCodigoAprobacion(
+														normalizarCodigoAprobacion(e.target.value),
+													)
+												}
+												className="form-input-small"
+												placeholder="Ej. A1B2C3"
+											/>
+										</div>
+									</div>
+								)}
 
 								<div className="final-totales">
 									<div className="final-item">

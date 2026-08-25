@@ -741,6 +741,13 @@
 	gap: 0.75rem;
 }
 
+/* Los datos de la tarjeta ocupan el ancho completo: el código de aprobación no
+   cabe en la columna angosta del descuento. */
+.pago-grid-tarjeta {
+	grid-template-columns: 0.6fr 1fr;
+	margin-top: 0.75rem;
+}
+
 .pago-item {
 	display: flex;
 	flex-direction: column;
