@@ -177,17 +177,17 @@ const NuevoPaciente = () => {
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
 
 	const [subtotal, setSubtotal] = useState(0);
-	const [descuentoPercent, setDescuentoPercent] = useState(0);
+	const [descuentoPercent, setDescuentoPercent] = useCampoPersistente(`${BORRADOR}descuentoPercent`, 0);
 	const [descuento, setDescuento] = useState(0);
 	const [granTotal, setGranTotal] = useState(0);
-	const [pagoRecibido, setPagoRecibido] = useState("");
+	const [pagoRecibido, setPagoRecibido] = useCampoPersistente(`${BORRADOR}pagoRecibido`, "");
 	const [cambio, setCambio] = useState(0);
 
-	const [formaPago, setFormaPago] = useState("efectivo");
-	const [agregarASalaEspera, setAgregarASalaEspera] = useState(true);
-	const [destinoTurno, setDestinoTurno] = useState("");
-	const [destinoTurnoManual, setDestinoTurnoManual] = useState(false);
-	const [prioridadTurno, setPrioridadTurno] = useState("0");
+	const [formaPago, setFormaPago] = useCampoPersistente(`${BORRADOR}formaPago`, "efectivo");
+	const [agregarASalaEspera, setAgregarASalaEspera] = useCampoPersistente(`${BORRADOR}agregarASalaEspera`, true);
+	const [destinoTurno, setDestinoTurno] = useCampoPersistente(`${BORRADOR}destinoTurno`, "");
+	const [destinoTurnoManual, setDestinoTurnoManual] = useCampoPersistente(`${BORRADOR}destinoTurnoManual`, false);
+	const [prioridadTurno, setPrioridadTurno] = useCampoPersistente(`${BORRADOR}prioridadTurno`, "0");
 
 	const citaIdDesdeDashboard =
 		location.state?.citaId ||
@@ -1327,6 +1327,7 @@ const NuevoPaciente = () => {
 		setBuscarEstudio("");
 		setPagoRecibido("");
 		setDescuentoPercent(0);
+		setFormaPago("efectivo");
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
