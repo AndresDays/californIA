@@ -9,6 +9,7 @@ import imprimirIcono from "../../../assets/imprimirIcono.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import muestrasBtn from "../../../assets/muestrasBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
+import ModalMotivoCancelacion from "../../../components/modal-motivo-cancelacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
@@ -46,6 +47,7 @@ const EditarSolicitud = () => {
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
 	const [motivoModificacion, setMotivoModificacion] = useState("");
+	const [modalCancelacionAbierto, setModalCancelacionAbierto] = useState(false);
 	const [folio, setFolio] = useState("");
 	const [clientes, setClientes] = useState([]);
 	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
@@ -477,16 +479,49 @@ const EditarSolicitud = () => {
 		}
 	};
 
-	const cancelarOrden = async () => {
+	const abrirCancelacionOrden = () => {
 		if (!ordenSeleccionada) {
 			mostrarNotificacion("Seleccione una orden primero", "advertencia");
 			return;
 		}
+		setModalCancelacionAbierto(true);
+	};
+
+	const cancelarOrden = async ({ motivo, categoria, detalle } = {}) => {
+		if (!ordenSeleccionada) {
+			mostrarNotificacion("Seleccione una orden primero", "advertencia");
+			return;
+		}
+		const motivoCancelacion = (motivo || "").trim();
+		if (!motivoCancelacion) {
+			mostrarNotificacion("Ingrese el motivo de la cancelación", "advertencia");
+			return;
+		}
 		try {
-			const { error } = await supabase
+			const canceladaEn = new Date().toISOString();
+			const cambiosVenta = {
+				estado: "cancelado",
+				updated_at: canceladaEn,
+				motivo_cancelacion: motivoCancelacion,
+				cancelada_en: canceladaEn,
+			};
+			let { error } = await supabase
 				.from("ventas")
-				.update({ estado: "cancelado", updated_at: new Date().toISOString() })
+				.update(cambiosVenta)
 				.eq("id_venta", ordenSeleccionada.id_venta);
+			// Si la base aún no tiene la migración del motivo, la cancelación no
+			// puede quedarse atorada: se guarda el estado y el motivo se conserva
+			// en la auditoría.
+			if (
+				error &&
+				(esErrorColumnaSchemaCache(error, "motivo_cancelacion") ||
+					esErrorColumnaSchemaCache(error, "cancelada_en"))
+			) {
+				({ error } = await supabase
+					.from("ventas")
+					.update({ estado: "cancelado", updated_at: canceladaEn })
+					.eq("id_venta", ordenSeleccionada.id_venta));
+			}
 			if (error) throw error;
 			const pagoActual = parseFloat(ordenSeleccionada.pago_recibido) || 0;
 			if (pagoActual > 0) {
@@ -496,7 +531,7 @@ const EditarSolicitud = () => {
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.CANCELACION,
 					monto: pagoActual,
 					forma_pago: ordenSeleccionada.forma_pago || formaPago,
-					motivo: motivoModificacion || "Cancelacion de orden",
+					motivo: motivoCancelacion,
 					empleado: empleadoData,
 					user,
 				});
@@ -505,11 +540,17 @@ const EditarSolicitud = () => {
 				id_venta: ordenSeleccionada.id_venta,
 				folio,
 				evento: EVENTOS_SOLICITUD.CANCELADA,
-				descripcion: "Solicitud cancelada",
+				descripcion: `Solicitud cancelada. Motivo: ${motivoCancelacion}`,
 				empleado: empleadoData,
 				user,
+				detalles: {
+					motivo: motivoCancelacion,
+					categoria: categoria || null,
+					detalle: detalle || null,
+				},
 			});
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
+			setModalCancelacionAbierto(false);
 			setOrdenSeleccionada(null);
 			setEstudiosSeleccionados([]);
 			setHistorialPagos([]);
@@ -518,6 +559,7 @@ const EditarSolicitud = () => {
 		} catch (err) {
 			console.error("Error al cancelar:", err);
 			mostrarNotificacion("Error al cancelar la orden", "error");
+			throw err;
 		}
 	};
 
@@ -793,7 +835,7 @@ const EditarSolicitud = () => {
 			<div className="editar-solicitud-wrapper">
 				<div className="editar-solicitud-header">
 					<h1 className="editar-solicitud-title">Editar Orden</h1>
-					<button className="btn-cancelar-orden" onClick={cancelarOrden}>
+					<button className="btn-cancelar-orden" onClick={abrirCancelacionOrden}>
 						<img
 							src={cancelarBtn}
 							alt="Cancelar Orden"
@@ -1284,6 +1326,13 @@ const EditarSolicitud = () => {
 					estudios={estudiosSeleccionados}
 					onClose={() => setModalMuestrasPendientesOpen(false)}
 					onToggleMuestraPendiente={toggleMuestraPendiente}
+				/>
+				<ModalMotivoCancelacion
+					isOpen={modalCancelacionAbierto}
+					onClose={() => setModalCancelacionAbierto(false)}
+					onConfirmar={cancelarOrden}
+					folio={folio}
+					paciente={ordenSeleccionada?.pacientes?.nombre || ""}
 				/>
 			</div>
 		</PageLayout>

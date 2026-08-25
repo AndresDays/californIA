@@ -1,0 +1,216 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+.modal-motivo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9998;
+  animation: motivoFadeIn 0.2s ease;
+}
+
+.modal-motivo-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(2, 15, 35, 0.98) 0%, rgba(13, 67, 105, 0.98) 100%);
+  border: 1px solid rgba(83, 185, 219, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  font-family: 'Codec Pro', sans-serif;
+  animation: motivoScaleIn 0.3s ease;
+}
+
+@keyframes motivoFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes motivoScaleIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.modal-motivo-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(83, 185, 219, 0.2);
+}
+
+.modal-motivo-icon {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(255, 193, 7, 0.3));
+}
+
+.modal-motivo-titulo {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.modal-motivo-body {
+  padding: 1.25rem 1.5rem;
+}
+
+.modal-motivo-mensaje {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.modal-motivo-orden {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #53B9DB;
+  text-align: center;
+  padding: 0.6rem;
+  background: rgba(83, 185, 219, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(83, 185, 219, 0.3);
+}
+
+.modal-motivo-label {
+  display: block;
+  margin: 0 0 0.35rem 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.3px;
+}
+
+.modal-motivo-requerido {
+  color: #ff6b6b;
+}
+
+.modal-motivo-select,
+.modal-motivo-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(83, 185, 219, 0.3);
+  background: rgba(2, 15, 35, 0.6);
+  color: white;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+}
+
+.modal-motivo-select:focus,
+.modal-motivo-textarea:focus {
+  outline: none;
+  border-color: #53B9DB;
+  box-shadow: 0 0 0 2px rgba(83, 185, 219, 0.2);
+}
+
+.modal-motivo-select:disabled,
+.modal-motivo-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-motivo-textarea {
+  resize: vertical;
+}
+
+.modal-motivo-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.modal-motivo-error {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.88rem;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.modal-motivo-advertencia {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #ff6b6b;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.modal-motivo-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 0 1.5rem 1.5rem;
+  justify-content: flex-end;
+}
+
+.btn-motivo-volver,
+.btn-motivo-confirmar {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Codec Pro', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 130px;
+}
+
+.btn-motivo-volver {
+  background: rgba(73, 178, 212, 0.2);
+  border: 1px solid rgba(73, 178, 212, 0.3);
+  color: white;
+}
+
+.btn-motivo-volver:hover:not(:disabled) {
+  background: rgba(73, 178, 212, 0.3);
+  border-color: #53B9DB;
+  transform: translateY(-2px);
+}
+
+.btn-motivo-confirmar {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-motivo-confirmar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
+}
+
+.btn-motivo-volver:disabled,
+.btn-motivo-confirmar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .modal-motivo-footer {
+    flex-direction: column-reverse;
+    padding: 0 1rem 1rem;
+  }
+
+  .btn-motivo-volver,
+  .btn-motivo-confirmar {
+    width: 100%;
+  }
+
+  .modal-motivo-body {
+    padding: 1rem;
+  }
+}
