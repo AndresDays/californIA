@@ -50,6 +50,7 @@ const Cotizacion = () => {
 	}, []);
 	useEffect(() => {
 		setTipoEstudioSeleccionado("");
+		setClienteSeleccionado("");
 		setBuscarEstudio("");
 		setShowBusquedaEstudios(false);
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
@@ -391,29 +392,6 @@ const Cotizacion = () => {
 								/>
 							</div>
 							<div className="campo-icon-grupo">
-								<img src={empresaIcono} alt="Cliente" className="icon-img" />
-								<label htmlFor="cotizacion-cliente" className="selector-label-cot">
-									Cliente
-								</label>
-								<select
-									id="cotizacion-cliente"
-									aria-label="Cliente"
-									value={clienteSeleccionado}
-									onChange={(e) => {
-										setClienteSeleccionado(e.target.value);
-										setBuscarEstudio("");
-										setShowBusquedaEstudios(false);
-									}}
-									className="select-empresa-cot">
-									<option value="">Selecciona un Cliente</option>
-									{clientes.map((emp) => (
-										<option key={emp.id_cliente} value={emp.id_cliente}>
-											{emp.nombre}
-										</option>
-									))}
-								</select>
-							</div>
-							<div className="campo-icon-grupo">
 								<img src={empresaIcono} alt="Empresa" className="icon-img" />
 								<label htmlFor="cotizacion-empresa" className="selector-label-cot">
 									Empresa
@@ -427,6 +405,34 @@ const Cotizacion = () => {
 									<option value="">Selecciona una Empresa</option>
 									{empresas.map((emp) => (
 										<option key={emp.id_empresa} value={emp.id_empresa}>
+											{emp.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="campo-icon-grupo">
+								<img src={empresaIcono} alt="Cliente" className="icon-img" />
+								<label htmlFor="cotizacion-cliente" className="selector-label-cot">
+									Cliente
+								</label>
+								<select
+									id="cotizacion-cliente"
+									aria-label="Cliente"
+									value={clienteSeleccionado}
+									onChange={(e) => {
+										setClienteSeleccionado(e.target.value);
+										setBuscarEstudio("");
+										setShowBusquedaEstudios(false);
+									}}
+									disabled={!empresaSeleccionada}
+									className="select-empresa-cot">
+									<option value="">
+										{empresaSeleccionada
+											? "Selecciona un Cliente"
+											: "Primero selecciona una Empresa"}
+									</option>
+									{clientes.map((emp) => (
+										<option key={emp.id_cliente} value={emp.id_cliente}>
 											{emp.nombre}
 										</option>
 									))}

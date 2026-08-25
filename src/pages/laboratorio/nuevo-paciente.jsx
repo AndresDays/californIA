@@ -1601,15 +1601,15 @@ const NuevoPaciente = () => {
 						<div className="study-column">
 							<div className="top-controls">
 								<div className="form-group-inline">
-									<label>Clientes</label>
+									<label>Empresa</label>
 									<select
-										value={clienteSeleccionado}
-										onChange={(e) => setClienteSeleccionado(e.target.value)}
+										value={empresaSeleccionada}
+										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 										className="form-select">
-										<option value="">Selecciona un Cliente</option>
-										{clientes.map((cli) => (
-											<option key={cli.id_cliente} value={cli.id_cliente}>
-												{cli.nombre}
+										<option value="">Selecciona una Empresa</option>
+										{empresas.map((emp) => (
+											<option key={emp.id_empresa} value={emp.id_empresa}>
+												{emp.nombre}
 											</option>
 										))}
 									</select>
@@ -1640,15 +1640,20 @@ const NuevoPaciente = () => {
 
 							<div className="selects-adicionales">
 								<div className="form-group-inline">
-									<label>Empresa</label>
+									<label>Clientes</label>
 									<select
-										value={empresaSeleccionada}
-										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-										className="form-select">
-										<option value="">Selecciona una Empresa</option>
-										{empresas.map((emp) => (
-											<option key={emp.id_empresa} value={emp.id_empresa}>
-												{emp.nombre}
+										value={clienteSeleccionado}
+										onChange={(e) => setClienteSeleccionado(e.target.value)}
+										className="form-select"
+										disabled={!empresaSeleccionada}>
+										<option value="">
+											{empresaSeleccionada
+												? "Selecciona un Cliente"
+												: "Primero selecciona una Empresa"}
+										</option>
+										{clientes.map((cli) => (
+											<option key={cli.id_cliente} value={cli.id_cliente}>
+												{cli.nombre}
 											</option>
 										))}
 									</select>
@@ -1690,7 +1695,11 @@ const NuevoPaciente = () => {
 											alt="Advertencia"
 											className="warning-icon"
 										/>
-										<span>Primero selecciona un cliente para buscar estudios</span>
+										<span>
+											{empresaSeleccionada
+												? "Primero selecciona un cliente para buscar estudios"
+												: "Primero selecciona una empresa y un cliente para buscar estudios"}
+										</span>
 									</div>
 								)}
 

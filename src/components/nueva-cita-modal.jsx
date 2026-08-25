@@ -55,6 +55,10 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     if (empresaSeleccionada) cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
     else setTiposEstudio([]);
     setTipoEstudioSeleccionado('');
+    setClienteSeleccionado('');
+    setBuscarEstudio('');
+    setEstudiosSeleccionados([]);
+    setShowBusquedaEstudios(false);
   }, [empresaSeleccionada]);
 
   const cargarClientes = async () => {
@@ -170,8 +174,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
     if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
     if (!esTelefono10Digitos(formData.telefono)) return setError('El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos'), false;
-    if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
     if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
+    if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
     if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
     if (estudiosSeleccionados.length === 0) return setError('Debe agregar al menos un estudio'), false;
     if (!formData.fecha) return setError('La fecha es requerida'), false;
@@ -281,24 +285,26 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
+            <label className="form-label-cita">Empresa <span className="required">*</span></label>
+            <select value={empresaSeleccionada} onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+              className="form-select-cita" disabled={loading}>
+              <option value="">Seleccione una empresa</option>
+              {empresas.map(emp => <option key={emp.id_empresa} value={emp.id_empresa}>{emp.nombre}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group-cita">
             <label className="form-label-cita">Cliente <span className="required">*</span></label>
             <select value={clienteSeleccionado} onChange={(e) => {
               setClienteSeleccionado(e.target.value);
               setBuscarEstudio('');
               setEstudiosSeleccionados([]);
               setShowBusquedaEstudios(false);
-            }} className="form-select-cita" disabled={loading}>
-              <option value="">Selecciona un Cliente</option>
+            }} className="form-select-cita" disabled={loading || !empresaSeleccionada}>
+              <option value="">
+                {empresaSeleccionada ? 'Selecciona un Cliente' : 'Primero selecciona una Empresa'}
+              </option>
               {clientes.map(cli => <option key={cli.id_cliente} value={cli.id_cliente}>{cli.nombre}</option>)}
-            </select>
-          </div>
-
-          <div className="form-group-cita">
-            <label className="form-label-cita">Empresa <span className="required">*</span></label>
-            <select value={empresaSeleccionada} onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-              className="form-select-cita" disabled={loading}>
-              <option value="">Seleccione una empresa</option>
-              {empresas.map(emp => <option key={emp.id_empresa} value={emp.id_empresa}>{emp.nombre}</option>)}
             </select>
           </div>
 
