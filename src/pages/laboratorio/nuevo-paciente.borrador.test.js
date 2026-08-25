@@ -21,6 +21,26 @@ describe("nuevo-paciente: borrador de la captura", () => {
 		expect(fuente).toContain(`useCampoPersistente(\`\${BORRADOR}${campo}\``);
 	});
 
+	// El cobro es parte de la captura: volver a la pestaña no debe dejar la
+	// solicitud sin forma de pago, descuento ni el pago ya recibido.
+	test.each([
+		"formaPago",
+		"descuentoPercent",
+		"pagoRecibido",
+		"agregarASalaEspera",
+		"destinoTurno",
+		"destinoTurnoManual",
+		"prioridadTurno",
+		"tarjetaUltimos4",
+		"codigoAprobacion",
+	])("el dato de pago %s se guarda mientras se captura", (campo) => {
+		expect(fuente).toContain(`useCampoPersistente(\`\${BORRADOR}${campo}\``);
+	});
+
+	test("la forma de pago vuelve a efectivo al registrar la solicitud", () => {
+		expect(fuente).toContain('setFormaPago("efectivo")');
+	});
+
 	test("el borrador se limpia al registrar la solicitud", () => {
 		expect(fuente).toContain("limpiarBorradorPersistente(BORRADOR)");
 	});

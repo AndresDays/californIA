@@ -9,6 +9,7 @@ import imprimirIcono from "../../../assets/imprimirIcono.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import muestrasBtn from "../../../assets/muestrasBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
+import ModalMotivoCancelacion from "../../../components/modal-motivo-cancelacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
@@ -31,6 +32,13 @@ import {
 	registrarMovimientoPagoVenta,
 } from "../../../utils/pagos-ventas";
 import {
+	construirDatosTarjeta,
+	esPagoConTarjeta,
+	normalizarCodigoAprobacion,
+	normalizarUltimos4,
+	validarPagoTarjeta,
+} from "../../../utils/pago-tarjeta";
+import {
 	esErrorColumnaSchemaCache,
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
@@ -46,6 +54,7 @@ const EditarSolicitud = () => {
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
 	const [motivoModificacion, setMotivoModificacion] = useState("");
+	const [modalCancelacionAbierto, setModalCancelacionAbierto] = useState(false);
 	const [folio, setFolio] = useState("");
 	const [clientes, setClientes] = useState([]);
 	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
@@ -60,6 +69,8 @@ const EditarSolicitud = () => {
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [formaPago, setFormaPago] = useState("efectivo");
+	const [tarjetaUltimos4, setTarjetaUltimos4] = useState("");
+	const [codigoAprobacion, setCodigoAprobacion] = useState("");
 	const [ivaPercent, setIvaPercent] = useState(0);
 	const [descuentoPercent, setDescuentoPercent] = useState(0);
 	const [subtotal, setSubtotal] = useState(0);
@@ -274,6 +285,10 @@ const EditarSolicitud = () => {
 				: 0,
 		);
 		setFormaPago(orden.forma_pago || "efectivo");
+		// El abono que se capture es un cobro nuevo: los datos de la tarjeta
+		// anterior no se arrastran.
+		setTarjetaUltimos4("");
+		setCodigoAprobacion("");
 		setAbono(parseFloat(orden.pago_recibido) || 0);
 		if (orden.id_doctor) {
 			try {
@@ -389,9 +404,24 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Ingrese el motivo de modificación", "advertencia");
 			return;
 		}
+		const pagoNuevoCapturado = parseFloat(pago) || 0;
+		const validacionTarjeta = validarPagoTarjeta({
+			formaPago,
+			ultimos4: tarjetaUltimos4,
+			codigoAprobacion,
+		});
+		if (pagoNuevoCapturado > 0 && !validacionTarjeta.valido) {
+			mostrarNotificacion(validacionTarjeta.mensaje, "advertencia");
+			return;
+		}
 		try {
 			const totalPagado = abono + (parseFloat(pago) || 0);
 			const pagoNuevo = parseFloat(pago) || 0;
+			const datosTarjeta = construirDatosTarjeta({
+				formaPago,
+				ultimos4: tarjetaUltimos4,
+				codigoAprobacion,
+			});
 			const { error: errorVenta } = await supabase
 				.from("ventas")
 				.update({
@@ -402,6 +432,7 @@ const EditarSolicitud = () => {
 					descuento,
 					total: granTotal,
 					forma_pago: formaPago,
+					...(pagoNuevo > 0 ? datosTarjeta : {}),
 					pago_recibido: totalPagado,
 					observaciones: motivoModificacion,
 					updated_at: new Date().toISOString(),
@@ -415,6 +446,8 @@ const EditarSolicitud = () => {
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.ABONO,
 					monto: pagoNuevo,
 					forma_pago: formaPago,
+					ultimos4: tarjetaUltimos4,
+					codigoAprobacion,
 					motivo: motivoModificacion,
 					empleado: empleadoData,
 					user,
@@ -477,16 +510,49 @@ const EditarSolicitud = () => {
 		}
 	};
 
-	const cancelarOrden = async () => {
+	const abrirCancelacionOrden = () => {
 		if (!ordenSeleccionada) {
 			mostrarNotificacion("Seleccione una orden primero", "advertencia");
 			return;
 		}
+		setModalCancelacionAbierto(true);
+	};
+
+	const cancelarOrden = async ({ motivo, categoria, detalle } = {}) => {
+		if (!ordenSeleccionada) {
+			mostrarNotificacion("Seleccione una orden primero", "advertencia");
+			return;
+		}
+		const motivoCancelacion = (motivo || "").trim();
+		if (!motivoCancelacion) {
+			mostrarNotificacion("Ingrese el motivo de la cancelación", "advertencia");
+			return;
+		}
 		try {
-			const { error } = await supabase
+			const canceladaEn = new Date().toISOString();
+			const cambiosVenta = {
+				estado: "cancelado",
+				updated_at: canceladaEn,
+				motivo_cancelacion: motivoCancelacion,
+				cancelada_en: canceladaEn,
+			};
+			let { error } = await supabase
 				.from("ventas")
-				.update({ estado: "cancelado", updated_at: new Date().toISOString() })
+				.update(cambiosVenta)
 				.eq("id_venta", ordenSeleccionada.id_venta);
+			// Si la base aún no tiene la migración del motivo, la cancelación no
+			// puede quedarse atorada: se guarda el estado y el motivo se conserva
+			// en la auditoría.
+			if (
+				error &&
+				(esErrorColumnaSchemaCache(error, "motivo_cancelacion") ||
+					esErrorColumnaSchemaCache(error, "cancelada_en"))
+			) {
+				({ error } = await supabase
+					.from("ventas")
+					.update({ estado: "cancelado", updated_at: canceladaEn })
+					.eq("id_venta", ordenSeleccionada.id_venta));
+			}
 			if (error) throw error;
 			const pagoActual = parseFloat(ordenSeleccionada.pago_recibido) || 0;
 			if (pagoActual > 0) {
@@ -496,7 +562,7 @@ const EditarSolicitud = () => {
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.CANCELACION,
 					monto: pagoActual,
 					forma_pago: ordenSeleccionada.forma_pago || formaPago,
-					motivo: motivoModificacion || "Cancelacion de orden",
+					motivo: motivoCancelacion,
 					empleado: empleadoData,
 					user,
 				});
@@ -505,11 +571,17 @@ const EditarSolicitud = () => {
 				id_venta: ordenSeleccionada.id_venta,
 				folio,
 				evento: EVENTOS_SOLICITUD.CANCELADA,
-				descripcion: "Solicitud cancelada",
+				descripcion: `Solicitud cancelada. Motivo: ${motivoCancelacion}`,
 				empleado: empleadoData,
 				user,
+				detalles: {
+					motivo: motivoCancelacion,
+					categoria: categoria || null,
+					detalle: detalle || null,
+				},
 			});
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
+			setModalCancelacionAbierto(false);
 			setOrdenSeleccionada(null);
 			setEstudiosSeleccionados([]);
 			setHistorialPagos([]);
@@ -518,6 +590,7 @@ const EditarSolicitud = () => {
 		} catch (err) {
 			console.error("Error al cancelar:", err);
 			mostrarNotificacion("Error al cancelar la orden", "error");
+			throw err;
 		}
 	};
 
@@ -556,6 +629,8 @@ const EditarSolicitud = () => {
 				tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.DEVOLUCION,
 				monto: montoDevolucion,
 				forma_pago: formaPago,
+				ultimos4: tarjetaUltimos4,
+				codigoAprobacion,
 				motivo: motivoModificacion,
 				empleado: empleadoData,
 				user,
@@ -793,7 +868,7 @@ const EditarSolicitud = () => {
 			<div className="editar-solicitud-wrapper">
 				<div className="editar-solicitud-header">
 					<h1 className="editar-solicitud-title">Editar Orden</h1>
-					<button className="btn-cancelar-orden" onClick={cancelarOrden}>
+					<button className="btn-cancelar-orden" onClick={abrirCancelacionOrden}>
 						<img
 							src={cancelarBtn}
 							alt="Cancelar Orden"
@@ -1107,6 +1182,41 @@ const EditarSolicitud = () => {
 										<option value="transferencia">Transferencia</option>
 									</select>
 								</div>
+								{esPagoConTarjeta(formaPago) && (
+									<>
+										<div className="campo-total">
+											<label htmlFor="editar-tarjeta-ultimos4">Últimos 4</label>
+											<input
+												id="editar-tarjeta-ultimos4"
+												type="text"
+												inputMode="numeric"
+												maxLength={4}
+												value={tarjetaUltimos4}
+												onChange={(e) =>
+													setTarjetaUltimos4(normalizarUltimos4(e.target.value))
+												}
+												className="input-total"
+												placeholder="1234"
+											/>
+										</div>
+										<div className="campo-total">
+											<label htmlFor="editar-codigo-aprobacion">Cód. aprobación</label>
+											<input
+												id="editar-codigo-aprobacion"
+												type="text"
+												maxLength={12}
+												value={codigoAprobacion}
+												onChange={(e) =>
+													setCodigoAprobacion(
+														normalizarCodigoAprobacion(e.target.value),
+													)
+												}
+												className="input-total"
+												placeholder="A1B2C3"
+											/>
+										</div>
+									</>
+								)}
 								<div className="campo-total">
 									<label>IVA %</label>
 									<input
@@ -1284,6 +1394,13 @@ const EditarSolicitud = () => {
 					estudios={estudiosSeleccionados}
 					onClose={() => setModalMuestrasPendientesOpen(false)}
 					onToggleMuestraPendiente={toggleMuestraPendiente}
+				/>
+				<ModalMotivoCancelacion
+					isOpen={modalCancelacionAbierto}
+					onClose={() => setModalCancelacionAbierto(false)}
+					onConfirmar={cancelarOrden}
+					folio={folio}
+					paciente={ordenSeleccionada?.pacientes?.nombre || ""}
 				/>
 			</div>
 		</PageLayout>

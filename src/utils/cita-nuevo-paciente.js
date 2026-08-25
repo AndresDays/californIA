@@ -7,6 +7,10 @@ const normalizarTexto = (valor = "") =>
 		.replace(/\s+/g, " ")
 		.trim();
 
+// La descripción sirve de respaldo para cruzar la lista de precios con el
+// catálogo cuando las claves de una y otro no se capturaron igual.
+export const normalizarDescripcionEstudio = (valor = "") => normalizarTexto(valor);
+
 export const resolverEmpresaOperativaCatalogo = (empresaNombre = "") => {
 	const texto = normalizarTexto(empresaNombre);
 	if (/\bcdi\b|integral|diagnostico por imagen|imagen pvr/.test(texto)) return "CDI";
@@ -50,20 +54,39 @@ export const construirEstudioCatalogoUnificado = (estudio, modulo = "laboratorio
 	};
 };
 
+export const normalizarClaveEstudio = (clave = "") =>
+	String(clave ?? "")
+		.trim()
+		.toUpperCase();
+
+// Clientes como IMSS o ISSSTE sólo tienen precio pactado para una parte del
+// catálogo: cuando se conocen sus claves con precio, la búsqueda no ofrece
+// estudios que después habría que cotizar a mano.
 export const filtrarEstudiosCatalogo = ({
 	estudios = [],
 	busqueda = "",
 	empresaId = "",
 	empresaNombre = "",
 	tipoNombre = "",
+	clavesConPrecio = null,
 }) => {
 	const termino = normalizarTexto(busqueda);
+	const clavesPermitidas =
+		clavesConPrecio instanceof Set
+			? clavesConPrecio
+			: Array.isArray(clavesConPrecio) && clavesConPrecio.length > 0
+				? new Set(clavesConPrecio.map(normalizarClaveEstudio))
+				: null;
 	const empresaOperativa = resolverEmpresaOperativaCatalogo(empresaNombre);
 	const modalidad = resolverModalidadDesdeTipo(tipoNombre);
 	const tieneTipoSeleccionado = Boolean(normalizarTexto(tipoNombre));
 	const tipoEsLaboratorio = modalidad === "laboratorio";
 
 	return estudios.filter((estudio) => {
+		if (clavesPermitidas?.size && !clavesPermitidas.has(normalizarClaveEstudio(estudio.clave))) {
+			return false;
+		}
+
 		const coincideBusqueda =
 			!termino ||
 			normalizarTexto(estudio.descripcion).includes(termino) ||

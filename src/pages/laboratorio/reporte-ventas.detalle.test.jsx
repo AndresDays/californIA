@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 jest.mock("./reporte-ventas.css", () => ({}));
 jest.mock("../../assets/calendarioIcono.png", () => "calendarioIcono.png");
@@ -39,6 +39,15 @@ jest.mock("../../hooks/use-reporte-ventas", () => ({
 	}),
 }));
 
+jest.mock("../../context/auth-context", () => ({
+	useAuth: () => ({ user: { id: "u1" } }),
+}));
+jest.mock("../../lib/supabase-client", () => ({ supabase: {} }));
+jest.mock("../../utils/abono-venta", () => ({
+	registrarAbonoVenta: jest.fn(() => Promise.resolve({ pagoRecibido: 1000, adeudo: 0 })),
+}));
+
+import { registrarAbonoVenta } from "../../utils/abono-venta";
 import ReporteVentas from "./reporte-ventas";
 
 // El folio y el paciente también salen en la tabla, así que las aserciones se
@@ -90,5 +99,51 @@ describe("ReporteVentas: detalle del folio", () => {
 		fireEvent.click(screen.getByLabelText("Cerrar"));
 
 		expect(screen.queryByText("Detalle del folio")).not.toBeInTheDocument();
+	});
+});
+
+describe("ReporteVentas: cobrar el adeudo desde el detalle", () => {
+	beforeEach(() => jest.clearAllMocks());
+
+	test("ofrece cobrar el adeudo con el saldo precargado", () => {
+		const modal = abrirDetalle();
+
+		expect(modal.getByText("Cobrar adeudo")).toBeInTheDocument();
+		expect(modal.getByRole("spinbutton")).toHaveValue(400);
+	});
+
+	test("registra el cobro con la forma de pago elegida", async () => {
+		const modal = abrirDetalle();
+
+		fireEvent.change(modal.getByRole("spinbutton"), { target: { value: "150" } });
+		await act(async () => {
+			fireEvent.click(modal.getByRole("button", { name: /registrar cobro/i }));
+		});
+
+		expect(registrarAbonoVenta).toHaveBeenCalledTimes(1);
+		expect(registrarAbonoVenta.mock.calls[0][1]).toMatchObject({
+			monto: "150",
+			formaPago: "Efectivo",
+		});
+	});
+
+	test("pide los datos de la tarjeta cuando el cobro es con tarjeta", () => {
+		const modal = abrirDetalle();
+
+		fireEvent.change(modal.getByLabelText?.("Forma de pago") ?? modal.getAllByRole("combobox")[0], {
+			target: { value: "tarjeta_debito" },
+		});
+
+		expect(modal.getByPlaceholderText("1234")).toBeInTheDocument();
+		expect(modal.getByPlaceholderText("A1B2C3")).toBeInTheDocument();
+	});
+
+	test("el boton de liquidar deja el adeudo completo en el monto", () => {
+		const modal = abrirDetalle();
+
+		fireEvent.change(modal.getByRole("spinbutton"), { target: { value: "50" } });
+		fireEvent.click(modal.getByRole("button", { name: /liquidar todo/i }));
+
+		expect(modal.getByRole("spinbutton")).toHaveValue(400);
 	});
 });

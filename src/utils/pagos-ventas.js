@@ -1,4 +1,5 @@
-import { esErrorTablaInexistente } from "./supabase-errors";
+import { esErrorColumnaInexistente, esErrorTablaInexistente } from "./supabase-errors";
+import { construirDatosTarjeta, describirPagoTarjeta } from "./pago-tarjeta";
 
 export const TIPOS_MOVIMIENTO_PAGO = {
 	PAGO_INICIAL: "pago_inicial",
@@ -31,6 +32,8 @@ export const registrarMovimientoPagoVenta = async (
 		motivo = "",
 		id_sucursal = null,
 		sucursal = "",
+		ultimos4 = "",
+		codigoAprobacion = "",
 		empleado = {},
 		user = {},
 	} = {},
@@ -38,20 +41,45 @@ export const registrarMovimientoPagoVenta = async (
 	const montoNormalizado = numero(monto);
 	if (!supabase || !id_venta || !tipo_movimiento || montoNormalizado <= 0) return null;
 
+	const datosTarjeta = construirDatosTarjeta({
+		formaPago: forma_pago,
+		ultimos4,
+		codigoAprobacion,
+	});
+	const referenciaTarjeta = describirPagoTarjeta({
+		ultimos4: datosTarjeta.tarjeta_ultimos4,
+		codigoAprobacion: datosTarjeta.codigo_aprobacion,
+	});
+
 	const payload = {
 		id_venta,
 		folio,
 		tipo_movimiento,
 		monto: montoNormalizado,
 		forma_pago,
-		referencia,
+		referencia: referencia || referenciaTarjeta,
 		motivo,
 		id_sucursal,
 		sucursal,
+		...datosTarjeta,
 		...obtenerActor(empleado, user),
 	};
 
-	const { error } = await supabase.from("movimientos_pago_venta").insert(payload);
+	const insertar = (datos) => supabase.from("movimientos_pago_venta").insert(datos);
+
+	let { error } = await insertar(payload);
+	// Si la base todavía no tiene la migración de tarjeta, el movimiento no se
+	// pierde: los datos ya viajan en `referencia`.
+	if (
+		error &&
+		(esErrorColumnaInexistente(error, "tarjeta_ultimos4") ||
+			esErrorColumnaInexistente(error, "codigo_aprobacion"))
+	) {
+		const sinTarjeta = { ...payload };
+		delete sinTarjeta.tarjeta_ultimos4;
+		delete sinTarjeta.codigo_aprobacion;
+		({ error } = await insertar(sinTarjeta));
+	}
 	if (error) {
 		if (!esErrorTablaInexistente(error, "movimientos_pago_venta")) {
 			console.warn("No se pudo registrar movimiento de pago:", error);

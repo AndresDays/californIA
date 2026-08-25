@@ -14,6 +14,10 @@ import {
 	construirEstudioCatalogoUnificado,
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
+import {
+	cargarPreciosCliente,
+	resolverClavesConPrecio,
+} from "../../../utils/precios-cliente";
 import "./cotizacion.css";
 
 const Cotizacion = () => {
@@ -26,6 +30,7 @@ const Cotizacion = () => {
 	const [buscarCotizacion, setBuscarCotizacion] = useBusquedaPersistente("cotizacion:folio");
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [clientes, setClientes] = useState([]);
+	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [empresas, setEmpresas] = useState([]);
 	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
 	const [tiposEstudio, setTiposEstudio] = useState([]);
@@ -50,11 +55,33 @@ const Cotizacion = () => {
 	}, []);
 	useEffect(() => {
 		setTipoEstudioSeleccionado("");
+		setClienteSeleccionado("");
 		setBuscarEstudio("");
 		setShowBusquedaEstudios(false);
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
 	}, [empresaSeleccionada]);
+	// Los convenios sólo tienen precio para parte del catálogo: la búsqueda se
+	// acota a las claves con precio del cliente elegido.
+	useEffect(() => {
+		let cancelado = false;
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+
+		if (!clienteSeleccionado || !nombreCliente) {
+			setPreciosCliente(null);
+			return undefined;
+		}
+
+		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+			if (!cancelado) setPreciosCliente(precios);
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
@@ -352,13 +379,31 @@ const Cotizacion = () => {
 	const puedeBuscarEstudios = Boolean(
 		clienteSeleccionado && empresaSeleccionada && tipoEstudioSeleccionado,
 	);
-	const estudiosFiltrados = filtrarEstudiosCatalogo({
+	const clavesConPrecio = resolverClavesConPrecio(
+		preciosCliente,
+		estudiosDisponibles,
+	);
+	const filtrosCatalogo = {
 		estudios: estudiosDisponibles,
 		busqueda: buscarEstudio,
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+	};
+	const estudiosConPrecio = filtrarEstudiosCatalogo({
+		...filtrosCatalogo,
+		clavesConPrecio,
 	});
+	// Un convenio sin precio para lo buscado no deja la cotización sin opciones:
+	// se ofrece el catálogo avisando que va al precio por defecto.
+	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
+	const mostrandoEstudiosSinPrecio =
+		Boolean(clavesConPrecio?.size) &&
+		estudiosConPrecio.length === 0 &&
+		estudiosSinFiltroPrecio.length > 0;
+	const estudiosFiltrados = mostrandoEstudiosSinPrecio
+		? estudiosSinFiltroPrecio
+		: estudiosConPrecio;
 
 	const cotizacionesFiltradas = cotizaciones.filter(
 		(cot) =>
@@ -391,29 +436,6 @@ const Cotizacion = () => {
 								/>
 							</div>
 							<div className="campo-icon-grupo">
-								<img src={empresaIcono} alt="Cliente" className="icon-img" />
-								<label htmlFor="cotizacion-cliente" className="selector-label-cot">
-									Cliente
-								</label>
-								<select
-									id="cotizacion-cliente"
-									aria-label="Cliente"
-									value={clienteSeleccionado}
-									onChange={(e) => {
-										setClienteSeleccionado(e.target.value);
-										setBuscarEstudio("");
-										setShowBusquedaEstudios(false);
-									}}
-									className="select-empresa-cot">
-									<option value="">Selecciona un Cliente</option>
-									{clientes.map((emp) => (
-										<option key={emp.id_cliente} value={emp.id_cliente}>
-											{emp.nombre}
-										</option>
-									))}
-								</select>
-							</div>
-							<div className="campo-icon-grupo">
 								<img src={empresaIcono} alt="Empresa" className="icon-img" />
 								<label htmlFor="cotizacion-empresa" className="selector-label-cot">
 									Empresa
@@ -427,6 +449,34 @@ const Cotizacion = () => {
 									<option value="">Selecciona una Empresa</option>
 									{empresas.map((emp) => (
 										<option key={emp.id_empresa} value={emp.id_empresa}>
+											{emp.nombre}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="campo-icon-grupo">
+								<img src={empresaIcono} alt="Cliente" className="icon-img" />
+								<label htmlFor="cotizacion-cliente" className="selector-label-cot">
+									Cliente
+								</label>
+								<select
+									id="cotizacion-cliente"
+									aria-label="Cliente"
+									value={clienteSeleccionado}
+									onChange={(e) => {
+										setClienteSeleccionado(e.target.value);
+										setBuscarEstudio("");
+										setShowBusquedaEstudios(false);
+									}}
+									disabled={!empresaSeleccionada}
+									className="select-empresa-cot">
+									<option value="">
+										{empresaSeleccionada
+											? "Selecciona un Cliente"
+											: "Primero selecciona una Empresa"}
+									</option>
+									{clientes.map((emp) => (
+										<option key={emp.id_cliente} value={emp.id_cliente}>
 											{emp.nombre}
 										</option>
 									))}
@@ -558,6 +608,12 @@ const Cotizacion = () => {
 									}}
 									className="input-buscar-estudios-cot"
 								/>
+								{mostrandoEstudiosSinPrecio && (
+									<p className="nota-precios-cliente-cot">
+										Este cliente no tiene precio registrado para estos estudios:
+										se cotizan al precio por defecto.
+									</p>
+								)}
 								{showBusquedaEstudios && buscarEstudio.trim().length >= 2 && (
 									<div className="search-results-estudios-cot">
 										{estudiosFiltrados.length === 0 ? (

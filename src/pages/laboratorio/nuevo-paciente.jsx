@@ -29,11 +29,19 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
+import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import {
-	esErrorColumnaSchemaCache,
-	obtenerColumnaSchemaCacheFaltante,
-} from "../../utils/supabase-errors";
+	cargarPreciosCliente,
+	resolverClavesConPrecio,
+} from "../../utils/precios-cliente";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
+import {
+	construirDatosTarjeta,
+	esPagoConTarjeta,
+	normalizarCodigoAprobacion,
+	normalizarUltimos4,
+	validarPagoTarjeta,
+} from "../../utils/pago-tarjeta";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
 // Los datos capturados del paciente sobreviven a que el navegador descarte la
@@ -172,22 +180,25 @@ const NuevoPaciente = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
+	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
 
 	const [subtotal, setSubtotal] = useState(0);
-	const [descuentoPercent, setDescuentoPercent] = useState(0);
+	const [descuentoPercent, setDescuentoPercent] = useCampoPersistente(`${BORRADOR}descuentoPercent`, 0);
 	const [descuento, setDescuento] = useState(0);
 	const [granTotal, setGranTotal] = useState(0);
-	const [pagoRecibido, setPagoRecibido] = useState("");
+	const [pagoRecibido, setPagoRecibido] = useCampoPersistente(`${BORRADOR}pagoRecibido`, "");
 	const [cambio, setCambio] = useState(0);
 
-	const [formaPago, setFormaPago] = useState("efectivo");
-	const [agregarASalaEspera, setAgregarASalaEspera] = useState(true);
-	const [destinoTurno, setDestinoTurno] = useState("");
-	const [destinoTurnoManual, setDestinoTurnoManual] = useState(false);
-	const [prioridadTurno, setPrioridadTurno] = useState("0");
+	const [formaPago, setFormaPago] = useCampoPersistente(`${BORRADOR}formaPago`, "efectivo");
+	const [tarjetaUltimos4, setTarjetaUltimos4] = useCampoPersistente(`${BORRADOR}tarjetaUltimos4`, "");
+	const [codigoAprobacion, setCodigoAprobacion] = useCampoPersistente(`${BORRADOR}codigoAprobacion`, "");
+	const [agregarASalaEspera, setAgregarASalaEspera] = useCampoPersistente(`${BORRADOR}agregarASalaEspera`, true);
+	const [destinoTurno, setDestinoTurno] = useCampoPersistente(`${BORRADOR}destinoTurno`, "");
+	const [destinoTurnoManual, setDestinoTurnoManual] = useCampoPersistente(`${BORRADOR}destinoTurnoManual`, false);
+	const [prioridadTurno, setPrioridadTurno] = useCampoPersistente(`${BORRADOR}prioridadTurno`, "0");
 
 	const citaIdDesdeDashboard =
 		location.state?.citaId ||
@@ -229,6 +240,28 @@ const NuevoPaciente = () => {
 			setDestinoTurno(resolverDestinoTurnoDesdeEstudios(estudiosSeleccionados));
 		}
 	}, [estudiosSeleccionados, destinoTurnoManual]);
+
+	// Las claves con precio del cliente acotan la búsqueda de estudios: un
+	// convenio sólo ofrece lo que tiene pactado.
+	useEffect(() => {
+		let cancelado = false;
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+
+		if (!clienteSeleccionado || !nombreCliente) {
+			setPreciosCliente(null);
+			return undefined;
+		}
+
+		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+			if (!cancelado) setPreciosCliente(precios);
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
 
 	useEffect(() => {
 		if (empresaSeleccionada) {
@@ -345,12 +378,27 @@ const NuevoPaciente = () => {
 			globalThis.mostrarNotificacion("Seleccione una empresa antes de registrar la venta", "advertencia");
 			return;
 		}
+
+		const pagoTarjeta = validarPagoTarjeta({
+			formaPago,
+			ultimos4: tarjetaUltimos4,
+			codigoAprobacion,
+		});
+		if (normalizarPagoRecibido(pagoRecibido) > 0 && !pagoTarjeta.valido) {
+			globalThis.mostrarNotificacion(pagoTarjeta.mensaje, "advertencia");
+			return;
+		}
 		const ventanaTicket = window.open("", "_blank");
 		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
 		const ventanaEtiquetasImagen = window.open("", "_blank");
 
 		try {
 			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
+			const datosTarjetaVenta = construirDatosTarjeta({
+				formaPago,
+				ultimos4: tarjetaUltimos4,
+				codigoAprobacion,
+			});
 			const pagoAplicado = calcularPagoAplicadoVenta(granTotal, pagoNormalizado);
 			const cambioVenta = Math.max(pagoNormalizado - granTotal, 0);
 			let idPaciente = pacienteSeleccionado?.id_paciente;
@@ -408,6 +456,7 @@ const NuevoPaciente = () => {
 					descuento: descuento,
 					total: granTotal,
 					forma_pago: formaPago,
+					...datosTarjetaVenta,
 					pago_recibido: pagoAplicado,
 					cambio: cambioVenta,
 					observaciones: observaciones,
@@ -423,8 +472,22 @@ const NuevoPaciente = () => {
 			let { data: venta, error: errorVenta } = await insertarVenta(ventaPayload);
 			let ventaPayloadFallback = { ...ventaPayload };
 
-			for (const columna of ["id_sucursal", "sucursal", "id_cita"]) {
-				if (!errorVenta || !esErrorColumnaSchemaCache(errorVenta, columna)) break;
+			// Se reintenta quitando la columna que la base todavía no tiene, sea
+			// cual sea de las opcionales: parar en la primera dejaría la venta sin
+			// guardar en un ambiente sin migrar.
+			while (errorVenta) {
+				const columna = obtenerColumnaSchemaCacheFaltante(errorVenta);
+				if (
+					![
+						"id_sucursal",
+						"sucursal",
+						"id_cita",
+						"tarjeta_ultimos4",
+						"codigo_aprobacion",
+					].includes(columna)
+				) {
+					break;
+				}
 				delete ventaPayloadFallback[columna];
 				({ data: venta, error: errorVenta } = await insertarVenta(
 					ventaPayloadFallback,
@@ -439,6 +502,8 @@ const NuevoPaciente = () => {
 					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
 					monto: pagoAplicado,
 					forma_pago: formaPago,
+					ultimos4: tarjetaUltimos4,
+					codigoAprobacion,
 					motivo: "Pago inicial de solicitud",
 					id_sucursal: sucursalEmpleado.id_sucursal,
 					sucursal: sucursalEmpleado.sucursal,
@@ -468,6 +533,7 @@ const NuevoPaciente = () => {
 				user,
 				detalles: {
 					forma_pago: formaPago,
+					...datosTarjetaVenta,
 					total: granTotal,
 					pago_recibido: pagoAplicado,
 					adeudo: Math.max(granTotal - pagoAplicado, 0),
@@ -652,6 +718,8 @@ const NuevoPaciente = () => {
 					pagoRecibido: pagoNormalizado,
 					cambio: cambioVenta,
 					formaPago,
+					tarjetaUltimos4: datosTarjetaVenta.tarjeta_ultimos4 || "",
+					codigoAprobacion: datosTarjetaVenta.codigo_aprobacion || "",
 					observaciones,
 					vendedor: empleadoData?.nombre || getPrimerNombre(),
 					ventana: ventanaTicket,
@@ -931,7 +999,33 @@ const NuevoPaciente = () => {
 		return data || [];
 	}, []);
 
-	const seleccionarPaciente = (paciente) => {
+	// Los datos de la orden anterior no se arrastran al paciente que se acaba de
+	// elegir: cada paciente empieza su propia orden. No aplica cuando el
+	// paciente viene de un alta, de una cita o de una cotización, porque ahí la
+	// captura de la orden ya está hecha o se llena enseguida.
+	const limpiarDatosOrden = () => {
+		setDoctorSeleccionado(null);
+		setDoctorBusqueda("");
+		setObservaciones("");
+		setClienteSeleccionado("");
+		setEmpresaSeleccionada("");
+		setTipoEstudioSeleccionado("");
+		setEstudiosSeleccionados([]);
+		setBuscarEstudio("");
+		setShowBusquedaEstudios(false);
+		setPagoRecibido("");
+		setDescuentoPercent(0);
+		setFormaPago("efectivo");
+		setTarjetaUltimos4("");
+		setCodigoAprobacion("");
+		setAgregarASalaEspera(true);
+		setDestinoTurno("");
+		setDestinoTurnoManual(false);
+		setPrioridadTurno("0");
+	};
+
+	const seleccionarPaciente = (paciente, { limpiarOrden = false } = {}) => {
+		if (limpiarOrden) limpiarDatosOrden();
 		setPacienteSeleccionado(paciente);
 		setNombreCompleto(paciente.nombre);
 		setTelefono(normalizarTelefono10(paciente.telefono || ""));
@@ -1327,12 +1421,27 @@ const NuevoPaciente = () => {
 		setBuscarEstudio("");
 		setPagoRecibido("");
 		setDescuentoPercent(0);
+		setFormaPago("efectivo");
+		setTarjetaUltimos4("");
+		setCodigoAprobacion("");
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
 		setPrioridadTurno("0");
 	};
 
+	// Mientras el catálogo termina de cargar, un select con una selección que
+	// todavía no tiene su <option> se ve vacío y parece que se perdió la
+	// captura: se pinta una opción temporal con el valor recuperado.
+	const opcionPendiente = (valor, lista, campoId) =>
+		valor &&
+		!lista.some((item) => String(item[campoId]) === String(valor)) && (
+			<option value={valor}>Recuperando selección…</option>
+		);
+
+	const clienteActual = clientes.find(
+		(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+	);
 	const empresaActual = empresas.find(
 		(emp) => emp.id_empresa?.toString() === empresaSeleccionada?.toString(),
 	);
@@ -1340,13 +1449,35 @@ const NuevoPaciente = () => {
 		(tipo) =>
 			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
 	);
-	const estudiosFiltrados = filtrarEstudiosCatalogo({
+	// Se resuelve contra el catálogo cargado: si el tarifario del cliente no
+	// cruza con ninguna clave, no se filtra nada en lugar de dejar la búsqueda
+	// vacía.
+	const clavesConPrecio = resolverClavesConPrecio(
+		preciosCliente,
+		estudiosDisponibles,
+	);
+	const filtrosCatalogo = {
 		estudios: estudiosDisponibles,
 		busqueda: buscarEstudio,
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+	};
+	const estudiosConPrecio = filtrarEstudiosCatalogo({
+		...filtrosCatalogo,
+		clavesConPrecio,
 	});
+	// Si el convenio no tiene precio para lo que se está buscando, se ofrece el
+	// catálogo avisando que ese estudio no está en su tarifario: dejar la
+	// búsqueda vacía impedía capturar la solicitud.
+	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
+	const mostrandoEstudiosSinPrecio =
+		Boolean(clavesConPrecio?.size) &&
+		estudiosConPrecio.length === 0 &&
+		estudiosSinFiltroPrecio.length > 0;
+	const estudiosFiltrados = mostrandoEstudiosSinPrecio
+		? estudiosSinFiltroPrecio
+		: estudiosConPrecio;
 
 	useEffect(() => {
 		if (!showBusquedaEstudios || buscarEstudio.trim().length < 2) return;
@@ -1401,7 +1532,9 @@ const NuevoPaciente = () => {
 								<div className="search-container">
 									<SearchAutocomplete
 										buscar={buscarPacientesAsync}
-										onSeleccionar={(pac) => pac && seleccionarPaciente(pac)}
+										onSeleccionar={(pac) =>
+											pac && seleccionarPaciente(pac, { limpiarOrden: true })
+										}
 										getLabel={(pac) => pac?.nombre ?? ''}
 										placeholder="Buscar por nombre o teléfono"
 										value={pacienteSeleccionado}
@@ -1601,15 +1734,16 @@ const NuevoPaciente = () => {
 						<div className="study-column">
 							<div className="top-controls">
 								<div className="form-group-inline">
-									<label>Clientes</label>
+									<label>Empresa</label>
 									<select
-										value={clienteSeleccionado}
-										onChange={(e) => setClienteSeleccionado(e.target.value)}
+										value={empresaSeleccionada}
+										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 										className="form-select">
-										<option value="">Selecciona un Cliente</option>
-										{clientes.map((cli) => (
-											<option key={cli.id_cliente} value={cli.id_cliente}>
-												{cli.nombre}
+										<option value="">Selecciona una Empresa</option>
+										{opcionPendiente(empresaSeleccionada, empresas, "id_empresa")}
+										{empresas.map((emp) => (
+											<option key={emp.id_empresa} value={emp.id_empresa}>
+												{emp.nombre}
 											</option>
 										))}
 									</select>
@@ -1640,15 +1774,21 @@ const NuevoPaciente = () => {
 
 							<div className="selects-adicionales">
 								<div className="form-group-inline">
-									<label>Empresa</label>
+									<label>Clientes</label>
 									<select
-										value={empresaSeleccionada}
-										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-										className="form-select">
-										<option value="">Selecciona una Empresa</option>
-										{empresas.map((emp) => (
-											<option key={emp.id_empresa} value={emp.id_empresa}>
-												{emp.nombre}
+										value={clienteSeleccionado}
+										onChange={(e) => setClienteSeleccionado(e.target.value)}
+										className="form-select"
+										disabled={!empresaSeleccionada}>
+										<option value="">
+											{empresaSeleccionada
+												? "Selecciona un Cliente"
+												: "Primero selecciona una Empresa"}
+										</option>
+										{opcionPendiente(clienteSeleccionado, clientes, "id_cliente")}
+										{clientes.map((cli) => (
+											<option key={cli.id_cliente} value={cli.id_cliente}>
+												{cli.nombre}
 											</option>
 										))}
 									</select>
@@ -1666,6 +1806,11 @@ const NuevoPaciente = () => {
 												? "Selecciona Tipo de Estudio"
 												: "Primero selecciona una Empresa"}
 										</option>
+										{opcionPendiente(
+											tipoEstudioSeleccionado,
+											tiposEstudio,
+											"id_tipo_estudio",
+										)}
 										{tiposEstudio.map((tipo) => (
 											<option
 												key={tipo.id_tipo_estudio}
@@ -1690,8 +1835,25 @@ const NuevoPaciente = () => {
 											alt="Advertencia"
 											className="warning-icon"
 										/>
-										<span>Primero selecciona un cliente para buscar estudios</span>
+										<span>
+											{empresaSeleccionada
+												? "Primero selecciona un cliente para buscar estudios"
+												: "Primero selecciona una empresa y un cliente para buscar estudios"}
+										</span>
 									</div>
+								)}
+
+								{clienteSeleccionado && clavesConPrecio?.size > 0 && (
+									<p
+										className={
+											mostrandoEstudiosSinPrecio
+												? "nota-precios-cliente nota-precios-cliente-aviso"
+												: "nota-precios-cliente"
+										}>
+										{mostrandoEstudiosSinPrecio
+											? `${clienteActual?.nombre || "El cliente"} no tiene precio registrado para estos estudios: se cobrarán al precio por defecto.`
+											: `Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
+									</p>
 								)}
 
 								<div className="search-container" style={{ position: "relative" }}>
@@ -1746,7 +1908,6 @@ const NuevoPaciente = () => {
 												<th>Descripción</th>
 												<th>Cliente</th>
 												<th>Precio</th>
-												<th>Días Proceso</th>
 												<th>Borrar</th>
 											</tr>
 										</thead>
@@ -1766,7 +1927,6 @@ const NuevoPaciente = () => {
 													</td>
 														<td>{est.cliente}</td>
 														<td>${est.precio.toFixed(2)}</td>
-														<td>{est.diasProceso} días</td>
 														<td>
 															<button
 																className="btn-delete"
@@ -1782,7 +1942,7 @@ const NuevoPaciente = () => {
 													</tr>
 													{est.muestra_pendiente && (
 														<tr className="estudio-muestra-pendiente-row">
-															<td colSpan="6">
+															<td colSpan="5">
 																Muestra pendiente para {est.clave}
 															</td>
 														</tr>
@@ -1791,7 +1951,7 @@ const NuevoPaciente = () => {
 											))}
 											{estudiosSeleccionados.length === 0 && (
 												<tr>
-													<td colSpan="6" className="empty-message"></td>
+													<td colSpan="5" className="empty-message"></td>
 												</tr>
 											)}
 										</tbody>
@@ -1870,6 +2030,43 @@ const NuevoPaciente = () => {
 										/>
 									</div>
 								</div>
+
+								{esPagoConTarjeta(formaPago) && (
+									<div className="pago-grid pago-grid-tarjeta">
+										<div className="pago-item">
+											<label htmlFor="tarjeta-ultimos4">Últimos 4 dígitos</label>
+											<input
+												id="tarjeta-ultimos4"
+												type="text"
+												inputMode="numeric"
+												maxLength={4}
+												value={tarjetaUltimos4}
+												onChange={(e) =>
+													setTarjetaUltimos4(normalizarUltimos4(e.target.value))
+												}
+												className="form-input-small"
+												placeholder="1234"
+											/>
+										</div>
+
+										<div className="pago-item">
+											<label htmlFor="codigo-aprobacion">Código de aprobación</label>
+											<input
+												id="codigo-aprobacion"
+												type="text"
+												maxLength={12}
+												value={codigoAprobacion}
+												onChange={(e) =>
+													setCodigoAprobacion(
+														normalizarCodigoAprobacion(e.target.value),
+													)
+												}
+												className="form-input-small"
+												placeholder="Ej. A1B2C3"
+											/>
+										</div>
+									</div>
+								)}
 
 								<div className="final-totales">
 									<div className="final-item">
