@@ -1404,6 +1404,15 @@ const NuevoPaciente = () => {
 		setPrioridadTurno("0");
 	};
 
+	// Mientras el catálogo termina de cargar, un select con una selección que
+	// todavía no tiene su <option> se ve vacío y parece que se perdió la
+	// captura: se pinta una opción temporal con el valor recuperado.
+	const opcionPendiente = (valor, lista, campoId) =>
+		valor &&
+		!lista.some((item) => String(item[campoId]) === String(valor)) && (
+			<option value={valor}>Recuperando selección…</option>
+		);
+
 	const clienteActual = clientes.find(
 		(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
 	);
@@ -1703,6 +1712,7 @@ const NuevoPaciente = () => {
 										onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 										className="form-select">
 										<option value="">Selecciona una Empresa</option>
+										{opcionPendiente(empresaSeleccionada, empresas, "id_empresa")}
 										{empresas.map((emp) => (
 											<option key={emp.id_empresa} value={emp.id_empresa}>
 												{emp.nombre}
@@ -1747,6 +1757,7 @@ const NuevoPaciente = () => {
 												? "Selecciona un Cliente"
 												: "Primero selecciona una Empresa"}
 										</option>
+										{opcionPendiente(clienteSeleccionado, clientes, "id_cliente")}
 										{clientes.map((cli) => (
 											<option key={cli.id_cliente} value={cli.id_cliente}>
 												{cli.nombre}
@@ -1767,6 +1778,11 @@ const NuevoPaciente = () => {
 												? "Selecciona Tipo de Estudio"
 												: "Primero selecciona una Empresa"}
 										</option>
+										{opcionPendiente(
+											tipoEstudioSeleccionado,
+											tiposEstudio,
+											"id_tipo_estudio",
+										)}
 										{tiposEstudio.map((tipo) => (
 											<option
 												key={tipo.id_tipo_estudio}
