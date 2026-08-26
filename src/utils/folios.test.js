@@ -1,5 +1,6 @@
 import {
 	agruparEstudiosPorSerie,
+	convenioCubreEstudio,
 	construirFolio,
 	empresaDeSerie,
 	esEstudioDeLaboratorio,
@@ -200,5 +201,34 @@ describe("foliosCoinciden", () => {
 		expect(foliosCoinciden("a-0001", "A0001")).toBe(true);
 		expect(foliosCoinciden("A0001", "B0001")).toBe(false);
 		expect(foliosCoinciden("", "A0001")).toBe(false);
+	});
+});
+
+describe("convenioCubreEstudio", () => {
+	// IMSS no tiene rayos X ni ultrasonido que no sea doppler: esos estudios no
+	// deben ni aparecer en el buscador cuando está seleccionado.
+	test("IMSS no cubre radiología ni el ultrasonido sin doppler", () => {
+		expect(convenioCubreEstudio(rayosX, IMSS)).toBe(false);
+		expect(convenioCubreEstudio(usg, IMSS)).toBe(false);
+	});
+
+	test("IMSS sí cubre lo que tiene pactado", () => {
+		expect(convenioCubreEstudio(tomografia, IMSS)).toBe(true);
+		expect(convenioCubreEstudio(resonancia, IMSS)).toBe(true);
+		expect(convenioCubreEstudio(usgDoppler, IMSS)).toBe(true);
+	});
+
+	test("un convenio con regla general cubre toda su imagen", () => {
+		expect(convenioCubreEstudio(rayosX, ISSSTE)).toBe(true);
+		expect(convenioCubreEstudio(resonancia, SSA)).toBe(true);
+		expect(convenioCubreEstudio(rayosX, ODILE)).toBe(true);
+	});
+
+	test("el laboratorio no se acota por convenio: lo delimita el tarifario", () => {
+		expect(convenioCubreEstudio(laboratorio, IMSS)).toBe(true);
+	});
+
+	test("sin convenio se ofrece todo el catálogo", () => {
+		expect(convenioCubreEstudio(rayosX, [])).toBe(true);
 	});
 });

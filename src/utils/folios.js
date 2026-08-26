@@ -1,5 +1,3 @@
-import { resolverEmpresaOperativaCatalogo } from "./cita-nuevo-paciente";
-
 // Fiscalmente son dos empresas —CDC (California) y CDI (Imagen)— y el folio
 // tiene que decir a cuál se factura sin abrir la orden. Como el laboratorio de
 // CDC se controla aparte de su imagen, quedan tres series corridas:
@@ -40,7 +38,7 @@ const cumpleCriterio = (regla = {}, estudio = {}) => {
 // los dos: Medisim y SSA mandan su resonancia a CDC y el resto de su imagen a
 // CDI, e IMSS sólo lleva ultrasonido cuando es doppler. Esa matriz se configura
 // por convenio en la base, no en el código.
-export const resolverEmpresaFacturaEstudio = (estudio = {}, reglasConvenio = []) => {
+export const reglaConvenioParaEstudio = (estudio = {}, reglasConvenio = []) => {
 	const modalidad = String(estudio?.modalidad || "").toLowerCase();
 	const reglas = Array.isArray(reglasConvenio) ? reglasConvenio : [];
 
@@ -53,15 +51,32 @@ export const resolverEmpresaFacturaEstudio = (estudio = {}, reglasConvenio = [])
 
 	// La regla de una modalidad concreta gana sobre la del convenio completo, y
 	// entre iguales gana la que tiene criterio (el doppler de IMSS).
-	const elegida =
+	return (
 		aplicables.find((regla) => regla.criterio && regla.modalidad !== MODALIDAD_TODAS) ||
 		aplicables.find((regla) => regla.modalidad !== MODALIDAD_TODAS) ||
 		aplicables.find((regla) => regla.criterio) ||
-		aplicables[0];
+		aplicables[0] ||
+		null
+	);
+};
+
+export const resolverEmpresaFacturaEstudio = (estudio = {}, reglasConvenio = []) => {
+	const regla = reglaConvenioParaEstudio(estudio, reglasConvenio);
 
 	// Sin regla para esa combinación se usa la empresa del catálogo, que es como
 	// se factura al particular: resonancia y veterinaria en CDC, el resto en CDI.
-	return elegida?.empresa || estudio?.empresa_operativa || "CDI";
+	return regla?.empresa || estudio?.empresa_operativa || "CDI";
+};
+
+// Un convenio sólo cubre las modalidades que tiene pactadas: IMSS no lleva
+// radiología ni ultrasonido que no sea doppler, así que esos estudios no deben
+// ni aparecer en la búsqueda cuando está seleccionado. El laboratorio no se
+// acota aquí porque lo delimita el tarifario del cliente.
+export const convenioCubreEstudio = (estudio = {}, reglasConvenio = []) => {
+	if (esEstudioDeLaboratorio(estudio)) return true;
+	const reglas = Array.isArray(reglasConvenio) ? reglasConvenio : [];
+	if (reglas.length === 0) return true;
+	return Boolean(reglaConvenioParaEstudio(estudio, reglas));
 };
 
 export const resolverSerieFolio = (estudio = {}, reglasConvenio = []) => {

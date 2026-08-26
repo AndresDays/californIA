@@ -1,3 +1,4 @@
+import { convenioCubreEstudio } from "./folios";
 const normalizarTexto = (valor = "") =>
 	valor
 		.toString()
@@ -69,6 +70,7 @@ export const filtrarEstudiosCatalogo = ({
 	empresaNombre = "",
 	tipoNombre = "",
 	clavesConPrecio = null,
+	reglasConvenio = null,
 }) => {
 	const termino = normalizarTexto(busqueda);
 	const clavesPermitidas =
@@ -84,6 +86,12 @@ export const filtrarEstudiosCatalogo = ({
 
 	return estudios.filter((estudio) => {
 		if (clavesPermitidas?.size && !clavesPermitidas.has(normalizarClaveEstudio(estudio.clave))) {
+			return false;
+		}
+
+		// El convenio del paciente sólo cubre ciertas modalidades: lo que no tiene
+		// pactado no se ofrece.
+		if (reglasConvenio?.length && !convenioCubreEstudio(estudio, reglasConvenio)) {
 			return false;
 		}
 

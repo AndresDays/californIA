@@ -14,6 +14,7 @@ import {
 	construirEstudioCatalogoUnificado,
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
+import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -31,6 +32,7 @@ const Cotizacion = () => {
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [clientes, setClientes] = useState([]);
 	const [preciosCliente, setPreciosCliente] = useState(null);
+	const [reglasConvenio, setReglasConvenio] = useState([]);
 	const [empresas, setEmpresas] = useState([]);
 	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
 	const [tiposEstudio, setTiposEstudio] = useState([]);
@@ -71,11 +73,16 @@ const Cotizacion = () => {
 
 		if (!clienteSeleccionado || !nombreCliente) {
 			setPreciosCliente(null);
+			setReglasConvenio([]);
 			return undefined;
 		}
 
 		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
+		});
+
+		cargarReglasConvenio(supabase, clienteSeleccionado).then((reglas) => {
+			if (!cancelado) setReglasConvenio(reglas);
 		});
 
 		return () => {
@@ -389,6 +396,7 @@ const Cotizacion = () => {
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+		reglasConvenio,
 	};
 	const estudiosConPrecio = filtrarEstudiosCatalogo({
 		...filtrosCatalogo,

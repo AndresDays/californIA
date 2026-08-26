@@ -1484,6 +1484,7 @@ const NuevoPaciente = () => {
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+		reglasConvenio,
 	};
 	const estudiosConPrecio = filtrarEstudiosCatalogo({
 		...filtrosCatalogo,
