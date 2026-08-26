@@ -15,6 +15,7 @@ import {
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
 import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
+import { resolverTiposEstudioConvenio } from "../../../utils/tipos-estudio-convenio";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -62,7 +63,7 @@ const Cotizacion = () => {
 		setShowBusquedaEstudios(false);
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
-	}, [empresaSeleccionada]);
+	}, [empresaSeleccionada, reglasConvenio, empresas]);
 	// Los convenios sólo tienen precio para parte del catálogo: la búsqueda se
 	// acota a las claves con precio del cliente elegido.
 	useEffect(() => {
@@ -126,16 +127,20 @@ const Cotizacion = () => {
 
 	const cargarTiposEstudio = async (idEmpresa) => {
 		try {
+			// Los tipos de todas las empresas: el convenio puede facturar por la
+			// elegida estudios que el catálogo tiene en la otra.
 			const { data, error } = await supabase
 				.from("empresa_tipos_estudio")
-				.select("id_tipo_estudio, tipos_estudio (id_tipo_estudio, nombre)")
-				.eq("id_empresa", idEmpresa)
+				.select("id_empresa, id_tipo_estudio, tipos_estudio (id_tipo_estudio, nombre)")
 				.order("tipos_estudio(nombre)");
 			if (error) throw error;
 			setTiposEstudio(
-				(data || [])
-					.filter((item) => item.tipos_estudio)
-					.map((item) => item.tipos_estudio),
+				resolverTiposEstudioConvenio({
+					filas: data || [],
+					empresas,
+					idEmpresaSeleccionada: idEmpresa,
+					reglasConvenio,
+				}),
 			);
 		} catch (error) {
 			console.error("Error al cargar tipos de estudio:", error);

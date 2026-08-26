@@ -35,6 +35,7 @@ import {
 } from "../../utils/nuevo-paciente-busqueda";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
+import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -311,13 +312,15 @@ const NuevoPaciente = () => {
 		};
 	}, [clienteSeleccionado, clientes]);
 
+	// Los tipos dependen de la empresa y del convenio del paciente: al cambiar
+	// cualquiera de los dos se vuelven a resolver.
 	useEffect(() => {
 		if (empresaSeleccionada) {
 			cargarTiposEstudio(parseInt(empresaSeleccionada));
 		} else {
 			setTiposEstudio([]);
 		}
-	}, [empresaSeleccionada]);
+	}, [empresaSeleccionada, reglasConvenio, empresas]);
 
 	useEffect(() => {
 		if (!citaIdDesdeDashboard || estudiosDisponibles.length === 0) return;
@@ -945,10 +948,13 @@ const NuevoPaciente = () => {
 				return;
 			}
 
+			// Se traen los tipos de todas las empresas porque el convenio puede
+			// facturar por la elegida estudios que el catálogo tiene en la otra.
 			const { data, error } = await supabase
 				.from("empresa_tipos_estudio")
 				.select(
 					`
+					id_empresa,
 					id_tipo_estudio,
 					tipos_estudio (
 						id_tipo_estudio,
@@ -956,17 +962,18 @@ const NuevoPaciente = () => {
 					)
 				`,
 				)
-				.eq("id_empresa", idEmpresa)
 				.order("tipos_estudio(nombre)");
 
 			if (error) throw error;
 
-			const tiposFiltrados = data.map((item) => ({
-				id_tipo_estudio: item.tipos_estudio.id_tipo_estudio,
-				nombre: item.tipos_estudio.nombre,
-			}));
+			const tiposFiltrados = resolverTiposEstudioConvenio({
+				filas: data || [],
+				empresas,
+				idEmpresaSeleccionada: idEmpresa,
+				reglasConvenio,
+			});
 
-			setTiposEstudio(tiposFiltrados || []);
+			setTiposEstudio(tiposFiltrados);
 			const tipoPendiente = tipoEstudioPendienteRef.current;
 			if (tipoPendiente && tiposFiltrados.some((tipo) => tipo.id_tipo_estudio?.toString() === tipoPendiente)) {
 				setTipoEstudioSeleccionado(tipoPendiente);

@@ -47,7 +47,11 @@ jest.mock("../../lib/supabase-client", () => {
 		pacientes: [{ id_paciente: 9, nombre: "JUAN PEREZ", telefono: "6141234567", edad: 30, sexo: "M" }],
 		doctores: [{ id_doctor: 4, nombre: "ANA LOPEZ", especialidad: "General" }],
 		empresa_tipos_estudio: [
-			{ id_tipo_estudio: 7, tipos_estudio: { id_tipo_estudio: 7, nombre: "Laboratorio" } },
+			{
+				id_empresa: 2,
+				id_tipo_estudio: 7,
+				tipos_estudio: { id_tipo_estudio: 7, nombre: "Laboratorio" },
+			},
 		],
 		estudios_lab_catalogo: [
 			{ id: 30, clave: "BH", descripcion: "BIOMETRIA HEMATICA", area: "Hematologia", dias_proceso: 1 },
