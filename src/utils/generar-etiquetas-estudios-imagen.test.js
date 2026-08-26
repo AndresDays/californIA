@@ -4,13 +4,28 @@ import {
 	generarEtiquetasEstudiosImagen,
 } from './generar-etiquetas-estudios-imagen';
 
+let tamanoActual = 8;
+
+beforeAll(() => {
+	if (!URL.createObjectURL) URL.createObjectURL = jest.fn(() => 'blob:etiquetas');
+});
+
 const mockDoc = {
 	addPage: jest.fn(),
 	output: jest.fn(() => new Blob()),
 	setFont: jest.fn(),
-	setFontSize: jest.fn(),
+	setFontSize: jest.fn((tamano) => {
+		tamanoActual = tamano;
+	}),
 	setProperties: jest.fn(),
-	splitTextToSize: jest.fn((texto) => [String(texto)]),
+	splitTextToSize: jest.fn((texto, ancho) => {
+		// Aproxima el ancho real del PDF: el texto se parte según el tamaño de
+		// letra que se haya fijado.
+		const porRenglon = Math.floor(ancho / (tamanoActual * 0.26));
+		const cadena = String(texto);
+		if (cadena.length <= porRenglon) return [cadena];
+		return [cadena.slice(0, porRenglon), cadena.slice(porRenglon)];
+	}),
 	text: jest.fn(),
 };
 
@@ -58,11 +73,13 @@ describe('generarEtiquetasEstudiosImagen', () => {
 			expect.arrayContaining([
 				'CENTRAL DIAGNOSTICA CALIFORNIA',
 				'Folio: A9804',
-				'Paciente: MA DE LA LUZ MACIAS GARCIA',
 				'RM CRANEO SIMPLE',
 				'BARRETO, HECTOR',
 			]),
 		);
+		// El nombre largo se parte en renglones, pero sale completo.
+		expect(textos.join(' ')).toContain('MA DE LA LUZ');
+		expect(textos.join(' ')).toContain('MACIAS GARCIA');
 		expect(window.open).toHaveBeenCalledTimes(1);
 	});
 });
@@ -149,4 +166,21 @@ describe("el contenido va centrado en la etiqueta", () => {
 
 		expect(Math.max(...alturas())).toBeLessThan(30);
 	});
+});
+
+test("el membrete se achica para caber en un solo renglón", () => {
+	jest.clearAllMocks();
+	generarEtiquetasEstudiosImagen({
+		folio: "A0001",
+		paciente: "Ana Ruiz",
+		doctor: "Barreto, Hector",
+		estudios: [{ modulo: "imagen", descripcion: "RM CRANEO SIMPLE" }],
+	});
+
+	const renglonesMembrete = mockDoc.text.mock.calls.filter(([texto]) =>
+		String(texto).includes("CENTRAL DIAGNOSTICA"),
+	);
+
+	expect(renglonesMembrete).toHaveLength(1);
+	expect(renglonesMembrete[0][0]).toBe("CENTRAL DIAGNOSTICA CALIFORNIA");
 });

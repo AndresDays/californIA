@@ -20,6 +20,8 @@ const textoMayusculas = (valor) => String(valor || '').trim().toUpperCase();
 
 // La etiqueta mide 50 x 30 mm y el contenido va centrado en ella.
 const ANCHO_TEXTO = 46;
+const TAMANO_MEMBRETE = 7.2;
+const TAMANO_MEMBRETE_MINIMO = 5;
 const ALTO_ETIQUETA = 30;
 const MARGEN_SUPERIOR = 3.2;
 
@@ -50,6 +52,19 @@ export const agregarEtiquetasImagenAlPdf = (
 		? ''
 		: fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+	// El membrete va en un solo renglón: se achica lo necesario para que quepa a
+	// lo ancho de la etiqueta en vez de partirse en dos.
+	const tamanoMembrete = (texto) => {
+		let tamano = TAMANO_MEMBRETE;
+		pdf.setFont('helvetica', 'bold');
+		while (tamano > TAMANO_MEMBRETE_MINIMO) {
+			pdf.setFontSize(tamano);
+			if (pdf.splitTextToSize(texto, ANCHO_TEXTO).length <= 1) break;
+			tamano -= 0.2;
+		}
+		return Math.round(tamano * 10) / 10;
+	};
+
 	estudiosImagen.forEach(({ estudio, folio: folioEstudio }, indice) => {
 		if (indice || !paginaInicial) pdf.addPage([50, 30], 'landscape');
 
@@ -65,12 +80,26 @@ export const agregarEtiquetasImagenAlPdf = (
 			});
 		};
 
-		agregar('CENTRAL DIAGNOSTICA CALIFORNIA', { tam: 7.2, negritas: true, alto: 3.2 });
+		const membrete = 'CENTRAL DIAGNOSTICA CALIFORNIA';
+		agregar(membrete, {
+			tam: tamanoMembrete(membrete),
+			negritas: true,
+			alto: 3.2,
+		});
 		renglones.push({ tipo: 'separador', alto: 2.6 });
 		renglones.push({ tipo: 'folio', folio: folioEstudio, tam: 7, alto: 4 });
 		agregar(`Paciente: ${textoMayusculas(paciente)}`, { tam: 7.5, negritas: true, alto: 3.4 });
 		agregar(textoMayusculas(estudio), { tam: 8, alto: 3.6 });
 		if (doctor) agregar(textoMayusculas(doctor), { tam: 7, alto: 3.4 });
+
+		// Con textos largos el contenido no cabe: se aprieta el interlineado en vez
+		// de desbordarse fuera de la etiqueta.
+		const altoDisponible = ALTO_ETIQUETA - MARGEN_SUPERIOR;
+		const altoNatural = renglones.reduce((total, renglon) => total + renglon.alto, 0);
+		const compresion = altoNatural > altoDisponible ? altoDisponible / altoNatural : 1;
+		renglones.forEach((renglon) => {
+			renglon.alto = Math.round(renglon.alto * compresion * 100) / 100;
+		});
 
 		const altoContenido = renglones.reduce((total, renglon) => total + renglon.alto, 0);
 		let y = Math.max(MARGEN_SUPERIOR, (ALTO_ETIQUETA - altoContenido) / 2 + 2.4);
