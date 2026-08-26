@@ -21,6 +21,7 @@ import {
 } from "../../../utils/generarTicketVenta";
 import { generarEtiquetasEstudiosLaboratorio } from "../../../utils/generar-etiquetas-estudios-laboratorio";
 import { generarEtiquetasEstudiosImagen } from "../../../utils/generar-etiquetas-estudios-imagen";
+import { esEstudioImagenCaptura } from "../../../utils/captura-row-status";
 import {
 	EVENTOS_SOLICITUD,
 	formatearEventoAuditoria,
@@ -769,7 +770,18 @@ const EditarSolicitud = () => {
 					...estudio,
 					clave: estudio.clave_estudio,
 					descripcion: estudio.descripcion_estudio,
-					modulo: clavesImagen.has(estudio.clave_estudio) ? "imagen" : "laboratorio",
+					// El catálogo confirma la imagen, pero si no la encuentra —o no se
+					// pudo consultar— la clave y el área también la delatan: sin esto
+					// la orden se etiquetaba como laboratorio y no salía nada.
+					modulo:
+						clavesImagen.has(estudio.clave_estudio) ||
+						esEstudioImagenCaptura({
+							clave_estudio: estudio.clave_estudio,
+							descripcion_estudio: estudio.descripcion_estudio,
+							area: estudio.area,
+						})
+							? "imagen"
+							: "laboratorio",
 					...estudioCatalogo,
 				};
 			});
@@ -783,6 +795,7 @@ const EditarSolicitud = () => {
 			});
 			const generoImagen = generarEtiquetasEstudiosImagen({
 				folio: orden.folio,
+				fecha: orden.fecha_venta,
 				paciente: paciente?.nombre,
 				doctor: doctorResponse.data?.nombre || "",
 				estudios: estudiosEtiquetas,

@@ -1,4 +1,4 @@
-import { convenioCubreEstudio } from "./folios";
+import { convenioCubreEstudio, reglaConvenioParaEstudio } from "./folios";
 const normalizarTexto = (valor = "") =>
 	valor
 		.toString()
@@ -102,7 +102,16 @@ export const filtrarEstudiosCatalogo = ({
 		if (!coincideBusqueda) return false;
 
 		if (estudio.modulo === "imagen") {
-			if (empresaId && estudio.id_empresa) {
+			// Con convenio manda la empresa que factura, no la del catálogo: la
+			// tomografía de Anamaya es un estudio de CDI que se factura por CDC, y
+			// tiene que aparecer con CDC seleccionada.
+			const reglaEmpresa = reglasConvenio?.length
+				? reglaConvenioParaEstudio(estudio, reglasConvenio)
+				: null;
+
+			if (reglaEmpresa) {
+				if (empresaOperativa && reglaEmpresa.empresa !== empresaOperativa) return false;
+			} else if (empresaId && estudio.id_empresa) {
 				if (String(estudio.id_empresa) !== String(empresaId)) return false;
 			} else if (empresaOperativa) {
 				if (estudio.empresa_operativa !== empresaOperativa) return false;

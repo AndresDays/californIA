@@ -77,3 +77,52 @@ describe('generarEtiquetasEstudiosImagen', () => {
 		expect(window.open).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('estudios de imagen mal clasificados', () => {
+	// El caso que dejaba sin etiquetas a editar solicitud: la orden marcaba el
+	// estudio como laboratorio porque el catálogo de imagen no lo devolvió.
+	test('la clave delata la imagen aunque venga marcada como laboratorio', () => {
+		expect(
+			agruparEstudiosImagen([
+				{ modulo: 'laboratorio', clave_estudio: 'RM-CRANEO-SIMPLE', descripcion_estudio: 'RM CRANEO SIMPLE' },
+				{ modulo: 'laboratorio', clave_estudio: 'BH', descripcion_estudio: 'BIOMETRIA HEMATICA', area: 'Hematologia' },
+			]),
+		).toEqual(['RM CRANEO SIMPLE']);
+	});
+
+	test('el área de imagen también la delata', () => {
+		expect(
+			agruparEstudiosImagen([
+				{ modulo: 'laboratorio', clave_estudio: 'X1', descripcion_estudio: 'ESTUDIO', area: 'Ultrasonidos' },
+			]),
+		).toEqual(['ESTUDIO']);
+	});
+});
+
+describe('fecha de la etiqueta', () => {
+	beforeEach(() => jest.clearAllMocks());
+
+	test('imprime la fecha de la orden junto al folio', () => {
+		generarEtiquetasEstudiosImagen({
+			folio: 'A9804',
+			fecha: '2026-08-07T10:00:00',
+			paciente: 'Ma de la Luz Macias Garcia',
+			doctor: 'Barreto, Hector',
+			estudios: [{ modulo: 'imagen', descripcion: 'RM CRANEO SIMPLE' }],
+		});
+
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+		expect(textos).toEqual(expect.arrayContaining(['Folio: A9804', '07/08/2026']));
+	});
+
+	test('sin fecha usa la del día y no truena', () => {
+		expect(() =>
+			generarEtiquetasEstudiosImagen({
+				folio: 'A9804',
+				paciente: 'Paciente',
+				doctor: 'Doctor',
+				estudios: [{ modulo: 'imagen', descripcion: 'RM CRANEO SIMPLE' }],
+			}),
+		).not.toThrow();
+	});
+});

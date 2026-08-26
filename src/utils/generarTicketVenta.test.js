@@ -200,7 +200,7 @@ describe('ticket de imagen', () => {
 		});
 		const textos = textosDelTicket();
 
-		expect(textos).toEqual(expect.arrayContaining(['Folio: C0001', 'Entrega']));
+		expect(textos).toEqual(expect.arrayContaining(['Folio: C0001']));
 		expect(textos).not.toEqual(expect.arrayContaining(['No. orden: C0001']));
 	});
 });
@@ -251,5 +251,25 @@ describe('encabezado del ticket de imagen', () => {
 		expect(textos).toEqual(
 			expect.arrayContaining(['Paulina Diaz Cortes', 'Correo: labcalifornia01@gmail.com']),
 		);
+	});
+});
+
+describe('ningún ticket lleva fecha de entrega por estudio', () => {
+	const estudios = [{ descripcion: 'BIOMETRIA HEMATICA', precio: 300, cantidad: 1, diasProceso: 3 }];
+
+	beforeEach(() => jest.clearAllMocks());
+
+	test.each([
+		['laboratorio', 'C0001'],
+		[TIPO_TICKET_IMAGEN, 'A0001'],
+	])('el ticket de %s no imprime la columna de entrega', async (tipo, folio) => {
+		await generarTicketsVenta({
+			tickets: [{ tipo, folio, fecha: new Date('2026-08-25T15:38:00'), paciente: 'Paciente', estudios, empresa: 'CDC' }],
+		});
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+
+		expect(textos).not.toEqual(expect.arrayContaining(['Entrega']));
+		// La fecha de entrega salía como 28-08-26 al sumar los días de proceso.
+		expect(textos.some((texto) => /^\d{2}-\d{2}-\d{2}$/.test(String(texto)))).toBe(false);
 	});
 });

@@ -1,11 +1,17 @@
 import jsPDF from 'jspdf';
 import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
+import { esEstudioImagenCaptura } from './captura-row-status';
 
+// Un estudio de imagen se reconoce por su módulo, y si viene sin clasificar, por
+// su clave, área y descripción: así la etiqueta sale aunque la orden no traiga
+// el módulo resuelto.
 export const agruparEstudiosImagen = (estudios = []) =>
 	estudios
 		.filter((estudio) => {
+			if (estudio?.modulo === 'imagen') return true;
+			if (estudio?.modulo === 'laboratorio') return esEstudioImagenCaptura(estudio);
 			const area = String(estudio?.area || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-			return !area.includes('laboratorio') && estudio?.modulo !== 'laboratorio';
+			return !area.includes('laboratorio');
 		})
 		.map((estudio) => String(estudio.descripcion || estudio.descripcion_estudio || '').trim())
 		.filter(Boolean);
@@ -17,6 +23,7 @@ const textoMayusculas = (valor) => String(valor || '').trim().toUpperCase();
 // la orden a la que pertenece, todas en el mismo PDF.
 export const generarEtiquetasEstudiosImagen = ({
 	folio,
+	fecha,
 	paciente,
 	doctor,
 	estudios,
@@ -38,6 +45,11 @@ export const generarEtiquetasEstudiosImagen = ({
 		return false;
 	}
 
+	const fechaObj = fecha ? new Date(fecha) : new Date();
+	const fechaEtiqueta = Number.isNaN(fechaObj.getTime())
+		? ''
+		: fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
 	const folioTitulo = gruposEtiquetas.map((grupo) => grupo.folio).join(' · ');
 	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
 	pdf.setProperties({ title: `Etiqueta ${folioTitulo}` });
@@ -53,6 +65,7 @@ export const generarEtiquetasEstudiosImagen = ({
 		pdf.text('......................................................', 2, 5.3);
 		pdf.setFontSize(7);
 		pdf.text(`Folio: ${folioEstudio}`, 2, 8.2);
+		if (fechaEtiqueta) pdf.text(fechaEtiqueta, 48, 8.2, { align: 'right' });
 		pdf.setFont('helvetica', 'bold');
 		pdf.text(`Paciente: ${textoMayusculas(paciente)}`, 2, 12.2, { maxWidth: 46 });
 		pdf.setFont('helvetica', 'normal');
