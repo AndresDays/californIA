@@ -18,79 +18,88 @@ const FILAS = [
 	tipo(5, "Ultrasonidos", 2),
 	tipo(6, "Rayos X", 2),
 	tipo(7, "Estudios contrastados", 2),
+	tipo(8, "Otros estudios", 2),
 ];
 
-const nombres = (tipos) => tipos.map((t) => t.nombre);
+// Los convenios tal como quedan capturados en la matriz.
+const ANAMAYA = [{ modalidad: "*", criterio: "", empresa: "CDC" }];
+const IMSS = [
+	{ modalidad: "tomografia", criterio: "", empresa: "CDC" },
+	{ modalidad: "resonancia", criterio: "", empresa: "CDC" },
+	{ modalidad: "ultrasonido", criterio: "doppler", empresa: "CDC" },
+];
+const SSA = [
+	{ modalidad: "*", criterio: "", empresa: "CDI" },
+	{ modalidad: "resonancia", criterio: "", empresa: "CDC" },
+];
+const ISSSTE = [{ modalidad: "*", criterio: "", empresa: "CDI" }];
 
-test("sin convenio se ofrecen sólo los tipos de la empresa elegida", () => {
-	expect(
-		nombres(
-			resolverTiposEstudioConvenio({
-				filas: FILAS,
-				empresas: EMPRESAS,
-				idEmpresaSeleccionada: 1,
-			}),
-		),
-	).toEqual(["Laboratorio", "Resonancia", "Veterinaria"]);
-});
+const tiposDe = (idEmpresa, reglasConvenio) =>
+	resolverTiposEstudioConvenio({
+		filas: FILAS,
+		empresas: EMPRESAS,
+		idEmpresaSeleccionada: idEmpresa,
+		reglasConvenio,
+	}).map((t) => t.nombre);
 
-// Anamaya factura toda su imagen por CDC, así que con CDC elegida debe poder
-// capturar también los tipos que el catálogo tiene en CDI.
-test("un convenio que factura por CDC suma los tipos de imagen de CDI", () => {
-	const tipos = nombres(
-		resolverTiposEstudioConvenio({
-			filas: FILAS,
-			empresas: EMPRESAS,
-			idEmpresaSeleccionada: 1,
-			reglasConvenio: [{ modalidad: "*", criterio: "", empresa: "CDC" }],
-		}),
-	);
-
-	expect(tipos).toEqual(
-		expect.arrayContaining([
-			"Laboratorio",
-			"Resonancia",
-			"Veterinaria",
+describe("particular", () => {
+	test("ve los tipos que la empresa tiene dados de alta", () => {
+		expect(tiposDe(1)).toEqual(["Laboratorio", "Resonancia", "Veterinaria"]);
+		expect(tiposDe(2)).toEqual([
+			"Estudios contrastados",
+			"Otros estudios",
+			"Rayos X",
 			"Tomografias",
 			"Ultrasonidos",
-			"Rayos X",
-			"Estudios contrastados",
-		]),
-	);
+		]);
+	});
 });
 
-test("IMSS sólo suma las modalidades que tiene pactadas", () => {
-	const tipos = nombres(
-		resolverTiposEstudioConvenio({
-			filas: FILAS,
-			empresas: EMPRESAS,
-			idEmpresaSeleccionada: 1,
-			reglasConvenio: [
-				{ modalidad: "tomografia", criterio: "", empresa: "CDC" },
-				{ modalidad: "resonancia", criterio: "", empresa: "CDC" },
-				{ modalidad: "ultrasonido", criterio: "doppler", empresa: "CDC" },
-			],
-		}),
-	);
+describe("convenios de California", () => {
+	// Sólo lo pactado: nada de laboratorio ni veterinaria.
+	test("Anamaya ve sus seis tipos", () => {
+		expect(tiposDe(1, ANAMAYA).sort()).toEqual(
+			[
+				"Estudios contrastados",
+				"Otros estudios",
+				"Rayos X",
+				"Resonancia",
+				"Tomografias",
+				"Ultrasonidos",
+			].sort(),
+		);
+		expect(tiposDe(1, ANAMAYA)).not.toContain("Laboratorio");
+		expect(tiposDe(1, ANAMAYA)).not.toContain("Veterinaria");
+	});
 
-	expect(tipos).toEqual(
-		expect.arrayContaining(["Tomografias", "Ultrasonidos", "Laboratorio"]),
-	);
-	expect(tipos).not.toEqual(expect.arrayContaining(["Rayos X"]));
+	test("IMSS ve tomografías, ultrasonidos y resonancia", () => {
+		expect(tiposDe(1, IMSS).sort()).toEqual(
+			["Resonancia", "Tomografias", "Ultrasonidos"].sort(),
+		);
+	});
 });
 
-test("con CDI elegida, un convenio de CDC no arrastra sus tipos", () => {
-	const tipos = nombres(
-		resolverTiposEstudioConvenio({
-			filas: FILAS,
-			empresas: EMPRESAS,
-			idEmpresaSeleccionada: 2,
-			reglasConvenio: [{ modalidad: "*", criterio: "", empresa: "CDC" }],
-		}),
-	);
+describe("convenios repartidos entre las dos empresas", () => {
+	// Medisim y SSA facturan su resonancia por CDC y el resto por CDI.
+	test("con CDC, SSA sólo ve resonancia", () => {
+		expect(tiposDe(1, SSA)).toEqual(["Resonancia"]);
+	});
 
-	expect(tipos).not.toEqual(expect.arrayContaining(["Laboratorio"]));
-	expect(tipos).toEqual(expect.arrayContaining(["Tomografias"]));
+	test("con CDI, SSA ve su imagen menos la resonancia", () => {
+		const tipos = tiposDe(2, SSA);
+		expect(tipos).not.toContain("Resonancia");
+		expect(tipos).toEqual(
+			expect.arrayContaining(["Tomografias", "Ultrasonidos", "Rayos X"]),
+		);
+	});
+
+	test("ISSSTE ve toda su imagen en CDI, incluida la resonancia", () => {
+		expect(tiposDe(2, ISSSTE)).toContain("Resonancia");
+	});
+
+	test("un convenio de CDI no ofrece nada con CDC seleccionada", () => {
+		expect(tiposDe(1, ISSSTE)).toEqual([]);
+	});
 });
 
 test("no repite un tipo dado de alta en las dos empresas", () => {
@@ -98,7 +107,7 @@ test("no repite un tipo dado de alta en las dos empresas", () => {
 		filas: [...FILAS, tipo(4, "Tomografias", 1)],
 		empresas: EMPRESAS,
 		idEmpresaSeleccionada: 1,
-		reglasConvenio: [{ modalidad: "*", criterio: "", empresa: "CDC" }],
+		reglasConvenio: ANAMAYA,
 	});
 
 	expect(tipos.filter((t) => t.nombre === "Tomografias")).toHaveLength(1);
