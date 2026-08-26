@@ -37,6 +37,9 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
   const [institucion, setInstitucion] = useCampoPersistente(`${BORRADOR}institucion`, '', borrador);
   const [esRadiologo, setEsRadiologo] = useCampoPersistente(`${BORRADOR}esRadiologo`, false, borrador);
   const [especialidad, setEspecialidad] = useCampoPersistente(`${BORRADOR}especialidad`, '', borrador);
+  // Guardar pasa por la función de administración y puede tardar unos segundos:
+  // sin aviso el botón parece trabado y se le pica dos veces.
+  const [guardando, setGuardando] = useState(false);
   const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: '', tipo: 'exito' });
 
   const isEditMode = !!doctorEditar;
@@ -178,6 +181,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       doctorData.id = doctorEditar.id;
     }
 
+    setGuardando(true);
     try {
       if (onSave) {
         await onSave(doctorData, isEditMode);
@@ -188,6 +192,8 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
     } catch (error) {
       console.error('Error al guardar doctor:', error);
       mostrarNotificacion('Error al guardar el doctor', 'error');
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -436,11 +442,15 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
         </div>
 
         <div className="modal-footer">
-          <button className="btn-modal-cancel" onClick={handleCerrar}>
+          <button className="btn-modal-cancel" onClick={handleCerrar} disabled={guardando}>
             Cancelar
           </button>
-          <button className="btn-modal-save" onClick={handleGuardar}>
-            {isEditMode ? 'Actualizar Doctor' : 'Guardar Doctor'}
+          <button className="btn-modal-save" onClick={handleGuardar} disabled={guardando}>
+            {guardando
+              ? 'Guardando...'
+              : isEditMode
+                ? 'Actualizar Doctor'
+                : 'Guardar Doctor'}
           </button>
         </div>
       </div>

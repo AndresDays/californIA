@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ModalAgregarDoctor from "./modal-agregar-doctor";
 
 jest.mock("./modal-agregar-doctor.css", () => ({}));
@@ -229,5 +229,36 @@ describe("ModalAgregarDoctor", () => {
 			expect.objectContaining({ especialidad: "" }),
 			expect.anything(),
 		);
+	});
+
+	// Guardar pasa por la función de administración y tarda: el botón avisa y se
+	// bloquea para que no se registre dos veces el mismo doctor.
+	test("el botón avisa mientras guarda y no deja repetir el clic", async () => {
+		let resolverGuardado;
+		const onSave = jest.fn(
+			() => new Promise((resolver) => {
+				resolverGuardado = resolver;
+			}),
+		);
+
+		render(<ModalAgregarDoctor isOpen onClose={jest.fn()} onSave={onSave} />);
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Apellido Paterno"), {
+			target: { value: "Barreto" },
+		});
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+			target: { value: "Hector" },
+		});
+
+		fireEvent.click(screen.getByText("Guardar Doctor"));
+
+		const boton = await screen.findByText("Guardando...");
+		expect(boton).toBeDisabled();
+
+		fireEvent.click(boton);
+		expect(onSave).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			resolverGuardado();
+		});
 	});
 });
