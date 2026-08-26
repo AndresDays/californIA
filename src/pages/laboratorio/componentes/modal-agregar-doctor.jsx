@@ -144,11 +144,6 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       return;
     }
 
-    if (!esRadiologo && !especialidad.trim()) {
-      mostrarNotificacion('Por favor ingresa la especialidad del doctor', 'advertencia');
-      return;
-    }
-
     const nombreCompleto = `${apellidoPaterno.toUpperCase()} ${apellidoMaterno.toUpperCase()} ${nombre.toUpperCase()}`.trim();
 
     let fechaNacimiento = null;
@@ -402,7 +397,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
 
             {!esRadiologo && (
               <div className="form-group-modal">
-                <label htmlFor="especialidad-doctor-externo">Especialidad *</label>
+                <label htmlFor="especialidad-doctor-externo">Especialidad</label>
                 <input
                   id="especialidad-doctor-externo"
                   type="text"

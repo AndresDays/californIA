@@ -114,7 +114,7 @@ describe("ModalAgregarDoctor", () => {
 		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
 			target: { value: "Juan" },
 		});
-		fireEvent.change(screen.getByLabelText("Especialidad *"), {
+		fireEvent.change(screen.getByLabelText("Especialidad"), {
 			target: { value: "Cardiología" },
 		});
 
@@ -158,7 +158,7 @@ describe("ModalAgregarDoctor", () => {
 		fireEvent.change(screen.getByLabelText("Institución"), {
 			target: { value: "IMSS" },
 		});
-		fireEvent.change(screen.getByLabelText("Especialidad *"), {
+		fireEvent.change(screen.getByLabelText("Especialidad"), {
 			target: { value: "Cardiología" },
 		});
 		fireEvent.change(screen.getByPlaceholderText("Ingresar email"), {
@@ -202,10 +202,32 @@ describe("ModalAgregarDoctor", () => {
 		fireEvent.click(screen.getByText("Guardar Doctor"));
 
 		await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-		expect(screen.queryByLabelText("Especialidad *")).not.toBeInTheDocument();
+		expect(screen.queryByLabelText("Especialidad")).not.toBeInTheDocument();
 		expect(onSave.mock.calls[0][0]).toMatchObject({
 			es_radiologo: true,
 		});
 		expect(onSave.mock.calls[0][0]).not.toHaveProperty("especialidad");
+	});
+
+	// La especialidad dejó de ser obligatoria: un doctor que llega al mostrador
+	// sin ese dato no debe frenar la captura de la orden.
+	test("registra un doctor sin especialidad", async () => {
+		const onSave = jest.fn().mockResolvedValue(undefined);
+
+		render(<ModalAgregarDoctor isOpen onClose={jest.fn()} onSave={onSave} />);
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Apellido Paterno"), {
+			target: { value: "Barreto" },
+		});
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+			target: { value: "Hector" },
+		});
+
+		fireEvent.click(screen.getByText("Guardar Doctor"));
+
+		await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+		expect(onSave).toHaveBeenCalledWith(
+			expect.objectContaining({ especialidad: "" }),
+			expect.anything(),
+		);
 	});
 });
