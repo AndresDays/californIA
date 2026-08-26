@@ -161,6 +161,69 @@ describe("cita-nuevo-paciente helpers", () => {
 		expect(filtrados.map((est) => est.clave)).toEqual(["BH"]);
 	});
 
+	// Anamaya factura toda su imagen por CDC aunque el catálogo la tenga como
+	// CDI: con CDC seleccionada sus tomografías y ultrasonidos deben aparecer.
+	test("con convenio, la empresa que factura manda sobre la del catálogo", () => {
+		const estudios = [
+			construirEstudioCatalogoUnificado(
+				{
+					id: 50,
+					clave: "TAC-CRANEO",
+					descripcion: "TAC DE CRANEO",
+					id_empresa: 2,
+					empresa_operativa: "CDI",
+					modalidad: "tomografia",
+					area: "Tomografia",
+				},
+				"imagen",
+			),
+		];
+		const reglasAnamaya = [{ modalidad: "*", criterio: "", empresa: "CDC" }];
+
+		expect(
+			filtrarEstudiosCatalogo({
+				estudios,
+				busqueda: "",
+				empresaNombre: "Central Diagnostica California",
+				reglasConvenio: reglasAnamaya,
+			}),
+		).toHaveLength(1);
+
+		// Y con la otra empresa seleccionada no debe aparecer.
+		expect(
+			filtrarEstudiosCatalogo({
+				estudios,
+				busqueda: "",
+				empresaNombre: "Centro Diagnóstico por Imagen",
+				reglasConvenio: reglasAnamaya,
+			}),
+		).toHaveLength(0);
+	});
+
+	test("sin convenio la empresa del catálogo sigue mandando", () => {
+		const estudios = [
+			construirEstudioCatalogoUnificado(
+				{
+					id: 51,
+					clave: "TAC-ABDOMEN",
+					descripcion: "TAC DE ABDOMEN",
+					empresa_operativa: "CDI",
+					modalidad: "tomografia",
+					area: "Tomografia",
+				},
+				"imagen",
+			),
+		];
+
+		expect(
+			filtrarEstudiosCatalogo({
+				estudios,
+				busqueda: "",
+				empresaNombre: "Central Diagnostica California",
+			}),
+		).toHaveLength(0);
+	});
+
 	test("no ofrece estudios que el convenio no cubre", () => {
 		const estudios = [
 			construirEstudioCatalogoUnificado(
