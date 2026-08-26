@@ -18,6 +18,11 @@ export const agruparEstudiosImagen = (estudios = []) =>
 
 const textoMayusculas = (valor) => String(valor || '').trim().toUpperCase();
 
+// La etiqueta mide 50 x 30 mm y el contenido va centrado en ella.
+const ANCHO_TEXTO = 46;
+const ALTO_ETIQUETA = 30;
+const MARGEN_SUPERIOR = 3.2;
+
 // Una visita que factura por las dos empresas parte su imagen en dos folios,
 // así que las etiquetas se arman por grupo: cada estudio sale con el folio de
 // la orden a la que pertenece, todas en el mismo PDF.
@@ -48,22 +53,45 @@ export const agregarEtiquetasImagenAlPdf = (
 	estudiosImagen.forEach(({ estudio, folio: folioEstudio }, indice) => {
 		if (indice || !paginaInicial) pdf.addPage([50, 30], 'landscape');
 
-		pdf.setFont('helvetica', 'bold');
-		pdf.setFontSize(7.2);
-		pdf.text('CENTRAL DIAGNOSTICA CALIFORNIA', 2, 3.5);
-		pdf.setFont('helvetica', 'normal');
-		pdf.setFontSize(6.6);
-		pdf.text('......................................................', 2, 5.3);
-		pdf.setFontSize(7);
-		pdf.text(`Folio: ${folioEstudio}`, 2, 8.2);
-		if (fechaEtiqueta) pdf.text(fechaEtiqueta, 48, 8.2, { align: 'right' });
-		pdf.setFont('helvetica', 'bold');
-		pdf.text(`Paciente: ${textoMayusculas(paciente)}`, 2, 12.2, { maxWidth: 46 });
-		pdf.setFont('helvetica', 'normal');
-		pdf.setFontSize(8);
-		pdf.text(textoMayusculas(estudio), 2, 18.2, { maxWidth: 46 });
-		pdf.setFontSize(7);
-		pdf.text(textoMayusculas(doctor), 2, 25.7, { maxWidth: 46 });
+		// El contenido se arma antes de dibujarlo para poder centrarlo en la
+		// etiqueta: con textos cortos quedaba todo arriba y un hueco abajo.
+		const renglones = [];
+
+		const agregar = (texto, { tam, negritas = false, alto, centrado = true }) => {
+			pdf.setFont('helvetica', negritas ? 'bold' : 'normal');
+			pdf.setFontSize(tam);
+			pdf.splitTextToSize(String(texto || ''), ANCHO_TEXTO).forEach((linea) => {
+				renglones.push({ texto: linea, tam, negritas, alto, centrado });
+			});
+		};
+
+		agregar('CENTRAL DIAGNOSTICA CALIFORNIA', { tam: 7.2, negritas: true, alto: 3.2 });
+		renglones.push({ tipo: 'separador', alto: 2.6 });
+		renglones.push({ tipo: 'folio', folio: folioEstudio, tam: 7, alto: 4 });
+		agregar(`Paciente: ${textoMayusculas(paciente)}`, { tam: 7.5, negritas: true, alto: 3.4 });
+		agregar(textoMayusculas(estudio), { tam: 8, alto: 3.6 });
+		if (doctor) agregar(textoMayusculas(doctor), { tam: 7, alto: 3.4 });
+
+		const altoContenido = renglones.reduce((total, renglon) => total + renglon.alto, 0);
+		let y = Math.max(MARGEN_SUPERIOR, (ALTO_ETIQUETA - altoContenido) / 2 + 2.4);
+
+		renglones.forEach((renglon) => {
+			if (renglon.tipo === 'separador') {
+				pdf.setFont('helvetica', 'normal');
+				pdf.setFontSize(6.6);
+				pdf.text('..............................................', 25, y, { align: 'center' });
+			} else if (renglon.tipo === 'folio') {
+				pdf.setFont('helvetica', 'normal');
+				pdf.setFontSize(renglon.tam);
+				pdf.text(`Folio: ${renglon.folio}`, 2, y);
+				if (fechaEtiqueta) pdf.text(fechaEtiqueta, 48, y, { align: 'right' });
+			} else {
+				pdf.setFont('helvetica', renglon.negritas ? 'bold' : 'normal');
+				pdf.setFontSize(renglon.tam);
+				pdf.text(renglon.texto, 25, y, { align: 'center' });
+			}
+			y += renglon.alto;
+		});
 	});
 
 	return true;

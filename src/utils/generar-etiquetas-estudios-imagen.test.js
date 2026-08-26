@@ -10,6 +10,7 @@ const mockDoc = {
 	setFont: jest.fn(),
 	setFontSize: jest.fn(),
 	setProperties: jest.fn(),
+	splitTextToSize: jest.fn((texto) => [String(texto)]),
 	text: jest.fn(),
 };
 
@@ -50,29 +51,17 @@ describe('generarEtiquetasEstudiosImagen', () => {
 		});
 		expect(mockDoc.setProperties).toHaveBeenCalledWith({ title: 'Etiqueta A9804' });
 		expect(mockDoc.addPage).toHaveBeenCalledWith([50, 30], 'landscape');
-		expect(mockDoc.text).toHaveBeenCalledWith(
-			'CENTRAL DIAGNOSTICA CALIFORNIA',
-			2,
-			3.5,
-		);
-		expect(mockDoc.text).toHaveBeenCalledWith('Folio: A9804', 2, 8.2);
-		expect(mockDoc.text).toHaveBeenCalledWith(
-			'Paciente: MA DE LA LUZ MACIAS GARCIA',
-			2,
-			12.2,
-			expect.any(Object),
-		);
-		expect(mockDoc.text).toHaveBeenCalledWith(
-			'RM CRANEO SIMPLE',
-			2,
-			18.2,
-			expect.any(Object),
-		);
-		expect(mockDoc.text).toHaveBeenCalledWith(
-			'BARRETO, HECTOR',
-			2,
-			25.7,
-			expect.any(Object),
+		// El contenido va centrado, así que se verifica qué se imprime y no en qué
+		// altura fija: eso lo cubren las pruebas de centrado.
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+		expect(textos).toEqual(
+			expect.arrayContaining([
+				'CENTRAL DIAGNOSTICA CALIFORNIA',
+				'Folio: A9804',
+				'Paciente: MA DE LA LUZ MACIAS GARCIA',
+				'RM CRANEO SIMPLE',
+				'BARRETO, HECTOR',
+			]),
 		);
 		expect(window.open).toHaveBeenCalledTimes(1);
 	});
@@ -124,5 +113,40 @@ describe('fecha de la etiqueta', () => {
 				estudios: [{ modulo: 'imagen', descripcion: 'RM CRANEO SIMPLE' }],
 			}),
 		).not.toThrow();
+	});
+});
+
+describe("el contenido va centrado en la etiqueta", () => {
+	beforeEach(() => jest.clearAllMocks());
+
+	const alturas = () => mockDoc.text.mock.calls.map(([, , y]) => y);
+
+	// Antes todo quedaba pegado arriba y sobraba espacio abajo.
+	test("deja un margen parecido arriba y abajo", () => {
+		generarEtiquetasEstudiosImagen({
+			folio: "A0001",
+			fecha: "2026-08-07T10:00:00",
+			paciente: "Ana Ruiz",
+			doctor: "Barreto, Hector",
+			estudios: [{ modulo: "imagen", descripcion: "RM CRANEO SIMPLE" }],
+		});
+
+		const ys = alturas();
+		const arriba = Math.min(...ys);
+		const abajo = 30 - Math.max(...ys);
+
+		expect(arriba).toBeGreaterThan(3);
+		expect(Math.abs(arriba - abajo)).toBeLessThan(4);
+	});
+
+	test("una etiqueta con más texto sigue cabiendo", () => {
+		generarEtiquetasEstudiosImagen({
+			folio: "A0001",
+			paciente: "Ma de la Luz Macias Garcia",
+			doctor: "Barreto Gonzalez, Hector Manuel",
+			estudios: [{ modulo: "imagen", descripcion: "RM DE COLUMNA LUMBAR CONTRASTADA" }],
+		});
+
+		expect(Math.max(...alturas())).toBeLessThan(30);
 	});
 });
