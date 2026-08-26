@@ -209,33 +209,21 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 	pdf.line(mg, y, W - mg, y);
 	y += 5;
 
-	pdf.setFont('helvetica', 'bold');
-	pdf.setFontSize(7.5);
-	pdf.text('', W - mg, y, { align: 'right' });
-	pdf.text('Entrega', W - mg, y, { align: 'right' });
-	y += 4;
-
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(7.5);
 
+	// El renglón del estudio ya no lleva fecha de entrega: la que salía era una
+	// estimación por días de proceso y confundía al paciente.
 	estudios.forEach((est) => {
 		const desc = (est.descripcion || '').toUpperCase();
 		const precio = `$ ${parseFloat(est.precio || 0).toFixed(0)}`;
 
-		const diasProceso = est.diasProceso || 1;
-		const fechaEntrega = new Date(fechaObj);
-		fechaEntrega.setDate(fechaEntrega.getDate() + diasProceso);
-		const feStr = fechaEntrega.toLocaleDateString('es-MX', {
-			day: '2-digit', month: '2-digit', year: '2-digit',
-		}).replace(/\//g, '-');
-
-		const maxW = 34;
+		const maxW = 48;
 		const lines = pdf.splitTextToSize(desc, maxW);
 		lines.forEach((line, i) => {
 			if (i === 0) {
 				pdf.text(line, mg, y);
-				pdf.text(precio, W - mg - 15, y, { align: 'right' });
-				pdf.text(feStr, W - mg, y, { align: 'right' });
+				pdf.text(precio, W - mg, y, { align: 'right' });
 			} else {
 				pdf.text(line, mg, y);
 			}
