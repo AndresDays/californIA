@@ -29,16 +29,19 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
-import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
+import {
+	esErrorColumnaInexistente,
+	obtenerColumnaSchemaCacheFaltante,
+} from "../../utils/supabase-errors";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
 } from "../../utils/precios-cliente";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
 import {
-	fechaFolio,
-	PREFIJO_FOLIO_POR_DEFECTO,
-	resolverPrefijoFolio,
+	agruparEstudiosPorSerie,
+	construirFolio,
+	SERIE_POR_DEFECTO,
 	separarFolio,
 } from "../../utils/folios";
 import {
@@ -288,13 +291,10 @@ const NuevoPaciente = () => {
 	// El consecutivo lo reserva la base: calcularlo aquí hacía que dos cajas
 	// capturando al mismo tiempo pidieran el mismo folio y la venta chocara
 	// contra la restricción de único.
-	const generarFolio = async (prefijo = PREFIJO_FOLIO_POR_DEFECTO) => {
-		const fecha = fechaFolio();
-
+	const generarFolio = async (serie = SERIE_POR_DEFECTO) => {
 		try {
 			const { data, error } = await supabase.rpc("siguiente_folio", {
-				p_prefijo: prefijo,
-				p_fecha: fecha,
+				p_serie: serie,
 			});
 			if (error) throw error;
 			if (data) return data;
@@ -308,21 +308,17 @@ const NuevoPaciente = () => {
 			const { data, error } = await supabase
 				.from("ventas")
 				.select("folio")
-				.like("folio", `${prefijo}${fecha}%`)
+				.like("folio", `${serie}%`)
 				.order("folio", { ascending: false })
 				.limit(1);
 
 			if (error) throw error;
 
-			const ultimo = data?.[0]?.folio
-				? separarFolio(data[0].folio).consecutivo
-				: null;
-			const numeroConsecutivo = Number.isFinite(ultimo) ? ultimo + 1 : 1;
-
-			return `${prefijo}${fecha}${String(numeroConsecutivo).padStart(4, "0")}`;
+			const ultimo = data?.[0]?.folio ? separarFolio(data[0].folio).consecutivo : null;
+			return construirFolio(serie, Number.isFinite(ultimo) ? ultimo + 1 : 1);
 		} catch (error) {
 			console.error("Error al generar folio:", error);
-			return `${prefijo}${fecha}0001`;
+			return construirFolio(serie, 1);
 		}
 	};
 
@@ -450,7 +446,14 @@ const NuevoPaciente = () => {
 				sucursalesCatalogo || [],
 			);
 
-			const folio = await generarFolio(resolverPrefijoFolio(empresaActual.nombre));
+			// La serie del folio la definen los estudios y el convenio del cliente.
+			// Cuando la orden mezcla series se usa la primera; el desglose en una
+			// orden por serie es el siguiente paso de CIA-183.
+			const seriesOrden = agruparEstudiosPorSerie(
+				estudiosSeleccionados,
+				clienteActual?.empresa_factura || "",
+			);
+			const folio = await generarFolio(seriesOrden[0]?.serie || SERIE_POR_DEFECTO);
 
 			const ahora = new Date();
 
@@ -776,12 +779,17 @@ const NuevoPaciente = () => {
 	};
 
 	const cargarClientes = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("clientes")
-				.select("id_cliente, nombre")
-				.order("nombre");
+		// `empresa_factura` dice si el convenio factura su imagen por CDC o CDI.
+		// Si la base todavía no tiene la columna, se cargan los clientes sin ella
+		// y el folio se resuelve con la empresa del catálogo.
+		const consultar = (campos) =>
+			supabase.from("clientes").select(campos).order("nombre");
 
+		try {
+			let { data, error } = await consultar("id_cliente, nombre, empresa_factura");
+			if (error && esErrorColumnaInexistente(error, "empresa_factura")) {
+				({ data, error } = await consultar("id_cliente, nombre"));
+			}
 			if (error) throw error;
 			setClientes(data || []);
 		} catch (error) {

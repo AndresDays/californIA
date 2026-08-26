@@ -1,60 +1,99 @@
 import { resolverEmpresaOperativaCatalogo } from "./cita-nuevo-paciente";
 
-// El folio dice de qué empresa es la orden sin tener que abrirla: una letra al
-// frente del consecutivo de siempre (C2508260001 para CDC, I2508260001 para
-// CDI). Los folios anteriores al cambio, de puros dígitos, siguen siendo
-// válidos.
-export const PREFIJOS_FOLIO = { CDC: "C", CDI: "I" };
-export const PREFIJO_FOLIO_POR_DEFECTO = PREFIJOS_FOLIO.CDC;
+// Fiscalmente son dos empresas —CDC (California) y CDI (Imagen)— y el folio
+// tiene que decir a cuál se factura sin abrir la orden. Como el laboratorio de
+// CDC se controla aparte de su imagen, quedan tres series corridas:
+//
+//   A → CDI, imagen (convenios ISSSTE, SSA, Medisim)
+//   B → CDC, imagen (convenios IMSS y Odile/Anamaya, y la resonancia particular)
+//   C → CDC, laboratorio (todos los análisis)
+export const SERIES_FOLIO = {
+	A: { empresa: "CDI", tipo: "imagen" },
+	B: { empresa: "CDC", tipo: "imagen" },
+	C: { empresa: "CDC", tipo: "laboratorio" },
+};
+
+export const SERIE_LABORATORIO = "C";
+export const SERIE_POR_DEFECTO = "A";
 export const LARGO_CONSECUTIVO = 4;
 
-export const resolverPrefijoFolio = (empresaNombre = "") => {
-	const operativa = resolverEmpresaOperativaCatalogo(empresaNombre);
-	return PREFIJOS_FOLIO[operativa] || PREFIJO_FOLIO_POR_DEFECTO;
+const SERIE_IMAGEN_POR_EMPRESA = { CDC: "B", CDI: "A" };
+
+export const esEstudioDeLaboratorio = (estudio = {}) =>
+	estudio?.modulo === "laboratorio" ||
+	(estudio?.requiere_imagen === false && !estudio?.modalidad) ||
+	estudio?.modalidad === "laboratorio";
+
+// La empresa que factura una imagen la manda el convenio del cliente: el mismo
+// ultrasonido es de CDC con IMSS y de CDI con ISSSTE. Sin convenio (particular)
+// mandan la resonancia y la veterinaria a CDC y el resto de la imagen a CDI,
+// que es como está capturado el catálogo.
+export const resolverEmpresaFacturaEstudio = (estudio = {}, empresaCliente = "") => {
+	const delConvenio = String(empresaCliente || "").toUpperCase();
+	if (SERIE_IMAGEN_POR_EMPRESA[delConvenio]) return delConvenio;
+	return estudio?.empresa_operativa || "CDI";
 };
 
-// El laboratorio siempre se factura por CDC; los estudios de imagen van con la
-// empresa operativa de su catálogo.
-export const resolverPrefijoFolioEstudio = (estudio = {}) => {
-	if (estudio?.modulo === "laboratorio" || estudio?.requiere_imagen === false) {
-		return PREFIJOS_FOLIO.CDC;
-	}
-	return PREFIJOS_FOLIO[estudio?.empresa_operativa] || PREFIJO_FOLIO_POR_DEFECTO;
+export const resolverSerieFolio = (estudio = {}, empresaCliente = "") => {
+	if (esEstudioDeLaboratorio(estudio)) return SERIE_LABORATORIO;
+	const empresa = resolverEmpresaFacturaEstudio(estudio, empresaCliente);
+	return SERIE_IMAGEN_POR_EMPRESA[empresa] || SERIE_POR_DEFECTO;
 };
 
-export const fechaFolio = (fecha = new Date()) => {
-	const dia = String(fecha.getDate()).padStart(2, "0");
-	const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-	const ano = String(fecha.getFullYear()).slice(-2);
-	return `${dia}${mes}${ano}`;
+export const empresaDeSerie = (serie = "") =>
+	SERIES_FOLIO[String(serie).toUpperCase()]?.empresa || "";
+
+// Los estudios de una orden se reparten en las series que les tocan; cada una
+// lleva su folio.
+export const agruparEstudiosPorSerie = (estudios = [], empresaCliente = "") => {
+	const grupos = new Map();
+	estudios.forEach((estudio) => {
+		const serie = resolverSerieFolio(estudio, empresaCliente);
+		if (!grupos.has(serie)) grupos.set(serie, []);
+		grupos.get(serie).push(estudio);
+	});
+	return [...grupos.entries()]
+		.sort(([unaSerie], [otraSerie]) => unaSerie.localeCompare(otraSerie))
+		.map(([serie, estudiosSerie]) => ({
+			serie,
+			empresa: empresaDeSerie(serie),
+			estudios: estudiosSerie,
+		}));
 };
 
-export const construirFolio = (prefijo, fecha, consecutivo) =>
-	`${prefijo || ""}${fechaFolio(fecha)}${String(consecutivo).padStart(LARGO_CONSECUTIVO, "0")}`;
+// El folio es corrido por serie, sin fecha: A0001, A0002, B0001…
+export const construirFolio = (serie, consecutivo) =>
+	`${String(serie || "").toUpperCase()}${String(consecutivo).padStart(LARGO_CONSECUTIVO, "0")}`;
 
-// El paciente teclea el folio del ticket en el portal: minúsculas, espacios o
-// guiones no deben impedir que encuentre sus resultados.
 export const normalizarFolio = (folio = "") =>
 	String(folio ?? "")
 		.toUpperCase()
 		.replace(/[^A-Z0-9]/g, "");
 
+// Los folios anteriores al cambio son DDMMYY + consecutivo, sin letra, y siguen
+// siendo válidos.
 export const separarFolio = (folio = "") => {
 	const limpio = normalizarFolio(folio);
-	const match = limpio.match(/^([A-Z]*)(\d{6})(\d+)$/);
-	if (!match) return { prefijo: "", fecha: "", consecutivo: null, folio: limpio };
-	return {
-		prefijo: match[1],
-		fecha: match[2],
-		consecutivo: Number.parseInt(match[3], 10),
-		folio: limpio,
-	};
-};
-
-export const empresaDeFolio = (folio = "") => {
-	const { prefijo } = separarFolio(folio);
-	const entrada = Object.entries(PREFIJOS_FOLIO).find(([, letra]) => letra === prefijo);
-	return entrada?.[0] || "";
+	const conSerie = limpio.match(/^([A-Z])(\d+)$/);
+	if (conSerie) {
+		return {
+			serie: conSerie[1],
+			empresa: empresaDeSerie(conSerie[1]),
+			consecutivo: Number.parseInt(conSerie[2], 10),
+			folio: limpio,
+		};
+	}
+	const anterior = limpio.match(/^(\d{6})(\d{4,})$/);
+	if (anterior) {
+		return {
+			serie: "",
+			empresa: "",
+			fecha: anterior[1],
+			consecutivo: Number.parseInt(anterior[2], 10),
+			folio: limpio,
+		};
+	}
+	return { serie: "", empresa: "", consecutivo: null, folio: limpio };
 };
 
 export const foliosCoinciden = (unFolio, otroFolio) =>
@@ -66,7 +105,7 @@ export const foliosCoinciden = (unFolio, otroFolio) =>
 // captura que sí pasan: minúsculas, espacios y guiones sobre un folio con la
 // forma del ticket. Un folio con otro formato se manda tal cual, porque ahí el
 // separador puede ser parte del folio.
-export const PATRON_FOLIO_TICKET = /^[A-Z]?\d{10}$/;
+export const PATRON_FOLIO_TICKET = /^([A-Z]\d{3,}|\d{10})$/;
 
 export const normalizarFolioConsulta = (folio = "") => {
 	const limpio = String(folio ?? "").trim().toUpperCase();
