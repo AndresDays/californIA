@@ -26,6 +26,10 @@ import {
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import { imprimirComprobantesVenta } from "../../utils/imprimir-comprobantes-venta";
 import {
+	TIPO_TICKET_IMAGEN,
+	TIPO_TICKET_LABORATORIO,
+} from "../../utils/generarTicketVenta";
+import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
@@ -44,7 +48,6 @@ import {
 	separarFolio,
 } from "../../utils/folios";
 import {
-	agruparPartesPorEmpresa,
 	dividirOrdenPorSerie,
 	esOrdenMixta,
 	prorratearPago,
@@ -812,41 +815,43 @@ const NuevoPaciente = () => {
 			// La venta ya quedó registrada: si algo falla al armar el ticket o las
 			// etiquetas se avisa, pero no se tira el flujo ni se cierra lo que sí
 			// alcanzó a abrirse.
-			// El ticket es uno por empresa fiscal —las series de CDC salen juntas—
-			// y los dos van en el mismo PDF para que sea una sola impresión.
+			// Un ticket por orden: el de imagen usa el formato de CDI y el de
+			// laboratorio el de siempre. Todos salen en el mismo PDF para que sea
+			// una sola impresión.
 			const nombreEmpresaFiscal = (empresa) =>
 				empresas.find((emp) => resolverEmpresaOperativaCatalogo(emp.nombre) === empresa)
 					?.nombre || empresaActual.nombre;
 
-			const ticketsPorEmpresa = agruparPartesPorEmpresa(partesOrden).map((grupo) => {
-				const registros = ventasRegistradas.filter(
-					(registro) => registro.parte.empresa === grupo.empresa,
-				);
-				const estudiosEmpresa = registros.flatMap((registro) => registro.parte.estudios);
-				const pagoEmpresa = registros.reduce((suma, registro) => suma + registro.pago, 0);
-				return {
-					folio: registros.map((registro) => registro.folio).join(" · "),
-					fecha: new Date(),
-					paciente: nombreCompleto,
-					empresa: nombreEmpresaFiscal(grupo.empresa),
-					telefono,
-					email: correo,
-					estudios: estudiosEmpresa,
-					subtotal: grupo.subtotal,
-					descuento: grupo.descuento,
-					total: grupo.total,
-					pagoRecibido: pagoEmpresa,
-					cambio: registros.some((registro) => registro.parte.serie === partesOrden[0].serie)
-						? cambioVenta
-						: 0,
-					formaPago,
-					tarjetaUltimos4: datosTarjetaVenta.tarjeta_ultimos4 || "",
-					codigoAprobacion: datosTarjetaVenta.codigo_aprobacion || "",
-					observaciones,
-					vendedor: empleadoData?.nombre || getPrimerNombre(),
-				};
-			});
-			ticketsPorEmpresa[0].ventana = ventanaTicket;
+			const ticketsOrden = ventasRegistradas.map((registro) => ({
+				tipo:
+					registro.parte.serie === SERIE_LABORATORIO
+						? TIPO_TICKET_LABORATORIO
+						: TIPO_TICKET_IMAGEN,
+				folio: registro.folio,
+				fecha: new Date(),
+				paciente: nombreCompleto,
+				fechaNacimiento: pacienteSeleccionado?.fecha_nacimiento || "",
+				edad: edad ? `${edad} años` : "",
+				doctor: doctorSeleccionado?.nombre || "",
+				cliente: clienteActual?.nombre || "Particular",
+				sucursal: sucursalEmpleado?.sucursal || "",
+				empresa: nombreEmpresaFiscal(registro.parte.empresa),
+				telefono,
+				email: correo,
+				estudios: registro.parte.estudios,
+				subtotal: registro.parte.subtotal,
+				descuento: registro.parte.descuento,
+				total: registro.parte.total,
+				pagoRecibido: registro.pago,
+				adeudo: Math.max(registro.parte.total - registro.pago, 0),
+				cambio: registro.parte.serie === partesOrden[0].serie ? cambioVenta : 0,
+				formaPago,
+				tarjetaUltimos4: datosTarjetaVenta.tarjeta_ultimos4 || "",
+				codigoAprobacion: datosTarjetaVenta.codigo_aprobacion || "",
+				observaciones,
+				vendedor: empleadoData?.nombre || getPrimerNombre(),
+			}));
+			ticketsOrden[0].ventana = ventanaTicket;
 
 			const registroLaboratorio = ventasRegistradas.find(
 				(registro) => registro.parte.serie === SERIE_LABORATORIO,
@@ -856,7 +861,7 @@ const NuevoPaciente = () => {
 			);
 
 			const impresion = await imprimirComprobantesVenta({
-				tickets: ticketsPorEmpresa,
+				tickets: ticketsOrden,
 				etiquetasLaboratorio: registroLaboratorio
 					? {
 							folio: registroLaboratorio.folio,

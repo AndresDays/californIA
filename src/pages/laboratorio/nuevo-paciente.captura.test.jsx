@@ -22,6 +22,12 @@ jest.mock("../../hooks/use-empleado-actual", () => ({
 jest.mock("../../utils/imprimir-comprobantes-venta", () => ({
 	imprimirComprobantesVenta: jest.fn(),
 }));
+jest.mock("../../utils/generarTicketVenta", () => ({
+	TIPO_TICKET_IMAGEN: "imagen",
+	TIPO_TICKET_LABORATORIO: "laboratorio",
+	generarTicketVenta: jest.fn(),
+	generarTicketsVenta: jest.fn(),
+}));
 jest.mock("../../utils/generar-etiquetas-estudios-laboratorio", () => ({
 	generarEtiquetasEstudiosLaboratorio: jest.fn(),
 }), { virtual: true });
