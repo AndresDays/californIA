@@ -24,19 +24,49 @@ export const esEstudioDeLaboratorio = (estudio = {}) =>
 	(estudio?.requiere_imagen === false && !estudio?.modalidad) ||
 	estudio?.modalidad === "laboratorio";
 
-// La empresa que factura una imagen la manda el convenio del cliente: el mismo
-// ultrasonido es de CDC con IMSS y de CDI con ISSSTE. Sin convenio (particular)
-// mandan la resonancia y la veterinaria a CDC y el resto de la imagen a CDI,
-// que es como está capturado el catálogo.
-export const resolverEmpresaFacturaEstudio = (estudio = {}, empresaCliente = "") => {
-	const delConvenio = String(empresaCliente || "").toUpperCase();
-	if (SERIE_IMAGEN_POR_EMPRESA[delConvenio]) return delConvenio;
-	return estudio?.empresa_operativa || "CDI";
+export const MODALIDAD_TODAS = "*";
+const CRITERIO_DOPPLER = "doppler";
+
+const esDoppler = (estudio = {}) =>
+	/doppler/i.test(`${estudio?.clave || ""} ${estudio?.descripcion || ""}`);
+
+const cumpleCriterio = (regla = {}, estudio = {}) => {
+	if (!regla.criterio) return true;
+	if (regla.criterio === CRITERIO_DOPPLER) return esDoppler(estudio);
+	return false;
 };
 
-export const resolverSerieFolio = (estudio = {}, empresaCliente = "") => {
+// Qué empresa factura no depende solo del convenio ni solo del estudio, sino de
+// los dos: Medisim y SSA mandan su resonancia a CDC y el resto de su imagen a
+// CDI, e IMSS sólo lleva ultrasonido cuando es doppler. Esa matriz se configura
+// por convenio en la base, no en el código.
+export const resolverEmpresaFacturaEstudio = (estudio = {}, reglasConvenio = []) => {
+	const modalidad = String(estudio?.modalidad || "").toLowerCase();
+	const reglas = Array.isArray(reglasConvenio) ? reglasConvenio : [];
+
+	const aplicables = reglas.filter((regla) => {
+		const modalidadRegla = String(regla?.modalidad || "").toLowerCase();
+		const coincide =
+			modalidadRegla === MODALIDAD_TODAS || modalidadRegla === modalidad;
+		return coincide && cumpleCriterio(regla, estudio);
+	});
+
+	// La regla de una modalidad concreta gana sobre la del convenio completo, y
+	// entre iguales gana la que tiene criterio (el doppler de IMSS).
+	const elegida =
+		aplicables.find((regla) => regla.criterio && regla.modalidad !== MODALIDAD_TODAS) ||
+		aplicables.find((regla) => regla.modalidad !== MODALIDAD_TODAS) ||
+		aplicables.find((regla) => regla.criterio) ||
+		aplicables[0];
+
+	// Sin regla para esa combinación se usa la empresa del catálogo, que es como
+	// se factura al particular: resonancia y veterinaria en CDC, el resto en CDI.
+	return elegida?.empresa || estudio?.empresa_operativa || "CDI";
+};
+
+export const resolverSerieFolio = (estudio = {}, reglasConvenio = []) => {
 	if (esEstudioDeLaboratorio(estudio)) return SERIE_LABORATORIO;
-	const empresa = resolverEmpresaFacturaEstudio(estudio, empresaCliente);
+	const empresa = resolverEmpresaFacturaEstudio(estudio, reglasConvenio);
 	return SERIE_IMAGEN_POR_EMPRESA[empresa] || SERIE_POR_DEFECTO;
 };
 
@@ -45,10 +75,10 @@ export const empresaDeSerie = (serie = "") =>
 
 // Los estudios de una orden se reparten en las series que les tocan; cada una
 // lleva su folio.
-export const agruparEstudiosPorSerie = (estudios = [], empresaCliente = "") => {
+export const agruparEstudiosPorSerie = (estudios = [], reglasConvenio = []) => {
 	const grupos = new Map();
 	estudios.forEach((estudio) => {
-		const serie = resolverSerieFolio(estudio, empresaCliente);
+		const serie = resolverSerieFolio(estudio, reglasConvenio);
 		if (!grupos.has(serie)) grupos.set(serie, []);
 		grupos.get(serie).push(estudio);
 	});

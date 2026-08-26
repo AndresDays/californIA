@@ -29,10 +29,8 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
-import {
-	esErrorColumnaInexistente,
-	obtenerColumnaSchemaCacheFaltante,
-} from "../../utils/supabase-errors";
+import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
+import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -190,6 +188,7 @@ const NuevoPaciente = () => {
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	const [preciosCliente, setPreciosCliente] = useState(null);
+	const [reglasConvenio, setReglasConvenio] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -260,11 +259,18 @@ const NuevoPaciente = () => {
 
 		if (!clienteSeleccionado || !nombreCliente) {
 			setPreciosCliente(null);
+			setReglasConvenio([]);
 			return undefined;
 		}
 
 		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
+		});
+
+		// La matriz del convenio define a qué empresa se factura cada modalidad,
+		// y con eso la serie del folio.
+		cargarReglasConvenio(supabase, clienteSeleccionado).then((reglas) => {
+			if (!cancelado) setReglasConvenio(reglas);
 		});
 
 		return () => {
@@ -451,7 +457,7 @@ const NuevoPaciente = () => {
 			// orden por serie es el siguiente paso de CIA-183.
 			const seriesOrden = agruparEstudiosPorSerie(
 				estudiosSeleccionados,
-				clienteActual?.empresa_factura || "",
+				reglasConvenio,
 			);
 			const folio = await generarFolio(seriesOrden[0]?.serie || SERIE_POR_DEFECTO);
 
@@ -779,17 +785,12 @@ const NuevoPaciente = () => {
 	};
 
 	const cargarClientes = async () => {
-		// `empresa_factura` dice si el convenio factura su imagen por CDC o CDI.
-		// Si la base todavía no tiene la columna, se cargan los clientes sin ella
-		// y el folio se resuelve con la empresa del catálogo.
-		const consultar = (campos) =>
-			supabase.from("clientes").select(campos).order("nombre");
-
 		try {
-			let { data, error } = await consultar("id_cliente, nombre, empresa_factura");
-			if (error && esErrorColumnaInexistente(error, "empresa_factura")) {
-				({ data, error } = await consultar("id_cliente, nombre"));
-			}
+			const { data, error } = await supabase
+				.from("clientes")
+				.select("id_cliente, nombre")
+				.order("nombre");
+
 			if (error) throw error;
 			setClientes(data || []);
 		} catch (error) {

@@ -79,28 +79,69 @@ for select
 to authenticated
 using (true);
 
--- La empresa que factura una imagen la decide el convenio del paciente: el
--- mismo ultrasonido es de CDC con IMSS y de CDI con ISSSTE. El dato vive en el
--- cliente para que dar de alta un convenio nuevo no requiera tocar código.
-alter table public.clientes
-	add column if not exists empresa_factura text;
+-- Qué empresa factura una imagen no lo decide solo el convenio ni solo el
+-- estudio, sino los dos: Medisim y SSA mandan su resonancia a CDC y el resto de
+-- su imagen a CDI, e IMSS sólo lleva ultrasonido cuando es doppler. La matriz se
+-- guarda aquí para que dar de alta un convenio nuevo no requiera tocar código.
+create table if not exists public.convenios_facturacion (
+	id bigint generated always as identity primary key,
+	id_cliente bigint not null references public.clientes(id_cliente) on delete cascade,
+	modalidad text not null default '*',
+	criterio text not null default '',
+	empresa text not null,
+	created_at timestamp with time zone not null default now(),
+	constraint convenios_facturacion_empresa_check check (empresa in ('CDC', 'CDI')),
+	constraint convenios_facturacion_criterio_check check (criterio in ('', 'doppler')),
+	unique (id_cliente, modalidad, criterio)
+);
 
-alter table public.clientes
-	drop constraint if exists clientes_empresa_factura_check;
-alter table public.clientes
-	add constraint clientes_empresa_factura_check
-	check (empresa_factura is null or empresa_factura in ('CDC', 'CDI'));
+comment on table public.convenios_facturacion is 'Empresa que factura la imagen de cada convenio por modalidad. modalidad = * aplica a todas; sin regla se usa la empresa del catálogo.';
+comment on column public.convenios_facturacion.criterio is 'Restringe la regla dentro de la modalidad; vacío aplica a toda la modalidad y doppler sólo a los ultrasonidos doppler.';
 
-comment on column public.clientes.empresa_factura is 'Empresa que factura la imagen de este convenio (CDC o CDI). Vacío = particular, se usa la empresa del catálogo.';
+create index if not exists idx_convenios_facturacion_cliente
+	on public.convenios_facturacion (id_cliente);
 
-update public.clientes
-set empresa_factura = 'CDC'
-where empresa_factura is null
-	and upper(btrim(nombre)) in ('IMSS', 'ODILE', 'ANAMAYA', 'ODILE / ANAMAYA', 'ODILE/ANAMAYA');
+alter table public.convenios_facturacion enable row level security;
 
-update public.clientes
-set empresa_factura = 'CDI'
-where empresa_factura is null
-	and upper(btrim(nombre)) in ('ISSSTE', 'SSA', 'MEDISIM');
+drop policy if exists convenios_facturacion_lectura on public.convenios_facturacion;
+create policy convenios_facturacion_lectura
+on public.convenios_facturacion
+for select
+to authenticated
+using (true);
+
+drop policy if exists convenios_facturacion_escritura on public.convenios_facturacion;
+create policy convenios_facturacion_escritura
+on public.convenios_facturacion
+for all
+to authenticated
+using (true)
+with check (true);
+
+-- Matriz actual de convenios.
+--   California (CDC): IMSS (tomografía, resonancia y ultrasonido doppler),
+--   Odile/Anamaya (toda su imagen), y la resonancia de Medisim y SSA.
+--   Imagen (CDI): ISSSTE, Medisim y SSA en el resto de su imagen.
+insert into public.convenios_facturacion (id_cliente, modalidad, criterio, empresa)
+select c.id_cliente, m.modalidad, m.criterio, m.empresa
+from public.clientes c
+join (
+	values
+		('IMSS', 'tomografia', '', 'CDC'),
+		('IMSS', 'resonancia', '', 'CDC'),
+		('IMSS', 'ultrasonido', 'doppler', 'CDC'),
+		('ODILE', '*', '', 'CDC'),
+		('ANAMAYA', '*', '', 'CDC'),
+		('ODILE / ANAMAYA', '*', '', 'CDC'),
+		('ODILE/ANAMAYA', '*', '', 'CDC'),
+		('ISSSTE', '*', '', 'CDI'),
+		('MEDISIM', '*', '', 'CDI'),
+		('MEDISIM', 'resonancia', '', 'CDC'),
+		('SSA', '*', '', 'CDI'),
+		('SSA', 'resonancia', '', 'CDC')
+) as m(convenio, modalidad, criterio, empresa)
+	on upper(btrim(c.nombre)) = m.convenio
+on conflict (id_cliente, modalidad, criterio) do update
+set empresa = excluded.empresa;
 
 NOTIFY pgrst, 'reload schema';

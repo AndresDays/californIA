@@ -11,44 +11,93 @@ import {
 	separarFolio,
 } from "./folios";
 
-const usg = { modulo: "imagen", modalidad: "ultrasonido", empresa_operativa: "CDI" };
+const usg = { modulo: "imagen", modalidad: "ultrasonido", clave: "US-RENAL", empresa_operativa: "CDI" };
+const usgDoppler = {
+	modulo: "imagen",
+	modalidad: "ultrasonido",
+	clave: "US-DOPPLER-HEPATO-VESICULAR",
+	descripcion: "U.S. DOPPLER HEPATO VESICULAR",
+	empresa_operativa: "CDI",
+};
+const tomografia = { modulo: "imagen", modalidad: "tomografia", empresa_operativa: "CDI" };
+const rayosX = { modulo: "imagen", modalidad: "radiografia", empresa_operativa: "CDI" };
+const veterinaria = { modulo: "imagen", modalidad: "veterinaria", empresa_operativa: "CDC" };
+
+// La matriz del convenio, tal como está capturada en la base.
+const IMSS = [
+	{ modalidad: "tomografia", empresa: "CDC" },
+	{ modalidad: "resonancia", empresa: "CDC" },
+	{ modalidad: "ultrasonido", criterio: "doppler", empresa: "CDC" },
+];
+const ODILE = [{ modalidad: "*", empresa: "CDC" }];
+const ISSSTE = [{ modalidad: "*", empresa: "CDI" }];
+const SSA = [
+	{ modalidad: "*", empresa: "CDI" },
+	{ modalidad: "resonancia", empresa: "CDC" },
+];
 const resonancia = { modulo: "imagen", modalidad: "resonancia", empresa_operativa: "CDC" };
 const laboratorio = { modulo: "laboratorio", modalidad: "laboratorio" };
 
 describe("resolverSerieFolio", () => {
 	test("el laboratorio siempre es la serie C", () => {
 		expect(resolverSerieFolio(laboratorio)).toBe("C");
-		expect(resolverSerieFolio(laboratorio, "CDI")).toBe("C");
+		expect(resolverSerieFolio(laboratorio, ISSSTE)).toBe("C");
 	});
 
-	// El mismo ultrasonido cambia de empresa según el convenio del paciente.
-	test.each([
-		["CDC", "B"],
-		["CDI", "A"],
-	])("una imagen de un convenio de %s va a la serie %s", (empresa, serie) => {
-		expect(resolverSerieFolio(usg, empresa)).toBe(serie);
+	describe("convenios de California", () => {
+		test("IMSS lleva tomografía y resonancia a CDC", () => {
+			expect(resolverSerieFolio(tomografia, IMSS)).toBe("B");
+			expect(resolverSerieFolio(resonancia, IMSS)).toBe("B");
+		});
+
+		test("IMSS sólo lleva el ultrasonido a CDC cuando es doppler", () => {
+			expect(resolverSerieFolio(usgDoppler, IMSS)).toBe("B");
+			expect(resolverSerieFolio(usg, IMSS)).toBe("A");
+		});
+
+		test("Odile factura toda su imagen en CDC", () => {
+			expect(resolverSerieFolio(tomografia, ODILE)).toBe("B");
+			expect(resolverSerieFolio(rayosX, ODILE)).toBe("B");
+			expect(resolverSerieFolio(usg, ODILE)).toBe("B");
+		});
 	});
 
-	test("la resonancia de un convenio de CDI se factura en CDI", () => {
-		expect(resolverSerieFolio(resonancia, "CDI")).toBe("A");
+	describe("convenios de Imagen", () => {
+		test("ISSSTE factura toda su imagen en CDI, incluida la resonancia", () => {
+			expect(resolverSerieFolio(tomografia, ISSSTE)).toBe("A");
+			expect(resolverSerieFolio(resonancia, ISSSTE)).toBe("A");
+		});
+
+		// Medisim y SSA están en las dos empresas: la resonancia es de CDC.
+		test("SSA manda su resonancia a CDC y el resto a CDI", () => {
+			expect(resolverSerieFolio(resonancia, SSA)).toBe("B");
+			expect(resolverSerieFolio(tomografia, SSA)).toBe("A");
+			expect(resolverSerieFolio(rayosX, SSA)).toBe("A");
+		});
 	});
 
 	describe("particulares", () => {
-		test("la resonancia se queda en CDC", () => {
+		test("la resonancia y la veterinaria se quedan en CDC", () => {
 			expect(resolverSerieFolio(resonancia)).toBe("B");
+			expect(resolverSerieFolio(veterinaria)).toBe("B");
 		});
 
 		test("el resto de la imagen es de CDI", () => {
 			expect(resolverSerieFolio(usg)).toBe("A");
-			expect(resolverSerieFolio({ modulo: "imagen", modalidad: "tomografia", empresa_operativa: "CDI" })).toBe("A");
+			expect(resolverSerieFolio(tomografia)).toBe("A");
 		});
 	});
 });
 
 describe("resolverEmpresaFacturaEstudio", () => {
-	test("el convenio manda sobre el catálogo", () => {
-		expect(resolverEmpresaFacturaEstudio(usg, "CDC")).toBe("CDC");
-		expect(resolverEmpresaFacturaEstudio(resonancia, "CDI")).toBe("CDI");
+	test("la regla de la modalidad gana sobre la del convenio completo", () => {
+		expect(resolverEmpresaFacturaEstudio(resonancia, SSA)).toBe("CDC");
+		expect(resolverEmpresaFacturaEstudio(usg, SSA)).toBe("CDI");
+	});
+
+	test("una modalidad que el convenio no cubre usa la empresa del catálogo", () => {
+		expect(resolverEmpresaFacturaEstudio(rayosX, IMSS)).toBe("CDI");
+		expect(resolverEmpresaFacturaEstudio(veterinaria, IMSS)).toBe("CDC");
 	});
 
 	test("sin convenio se usa la empresa del catálogo", () => {
@@ -77,7 +126,7 @@ describe("empresaDeSerie", () => {
 
 describe("agruparEstudiosPorSerie", () => {
 	test("reparte los estudios de la orden en sus series", () => {
-		const grupos = agruparEstudiosPorSerie([usg, laboratorio, resonancia], "");
+		const grupos = agruparEstudiosPorSerie([usg, laboratorio, resonancia], []);
 
 		expect(grupos.map((g) => g.serie)).toEqual(["A", "B", "C"]);
 		expect(grupos[0]).toMatchObject({ empresa: "CDI", estudios: [usg] });
@@ -85,15 +134,14 @@ describe("agruparEstudiosPorSerie", () => {
 		expect(grupos[2]).toMatchObject({ empresa: "CDC", estudios: [laboratorio] });
 	});
 
-	test("con un convenio de CDC la imagen y el laboratorio quedan en dos series", () => {
-		const grupos = agruparEstudiosPorSerie([usg, laboratorio], "CDC");
+	test("un paciente de SSA con resonancia y tomografía cae en las dos empresas", () => {
+		const grupos = agruparEstudiosPorSerie([tomografia, resonancia], SSA);
 
-		expect(grupos.map((g) => g.serie)).toEqual(["B", "C"]);
-		expect(grupos.every((g) => g.empresa === "CDC")).toBe(true);
+		expect(grupos.map((g) => g.serie)).toEqual(["A", "B"]);
 	});
 
 	test("una orden de una sola serie queda en un solo grupo", () => {
-		expect(agruparEstudiosPorSerie([laboratorio], "")).toHaveLength(1);
+		expect(agruparEstudiosPorSerie([laboratorio], [])).toHaveLength(1);
 	});
 });
 
