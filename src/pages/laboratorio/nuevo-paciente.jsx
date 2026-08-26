@@ -36,6 +36,12 @@ import {
 } from "../../utils/precios-cliente";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
 import {
+	fechaFolio,
+	PREFIJO_FOLIO_POR_DEFECTO,
+	resolverPrefijoFolio,
+	separarFolio,
+} from "../../utils/folios";
+import {
 	construirDatosTarjeta,
 	esPagoConTarjeta,
 	normalizarCodigoAprobacion,
@@ -279,37 +285,44 @@ const NuevoPaciente = () => {
 		cargarCitaDesdeDashboard(citaIdDesdeDashboard);
 	}, [citaIdDesdeDashboard, estudiosDisponibles]);
 
-	const generarFolio = async () => {
-		const hoy = new Date();
-		const dia = String(hoy.getDate()).padStart(2, "0");
-		const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-		const ano = String(hoy.getFullYear()).slice(-2);
+	// El consecutivo lo reserva la base: calcularlo aquí hacía que dos cajas
+	// capturando al mismo tiempo pidieran el mismo folio y la venta chocara
+	// contra la restricción de único.
+	const generarFolio = async (prefijo = PREFIJO_FOLIO_POR_DEFECTO) => {
+		const fecha = fechaFolio();
 
-		const prefijo = `${dia}${mes}${ano}`;
+		try {
+			const { data, error } = await supabase.rpc("siguiente_folio", {
+				p_prefijo: prefijo,
+				p_fecha: fecha,
+			});
+			if (error) throw error;
+			if (data) return data;
+		} catch (error) {
+			console.warn("Folio sin consecutivo en base, se calcula localmente:", error);
+		}
 
+		// Base sin la migración del consecutivo: se sigue calculando aquí para no
+		// dejar a recepción sin poder cobrar.
 		try {
 			const { data, error } = await supabase
 				.from("ventas")
 				.select("folio")
-				.like("folio", `${prefijo}%`)
+				.like("folio", `${prefijo}${fecha}%`)
 				.order("folio", { ascending: false })
 				.limit(1);
 
 			if (error) throw error;
 
-			let numeroConsecutivo = 1;
+			const ultimo = data?.[0]?.folio
+				? separarFolio(data[0].folio).consecutivo
+				: null;
+			const numeroConsecutivo = Number.isFinite(ultimo) ? ultimo + 1 : 1;
 
-			if (data && data.length > 0) {
-				const ultimoFolio = data[0].folio;
-				const ultimoNumero = parseInt(ultimoFolio.slice(-4));
-				numeroConsecutivo = ultimoNumero + 1;
-			}
-
-			const folioCompleto = `${prefijo}${String(numeroConsecutivo).padStart(4, "0")}`;
-			return folioCompleto;
+			return `${prefijo}${fecha}${String(numeroConsecutivo).padStart(4, "0")}`;
 		} catch (error) {
 			console.error("Error al generar folio:", error);
-			return `${prefijo}0001`;
+			return `${prefijo}${fecha}0001`;
 		}
 	};
 
@@ -437,7 +450,7 @@ const NuevoPaciente = () => {
 				sucursalesCatalogo || [],
 			);
 
-			const folio = await generarFolio();
+			const folio = await generarFolio(resolverPrefijoFolio(empresaActual.nombre));
 
 			const ahora = new Date();
 

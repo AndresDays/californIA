@@ -16,6 +16,7 @@ import { obtenerDatosQuimico } from "../utils/datos-quimico";
 import { htmlReporteRadiologiaParaEditor } from "../utils/reporte-radiologia-html";
 import { abrirPdfEnPestana } from "../utils/abrir-pdf-en-pestana";
 import "./portal-resultados.css";
+import { normalizarFolioConsulta } from "../utils/folios";
 
 const formatearFecha = (fecha) => {
 	if (!fecha) return "-";
@@ -79,19 +80,23 @@ const PortalResultados = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	// El folio del ticket trae la letra de la empresa: se normaliza para que
+	// escribirlo en minúsculas o con guion no impida encontrar los resultados.
+	const folioConsulta = normalizarFolioConsulta(folio);
+
 	const buscarResultados = async (event) => {
 		event?.preventDefault();
 		setError("");
 		setResultado(null);
 
-		if (!folio.trim() || !normalizarTelefonoPortal(telefono)) {
+		if (!folioConsulta || !normalizarTelefonoPortal(telefono)) {
 			setError("Captura folio y telefono para consultar resultados.");
 			return;
 		}
 
 		setCargando(true);
 		const { data, error: rpcError } = await supabase.functions.invoke("portal-resultados", {
-			body: { p_folio: folio.trim(), p_telefono: telefono },
+			body: { p_folio: folioConsulta, p_telefono: telefono },
 		});
 		setCargando(false);
 
@@ -112,7 +117,7 @@ const PortalResultados = () => {
 
 	const verEstudio = () => {
 		if (!estudioImagen) return;
-		const params = new URLSearchParams({ folio: folio.trim(), telefono });
+		const params = new URLSearchParams({ folio: folioConsulta, telefono });
 		window.open(`/visor-paciente/${estudioImagen.id}?${params.toString()}`, "_blank", "noopener,noreferrer");
 	};
 
@@ -121,7 +126,7 @@ const PortalResultados = () => {
 	const obtenerRadiologo = async (idEstudio) => {
 		try {
 			const { data } = await supabase.functions.invoke("portal-resultados", {
-				body: { p_folio: folio.trim(), p_telefono: telefono, p_id_estudio: String(idEstudio) },
+				body: { p_folio: folioConsulta, p_telefono: telefono, p_id_estudio: String(idEstudio) },
 			});
 			return data?.radiologo || null;
 		} catch (errorRadiologo) {

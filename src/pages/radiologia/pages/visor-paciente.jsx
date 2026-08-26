@@ -34,6 +34,7 @@ import ampliarIcon from "../../../assets/lupaIcono.png";
 import moverIcon from "../../../assets/moverIcono.png";
 import restaurarIcon from "../../../assets/restaurarIcono.png";
 import scrollIcon from "../../../assets/scrollIcono.png";
+import { normalizarFolioConsulta } from "../../../utils/folios";
 
 let csModules = null;
 let csInitPromise = null;
@@ -111,7 +112,7 @@ const formatearFecha = (fecha) => {
 const VisorPaciente = () => {
 	const { estudioId } = useParams();
 	const [searchParams] = useSearchParams();
-	const folioPortal = searchParams.get("folio") || "";
+	const folioPortal = normalizarFolioConsulta(searchParams.get("folio") || "");
 	const telefonoPortal = searchParams.get("telefono") || "";
 	const divRef = useRef(null);
 	const csRef = useRef(null);
