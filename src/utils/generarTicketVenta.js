@@ -22,6 +22,17 @@ export const resolverRfcTicketEmpresa = (empresa) => {
 
 export const resolverEmpresaTicketReimpresion = (empresa) => empresa || 'CDC';
 
+// Cada empresa se identifica con su propio correo, y CDI no lleva la razón
+// social de California en el encabezado: ahí el único nombre es el de quien
+// registra la orden.
+export const resolverEncabezadoEmpresaTicket = (empresa) => {
+	const operativa = resolverEmpresaOperativaCatalogo(empresa);
+	if (operativa === 'CDI') {
+		return { razonSocial: '', correo: 'cdi.rx2020@outlook.com' };
+	}
+	return { razonSocial: 'Paulina Diaz Cortes', correo: 'labcalifornia01@gmail.com' };
+};
+
 const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
 
 const ESPERA_MAXIMA_LOGO_MS = 4000;
@@ -362,12 +373,13 @@ const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(7);
+	const encabezadoEmpresa = resolverEncabezadoEmpresaTicket(empresa);
 	[
-		'Paulina Diaz Cortes',
+		...(encabezadoEmpresa.razonSocial ? [encabezadoEmpresa.razonSocial] : []),
 		'Dirección: Av. Francisco Villa 880, C.P. 48328, Colonia',
 		'Gaviotas, Puerto Vallarta, Jalisco, México.',
 		...(rfcEmpresa ? [`RFC: ${rfcEmpresa}`] : []),
-		'Correo: labcalifornia01@gmail.com',
+		`Correo: ${encabezadoEmpresa.correo}`,
 		'Teléfono: 3222256008',
 	].forEach((linea) => {
 		pdf.text(linea, W / 2, y, { align: 'center' });

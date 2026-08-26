@@ -21,6 +21,7 @@ jest.mock('../assets/logoCDC.jpg', () => {
 
 import {
 	generarTicketsVenta,
+	resolverEncabezadoEmpresaTicket,
 	generarTicketVenta,
 	TIPO_TICKET_IMAGEN,
 	resolverEmpresaTicketReimpresion,
@@ -201,5 +202,54 @@ describe('ticket de imagen', () => {
 
 		expect(textos).toEqual(expect.arrayContaining(['Folio: C0001', 'Entrega']));
 		expect(textos).not.toEqual(expect.arrayContaining(['No. orden: C0001']));
+	});
+});
+
+describe('resolverEncabezadoEmpresaTicket', () => {
+	// CDI factura aparte: su correo es propio y en el encabezado no va la razón
+	// social de California, sólo aparece quien registra la orden.
+	test.each(['CDI', 'Centro Diagnóstico por Imagen'])('%s usa su propio correo y sin razón social', (empresa) => {
+		expect(resolverEncabezadoEmpresaTicket(empresa)).toEqual({
+			razonSocial: '',
+			correo: 'cdi.rx2020@outlook.com',
+		});
+	});
+
+	test.each(['CDC', 'Central Diagnostica California', ''])('%s conserva el encabezado de California', (empresa) => {
+		expect(resolverEncabezadoEmpresaTicket(empresa)).toEqual({
+			razonSocial: 'Paulina Diaz Cortes',
+			correo: 'labcalifornia01@gmail.com',
+		});
+	});
+});
+
+describe('encabezado del ticket de imagen', () => {
+	const ticketBase = {
+		tipo: TIPO_TICKET_IMAGEN,
+		folio: 'A0001',
+		fecha: new Date('2026-08-25T15:38:00'),
+		paciente: 'Angelica Aguilar',
+		estudios: [{ descripcion: 'US RENAL', precio: 500, cantidad: 1 }],
+		vendedor: 'Aylin Santana',
+	};
+
+	beforeEach(() => jest.clearAllMocks());
+
+	test('el de CDI lleva su correo y no la razón social', async () => {
+		await generarTicketsVenta({ tickets: [{ ...ticketBase, empresa: 'CDI' }] });
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+
+		expect(textos).toEqual(expect.arrayContaining(['Correo: cdi.rx2020@outlook.com']));
+		expect(textos).not.toEqual(expect.arrayContaining(['Paulina Diaz Cortes']));
+		expect(textos).toEqual(expect.arrayContaining(['Registra: AYLIN SANTANA']));
+	});
+
+	test('el de CDC conserva el encabezado de California', async () => {
+		await generarTicketsVenta({ tickets: [{ ...ticketBase, empresa: 'CDC', folio: 'B0001' }] });
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+
+		expect(textos).toEqual(
+			expect.arrayContaining(['Paulina Diaz Cortes', 'Correo: labcalifornia01@gmail.com']),
+		);
 	});
 });
