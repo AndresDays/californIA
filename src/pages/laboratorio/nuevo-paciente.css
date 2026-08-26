@@ -1059,3 +1059,50 @@
 .nota-precios-cliente-aviso {
 	color: rgba(255, 193, 7, 0.95);
 }
+
+/* Cobro de una orden que factura por más de una empresa: un renglón por serie
+   con su total y lo que se le abona. */
+.cobro-por-serie {
+	margin-top: 0.75rem;
+	padding: 0.65rem 0.75rem;
+	border: 1px solid rgba(111, 179, 210, 0.25);
+	border-radius: 8px;
+	background: rgba(111, 179, 210, 0.06);
+}
+
+.cobro-por-serie-titulo {
+	margin: 0 0 0.6rem 0;
+	font-size: 0.76rem;
+	color: rgba(255, 255, 255, 0.75);
+}
+
+.cobro-serie-fila {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+}
+
+.cobro-serie-fila:last-child {
+	margin-bottom: 0;
+}
+
+.cobro-serie-datos {
+	display: flex;
+	flex-direction: column;
+}
+
+.cobro-serie-etiqueta {
+	font-size: 0.8rem;
+	color: white;
+}
+
+.cobro-serie-total {
+	font-size: 0.72rem;
+	color: rgba(255, 255, 255, 0.6);
+}
+
+.cobro-serie-fila input {
+	max-width: 110px;
+}

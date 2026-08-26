@@ -1,4 +1,4 @@
-import { generarTicketVenta } from "./generarTicketVenta";
+import { generarTicketsVenta } from "./generarTicketVenta";
 import { generarEtiquetasEstudiosImagen } from "./generar-etiquetas-estudios-imagen";
 import { generarEtiquetasEstudiosLaboratorio } from "./generar-etiquetas-estudios-laboratorio";
 
@@ -31,13 +31,23 @@ const ejecutar = async (nombre, tarea, ventana, fallos) => {
 
 export const imprimirComprobantesVenta = async ({
 	ticket,
+	tickets,
 	etiquetasLaboratorio,
 	etiquetasImagen,
 } = {}) => {
 	const fallos = [];
 
-	if (ticket) {
-		await ejecutar("el ticket", () => generarTicketVenta(ticket), ticket.ventana, fallos);
+	// Una orden que factura por las dos empresas lleva un ticket por empresa, y
+	// los dos salen en el mismo PDF para que sea una sola impresión.
+	const ticketsAImprimir = (tickets || (ticket ? [ticket] : [])).filter(Boolean);
+	if (ticketsAImprimir.length > 0) {
+		const ventana = ticketsAImprimir[0].ventana;
+		await ejecutar(
+			ticketsAImprimir.length > 1 ? "los tickets" : "el ticket",
+			() => generarTicketsVenta({ tickets: ticketsAImprimir, ventana }),
+			ventana,
+			fallos,
+		);
 	}
 	if (etiquetasLaboratorio) {
 		await ejecutar(
