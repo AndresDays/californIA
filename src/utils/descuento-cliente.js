@@ -14,3 +14,13 @@ export const descuentoDeCliente = (nombreCliente = "") => {
 
 export const esClienteDeDescuento = (nombreCliente = "") =>
 	descuentoDeCliente(nombreCliente) !== null;
+
+// Un cliente de descuento no tiene tarifario propio: cobra el precio de
+// particular y sobre ese se aplica su porcentaje. Sin esto, cada estudio
+// entraba con el precio por defecto de $150.
+export const CLIENTE_PRECIOS_PARTICULAR = "Particular";
+
+export const clienteParaPrecios = (nombreCliente = "") =>
+	esClienteDeDescuento(nombreCliente)
+		? CLIENTE_PRECIOS_PARTICULAR
+		: String(nombreCliente ?? "").trim();

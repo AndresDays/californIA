@@ -16,7 +16,10 @@ import {
 } from "../../../utils/cita-nuevo-paciente";
 import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../../utils/tipos-estudio-convenio";
-import { descuentoDeCliente } from "../../../utils/descuento-cliente";
+import {
+	clienteParaPrecios,
+	descuentoDeCliente,
+} from "../../../utils/descuento-cliente";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -90,7 +93,7 @@ const Cotizacion = () => {
 			return undefined;
 		}
 
-		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+		cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
 		});
 
@@ -210,8 +213,10 @@ const Cotizacion = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
+	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
 		try {
+			// Un cliente de porcentaje cotiza con la lista de particular.
+			const nombreEmpresa = clienteParaPrecios(nombreClienteOrden);
 			if (!nombreEmpresa) return 150;
 			const { data, error } = await supabase
 				.from("precios_estudios")

@@ -1,4 +1,8 @@
-import { descuentoDeCliente, esClienteDeDescuento } from "./descuento-cliente";
+import {
+	clienteParaPrecios,
+	descuentoDeCliente,
+	esClienteDeDescuento,
+} from "./descuento-cliente";
 
 describe("descuentoDeCliente", () => {
 	test.each([
@@ -29,4 +33,19 @@ describe("descuentoDeCliente", () => {
 		expect(descuentoDeCliente("0%")).toBeNull();
 		expect(descuentoDeCliente("120%")).toBeNull();
 	});
+});
+
+describe("clienteParaPrecios", () => {
+	// El descuento se aplica sobre el precio de particular, no sobre el precio
+	// por defecto: un cliente de porcentaje no tiene tarifario propio.
+	test.each(["10%", "20%", "30%"])("%s cobra la lista de particular", (nombre) => {
+		expect(clienteParaPrecios(nombre)).toBe("Particular");
+	});
+
+	test.each(["IMSS", "CENTRO MEDICO ANAMAYA", "Particular"])(
+		"%s conserva su propio tarifario",
+		(nombre) => {
+			expect(clienteParaPrecios(nombre)).toBe(nombre);
+		},
+	);
 });

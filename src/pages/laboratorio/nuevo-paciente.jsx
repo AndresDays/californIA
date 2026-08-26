@@ -36,7 +36,10 @@ import {
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
-import { descuentoDeCliente } from "../../utils/descuento-cliente";
+import {
+	clienteParaPrecios,
+	descuentoDeCliente,
+} from "../../utils/descuento-cliente";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -310,7 +313,7 @@ const NuevoPaciente = () => {
 			return undefined;
 		}
 
-		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+		cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
 		});
 
@@ -1097,8 +1100,11 @@ const NuevoPaciente = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
+	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
 		try {
+			// Un cliente de porcentaje cobra la lista de particular y el descuento
+			// se aplica sobre ese precio.
+			const nombreCliente = clienteParaPrecios(nombreClienteOrden);
 			if (!nombreCliente) {
 				console.log("No hay cliente seleccionado, usando precio por defecto");
 				return 150;
