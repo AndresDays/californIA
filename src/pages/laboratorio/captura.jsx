@@ -42,6 +42,10 @@ import { obtenerDatosQuimico } from "../../utils/datos-quimico";
 import { esEstudioCultivo, validarPdfCultivo } from "../../utils/resultados-cultivo";
 import { MEMBRETE_B64 } from "../radiologia/pages/reporte-radiologia-template";
 import "./captura.css";
+import {
+	filtrarEstudiosSoloLaboratorio,
+	filtrarVentasSoloLaboratorio,
+} from "../../utils/permisos-rol";
 
 const Captura = () => {
 	const { user } = useAuth();
@@ -78,7 +82,10 @@ const Captura = () => {
 		tipo: "exito",
 	});
 
-	const { data: ventas = [] } = useCaptura({ fechaInicial, fechaFinal });
+	const { data: ventasDelPeriodo = [] } = useCaptura({ fechaInicial, fechaFinal });
+	// El químico trabaja el laboratorio: las partidas de imagen no se le
+	// muestran, y una orden que sólo trae imagen no aparece en su lista.
+	const ventas = filtrarVentasSoloLaboratorio(ventasDelPeriodo, empleadoData?.rol);
 	const { data: catalogosData } = useCatalogosCaptura();
 	const clientes = catalogosData?.clientes ?? [];
 	const areas = catalogosData?.areas ?? [];
@@ -128,10 +135,13 @@ const Captura = () => {
 			const archivoCultivoPorEstudio = new Map(
 				(errorAdjuntosCultivo ? [] : adjuntosCultivo || []).map((adjunto) => [adjunto.id_estudio_venta, adjunto.archivo_path]),
 			);
-			const estudiosConAdjuntosCultivo = (estudiosVenta || []).map((estudio) => ({
-				...estudio,
-				archivo_cultivo_path: archivoCultivoPorEstudio.get(estudio.id_estudio_venta),
-			}));
+			const estudiosConAdjuntosCultivo = filtrarEstudiosSoloLaboratorio(
+				(estudiosVenta || []).map((estudio) => ({
+					...estudio,
+					archivo_cultivo_path: archivoCultivoPorEstudio.get(estudio.id_estudio_venta),
+				})),
+				empleadoData?.rol,
+			);
 			const estudiosRadiologia = await cargarRadiologiaParaCaptura({
 				idsVentas: [idVenta].filter(Boolean),
 				idsEstudiosVenta: (estudiosVenta || [])
