@@ -23,6 +23,11 @@ export const esEstudioDeLaboratorio = (estudio = {}) =>
 	estudio?.modalidad === "laboratorio";
 
 export const MODALIDAD_TODAS = "*";
+
+// Una regla de "toda la imagen" del convenio no arrastra el laboratorio ni la
+// veterinaria: eso se cobra como particular salvo que el convenio los tenga
+// pactados con su propia regla.
+export const MODALIDADES_FUERA_DE_CONVENIO = ["laboratorio", "veterinaria"];
 const CRITERIO_DOPPLER = "doppler";
 
 const esDoppler = (estudio = {}) =>
@@ -44,6 +49,12 @@ export const reglaConvenioParaEstudio = (estudio = {}, reglasConvenio = []) => {
 
 	const aplicables = reglas.filter((regla) => {
 		const modalidadRegla = String(regla?.modalidad || "").toLowerCase();
+		if (
+			modalidadRegla === MODALIDAD_TODAS &&
+			MODALIDADES_FUERA_DE_CONVENIO.includes(modalidad)
+		) {
+			return false;
+		}
 		const coincide =
 			modalidadRegla === MODALIDAD_TODAS || modalidadRegla === modalidad;
 		return coincide && cumpleCriterio(regla, estudio);

@@ -42,12 +42,19 @@ const PACIENTES = [{ id_paciente: 9, nombre: "JUAN PEREZ", telefono: "6141234567
 
 jest.mock("../../lib/supabase-client", () => {
 	const respuestaPorTabla = {
-		clientes: [{ id_cliente: 1, nombre: "IMSS" }],
+		clientes: [
+			{ id_cliente: 1, nombre: "IMSS" },
+			{ id_cliente: 5, nombre: "20%" },
+		],
 		empresas: [{ id_empresa: 2, nombre: "CDI" }],
 		pacientes: [{ id_paciente: 9, nombre: "JUAN PEREZ", telefono: "6141234567", edad: 30, sexo: "M" }],
 		doctores: [{ id_doctor: 4, nombre: "ANA LOPEZ", especialidad: "General" }],
 		empresa_tipos_estudio: [
-			{ id_tipo_estudio: 7, tipos_estudio: { id_tipo_estudio: 7, nombre: "Laboratorio" } },
+			{
+				id_empresa: 2,
+				id_tipo_estudio: 7,
+				tipos_estudio: { id_tipo_estudio: 7, nombre: "Laboratorio" },
+			},
 		],
 		estudios_lab_catalogo: [
 			{ id: 30, clave: "BH", descripcion: "BIOMETRIA HEMATICA", area: "Hematologia", dias_proceso: 1 },
@@ -269,4 +276,55 @@ test("una orden con laboratorio e imagen ofrece cobrar por serie", async () => {
 	expect(screen.getByText(/Serie C · CDC/)).toBeInTheDocument();
 	expect(screen.getByText(/Serie A · CDI/)).toBeInTheDocument();
 	expect(screen.getByLabelText(/Pago de la serie C/i)).toBeInTheDocument();
+});
+
+test("un cliente de porcentaje aplica su descuento solo", async () => {
+	await act(async () => {
+		render(<NuevoPaciente />);
+	});
+
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona una Empresa"), {
+			target: { value: "2" },
+		});
+	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona un Cliente"), {
+			target: { value: "5" },
+		});
+	});
+
+	const descuento = document.querySelector('.pago-grid input[type="number"]');
+	expect(descuento.value).toBe("20");
+
+	// Al cambiar a un cliente sin descuento vuelve a cero.
+	await act(async () => {
+		fireEvent.change(document.querySelectorAll(".form-group-inline select")[1], {
+			target: { value: "1" },
+		});
+	});
+	expect(document.querySelector('.pago-grid input[type="number"]').value).toBe("0");
+});
+
+test("el botón de limpiar deja la captura lista para una orden nueva", async () => {
+	await act(async () => {
+		render(<NuevoPaciente />);
+	});
+
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona una Empresa"), {
+			target: { value: "2" },
+		});
+	});
+	const pago = screen.getByPlaceholderText(/Paga con/i);
+	await act(async () => {
+		fireEvent.change(pago, { target: { value: "500" } });
+	});
+
+	await act(async () => {
+		fireEvent.click(screen.getByRole("button", { name: /limpiar y empezar de nuevo/i }));
+	});
+
+	expect(document.querySelectorAll(".form-group-inline select")[0].value).toBe("");
+	expect(screen.getByPlaceholderText(/Paga con/i).value).toBe("");
 });

@@ -4,6 +4,11 @@ import ReactDOM from 'react-dom/client';
 import './App.css';
 import App from './App.jsx';
 import { initializeObservability } from './lib/observability';
+import { limpiarBorradorSiEsRecargaManual } from './utils/borrador-sesion';
+
+// Antes de montar nada: un refresh empieza la captura en blanco, mientras que
+// volver a una pestaña que el navegador descartó la recupera.
+limpiarBorradorSiEsRecargaManual();
 
 initializeObservability({
   dsn: import.meta.env.VITE_SENTRY_DSN,

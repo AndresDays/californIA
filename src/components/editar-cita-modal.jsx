@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase-client';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './nueva-cita-modal.css';
 import editarIcono from '../assets/editarIcono.png';
+import { clienteParaPrecios } from '../utils/descuento-cliente';
 
 const DEFAULT_PRECIO = 150;
 
@@ -194,7 +195,8 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
   const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
     try {
       const clave = (claveEstudio || '').trim();
-      const cliente = (nombreCliente || '').trim();
+      // Un cliente de porcentaje cobra la lista de particular.
+      const cliente = clienteParaPrecios(nombreCliente);
       if (!clave || !cliente) return DEFAULT_PRECIO;
 
       const { data, error } = await supabase

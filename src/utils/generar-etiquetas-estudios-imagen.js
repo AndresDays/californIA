@@ -18,18 +18,23 @@ export const agruparEstudiosImagen = (estudios = []) =>
 
 const textoMayusculas = (valor) => String(valor || '').trim().toUpperCase();
 
+// La etiqueta mide 50 x 30 mm y el contenido va centrado en ella.
+const ANCHO_TEXTO = 46;
+const TAMANO_MEMBRETE = 7.2;
+const TAMANO_MEMBRETE_MINIMO = 5;
+const ALTO_ETIQUETA = 30;
+const MARGEN_SUPERIOR = 3.2;
+
 // Una visita que factura por las dos empresas parte su imagen en dos folios,
 // así que las etiquetas se arman por grupo: cada estudio sale con el folio de
 // la orden a la que pertenece, todas en el mismo PDF.
-export const generarEtiquetasEstudiosImagen = ({
-	folio,
-	fecha,
-	paciente,
-	doctor,
-	estudios,
-	grupos,
-	ventana,
-}) => {
+// Dibuja las etiquetas en el PDF que se le pase, para que una orden con
+// laboratorio e imagen salga en un solo documento y una sola pestaña.
+export const agregarEtiquetasImagenAlPdf = (
+	pdf,
+	{ folio, fecha, paciente, doctor, estudios, grupos } = {},
+	{ paginaInicial = true } = {},
+) => {
 	const gruposEtiquetas = (grupos?.length ? grupos : [{ folio, estudios }])
 		.map((grupo) => ({
 			folio: grupo.folio,
@@ -40,42 +45,98 @@ export const generarEtiquetasEstudiosImagen = ({
 	const estudiosImagen = gruposEtiquetas.flatMap((grupo) =>
 		grupo.estudios.map((estudio) => ({ estudio, folio: grupo.folio })),
 	);
-	if (!estudiosImagen.length) {
-		ventana?.close?.();
-		return false;
-	}
+	if (!estudiosImagen.length) return false;
 
 	const fechaObj = fecha ? new Date(fecha) : new Date();
 	const fechaEtiqueta = Number.isNaN(fechaObj.getTime())
 		? ''
 		: fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-	const folioTitulo = gruposEtiquetas.map((grupo) => grupo.folio).join(' · ');
-	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
-	pdf.setProperties({ title: `Etiqueta ${folioTitulo}` });
+	// El membrete va en un solo renglón: se achica lo necesario para que quepa a
+	// lo ancho de la etiqueta en vez de partirse en dos.
+	const tamanoMembrete = (texto) => {
+		let tamano = TAMANO_MEMBRETE;
+		pdf.setFont('helvetica', 'bold');
+		while (tamano > TAMANO_MEMBRETE_MINIMO) {
+			pdf.setFontSize(tamano);
+			if (pdf.splitTextToSize(texto, ANCHO_TEXTO).length <= 1) break;
+			tamano -= 0.2;
+		}
+		return Math.round(tamano * 10) / 10;
+	};
 
 	estudiosImagen.forEach(({ estudio, folio: folioEstudio }, indice) => {
-		if (indice) pdf.addPage([50, 30], 'landscape');
+		if (indice || !paginaInicial) pdf.addPage([50, 30], 'landscape');
 
-		pdf.setFont('helvetica', 'bold');
-		pdf.setFontSize(7.2);
-		pdf.text('CENTRAL DIAGNOSTICA CALIFORNIA', 2, 3.5);
-		pdf.setFont('helvetica', 'normal');
-		pdf.setFontSize(6.6);
-		pdf.text('......................................................', 2, 5.3);
-		pdf.setFontSize(7);
-		pdf.text(`Folio: ${folioEstudio}`, 2, 8.2);
-		if (fechaEtiqueta) pdf.text(fechaEtiqueta, 48, 8.2, { align: 'right' });
-		pdf.setFont('helvetica', 'bold');
-		pdf.text(`Paciente: ${textoMayusculas(paciente)}`, 2, 12.2, { maxWidth: 46 });
-		pdf.setFont('helvetica', 'normal');
-		pdf.setFontSize(8);
-		pdf.text(textoMayusculas(estudio), 2, 18.2, { maxWidth: 46 });
-		pdf.setFontSize(7);
-		pdf.text(textoMayusculas(doctor), 2, 25.7, { maxWidth: 46 });
+		// El contenido se arma antes de dibujarlo para poder centrarlo en la
+		// etiqueta: con textos cortos quedaba todo arriba y un hueco abajo.
+		const renglones = [];
+
+		const agregar = (texto, { tam, negritas = false, alto, centrado = true }) => {
+			pdf.setFont('helvetica', negritas ? 'bold' : 'normal');
+			pdf.setFontSize(tam);
+			pdf.splitTextToSize(String(texto || ''), ANCHO_TEXTO).forEach((linea) => {
+				renglones.push({ texto: linea, tam, negritas, alto, centrado });
+			});
+		};
+
+		const membrete = 'CENTRAL DIAGNOSTICA CALIFORNIA';
+		agregar(membrete, {
+			tam: tamanoMembrete(membrete),
+			negritas: true,
+			alto: 3.2,
+		});
+		renglones.push({ tipo: 'separador', alto: 2.6 });
+		renglones.push({ tipo: 'folio', folio: folioEstudio, tam: 7, alto: 4 });
+		agregar(`Paciente: ${textoMayusculas(paciente)}`, { tam: 7.5, negritas: true, alto: 3.4 });
+		agregar(textoMayusculas(estudio), { tam: 8, alto: 3.6 });
+		if (doctor) agregar(textoMayusculas(doctor), { tam: 7, alto: 3.4 });
+
+		// Con textos largos el contenido no cabe: se aprieta el interlineado en vez
+		// de desbordarse fuera de la etiqueta.
+		const altoDisponible = ALTO_ETIQUETA - MARGEN_SUPERIOR;
+		const altoNatural = renglones.reduce((total, renglon) => total + renglon.alto, 0);
+		const compresion = altoNatural > altoDisponible ? altoDisponible / altoNatural : 1;
+		renglones.forEach((renglon) => {
+			renglon.alto = Math.round(renglon.alto * compresion * 100) / 100;
+		});
+
+		const altoContenido = renglones.reduce((total, renglon) => total + renglon.alto, 0);
+		let y = Math.max(MARGEN_SUPERIOR, (ALTO_ETIQUETA - altoContenido) / 2 + 2.4);
+
+		renglones.forEach((renglon) => {
+			if (renglon.tipo === 'separador') {
+				pdf.setFont('helvetica', 'normal');
+				pdf.setFontSize(6.6);
+				pdf.text('..............................................', 25, y, { align: 'center' });
+			} else if (renglon.tipo === 'folio') {
+				pdf.setFont('helvetica', 'normal');
+				pdf.setFontSize(renglon.tam);
+				pdf.text(`Folio: ${renglon.folio}`, 2, y);
+				if (fechaEtiqueta) pdf.text(fechaEtiqueta, 48, y, { align: 'right' });
+			} else {
+				pdf.setFont('helvetica', renglon.negritas ? 'bold' : 'normal');
+				pdf.setFontSize(renglon.tam);
+				pdf.text(renglon.texto, 25, y, { align: 'center' });
+			}
+			y += renglon.alto;
+		});
 	});
 
+	return true;
+};
+
+export const generarEtiquetasEstudiosImagen = ({ ventana, ...datos } = {}) => {
+	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
+	const titulo = `Etiqueta ${datos.folio || ''}`.trim();
+	pdf.setProperties({ title: titulo });
+
+	if (!agregarEtiquetasImagenAlPdf(pdf, datos)) {
+		ventana?.close?.();
+		return false;
+	}
+
 	const url = URL.createObjectURL(pdf.output('blob'));
-	abrirPdfEnPestana({ url, titulo: `Etiqueta ${folioTitulo}`, ventana });
+	abrirPdfEnPestana({ url, titulo, ventana });
 	return true;
 };

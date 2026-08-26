@@ -5,6 +5,7 @@ import { useAuth } from '../context/auth-context';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
+import { clienteParaPrecios } from '../utils/descuento-cliente';
 
 const DEFAULT_PRECIO = 150;
 
@@ -116,7 +117,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
     try {
       const clave = (claveEstudio || '').trim();
-      const cliente = (nombreCliente || '').trim();
+      // Un cliente de porcentaje cobra la lista de particular.
+      const cliente = clienteParaPrecios(nombreCliente);
       if (!clave || !cliente) return DEFAULT_PRECIO;
 
       const { data, error } = await supabase

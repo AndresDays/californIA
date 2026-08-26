@@ -35,6 +35,11 @@ import {
 } from "../../utils/nuevo-paciente-busqueda";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
+import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
+import {
+	clienteParaPrecios,
+	descuentoDeCliente,
+} from "../../utils/descuento-cliente";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -282,6 +287,18 @@ const NuevoPaciente = () => {
 		}
 	}, [estudiosSeleccionados, destinoTurnoManual]);
 
+	// Clientes como 10%, 20% o 30% son un descuento de mostrador: al elegirlos se
+	// aplica su porcentaje, y al cambiar a otro cliente el descuento se limpia
+	// para no arrastrarlo a la orden siguiente.
+	useEffect(() => {
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+		if (!clienteSeleccionado || !nombreCliente) return;
+
+		setDescuentoPercent(descuentoDeCliente(nombreCliente) ?? 0);
+	}, [clienteSeleccionado, clientes]);
+
 	// Las claves con precio del cliente acotan la búsqueda de estudios: un
 	// convenio sólo ofrece lo que tiene pactado.
 	useEffect(() => {
@@ -296,7 +313,7 @@ const NuevoPaciente = () => {
 			return undefined;
 		}
 
-		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+		cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
 		});
 
@@ -311,13 +328,15 @@ const NuevoPaciente = () => {
 		};
 	}, [clienteSeleccionado, clientes]);
 
+	// Los tipos dependen de la empresa y del convenio del paciente: al cambiar
+	// cualquiera de los dos se vuelven a resolver.
 	useEffect(() => {
 		if (empresaSeleccionada) {
 			cargarTiposEstudio(parseInt(empresaSeleccionada));
 		} else {
 			setTiposEstudio([]);
 		}
-	}, [empresaSeleccionada]);
+	}, [empresaSeleccionada, reglasConvenio, empresas]);
 
 	useEffect(() => {
 		if (!citaIdDesdeDashboard || estudiosDisponibles.length === 0) return;
@@ -945,10 +964,13 @@ const NuevoPaciente = () => {
 				return;
 			}
 
+			// Se traen los tipos de todas las empresas porque el convenio puede
+			// facturar por la elegida estudios que el catálogo tiene en la otra.
 			const { data, error } = await supabase
 				.from("empresa_tipos_estudio")
 				.select(
 					`
+					id_empresa,
 					id_tipo_estudio,
 					tipos_estudio (
 						id_tipo_estudio,
@@ -956,17 +978,18 @@ const NuevoPaciente = () => {
 					)
 				`,
 				)
-				.eq("id_empresa", idEmpresa)
 				.order("tipos_estudio(nombre)");
 
 			if (error) throw error;
 
-			const tiposFiltrados = data.map((item) => ({
-				id_tipo_estudio: item.tipos_estudio.id_tipo_estudio,
-				nombre: item.tipos_estudio.nombre,
-			}));
+			const tiposFiltrados = resolverTiposEstudioConvenio({
+				filas: data || [],
+				empresas,
+				idEmpresaSeleccionada: idEmpresa,
+				reglasConvenio,
+			});
 
-			setTiposEstudio(tiposFiltrados || []);
+			setTiposEstudio(tiposFiltrados);
 			const tipoPendiente = tipoEstudioPendienteRef.current;
 			if (tipoPendiente && tiposFiltrados.some((tipo) => tipo.id_tipo_estudio?.toString() === tipoPendiente)) {
 				setTipoEstudioSeleccionado(tipoPendiente);
@@ -1077,8 +1100,11 @@ const NuevoPaciente = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
+	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
 		try {
+			// Un cliente de porcentaje cobra la lista de particular y el descuento
+			// se aplica sobre ese precio.
+			const nombreCliente = clienteParaPrecios(nombreClienteOrden);
 			if (!nombreCliente) {
 				console.log("No hay cliente seleccionado, usando precio por defecto");
 				return 150;
@@ -2348,6 +2374,19 @@ const NuevoPaciente = () => {
 							<div className="action-buttons-final">
 								<button className="btn-guardar-img" onClick={guardarYPagar}>
 									<span className="btn-guardar-label">{resumenPago.accion}</span>
+								</button>
+								{/* Empezar de cero sin tener que salir y volver a entrar a la
+								    pantalla, ni ir borrando campo por campo. */}
+								<button
+									type="button"
+									className="btn-limpiar-orden"
+									onClick={() => {
+										limpiarFormulario();
+										mostrarNotificacion(
+											"Captura limpia, puedes empezar una orden nueva",
+										);
+									}}>
+									Limpiar y empezar de nuevo
 								</button>
 							</div>
 						</aside>

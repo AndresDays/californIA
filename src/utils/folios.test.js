@@ -232,3 +232,17 @@ describe("convenioCubreEstudio", () => {
 		expect(convenioCubreEstudio(rayosX, [])).toBe(true);
 	});
 });
+
+describe("laboratorio y veterinaria fuera del convenio", () => {
+	const ANAMAYA = [{ modalidad: "*", criterio: "", empresa: "CDC" }];
+
+	// "Toda su imagen" no arrastra la veterinaria: eso se cobra como particular.
+	test("una regla de toda la imagen no cubre la veterinaria", () => {
+		expect(convenioCubreEstudio(veterinaria, ANAMAYA)).toBe(false);
+	});
+
+	test("el laboratorio no se acota por convenio", () => {
+		expect(convenioCubreEstudio(laboratorio, ANAMAYA)).toBe(true);
+		expect(resolverSerieFolio(laboratorio, ANAMAYA)).toBe("C");
+	});
+});

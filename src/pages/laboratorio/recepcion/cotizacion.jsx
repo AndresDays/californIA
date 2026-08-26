@@ -15,6 +15,11 @@ import {
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
 import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
+import { resolverTiposEstudioConvenio } from "../../../utils/tipos-estudio-convenio";
+import {
+	clienteParaPrecios,
+	descuentoDeCliente,
+} from "../../../utils/descuento-cliente";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -62,7 +67,18 @@ const Cotizacion = () => {
 		setShowBusquedaEstudios(false);
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
-	}, [empresaSeleccionada]);
+	}, [empresaSeleccionada, reglasConvenio, empresas]);
+	// Clientes como 10%, 20% o 30% son un descuento de mostrador: al elegirlos la
+	// cotización aplica su porcentaje, y al cambiar de cliente vuelve a cero.
+	useEffect(() => {
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+		if (!clienteSeleccionado || !nombreCliente) return;
+
+		setDescuentoPorcentaje(descuentoDeCliente(nombreCliente) ?? 0);
+	}, [clienteSeleccionado, clientes]);
+
 	// Los convenios sólo tienen precio para parte del catálogo: la búsqueda se
 	// acota a las claves con precio del cliente elegido.
 	useEffect(() => {
@@ -77,7 +93,7 @@ const Cotizacion = () => {
 			return undefined;
 		}
 
-		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
+		cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
 		});
 
@@ -126,16 +142,20 @@ const Cotizacion = () => {
 
 	const cargarTiposEstudio = async (idEmpresa) => {
 		try {
+			// Los tipos de todas las empresas: el convenio puede facturar por la
+			// elegida estudios que el catálogo tiene en la otra.
 			const { data, error } = await supabase
 				.from("empresa_tipos_estudio")
-				.select("id_tipo_estudio, tipos_estudio (id_tipo_estudio, nombre)")
-				.eq("id_empresa", idEmpresa)
+				.select("id_empresa, id_tipo_estudio, tipos_estudio (id_tipo_estudio, nombre)")
 				.order("tipos_estudio(nombre)");
 			if (error) throw error;
 			setTiposEstudio(
-				(data || [])
-					.filter((item) => item.tipos_estudio)
-					.map((item) => item.tipos_estudio),
+				resolverTiposEstudioConvenio({
+					filas: data || [],
+					empresas,
+					idEmpresaSeleccionada: idEmpresa,
+					reglasConvenio,
+				}),
 			);
 		} catch (error) {
 			console.error("Error al cargar tipos de estudio:", error);
@@ -193,8 +213,10 @@ const Cotizacion = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreEmpresa) => {
+	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
 		try {
+			// Un cliente de porcentaje cotiza con la lista de particular.
+			const nombreEmpresa = clienteParaPrecios(nombreClienteOrden);
 			if (!nombreEmpresa) return 150;
 			const { data, error } = await supabase
 				.from("precios_estudios")
