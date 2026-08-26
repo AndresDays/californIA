@@ -875,6 +875,7 @@ const NuevoPaciente = () => {
 				etiquetasImagen: registrosImagen.length
 					? {
 							paciente: nombreCompleto,
+							fecha: ahora,
 							doctor: doctorSeleccionado?.nombre || "",
 							grupos: registrosImagen.map((registro) => ({
 								folio: registro.folio,
