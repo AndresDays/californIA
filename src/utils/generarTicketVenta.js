@@ -79,7 +79,10 @@ const generarQR = async (folio) => {
 	});
 };
 
-export const generarTicketVenta = async (datosTicket) => {
+// Cada ticket se dibuja en la página actual del PDF: una orden que factura por
+// las dos empresas sale como un solo PDF de dos páginas, con un ticket completo
+// por empresa.
+const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 	const {
 		folio,
 		fecha,
@@ -114,8 +117,6 @@ export const generarTicketVenta = async (datosTicket) => {
 	}
 	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
 
-	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
-	pdf.setProperties({ title: `Ticket ${folio}` });
 	const W = 80;
 	const mg = 5;
 	let y = 6;
@@ -307,10 +308,27 @@ export const generarTicketVenta = async (datosTicket) => {
 	const pieLines = pdf.splitTextToSize(pie, W - mg * 2);
 	pieLines.forEach((l) => { pdf.text(l, mg, y); y += 3.2; });
 
-	const blob = pdf.output('blob');
+};
+
+export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
+	const lista = tickets.filter(Boolean);
+	if (lista.length === 0) return;
+
+	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
+	const folios = lista.map((ticket) => ticket.folio).filter(Boolean).join(' · ');
+	pdf.setProperties({ title: `Ticket ${folios}` });
+
+	for (const [indice, ticket] of lista.entries()) {
+		if (indice > 0) pdf.addPage([80, 297]);
+		await dibujarTicketEnPdf(pdf, ticket);
+	}
+
 	abrirPdfEnPestana({
-		url: URL.createObjectURL(blob),
-		titulo: `Ticket ${folio}`,
+		url: URL.createObjectURL(pdf.output('blob')),
+		titulo: `Ticket ${folios}`,
 		ventana,
 	});
 };
+
+export const generarTicketVenta = async (datosTicket = {}) =>
+	generarTicketsVenta({ tickets: [datosTicket], ventana: datosTicket.ventana });

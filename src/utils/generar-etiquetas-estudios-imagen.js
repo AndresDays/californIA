@@ -12,23 +12,37 @@ export const agruparEstudiosImagen = (estudios = []) =>
 
 const textoMayusculas = (valor) => String(valor || '').trim().toUpperCase();
 
+// Una visita que factura por las dos empresas parte su imagen en dos folios,
+// así que las etiquetas se arman por grupo: cada estudio sale con el folio de
+// la orden a la que pertenece, todas en el mismo PDF.
 export const generarEtiquetasEstudiosImagen = ({
 	folio,
 	paciente,
 	doctor,
 	estudios,
+	grupos,
 	ventana,
 }) => {
-	const estudiosImagen = agruparEstudiosImagen(estudios);
+	const gruposEtiquetas = (grupos?.length ? grupos : [{ folio, estudios }])
+		.map((grupo) => ({
+			folio: grupo.folio,
+			estudios: agruparEstudiosImagen(grupo.estudios),
+		}))
+		.filter((grupo) => grupo.estudios.length > 0);
+
+	const estudiosImagen = gruposEtiquetas.flatMap((grupo) =>
+		grupo.estudios.map((estudio) => ({ estudio, folio: grupo.folio })),
+	);
 	if (!estudiosImagen.length) {
 		ventana?.close?.();
 		return false;
 	}
 
+	const folioTitulo = gruposEtiquetas.map((grupo) => grupo.folio).join(' · ');
 	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
-	pdf.setProperties({ title: `Etiqueta ${folio}` });
+	pdf.setProperties({ title: `Etiqueta ${folioTitulo}` });
 
-	estudiosImagen.forEach((estudio, indice) => {
+	estudiosImagen.forEach(({ estudio, folio: folioEstudio }, indice) => {
 		if (indice) pdf.addPage([50, 30], 'landscape');
 
 		pdf.setFont('helvetica', 'bold');
@@ -38,7 +52,7 @@ export const generarEtiquetasEstudiosImagen = ({
 		pdf.setFontSize(6.6);
 		pdf.text('......................................................', 2, 5.3);
 		pdf.setFontSize(7);
-		pdf.text(`Folio: ${folio}`, 2, 8.2);
+		pdf.text(`Folio: ${folioEstudio}`, 2, 8.2);
 		pdf.setFont('helvetica', 'bold');
 		pdf.text(`Paciente: ${textoMayusculas(paciente)}`, 2, 12.2, { maxWidth: 46 });
 		pdf.setFont('helvetica', 'normal');
@@ -49,6 +63,6 @@ export const generarEtiquetasEstudiosImagen = ({
 	});
 
 	const url = URL.createObjectURL(pdf.output('blob'));
-	abrirPdfEnPestana({ url, titulo: `Etiqueta ${folio}`, ventana });
+	abrirPdfEnPestana({ url, titulo: `Etiqueta ${folioTitulo}`, ventana });
 	return true;
 };

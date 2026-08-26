@@ -161,6 +161,46 @@ describe("cita-nuevo-paciente helpers", () => {
 		expect(filtrados.map((est) => est.clave)).toEqual(["BH"]);
 	});
 
+	test("no ofrece estudios que el convenio no cubre", () => {
+		const estudios = [
+			construirEstudioCatalogoUnificado(
+				{
+					id: 40,
+					clave: "RX-TORAX",
+					descripcion: "TORAX 2 POSICIONES",
+					id_empresa: 2,
+					empresa_operativa: "CDI",
+					modalidad: "radiografia",
+					area: "Radiologia",
+				},
+				"imagen",
+			),
+			construirEstudioCatalogoUnificado(
+				{
+					id: 41,
+					clave: "TAC-CRANEO",
+					descripcion: "TAC DE CRANEO",
+					id_empresa: 2,
+					empresa_operativa: "CDI",
+					modalidad: "tomografia",
+					area: "Tomografia",
+				},
+				"imagen",
+			),
+		];
+
+		// IMSS tiene tomografía pero no radiología.
+		const filtrados = filtrarEstudiosCatalogo({
+			estudios,
+			busqueda: "",
+			reglasConvenio: [
+				{ modalidad: "tomografia", criterio: "", empresa: "CDC" },
+			],
+		});
+
+		expect(filtrados.map((est) => est.clave)).toEqual(["TAC-CRANEO"]);
+	});
+
 	test("sin lista de precios el catálogo se ofrece completo", () => {
 		const estudios = [
 			construirEstudioCatalogoUnificado(catalogo[0], "laboratorio"),

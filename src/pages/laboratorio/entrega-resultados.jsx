@@ -44,6 +44,11 @@ import {
 import { obtenerClaseAdeudoVenta } from "../../utils/venta-payment-status";
 import { puedeAutorizarEntregaConAdeudo } from "../../utils/pagos-ventas";
 import "./entrega-resultados.css";
+import {
+	esRolSoloLaboratorio,
+	filtrarEstudiosSoloLaboratorio,
+	filtrarVentasSoloLaboratorio,
+} from "../../utils/permisos-rol";
 
 const SELECT_VENTAS = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido,
@@ -110,7 +115,10 @@ const EntregaResultados = () => {
 		tipo: "exito",
 	});
 
-	const { data: ventas = [] } = useEntregaResultados({ fechaInicial, fechaFinal });
+	const { data: ventasDelPeriodo = [] } = useEntregaResultados({ fechaInicial, fechaFinal });
+	// El químico trabaja el laboratorio: las partidas de imagen no se le
+	// muestran, y una orden que sólo trae imagen no aparece en su lista.
+	const ventas = filtrarVentasSoloLaboratorio(ventasDelPeriodo, empleadoData?.rol);
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
@@ -137,8 +145,9 @@ const EntregaResultados = () => {
 				.eq("estado_validacion", "validado")
 				.order("id_estudio_venta");
 			if (error) throw error;
-			const estudiosPendientesEntrega = (data || []).filter(
-				(estudio) => estudioLaboratorioListoEntrega(estudio),
+			const estudiosPendientesEntrega = filtrarEstudiosSoloLaboratorio(
+				(data || []).filter((estudio) => estudioLaboratorioListoEntrega(estudio)),
+				empleadoData?.rol,
 			);
 			setEstudiosVenta(estudiosPendientesEntrega);
 			const { data: radiologiaData, error: errorRadiologia } = await supabase
@@ -157,7 +166,12 @@ const EntregaResultados = () => {
 					errorRadiologia,
 				);
 			}
-			const radiologiaPendiente = errorRadiologia ? [] : radiologiaData || [];
+			// Al químico no se le entregan estudios de imagen, así que tampoco se le
+			// listan.
+			const radiologiaPendiente =
+				errorRadiologia || esRolSoloLaboratorio(empleadoData?.rol)
+					? []
+					: radiologiaData || [];
 			setEstudiosRadiologia(radiologiaPendiente);
 			return {
 				laboratorio: estudiosPendientesEntrega,

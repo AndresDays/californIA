@@ -46,6 +46,18 @@ jest.mock("../../lib/supabase-client", () => {
 		estudios_lab_catalogo: [
 			{ id: 30, clave: "BH", descripcion: "BIOMETRIA HEMATICA", area: "Hematologia", dias_proceso: 1 },
 		],
+		estudios_imagen_catalogo: [
+			{
+				id: 60,
+				clave: "US-RENAL",
+				descripcion: "U.S. RENAL",
+				id_empresa: 2,
+				empresa_operativa: "CDI",
+				modalidad: "ultrasonido",
+				area: "Ultrasonidos",
+				dias_proceso: 1,
+			},
+		],
 		precios_estudios: [],
 	};
 	const crearCadena = (tabla) => {
@@ -215,4 +227,40 @@ test("seleccionar un paciente limpia tipo de estudio, doctor y los estudios agre
 	expect(document.querySelectorAll(".form-group-inline select")[2].value).toBe("");
 	expect(document.querySelectorAll(".estudios-table tbody tr").length).toBe(1);
 	expect(screen.queryByText("Dr. ANA LOPEZ")).not.toBeInTheDocument();
+});
+
+test("una orden con laboratorio e imagen ofrece cobrar por serie", async () => {
+	await act(async () => {
+		render(<NuevoPaciente />);
+	});
+
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona una Empresa"), {
+			target: { value: "2" },
+		});
+	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona un Cliente"), {
+			target: { value: "1" },
+		});
+	});
+
+	const buscarEstudio = screen.getByPlaceholderText(/Buscar Estudios/i);
+	await act(async () => {
+		fireEvent.change(buscarEstudio, { target: { value: "bio" } });
+	});
+	await act(async () => {
+		fireEvent.click(screen.getByText(/BIOMETRIA HEMATICA/i));
+	});
+	await act(async () => {
+		fireEvent.change(buscarEstudio, { target: { value: "renal" } });
+	});
+	await act(async () => {
+		fireEvent.click(screen.getByText(/U\.S\. RENAL/i));
+	});
+
+	// El laboratorio factura por CDC (serie C) y el ultrasonido por CDI (serie A).
+	expect(screen.getByText(/Serie C · CDC/)).toBeInTheDocument();
+	expect(screen.getByText(/Serie A · CDI/)).toBeInTheDocument();
+	expect(screen.getByLabelText(/Pago de la serie C/i)).toBeInTheDocument();
 });

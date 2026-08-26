@@ -42,6 +42,7 @@ import {
 	esErrorColumnaSchemaCache,
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
+import { normalizarFolio } from "../../../utils/folios";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
@@ -685,7 +686,7 @@ const EditarSolicitud = () => {
 		const term = buscarPaciente.toLowerCase();
 		return (
 			o.pacientes?.nombre?.toLowerCase().includes(term) ||
-			o.folio?.toLowerCase().includes(term)
+			normalizarFolio(o.folio).includes(normalizarFolio(term))
 		);
 	});
 

@@ -30,11 +30,26 @@ import {
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
+import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
 } from "../../utils/precios-cliente";
 import { formatearFechaHoraMexicoLocal } from "../../utils/fecha-mexico";
+import {
+	construirFolio,
+	empresaDeSerie,
+	SERIE_LABORATORIO,
+	SERIE_POR_DEFECTO,
+	separarFolio,
+} from "../../utils/folios";
+import {
+	agruparPartesPorEmpresa,
+	dividirOrdenPorSerie,
+	esOrdenMixta,
+	prorratearPago,
+	validarPagosPorSerie,
+} from "../../utils/orden-por-serie";
 import {
 	construirDatosTarjeta,
 	esPagoConTarjeta,
@@ -181,6 +196,8 @@ const NuevoPaciente = () => {
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	const [preciosCliente, setPreciosCliente] = useState(null);
+	const [reglasConvenio, setReglasConvenio] = useState([]);
+	const [pagosPorSerie, setPagosPorSerie] = useCampoPersistente(`${BORRADOR}pagosPorSerie`, {});
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -227,9 +244,30 @@ const NuevoPaciente = () => {
 		cargarEstudiosDisponibles();
 	}, []);
 
+	// La orden se parte por serie para el cobro y el ticket: A y B facturan por
+	// su empresa y C es el laboratorio de CDC.
+	const partesOrden = dividirOrdenPorSerie({
+		estudios: estudiosSeleccionados,
+		reglasConvenio,
+		descuentoPercent,
+	});
+	const ordenMixta = esOrdenMixta(partesOrden);
+
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuentoPercent, pagoRecibido]);
+
+	// El cobro de una orden mixta arranca prorrateado a proporción del total de
+	// cada serie; queda editable para cuando el paciente sólo paga una parte.
+	useEffect(() => {
+		if (!ordenMixta) {
+			setPagosPorSerie({});
+			return;
+		}
+		setPagosPorSerie(
+			prorratearPago(partesOrden, calcularPagoAplicadoVenta(granTotal, normalizarPagoRecibido(pagoRecibido))),
+		);
+	}, [ordenMixta, granTotal, pagoRecibido, estudiosSeleccionados, descuentoPercent]);
 
 	useEffect(() => {
 		sessionStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ clienteSeleccionado, empresaSeleccionada, tipoEstudioSeleccionado, estudiosSeleccionados }));
@@ -251,11 +289,18 @@ const NuevoPaciente = () => {
 
 		if (!clienteSeleccionado || !nombreCliente) {
 			setPreciosCliente(null);
+			setReglasConvenio([]);
 			return undefined;
 		}
 
 		cargarPreciosCliente(supabase, nombreCliente).then((precios) => {
 			if (!cancelado) setPreciosCliente(precios);
+		});
+
+		// La matriz del convenio define a qué empresa se factura cada modalidad,
+		// y con eso la serie del folio.
+		cargarReglasConvenio(supabase, clienteSeleccionado).then((reglas) => {
+			if (!cancelado) setReglasConvenio(reglas);
 		});
 
 		return () => {
@@ -279,37 +324,37 @@ const NuevoPaciente = () => {
 		cargarCitaDesdeDashboard(citaIdDesdeDashboard);
 	}, [citaIdDesdeDashboard, estudiosDisponibles]);
 
-	const generarFolio = async () => {
-		const hoy = new Date();
-		const dia = String(hoy.getDate()).padStart(2, "0");
-		const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-		const ano = String(hoy.getFullYear()).slice(-2);
+	// El consecutivo lo reserva la base: calcularlo aquí hacía que dos cajas
+	// capturando al mismo tiempo pidieran el mismo folio y la venta chocara
+	// contra la restricción de único.
+	const generarFolio = async (serie = SERIE_POR_DEFECTO) => {
+		try {
+			const { data, error } = await supabase.rpc("siguiente_folio", {
+				p_serie: serie,
+			});
+			if (error) throw error;
+			if (data) return data;
+		} catch (error) {
+			console.warn("Folio sin consecutivo en base, se calcula localmente:", error);
+		}
 
-		const prefijo = `${dia}${mes}${ano}`;
-
+		// Base sin la migración del consecutivo: se sigue calculando aquí para no
+		// dejar a recepción sin poder cobrar.
 		try {
 			const { data, error } = await supabase
 				.from("ventas")
 				.select("folio")
-				.like("folio", `${prefijo}%`)
+				.like("folio", `${serie}%`)
 				.order("folio", { ascending: false })
 				.limit(1);
 
 			if (error) throw error;
 
-			let numeroConsecutivo = 1;
-
-			if (data && data.length > 0) {
-				const ultimoFolio = data[0].folio;
-				const ultimoNumero = parseInt(ultimoFolio.slice(-4));
-				numeroConsecutivo = ultimoNumero + 1;
-			}
-
-			const folioCompleto = `${prefijo}${String(numeroConsecutivo).padStart(4, "0")}`;
-			return folioCompleto;
+			const ultimo = data?.[0]?.folio ? separarFolio(data[0].folio).consecutivo : null;
+			return construirFolio(serie, Number.isFinite(ultimo) ? ultimo + 1 : 1);
 		} catch (error) {
 			console.error("Error al generar folio:", error);
-			return `${prefijo}0001`;
+			return construirFolio(serie, 1);
 		}
 	};
 
@@ -379,6 +424,14 @@ const NuevoPaciente = () => {
 			return;
 		}
 
+		if (ordenMixta) {
+			const cobroPorSerie = validarPagosPorSerie(partesOrden, pagosPorSerie);
+			if (!cobroPorSerie.valido) {
+				globalThis.mostrarNotificacion(cobroPorSerie.mensaje, "advertencia");
+				return;
+			}
+		}
+
 		const pagoTarjeta = validarPagoTarjeta({
 			formaPago,
 			ultimos4: tarjetaUltimos4,
@@ -437,240 +490,291 @@ const NuevoPaciente = () => {
 				sucursalesCatalogo || [],
 			);
 
-			const folio = await generarFolio();
+			// Una visita puede tocar las dos empresas: cada serie se guarda como su
+			// propia venta, con su folio, su cobro y su ticket, y todas quedan
+			// enlazadas por folio_grupo para el portal de resultados.
+			const pagosPorParte = ordenMixta
+				? partesOrden.reduce(
+						(pagos, parte) => ({
+							...pagos,
+							[parte.serie]: normalizarPagoRecibido(pagosPorSerie[parte.serie]),
+						}),
+						{},
+					)
+				: { [partesOrden[0].serie]: pagoAplicado };
+			const folioGrupo = ordenMixta
+				? `G${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+				: null;
 
 			const ahora = new Date();
 
-			const ventaPayload = agregarSucursalEmpleadoPayload(
-				{
-					folio: folio,
-					id_paciente: idPaciente,
-					id_doctor:
-						doctorSeleccionado?.id_doctor || doctorSeleccionado?.id_empleado || null,
-					id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
-					id_empresa: empresaActual.id_empresa,
-					id_empleado: empleado?.id_empleado || null,
-					fecha_venta: ahora.toISOString(),
-					subtotal: subtotal,
-					iva: 0,
-					descuento: descuento,
-					total: granTotal,
-					forma_pago: formaPago,
-					...datosTarjetaVenta,
-					pago_recibido: pagoAplicado,
-					cambio: cambioVenta,
-					observaciones: observaciones,
-					estado: "activo",
-					...(idCitaPrecargada ? { id_cita: idCitaPrecargada } : {}),
-				},
-				sucursalEmpleado,
-			);
+			const idEmpresaDeSerie = (serie) => {
+				const empresaSerie = empresaDeSerie(serie);
+				const empresaCatalogo = empresas.find(
+					(emp) => resolverEmpresaOperativaCatalogo(emp.nombre) === empresaSerie,
+				);
+				return empresaCatalogo?.id_empresa || empresaActual.id_empresa;
+			};
 
-			const insertarVenta = (payload) =>
-				supabase.from("ventas").insert([payload]).select().single();
+			const registrarVentaDeParte = async (parte) => {
+				const folioParte = await generarFolio(parte.serie);
+				const pagoParte = Math.min(
+					normalizarPagoRecibido(pagosPorParte[parte.serie]),
+					parte.total,
+				);
+				const cambioParte = parte.serie === partesOrden[0].serie ? cambioVenta : 0;
 
-			let { data: venta, error: errorVenta } = await insertarVenta(ventaPayload);
-			let ventaPayloadFallback = { ...ventaPayload };
-
-			// Se reintenta quitando la columna que la base todavía no tiene, sea
-			// cual sea de las opcionales: parar en la primera dejaría la venta sin
-			// guardar en un ambiente sin migrar.
-			while (errorVenta) {
-				const columna = obtenerColumnaSchemaCacheFaltante(errorVenta);
-				if (
-					![
-						"id_sucursal",
-						"sucursal",
-						"id_cita",
-						"tarjeta_ultimos4",
-						"codigo_aprobacion",
-					].includes(columna)
-				) {
-					break;
-				}
-				delete ventaPayloadFallback[columna];
-				({ data: venta, error: errorVenta } = await insertarVenta(
-					ventaPayloadFallback,
-				));
-			}
-
-			if (errorVenta) throw errorVenta;
-			if (pagoAplicado > 0) {
-				await registrarMovimientoPagoVenta(supabase, {
-					id_venta: venta.id_venta,
-					folio,
-					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
-					monto: pagoAplicado,
-					forma_pago: formaPago,
-					ultimos4: tarjetaUltimos4,
-					codigoAprobacion,
-					motivo: "Pago inicial de solicitud",
-					id_sucursal: sucursalEmpleado.id_sucursal,
-					sucursal: sucursalEmpleado.sucursal,
-					empleado: empleadoData || empleado,
-					user,
-				});
-			}
-			await registrarEventoSolicitud(supabase, {
-				id_venta: venta.id_venta,
-				folio,
-				evento: EVENTOS_SOLICITUD.CREADA,
-				descripcion: `Solicitud creada con ${estudiosSeleccionados.length} estudio(s)`,
-				empleado,
-				user,
-				detalles: {
-					total: granTotal,
-					pago_recibido: pagoAplicado,
-					adeudo: Math.max(granTotal - pagoAplicado, 0),
-				},
-			});
-			await registrarEventoSolicitud(supabase, {
-				id_venta: venta.id_venta,
-				folio,
-				evento: EVENTOS_SOLICITUD.COBRADA,
-				descripcion: `Pago registrado por $${Number(pagoAplicado || 0).toFixed(2)}`,
-				empleado,
-				user,
-				detalles: {
-					forma_pago: formaPago,
-					...datosTarjetaVenta,
-					total: granTotal,
-					pago_recibido: pagoAplicado,
-					adeudo: Math.max(granTotal - pagoAplicado, 0),
-				},
-			});
-
-			const estudiosParaInsertar = estudiosSeleccionados.map((est) =>
-				agregarSucursalEmpleadoPayload(
+				const ventaPayload = agregarSucursalEmpleadoPayload(
 					{
-						id_venta: venta.id_venta,
-						clave_estudio: est.clave,
-						descripcion_estudio: est.descripcion,
-						precio: est.precio,
-						area: est.area,
-						dias_proceso: est.diasProceso || 1,
-						estado_captura: "pendiente",
-						muestra_pendiente: Boolean(est.muestra_pendiente),
+						folio: folioParte,
+						folio_grupo: folioGrupo,
+						id_paciente: idPaciente,
+						id_doctor:
+							doctorSeleccionado?.id_doctor || doctorSeleccionado?.id_empleado || null,
+						id_cliente: clienteSeleccionado ? parseInt(clienteSeleccionado) : null,
+						id_empresa: idEmpresaDeSerie(parte.serie),
+						id_empleado: empleado?.id_empleado || null,
+						fecha_venta: ahora.toISOString(),
+						subtotal: parte.subtotal,
+						iva: 0,
+						descuento: parte.descuento,
+						total: parte.total,
+						forma_pago: formaPago,
+						...datosTarjetaVenta,
+						pago_recibido: pagoParte,
+						cambio: cambioParte,
+						observaciones: observaciones,
+						estado: "activo",
+						...(idCitaPrecargada ? { id_cita: idCitaPrecargada } : {}),
 					},
 					sucursalEmpleado,
-				),
-			);
+				);
 
-			const insertarEstudios = (payload) =>
-				supabase
-					.from("estudios_venta")
-					.insert(payload)
-					.select("id_estudio_venta, id_venta, clave_estudio, descripcion_estudio, area");
-			let { data: estudiosGuardados, error: errorEstudios } =
-				await insertarEstudios(estudiosParaInsertar);
-			let estudiosPayloadFallback = estudiosParaInsertar;
+				const insertarVenta = (payload) =>
+					supabase.from("ventas").insert([payload]).select().single();
 
-			while (errorEstudios) {
-				const columna = obtenerColumnaSchemaCacheFaltante(errorEstudios);
-				if (
-					!["id_sucursal", "sucursal", "muestra_pendiente"].includes(columna)
-				) {
-					break;
+				let { data: venta, error: errorVenta } = await insertarVenta(ventaPayload);
+				let ventaPayloadFallback = { ...ventaPayload };
+
+				// Se reintenta quitando la columna que la base todavía no tiene, sea
+				// cual sea de las opcionales: parar en la primera dejaría la venta sin
+				// guardar en un ambiente sin migrar.
+				while (errorVenta) {
+					const columna = obtenerColumnaSchemaCacheFaltante(errorVenta);
+					if (
+						![
+							"id_sucursal",
+							"sucursal",
+							"id_cita",
+							"tarjeta_ultimos4",
+							"codigo_aprobacion",
+							"folio_grupo",
+						].includes(columna)
+					) {
+						break;
+					}
+					delete ventaPayloadFallback[columna];
+					({ data: venta, error: errorVenta } = await insertarVenta(
+						ventaPayloadFallback,
+					));
 				}
-				estudiosPayloadFallback = estudiosPayloadFallback.map((estudio) => {
-					const limpio = { ...estudio };
-					delete limpio[columna];
-					return limpio;
+
+				if (errorVenta) throw errorVenta;
+
+				if (pagoParte > 0) {
+					await registrarMovimientoPagoVenta(supabase, {
+						id_venta: venta.id_venta,
+						folio: folioParte,
+						tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
+						monto: pagoParte,
+						forma_pago: formaPago,
+						ultimos4: tarjetaUltimos4,
+						codigoAprobacion,
+						motivo: "Pago inicial de solicitud",
+						id_sucursal: sucursalEmpleado.id_sucursal,
+						sucursal: sucursalEmpleado.sucursal,
+						empleado: empleadoData || empleado,
+						user,
+					});
+				}
+
+				const adeudoParte = Math.max(parte.total - pagoParte, 0);
+				await registrarEventoSolicitud(supabase, {
+					id_venta: venta.id_venta,
+					folio: folioParte,
+					evento: EVENTOS_SOLICITUD.CREADA,
+					descripcion: `Solicitud creada con ${parte.estudios.length} estudio(s)`,
+					empleado,
+					user,
+					detalles: {
+						serie: parte.serie,
+						empresa: parte.empresa,
+						folio_grupo: folioGrupo,
+						total: parte.total,
+						pago_recibido: pagoParte,
+						adeudo: adeudoParte,
+					},
 				});
-				({ data: estudiosGuardados, error: errorEstudios } =
-					await insertarEstudios(estudiosPayloadFallback));
-			}
+				await registrarEventoSolicitud(supabase, {
+					id_venta: venta.id_venta,
+					folio: folioParte,
+					evento: EVENTOS_SOLICITUD.COBRADA,
+					descripcion: `Pago registrado por $${Number(pagoParte || 0).toFixed(2)}`,
+					empleado,
+					user,
+					detalles: {
+						forma_pago: formaPago,
+						...datosTarjetaVenta,
+						total: parte.total,
+						pago_recibido: pagoParte,
+						adeudo: adeudoParte,
+					},
+				});
 
-			if (errorEstudios) throw errorEstudios;
-
-			const estudiosRadiologiaParaInsertar = (estudiosGuardados || [])
-				.filter(esEstudioRadiologia)
-				.map((estudio) =>
+				const estudiosParaInsertar = parte.estudios.map((est) =>
 					agregarSucursalEmpleadoPayload(
 						{
 							id_venta: venta.id_venta,
-							id_estudio_venta: estudio.id_estudio_venta,
-							id_paciente: idPaciente,
-							id_tecnico: null,
-							tipo_estudio: resolverCodigoTipoRadiologia(estudio),
-							descripcion: estudio.descripcion_estudio,
-							fecha_estudio: formatearFechaHoraMexicoLocal(ahora),
-							estado: "POR ASIGNAR",
-							listo_entrega: false,
-							entregado: false,
+							clave_estudio: est.clave,
+							descripcion_estudio: est.descripcion,
+							precio: est.precio,
+							area: est.area,
+							dias_proceso: est.diasProceso || 1,
+							estado_captura: "pendiente",
+							muestra_pendiente: Boolean(est.muestra_pendiente),
 						},
 						sucursalEmpleado,
 					),
 				);
 
-			if (estudiosRadiologiaParaInsertar.length > 0) {
-				const insertarEstudiosRadiologia = (payload) =>
-					supabase.from("estudios_radiologia").insert(payload);
-				let { error: errorRadiologia } = await insertarEstudiosRadiologia(
-					estudiosRadiologiaParaInsertar,
-				);
-				let radiologiaPayloadFallback = estudiosRadiologiaParaInsertar;
+				const insertarEstudios = (payload) =>
+					supabase
+						.from("estudios_venta")
+						.insert(payload)
+						.select("id_estudio_venta, id_venta, clave_estudio, descripcion_estudio, area");
+				let { data: estudiosGuardados, error: errorEstudios } =
+					await insertarEstudios(estudiosParaInsertar);
+				let estudiosPayloadFallback = estudiosParaInsertar;
 
-				while (errorRadiologia) {
-					const columna = obtenerColumnaSchemaCacheFaltante(errorRadiologia);
-					if (
-						![
-							"id_sucursal",
-							"sucursal",
-							"id_venta",
-							"id_estudio_venta",
-							"listo_entrega",
-							"entregado",
-						].includes(columna)
-					) {
+				while (errorEstudios) {
+					const columna = obtenerColumnaSchemaCacheFaltante(errorEstudios);
+					if (!["id_sucursal", "sucursal", "muestra_pendiente"].includes(columna)) {
 						break;
 					}
-					radiologiaPayloadFallback = radiologiaPayloadFallback.map((estudio) => {
+					estudiosPayloadFallback = estudiosPayloadFallback.map((estudio) => {
 						const limpio = { ...estudio };
 						delete limpio[columna];
 						return limpio;
 					});
-					({ error: errorRadiologia } = await insertarEstudiosRadiologia(
-						radiologiaPayloadFallback,
-					));
+					({ data: estudiosGuardados, error: errorEstudios } =
+						await insertarEstudios(estudiosPayloadFallback));
 				}
 
-				if (errorRadiologia) throw errorRadiologia;
+				if (errorEstudios) throw errorEstudios;
+
+				const estudiosRadiologiaParaInsertar = (estudiosGuardados || [])
+					.filter(esEstudioRadiologia)
+					.map((estudio) =>
+						agregarSucursalEmpleadoPayload(
+							{
+								id_venta: venta.id_venta,
+								id_estudio_venta: estudio.id_estudio_venta,
+								id_paciente: idPaciente,
+								id_tecnico: null,
+								tipo_estudio: resolverCodigoTipoRadiologia(estudio),
+								descripcion: estudio.descripcion_estudio,
+								fecha_estudio: formatearFechaHoraMexicoLocal(ahora),
+								estado: "POR ASIGNAR",
+								listo_entrega: false,
+								entregado: false,
+							},
+							sucursalEmpleado,
+						),
+					);
+
+				if (estudiosRadiologiaParaInsertar.length > 0) {
+					const insertarEstudiosRadiologia = (payload) =>
+						supabase.from("estudios_radiologia").insert(payload);
+					let { error: errorRadiologia } = await insertarEstudiosRadiologia(
+						estudiosRadiologiaParaInsertar,
+					);
+					let radiologiaPayloadFallback = estudiosRadiologiaParaInsertar;
+
+					while (errorRadiologia) {
+						const columna = obtenerColumnaSchemaCacheFaltante(errorRadiologia);
+						if (
+							![
+								"id_sucursal",
+								"sucursal",
+								"id_venta",
+								"id_estudio_venta",
+								"listo_entrega",
+								"entregado",
+							].includes(columna)
+						) {
+							break;
+						}
+						radiologiaPayloadFallback = radiologiaPayloadFallback.map((estudio) => {
+							const limpio = { ...estudio };
+							delete limpio[columna];
+							return limpio;
+						});
+						({ error: errorRadiologia } = await insertarEstudiosRadiologia(
+							radiologiaPayloadFallback,
+						));
+					}
+
+					if (errorRadiologia) throw errorRadiologia;
+				}
+
+				const estudiosLaboratorioGuardados = (estudiosGuardados || []).filter(
+					(estudio) => !esEstudioRadiologia(estudio),
+				);
+				await crearNotificaciones(
+					supabase,
+					[
+						estudiosLaboratorioGuardados.length > 0 && {
+							titulo: "Nueva solicitud en captura",
+							mensaje: `${nombreCompleto} · Folio ${folioParte} · ${estudiosLaboratorioGuardados.length} estudio(s)`,
+							tipo: "captura",
+							canal_destino: "captura",
+							entidad_tipo: "venta",
+							entidad_id: venta.id_venta,
+							id_venta: venta.id_venta,
+							id_sucursal: sucursalEmpleado?.id_sucursal || null,
+							sucursal: sucursalEmpleado?.sucursal || "",
+							action_path: "/captura",
+						},
+						estudiosRadiologiaParaInsertar.length > 0 && {
+							titulo: "Nuevo estudio de imagen",
+							mensaje: `${nombreCompleto} · Folio ${folioParte} · ${estudiosRadiologiaParaInsertar.length} estudio(s)`,
+							tipo: "radiologia",
+							canal_destino: "radiologia",
+							entidad_tipo: "venta",
+							entidad_id: venta.id_venta,
+							id_venta: venta.id_venta,
+							id_sucursal: sucursalEmpleado?.id_sucursal || null,
+							sucursal: sucursalEmpleado?.sucursal || "",
+							action_path: "/radiologia",
+						},
+					].filter(Boolean),
+				);
+
+				return {
+					parte,
+					folio: folioParte,
+					venta,
+					pago: pagoParte,
+					estudiosGuardados: estudiosGuardados || [],
+				};
+			};
+
+			const ventasRegistradas = [];
+			for (const parte of partesOrden) {
+				ventasRegistradas.push(await registrarVentaDeParte(parte));
 			}
 
-			const estudiosLaboratorioGuardados = (estudiosGuardados || []).filter(
-				(estudio) => !esEstudioRadiologia(estudio),
-			);
-			await crearNotificaciones(
-				supabase,
-				[
-					estudiosLaboratorioGuardados.length > 0 && {
-						titulo: "Nueva solicitud en captura",
-						mensaje: `${nombreCompleto} · Folio ${folio} · ${estudiosLaboratorioGuardados.length} estudio(s)`,
-						tipo: "captura",
-						canal_destino: "captura",
-						entidad_tipo: "venta",
-						entidad_id: venta.id_venta,
-						id_venta: venta.id_venta,
-						id_sucursal: sucursalEmpleado?.id_sucursal || null,
-						sucursal: sucursalEmpleado?.sucursal || "",
-						action_path: "/captura",
-					},
-					estudiosRadiologiaParaInsertar.length > 0 && {
-						titulo: "Nuevo estudio de imagen",
-						mensaje: `${nombreCompleto} · Folio ${folio} · ${estudiosRadiologiaParaInsertar.length} estudio(s)`,
-						tipo: "radiologia",
-						canal_destino: "radiologia",
-						entidad_tipo: "venta",
-						entidad_id: venta.id_venta,
-						id_venta: venta.id_venta,
-						id_sucursal: sucursalEmpleado?.id_sucursal || null,
-						sucursal: sucursalEmpleado?.sucursal || "",
-						action_path: "/radiologia",
-					},
-				].filter(Boolean),
-			);
-
+			const folio = ventasRegistradas.map((registro) => registro.folio).join(" · ");
 			if (idCitaPrecargada) {
 				const { error: errorCita } = await supabase
 					.from("citas")
@@ -682,64 +786,102 @@ const NuevoPaciente = () => {
 				if (errorCita) throw errorCita;
 			}
 
+			// Un turno por orden: cada venta entra a su área con sus estudios.
 			let turnoCreado = false;
 			let errorTurno = "";
 			if (agregarASalaEspera) {
-				try {
-					await crearTurnoDesdeSolicitud({
-						idPaciente,
-						idCita: idCitaPrecargada,
-						nombrePaciente: nombreCompleto,
-						estudios: estudiosGuardados || estudiosSeleccionados,
-						fechaProgramada: ahora.toISOString(),
-					});
-					turnoCreado = true;
-				} catch (error) {
-					console.error("Error al crear turno:", error);
-					errorTurno = error.message;
+				for (const registro of ventasRegistradas) {
+					try {
+						await crearTurnoDesdeSolicitud({
+							idPaciente,
+							idCita: idCitaPrecargada,
+							nombrePaciente: nombreCompleto,
+							estudios: registro.estudiosGuardados.length
+								? registro.estudiosGuardados
+								: registro.parte.estudios,
+							fechaProgramada: ahora.toISOString(),
+						});
+						turnoCreado = true;
+					} catch (error) {
+						console.error("Error al crear turno:", error);
+						errorTurno = error.message;
+					}
 				}
 			}
 
 			// La venta ya quedó registrada: si algo falla al armar el ticket o las
 			// etiquetas se avisa, pero no se tira el flujo ni se cierra lo que sí
 			// alcanzó a abrirse.
-			const impresion = await imprimirComprobantesVenta({
-				ticket: {
-					folio,
+			// El ticket es uno por empresa fiscal —las series de CDC salen juntas—
+			// y los dos van en el mismo PDF para que sea una sola impresión.
+			const nombreEmpresaFiscal = (empresa) =>
+				empresas.find((emp) => resolverEmpresaOperativaCatalogo(emp.nombre) === empresa)
+					?.nombre || empresaActual.nombre;
+
+			const ticketsPorEmpresa = agruparPartesPorEmpresa(partesOrden).map((grupo) => {
+				const registros = ventasRegistradas.filter(
+					(registro) => registro.parte.empresa === grupo.empresa,
+				);
+				const estudiosEmpresa = registros.flatMap((registro) => registro.parte.estudios);
+				const pagoEmpresa = registros.reduce((suma, registro) => suma + registro.pago, 0);
+				return {
+					folio: registros.map((registro) => registro.folio).join(" · "),
 					fecha: new Date(),
 					paciente: nombreCompleto,
-					empresa: empresaActual.nombre,
+					empresa: nombreEmpresaFiscal(grupo.empresa),
 					telefono,
 					email: correo,
-					estudios: estudiosSeleccionados,
-					subtotal,
-					descuento,
-					total: granTotal,
-					pagoRecibido: pagoNormalizado,
-					cambio: cambioVenta,
+					estudios: estudiosEmpresa,
+					subtotal: grupo.subtotal,
+					descuento: grupo.descuento,
+					total: grupo.total,
+					pagoRecibido: pagoEmpresa,
+					cambio: registros.some((registro) => registro.parte.serie === partesOrden[0].serie)
+						? cambioVenta
+						: 0,
 					formaPago,
 					tarjetaUltimos4: datosTarjetaVenta.tarjeta_ultimos4 || "",
 					codigoAprobacion: datosTarjetaVenta.codigo_aprobacion || "",
 					observaciones,
 					vendedor: empleadoData?.nombre || getPrimerNombre(),
-					ventana: ventanaTicket,
-				},
-				etiquetasLaboratorio: {
-					folio,
-					paciente: nombreCompleto,
-					sexo,
-					edad: edad ? `${edad} años` : "",
-					estudios: estudiosSeleccionados,
-					ventana: ventanaEtiquetasLaboratorio,
-				},
-				etiquetasImagen: {
-					folio,
-					paciente: nombreCompleto,
-					doctor: doctorSeleccionado?.nombre || "",
-					estudios: estudiosSeleccionados,
-					ventana: ventanaEtiquetasImagen,
-				},
+				};
 			});
+			ticketsPorEmpresa[0].ventana = ventanaTicket;
+
+			const registroLaboratorio = ventasRegistradas.find(
+				(registro) => registro.parte.serie === SERIE_LABORATORIO,
+			);
+			const registrosImagen = ventasRegistradas.filter(
+				(registro) => registro.parte.serie !== SERIE_LABORATORIO,
+			);
+
+			const impresion = await imprimirComprobantesVenta({
+				tickets: ticketsPorEmpresa,
+				etiquetasLaboratorio: registroLaboratorio
+					? {
+							folio: registroLaboratorio.folio,
+							paciente: nombreCompleto,
+							sexo,
+							edad: edad ? `${edad} años` : "",
+							estudios: registroLaboratorio.parte.estudios,
+							ventana: ventanaEtiquetasLaboratorio,
+						}
+					: null,
+				etiquetasImagen: registrosImagen.length
+					? {
+							paciente: nombreCompleto,
+							doctor: doctorSeleccionado?.nombre || "",
+							grupos: registrosImagen.map((registro) => ({
+								folio: registro.folio,
+								estudios: registro.parte.estudios,
+							})),
+							ventana: ventanaEtiquetasImagen,
+						}
+					: null,
+			});
+
+			if (!registroLaboratorio) ventanaEtiquetasLaboratorio?.close?.();
+			if (!registrosImagen.length) ventanaEtiquetasImagen?.close?.();
 
 			globalThis.mostrarNotificacion(
 				`¡Venta registrada exitosamente!\nFolio: ${folio}${
@@ -1462,6 +1604,7 @@ const NuevoPaciente = () => {
 		empresaId: empresaSeleccionada,
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
+		reglasConvenio,
 	};
 	const estudiosConPrecio = filtrarEstudiosCatalogo({
 		...filtrosCatalogo,
@@ -2106,6 +2249,42 @@ const NuevoPaciente = () => {
 										/>
 									</div>
 								</div>
+
+								{ordenMixta && (
+									<div className="cobro-por-serie">
+										<p className="cobro-por-serie-titulo">
+											Esta orden factura por {partesOrden.length} folios: el cobro
+											va prorrateado y se puede ajustar.
+										</p>
+										{partesOrden.map((parte) => (
+											<div key={parte.serie} className="cobro-serie-fila">
+												<div className="cobro-serie-datos">
+													<span className="cobro-serie-etiqueta">
+														Serie {parte.serie} · {parte.empresa}
+													</span>
+													<span className="cobro-serie-total">
+														Total ${parte.total.toFixed(2)}
+													</span>
+												</div>
+												<input
+													type="number"
+													min="0"
+													step="0.01"
+													className="form-input-small"
+													aria-label={`Pago de la serie ${parte.serie}`}
+													value={pagosPorSerie[parte.serie] ?? ""}
+													onChange={(e) =>
+														setPagosPorSerie({
+															...pagosPorSerie,
+															[parte.serie]:
+																e.target.value === "" ? "" : parseFloat(e.target.value) || 0,
+														})
+													}
+												/>
+											</div>
+										))}
+									</div>
+								)}
 
 								{cambio > 0 && (
 									<div className="cambio-display">
