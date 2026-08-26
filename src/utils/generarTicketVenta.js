@@ -310,6 +310,214 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 
 };
 
+
+// El ticket de imagen sigue el formato de CDI: los datos de la orden en
+// renglones, el desglose de conceptos y los totales al pie. El membrete, los
+// datos de la empresa y el QR al portal se conservan del ticket de laboratorio.
+const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
+	const {
+		folio,
+		fecha,
+		paciente,
+		fechaNacimiento,
+		edad,
+		doctor,
+		cliente,
+		sucursal,
+		empresa,
+		telefono,
+		estudios = [],
+		subtotal,
+		descuento,
+		total,
+		pagoRecibido,
+		adeudo,
+		cambio,
+		formaPago,
+		tarjetaUltimos4,
+		codigoAprobacion,
+		vendedor,
+	} = datosTicket;
+
+	let rfcEmpresa = '';
+	try {
+		rfcEmpresa = resolverRfcTicketEmpresa(empresa);
+	} catch (error) {
+		console.warn(`Ticket sin RFC (${empresa || 'sin empresa'}):`, error.message);
+	}
+	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
+
+	const W = 80;
+	const mg = 5;
+	let y = 6;
+
+	try {
+		const logoMod = await conLimiteDeEspera(import('../assets/logoCDC.jpg'));
+		const logoB64 = await getImageBase64(logoMod.default);
+		pdf.addImage(logoB64, 'JPEG', mg, y, W - mg * 2, 22);
+		y += 24;
+	} catch {
+		y += 4;
+	}
+
+	pdf.setFont('helvetica', 'normal');
+	pdf.setFontSize(7);
+	[
+		'Paulina Diaz Cortes',
+		'Dirección: Av. Francisco Villa 880, C.P. 48328, Colonia',
+		'Gaviotas, Puerto Vallarta, Jalisco, México.',
+		...(rfcEmpresa ? [`RFC: ${rfcEmpresa}`] : []),
+		'Correo: labcalifornia01@gmail.com',
+		'Teléfono: 3222256008',
+	].forEach((linea) => {
+		pdf.text(linea, W / 2, y, { align: 'center' });
+		y += 3.5;
+	});
+	y += 3;
+
+	const separador = () => {
+		pdf.setLineWidth(0.3);
+		pdf.line(mg, y, W - mg, y);
+		y += 4;
+	};
+
+	separador();
+
+	const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha || new Date();
+	const fechaStr = fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+	const horaStr = fechaObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+	const fechaNacimientoStr = fechaNacimiento
+		? new Date(fechaNacimiento).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
+		: '';
+
+	pdf.setFont('helvetica', 'normal');
+	pdf.setFontSize(8.5);
+
+	const renglon = (etiqueta, valor) => {
+		if (!valor) return;
+		const lineas = pdf.splitTextToSize(`${etiqueta}: ${valor}`, W - mg * 2);
+		lineas.forEach((linea) => {
+			pdf.text(linea, mg, y);
+			y += 4;
+		});
+	};
+
+	renglon('Fecha', `${fechaStr} ${horaStr}`);
+	renglon('No. orden', folio);
+	renglon('Paciente', (paciente || '').toUpperCase());
+	renglon('Fecha nacimiento', fechaNacimientoStr);
+	renglon('Teléfono', telefono);
+	renglon('Cliente', cliente);
+	renglon('Sucursal', sucursal);
+	renglon('Registra', (vendedor || '').toUpperCase());
+	renglon('Forma de pago', (formaPago || 'efectivo').replace(/_/g, ' ').toUpperCase());
+	renglon('Edad', edad);
+
+	y += 1;
+	separador();
+
+	pdf.setFont('helvetica', 'normal');
+	pdf.setFontSize(8.5);
+	pdf.text('Concepto', mg, y);
+	pdf.text('Importe', W - mg, y, { align: 'right' });
+	y += 3;
+	separador();
+
+	estudios.forEach((estudio) => {
+		const descripcion = String(estudio.descripcion || estudio.descripcion_estudio || '').toUpperCase();
+		const cantidad = Number(estudio.cantidad) || 1;
+		const importe = `$${parseFloat(estudio.precio || 0).toFixed(2)}`;
+		const lineas = pdf.splitTextToSize(`${cantidad} x ${descripcion}`, W - mg * 2 - 20);
+		lineas.forEach((linea, indice) => {
+			pdf.text(linea, mg, y);
+			if (indice === lineas.length - 1) {
+				pdf.text(importe, W - mg, y, { align: 'right' });
+			}
+			y += 4;
+		});
+	});
+
+	y += 1;
+	pdf.setLineWidth(0.3);
+	pdf.line(W - mg - 25, y, W - mg, y);
+	y += 4;
+
+	const filaTotal = (etiqueta, valor, negritas = false) => {
+		pdf.setFont('helvetica', negritas ? 'bold' : 'normal');
+		pdf.text(etiqueta, mg, y);
+		pdf.text(`$${parseFloat(valor || 0).toFixed(2)}`, W - mg, y, { align: 'right' });
+		y += 4.5;
+	};
+
+	filaTotal('Subtotal:', subtotal);
+	filaTotal('Descuentos:', descuento);
+
+	pdf.setLineWidth(0.3);
+	pdf.line(W - mg - 25, y - 1, W - mg, y - 1);
+	y += 2;
+
+	filaTotal('Total:', total, true);
+	filaTotal('Abono:', pagoRecibido);
+	filaTotal('Saldo:', adeudo);
+	filaTotal('Cambio:', cambio);
+
+	pdf.setFont('helvetica', 'normal');
+	const datosTarjetaTexto = describirPagoTarjeta({
+		ultimos4: tarjetaUltimos4,
+		codigoAprobacion,
+	});
+	if (esPagoConTarjeta(formaPago) && datosTarjetaTexto) {
+		y += 1;
+		pdf.text(`Tarjeta: ${datosTarjetaTexto}`, mg, y);
+		y += 4.5;
+	}
+
+	y += 1;
+	separador();
+
+	if (doctor) {
+		pdf.setFont('helvetica', 'bold');
+		pdf.setFontSize(8.5);
+		const lineasMedico = pdf.splitTextToSize(`Médico: ${doctor.toUpperCase()}`, W - mg * 2);
+		lineasMedico.forEach((linea) => {
+			pdf.text(linea, mg, y);
+			y += 4;
+		});
+		y += 2;
+	}
+
+	try {
+		const qrImg = await conLimiteDeEspera(generarQR(urlPortalResultados));
+		const qrSize = 22;
+		pdf.addImage(qrImg, 'PNG', (W - qrSize) / 2, y, qrSize, qrSize);
+		y += qrSize + 4;
+	} catch {
+		y += 2;
+	}
+
+	pdf.setFont('helvetica', 'bold');
+	pdf.setFontSize(9);
+	pdf.text('Descarga tus Resultados', W / 2, y, { align: 'center' });
+	y += 4;
+	pdf.setFont('helvetica', 'normal');
+	pdf.setFontSize(7);
+	pdf.splitTextToSize(urlPortalResultados.replace(/^https?:\/\//, ''), W - mg * 2).forEach((linea) => {
+		pdf.text(linea, W / 2, y, { align: 'center' });
+		y += 3.5;
+	});
+	y += 2;
+
+	pdf.setFontSize(6.5);
+	const pie = 'El presente ticket no es un comprobante fiscal. Si requiere factura deberá solicitarla durante el mismo mes de compra al 3227285354. No se facturan tickets de otros meses.';
+	pdf.splitTextToSize(pie, W - mg * 2).forEach((linea) => {
+		pdf.text(linea, mg, y);
+		y += 3.2;
+	});
+};
+
+export const TIPO_TICKET_IMAGEN = 'imagen';
+export const TIPO_TICKET_LABORATORIO = 'laboratorio';
+
 export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
 	const lista = tickets.filter(Boolean);
 	if (lista.length === 0) return;
@@ -320,7 +528,13 @@ export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
 
 	for (const [indice, ticket] of lista.entries()) {
 		if (indice > 0) pdf.addPage([80, 297]);
-		await dibujarTicketEnPdf(pdf, ticket);
+		// El ticket de imagen tiene su propio formato; el de laboratorio conserva
+		// el de siempre.
+		if (ticket.tipo === TIPO_TICKET_IMAGEN) {
+			await dibujarTicketImagenEnPdf(pdf, ticket);
+		} else {
+			await dibujarTicketEnPdf(pdf, ticket);
+		}
 	}
 
 	abrirPdfEnPestana({
