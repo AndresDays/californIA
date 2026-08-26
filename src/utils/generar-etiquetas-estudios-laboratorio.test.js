@@ -11,6 +11,14 @@ const mockDoc = {
 	setFont: jest.fn(),
 	setFontSize: jest.fn(),
 	setProperties: jest.fn(),
+	splitTextToSize: jest.fn((texto, ancho) => {
+		// Aproxima el salto de línea del PDF: un nombre largo ocupa dos renglones.
+		const limite = Math.round(ancho / 2.2);
+		const texto1 = String(texto);
+		if (texto1.length <= limite) return [texto1];
+		const corte = texto1.lastIndexOf(' ', limite) > 0 ? texto1.lastIndexOf(' ', limite) : limite;
+		return [texto1.slice(0, corte), texto1.slice(corte).trim()];
+	}),
 	text: jest.fn(),
 };
 
@@ -151,5 +159,57 @@ describe('generarEtiquetasEstudiosLaboratorio', () => {
 		});
 		expect(replace).toHaveBeenCalledWith('blob:etiquetas');
 		expect(window.open).not.toHaveBeenCalled();
+	});
+});
+
+describe('nombres largos en la etiqueta', () => {
+	const estudios = [
+		{ modulo: 'laboratorio', clave: 'COPROL', recipiente: 'Frasco', tipo_muestra: 'Heces' },
+	];
+
+	const posiciones = () =>
+		mockDoc.text.mock.calls.map(([texto, , y]) => ({ texto: String(texto), y }));
+
+	beforeEach(() => jest.clearAllMocks());
+
+	// El caso de la etiqueta impresa: el segundo renglón del nombre se encimaba
+	// con el sexo y el recipiente, que estaban en una altura fija.
+	test('el sexo y el recipiente quedan debajo del nombre de dos renglones', () => {
+		generarEtiquetasEstudiosLaboratorio({
+			folio: '2508260006',
+			paciente: 'Soto Estrada Lorenna Yanet',
+			sexo: 'femenino',
+			estudios,
+		});
+
+		const renglones = posiciones();
+		const encabezado = renglones.find(({ texto }) => texto.includes('femenino'));
+		const lineasNombre = renglones.filter(({ texto }) => /SOTO|YANET/.test(texto));
+
+		expect(lineasNombre.length).toBeGreaterThan(1);
+		lineasNombre.forEach(({ y }) => expect(encabezado.y).toBeGreaterThan(y));
+	});
+
+	test('el código de barras baja para no encimarse con el nombre', () => {
+		generarEtiquetasEstudiosLaboratorio({
+			folio: '2508260006',
+			paciente: 'Soto Estrada Lorenna Yanet',
+			sexo: 'femenino',
+			estudios,
+		});
+		const [, , , yBarcodeLargo, , altoLargo] = mockDoc.addImage.mock.calls[0];
+
+		jest.clearAllMocks();
+		generarEtiquetasEstudiosLaboratorio({
+			folio: '2508260006',
+			paciente: 'Ana Ruiz',
+			sexo: 'femenino',
+			estudios,
+		});
+		const [, , , yBarcodeCorto, , altoCorto] = mockDoc.addImage.mock.calls[0];
+
+		expect(yBarcodeLargo).toBeGreaterThan(yBarcodeCorto);
+		// Y termina a la misma altura, para no invadir el folio ni las claves.
+		expect(yBarcodeLargo + altoLargo).toBeCloseTo(yBarcodeCorto + altoCorto, 1);
 	});
 });

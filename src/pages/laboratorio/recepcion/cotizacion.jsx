@@ -16,6 +16,7 @@ import {
 } from "../../../utils/cita-nuevo-paciente";
 import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../../utils/tipos-estudio-convenio";
+import { descuentoDeCliente } from "../../../utils/descuento-cliente";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -64,6 +65,17 @@ const Cotizacion = () => {
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
 	}, [empresaSeleccionada, reglasConvenio, empresas]);
+	// Clientes como 10%, 20% o 30% son un descuento de mostrador: al elegirlos la
+	// cotización aplica su porcentaje, y al cambiar de cliente vuelve a cero.
+	useEffect(() => {
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+		if (!clienteSeleccionado || !nombreCliente) return;
+
+		setDescuentoPorcentaje(descuentoDeCliente(nombreCliente) ?? 0);
+	}, [clienteSeleccionado, clientes]);
+
 	// Los convenios sólo tienen precio para parte del catálogo: la búsqueda se
 	// acota a las claves con precio del cliente elegido.
 	useEffect(() => {
