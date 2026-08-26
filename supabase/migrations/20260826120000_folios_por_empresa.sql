@@ -140,7 +140,10 @@ join (
 		('SSA', '*', '', 'CDI'),
 		('SSA', 'resonancia', '', 'CDC')
 ) as m(convenio, modalidad, criterio, empresa)
+	-- Se compara por coincidencia porque el convenio puede estar dado de alta con
+	-- el nombre completo del cliente, como CENTRO MEDICO ANAMAYA.
 	on upper(btrim(c.nombre)) = m.convenio
+		or upper(btrim(c.nombre)) like '%' || m.convenio || '%'
 on conflict (id_cliente, modalidad, criterio) do update
 set empresa = excluded.empresa;
 
