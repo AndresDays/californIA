@@ -19,8 +19,7 @@ import {
 	generarTicketVenta,
 	resolverEmpresaTicketReimpresion,
 } from "../../../utils/generarTicketVenta";
-import { generarEtiquetasEstudiosLaboratorio } from "../../../utils/generar-etiquetas-estudios-laboratorio";
-import { generarEtiquetasEstudiosImagen } from "../../../utils/generar-etiquetas-estudios-imagen";
+import { generarEtiquetasOrden } from "../../../utils/generar-etiquetas-orden";
 import { esEstudioImagenCaptura } from "../../../utils/captura-row-status";
 import {
 	EVENTOS_SOLICITUD,
@@ -722,8 +721,9 @@ const EditarSolicitud = () => {
 	const imprimirEtiquetasOrden = async (orden, e) => {
 		e?.stopPropagation();
 		if (!orden) return;
-		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
-		const ventanaEtiquetasImagen = window.open("", "_blank");
+		// Una sola pestaña: abrir dos hacía que el navegador bloqueara la segunda,
+		// y la etiqueta de imagen nunca llegaba a verse.
+		const ventanaEtiquetas = window.open("", "_blank");
 		try {
 			const paciente = orden.pacientes;
 			const hoy = new Date();
@@ -739,6 +739,7 @@ const EditarSolicitud = () => {
 				.map(({ clave_estudio }) => clave_estudio)
 				.filter(Boolean);
 			if (!clavesEstudios.length) {
+				ventanaEtiquetas?.close?.();
 				mostrarNotificacion("La orden no tiene estudios para etiquetar", "error");
 				return;
 			}
@@ -785,28 +786,29 @@ const EditarSolicitud = () => {
 					...estudioCatalogo,
 				};
 			});
-			const generoLaboratorio = generarEtiquetasEstudiosLaboratorio({
+			const { generado } = generarEtiquetasOrden({
 				folio: orden.folio,
-				paciente: paciente?.nombre,
-				sexo: paciente?.sexo,
-				edad: edadStr,
-				estudios: estudiosEtiquetas,
-				ventana: ventanaEtiquetasLaboratorio,
+				ventana: ventanaEtiquetas,
+				laboratorio: {
+					folio: orden.folio,
+					paciente: paciente?.nombre,
+					sexo: paciente?.sexo,
+					edad: edadStr,
+					estudios: estudiosEtiquetas,
+				},
+				imagen: {
+					folio: orden.folio,
+					fecha: orden.fecha_venta,
+					paciente: paciente?.nombre,
+					doctor: doctorResponse.data?.nombre || "",
+					estudios: estudiosEtiquetas,
+				},
 			});
-			const generoImagen = generarEtiquetasEstudiosImagen({
-				folio: orden.folio,
-				fecha: orden.fecha_venta,
-				paciente: paciente?.nombre,
-				doctor: doctorResponse.data?.nombre || "",
-				estudios: estudiosEtiquetas,
-				ventana: ventanaEtiquetasImagen,
-			});
-			if (!generoLaboratorio && !generoImagen) {
+			if (!generado) {
 				mostrarNotificacion("No hay estudios con etiquetas configuradas", "error");
 			}
 		} catch (err) {
-			ventanaEtiquetasLaboratorio?.close?.();
-			ventanaEtiquetasImagen?.close?.();
+			ventanaEtiquetas?.close?.();
 			console.error("Error al generar etiquetas:", err);
 			mostrarNotificacion("Error al generar las etiquetas", "error");
 		}

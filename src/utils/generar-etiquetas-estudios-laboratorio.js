@@ -46,26 +46,20 @@ const crearBarcode = (folio) => {
 	return canvas.toDataURL('image/png');
 };
 
-export const generarEtiquetasEstudiosLaboratorio = ({
-	folio,
-	paciente,
-	sexo,
-	edad,
-	estudios,
-	ventana,
-}) => {
+// Dibuja las etiquetas en el PDF que se le pase, para que una orden con
+// laboratorio e imagen salga en un solo documento y una sola pestaña.
+export const agregarEtiquetasLaboratorioAlPdf = (
+	pdf,
+	{ folio, paciente, sexo, edad, estudios } = {},
+	{ paginaInicial = true } = {},
+) => {
 	const grupos = agruparEstudiosPorRecipiente(estudios);
-	if (!grupos.length) {
-		ventana?.close?.();
-		return false;
-	}
+	if (!grupos.length) return false;
 
-	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
-	pdf.setProperties({ title: `Etiqueta ${folio}` });
 	const barcode = crearBarcode(folio);
 
 	grupos.forEach((grupo, indice) => {
-		if (indice) pdf.addPage([50, 30], 'landscape');
+		if (indice || !paginaInicial) pdf.addPage([50, 30], 'landscape');
 
 		const encabezado = [sexo, edad, grupo.recipiente]
 			.filter(Boolean)
@@ -106,8 +100,20 @@ export const generarEtiquetasEstudiosLaboratorio = ({
 		pdf.text(grupo.claves.join(', '), 4, 27.5, { maxWidth: 42 });
 	});
 
+	return true;
+};
+
+export const generarEtiquetasEstudiosLaboratorio = ({ ventana, ...datos } = {}) => {
+	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
+	pdf.setProperties({ title: `Etiqueta ${datos.folio}` });
+
+	if (!agregarEtiquetasLaboratorioAlPdf(pdf, datos)) {
+		ventana?.close?.();
+		return false;
+	}
+
 	const url = URL.createObjectURL(pdf.output('blob'));
-	abrirPdfEnPestana({ url, titulo: `Etiqueta ${folio}`, ventana });
+	abrirPdfEnPestana({ url, titulo: `Etiqueta ${datos.folio}`, ventana });
 	return true;
 };
 import JsBarcode from 'jsbarcode';

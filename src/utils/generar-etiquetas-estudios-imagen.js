@@ -21,15 +21,13 @@ const textoMayusculas = (valor) => String(valor || '').trim().toUpperCase();
 // Una visita que factura por las dos empresas parte su imagen en dos folios,
 // así que las etiquetas se arman por grupo: cada estudio sale con el folio de
 // la orden a la que pertenece, todas en el mismo PDF.
-export const generarEtiquetasEstudiosImagen = ({
-	folio,
-	fecha,
-	paciente,
-	doctor,
-	estudios,
-	grupos,
-	ventana,
-}) => {
+// Dibuja las etiquetas en el PDF que se le pase, para que una orden con
+// laboratorio e imagen salga en un solo documento y una sola pestaña.
+export const agregarEtiquetasImagenAlPdf = (
+	pdf,
+	{ folio, fecha, paciente, doctor, estudios, grupos } = {},
+	{ paginaInicial = true } = {},
+) => {
 	const gruposEtiquetas = (grupos?.length ? grupos : [{ folio, estudios }])
 		.map((grupo) => ({
 			folio: grupo.folio,
@@ -40,22 +38,15 @@ export const generarEtiquetasEstudiosImagen = ({
 	const estudiosImagen = gruposEtiquetas.flatMap((grupo) =>
 		grupo.estudios.map((estudio) => ({ estudio, folio: grupo.folio })),
 	);
-	if (!estudiosImagen.length) {
-		ventana?.close?.();
-		return false;
-	}
+	if (!estudiosImagen.length) return false;
 
 	const fechaObj = fecha ? new Date(fecha) : new Date();
 	const fechaEtiqueta = Number.isNaN(fechaObj.getTime())
 		? ''
 		: fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-	const folioTitulo = gruposEtiquetas.map((grupo) => grupo.folio).join(' · ');
-	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
-	pdf.setProperties({ title: `Etiqueta ${folioTitulo}` });
-
 	estudiosImagen.forEach(({ estudio, folio: folioEstudio }, indice) => {
-		if (indice) pdf.addPage([50, 30], 'landscape');
+		if (indice || !paginaInicial) pdf.addPage([50, 30], 'landscape');
 
 		pdf.setFont('helvetica', 'bold');
 		pdf.setFontSize(7.2);
@@ -75,7 +66,20 @@ export const generarEtiquetasEstudiosImagen = ({
 		pdf.text(textoMayusculas(doctor), 2, 25.7, { maxWidth: 46 });
 	});
 
+	return true;
+};
+
+export const generarEtiquetasEstudiosImagen = ({ ventana, ...datos } = {}) => {
+	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
+	const titulo = `Etiqueta ${datos.folio || ''}`.trim();
+	pdf.setProperties({ title: titulo });
+
+	if (!agregarEtiquetasImagenAlPdf(pdf, datos)) {
+		ventana?.close?.();
+		return false;
+	}
+
 	const url = URL.createObjectURL(pdf.output('blob'));
-	abrirPdfEnPestana({ url, titulo: `Etiqueta ${folioTitulo}`, ventana });
+	abrirPdfEnPestana({ url, titulo, ventana });
 	return true;
 };
