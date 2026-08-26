@@ -36,6 +36,7 @@ import {
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
+import { descuentoDeCliente } from "../../utils/descuento-cliente";
 import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
@@ -282,6 +283,18 @@ const NuevoPaciente = () => {
 			setDestinoTurno(resolverDestinoTurnoDesdeEstudios(estudiosSeleccionados));
 		}
 	}, [estudiosSeleccionados, destinoTurnoManual]);
+
+	// Clientes como 10%, 20% o 30% son un descuento de mostrador: al elegirlos se
+	// aplica su porcentaje, y al cambiar a otro cliente el descuento se limpia
+	// para no arrastrarlo a la orden siguiente.
+	useEffect(() => {
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+		if (!clienteSeleccionado || !nombreCliente) return;
+
+		setDescuentoPercent(descuentoDeCliente(nombreCliente) ?? 0);
+	}, [clienteSeleccionado, clientes]);
 
 	// Las claves con precio del cliente acotan la búsqueda de estudios: un
 	// convenio sólo ofrece lo que tiene pactado.
@@ -2355,6 +2368,19 @@ const NuevoPaciente = () => {
 							<div className="action-buttons-final">
 								<button className="btn-guardar-img" onClick={guardarYPagar}>
 									<span className="btn-guardar-label">{resumenPago.accion}</span>
+								</button>
+								{/* Empezar de cero sin tener que salir y volver a entrar a la
+								    pantalla, ni ir borrando campo por campo. */}
+								<button
+									type="button"
+									className="btn-limpiar-orden"
+									onClick={() => {
+										limpiarFormulario();
+										mostrarNotificacion(
+											"Captura limpia, puedes empezar una orden nueva",
+										);
+									}}>
+									Limpiar y empezar de nuevo
 								</button>
 							</div>
 						</aside>
