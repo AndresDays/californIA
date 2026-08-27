@@ -93,7 +93,24 @@ describe("buscarPrecioEstudioCliente", () => {
 });
 
 describe("resolverPrecioEstudioCliente", () => {
+	afterEach(() => jest.restoreAllMocks());
+
+	// Cobrar al precio por defecto algo que sí tenía precio pactado es difícil
+	// de notar en caja, así que queda dicho con qué se buscó.
+	test("avisa en la consola con qué se buscó cuando cae al precio por defecto", async () => {
+		const aviso = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+		await resolverPrecioEstudioCliente(supabaseFalso(PRECIOS), {
+			clave: "TAC-CRANEO",
+			cliente: "Medisim",
+		});
+
+		expect(aviso.mock.calls[0][0]).toContain("TAC-CRANEO");
+		expect(aviso.mock.calls[0][0]).toContain("Medisim");
+	});
+
 	test("usa el precio por defecto sólo cuando no hay precio pactado", async () => {
+		jest.spyOn(console, "warn").mockImplementation(() => {});
 		await expect(
 			resolverPrecioEstudioCliente(supabaseFalso(PRECIOS), {
 				clave: "TAC-CRANEO",

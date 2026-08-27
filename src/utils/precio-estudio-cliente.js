@@ -47,5 +47,16 @@ export const buscarPrecioEstudioCliente = async (
 	);
 };
 
-export const resolverPrecioEstudioCliente = async (supabase, datos = {}) =>
-	(await buscarPrecioEstudioCliente(supabase, datos)) ?? PRECIO_POR_DEFECTO;
+export const resolverPrecioEstudioCliente = async (supabase, datos = {}) => {
+	const precio = await buscarPrecioEstudioCliente(supabase, datos);
+	if (precio !== null) return precio;
+
+	// Cobrar al precio por defecto un estudio que sí tiene precio pactado es
+	// difícil de notar en caja y difícil de rastrear después, así que queda
+	// dicho en la consola con qué se buscó.
+	console.warn(
+		`Sin precio pactado para la clave "${datos?.clave}" (${datos?.descripcion || "sin descripción"}) ` +
+			`del cliente "${datos?.cliente}": se cobra el precio por defecto de $${PRECIO_POR_DEFECTO}.`,
+	);
+	return PRECIO_POR_DEFECTO;
+};
