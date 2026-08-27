@@ -172,6 +172,19 @@
   color: white;
 }
 
+/* El control nativo de fecha pinta su icono en negro, que sobre el fondo
+   oscuro del modal no se alcanza a ver; se invierte para que quede claro como
+   el resto de los iconos. */
+.modal-input-fecha {
+  color-scheme: dark;
+  cursor: text;
+}
+
+.modal-input-fecha::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
 .modal-fila-edad {
   display: grid;
   grid-template-columns: 1fr 1fr;

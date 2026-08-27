@@ -27,10 +27,11 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   const [apellidoPaterno, setApellidoPaterno] = useCampoPersistente(`${BORRADOR}apellidoPaterno`, '', borrador);
   const [apellidoMaterno, setApellidoMaterno] = useCampoPersistente(`${BORRADOR}apellidoMaterno`, '', borrador);
   const [nombre, setNombre] = useCampoPersistente(`${BORRADOR}nombre`, '', borrador);
-  
-  const [dia, setDia] = useCampoPersistente(`${BORRADOR}dia`, '', borrador);
-  const [mes, setMes] = useCampoPersistente(`${BORRADOR}mes`, '', borrador);
-  const [ano, setAno] = useCampoPersistente(`${BORRADOR}ano`, '', borrador);
+  const [segundoNombre, setSegundoNombre] = useCampoPersistente(`${BORRADOR}segundoNombre`, '', borrador);
+
+  // La fecha se captura en un solo campo: el control nativo deja teclear los
+  // números y abre el calendario, en vez de obligar a bajar tres listas.
+  const [fechaNacimiento, setFechaNacimiento] = useCampoPersistente(`${BORRADOR}fechaNacimiento`, '', borrador);
   const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, '', borrador);
   const [unidadEdad, setUnidadEdad] = useCampoPersistente(`${BORRADOR}unidadEdad`, 'Años', borrador); 
   
@@ -58,6 +59,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       setApellidoPaterno(pacienteEditar.apellidoPaterno || '');
       setApellidoMaterno(pacienteEditar.apellidoMaterno || '');
       setNombre(pacienteEditar.nombre || '');
+      setSegundoNombre(pacienteEditar.segundoNombre || '');
       setSexo(pacienteEditar.sexo || '');
       setDireccion(pacienteEditar.direccion || '');
       setCedula(pacienteEditar.cedula || '');
@@ -74,13 +76,10 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       }
       setTelefono(normalizarTelefono10(telefonoSinCodigo));
       
-      if (pacienteEditar.fechaNacimiento) {
-        const fecha = new Date(pacienteEditar.fechaNacimiento);
-        setDia(fecha.getDate().toString());
-        setMes((fecha.getMonth() + 1).toString());
-        setAno(fecha.getFullYear().toString());
-      }
-      
+      // La fecha viene como YYYY-MM-DD, que es justo lo que espera el control.
+      setFechaNacimiento(String(pacienteEditar.fechaNacimiento || '').slice(0, 10));
+
+
       setEdad(pacienteEditar.edad?.toString() || '');
     } else if (isOpen && !pacienteEditar && !hayBorradorPersistente(BORRADOR)) {
       limpiarCampos();
@@ -109,10 +108,11 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   };
 
   useEffect(() => {
-    if (dia && mes && ano) {
-      const fechaNac = new Date(ano, mes - 1, dia);
+    const [ano, mes, dia] = String(fechaNacimiento || '').split('-');
+    if (ano && mes && dia) {
+      const fechaNac = new Date(Number(ano), Number(mes) - 1, Number(dia));
       const hoy = new Date();
-      
+
       const diffMs = hoy - fechaNac;
       const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       
@@ -146,15 +146,14 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       
       setEdad(edadCalculada.toString());
     }
-  }, [dia, mes, ano, unidadEdad]);
+  }, [fechaNacimiento, unidadEdad]);
 
   const limpiarCampos = () => {
     setApellidoPaterno('');
     setApellidoMaterno('');
     setNombre('');
-    setDia('');
-    setMes('');
-    setAno('');
+    setSegundoNombre('');
+    setFechaNacimiento('');
     setEdad('');
     setUnidadEdad('Años');
     setSexo('');
@@ -194,18 +193,20 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       return;
     }
 
-    const fechaNacimiento = (dia && mes && ano) 
-      ? `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`
-      : null;
-
-    const nombreCompleto = `${apellidoPaterno.trim()} ${apellidoMaterno.trim()} ${nombre.trim()}`.trim();
+    // El nombre completo conserva el orden con el que se busca e imprime en los
+    // tickets: apellidos primero y luego los nombres de pila.
+    const nombreCompleto = [apellidoPaterno, apellidoMaterno, nombre, segundoNombre]
+      .map((parte) => parte.trim())
+      .filter(Boolean)
+      .join(' ');
 
     const pacienteData = {
       nombre: nombreCompleto,
       apellido_paterno: apellidoPaterno.trim(),
       apellido_materno: apellidoMaterno.trim(),
       primer_nombre: nombre.trim(),
-      fecha_nacimiento: fechaNacimiento,
+      segundo_nombre: segundoNombre.trim(),
+      fecha_nacimiento: fechaNacimiento || null,
       edad: parseInt(edad) || null,
       sexo: sexo,
       direccion: direccion.trim(),
@@ -235,7 +236,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   // por accidente al volver a la app. Con algo capturado el fondo ya no cierra:
   // para salir están la ✕ y el botón Salir.
   const hayCaptura = () =>
-    [apellidoPaterno, apellidoMaterno, nombre, dia, mes, ano, sexo, direccion, cedula, condicionEspecial, email, telefono]
+    [apellidoPaterno, apellidoMaterno, nombre, segundoNombre, fechaNacimiento, sexo, direccion, cedula, condicionEspecial, email, telefono]
       .some((valor) => String(valor ?? '').trim());
 
   const handleClickFondo = () => {
@@ -244,23 +245,8 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
 
   if (!isOpen) return null;
 
-  const dias = Array.from({ length: 31 }, (_, i) => i + 1);
-  const meses = [
-    { valor: '1', nombre: 'Enero' },
-    { valor: '2', nombre: 'Febrero' },
-    { valor: '3', nombre: 'Marzo' },
-    { valor: '4', nombre: 'Abril' },
-    { valor: '5', nombre: 'Mayo' },
-    { valor: '6', nombre: 'Junio' },
-    { valor: '7', nombre: 'Julio' },
-    { valor: '8', nombre: 'Agosto' },
-    { valor: '9', nombre: 'Septiembre' },
-    { valor: '10', nombre: 'Octubre' },
-    { valor: '11', nombre: 'Noviembre' },
-    { valor: '12', nombre: 'Diciembre' }
-  ];
-  const anoActual = new Date().getFullYear();
-  const anos = Array.from({ length: 120 }, (_, i) => anoActual - i);
+  // Nadie nace mañana: el control no deja elegir una fecha futura.
+  const hoyISO = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="modal-overlay-paciente admin-entity-modal-overlay" onClick={handleClickFondo}>
@@ -279,11 +265,33 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
             <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
             <input
               type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Ingresar Primer Nombre"
+              className="modal-input-paciente"
+              autoFocus
+            />
+          </div>
+
+          <div className="modal-campo-paciente">
+            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+            <input
+              type="text"
+              value={segundoNombre}
+              onChange={(e) => setSegundoNombre(e.target.value)}
+              placeholder="Ingresar Segundo Nombre"
+              className="modal-input-paciente"
+            />
+          </div>
+
+          <div className="modal-campo-paciente">
+            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+            <input
+              type="text"
               value={apellidoPaterno}
               onChange={(e) => setApellidoPaterno(e.target.value)}
               placeholder="Ingresar Apellido Paterno"
               className="modal-input-paciente"
-              autoFocus
             />
           </div>
 
@@ -299,55 +307,15 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
           </div>
 
           <div className="modal-campo-paciente">
-            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+            <img src={calendarioIcono} alt="Fecha de nacimiento" className="modal-icono-campo" />
             <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ingresar Nombre"
-              className="modal-input-paciente"
+              type="date"
+              value={fechaNacimiento}
+              onChange={(e) => setFechaNacimiento(e.target.value)}
+              aria-label="Fecha de nacimiento"
+              className="modal-input-paciente modal-input-fecha"
+              max={hoyISO}
             />
-          </div>
-
-          <div className="modal-fila-fecha">
-            <div className="modal-campo-fecha">
-              <select
-                value={dia}
-                onChange={(e) => setDia(e.target.value)}
-                className="modal-select-fecha"
-              >
-                <option value="">Día</option>
-                {dias.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="modal-campo-fecha">
-              <select
-                value={mes}
-                onChange={(e) => setMes(e.target.value)}
-                className="modal-select-fecha"
-              >
-                <option value="">Mes</option>
-                {meses.map(m => (
-                  <option key={m.valor} value={m.valor}>{m.nombre}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="modal-campo-fecha">
-              <select
-                value={ano}
-                onChange={(e) => setAno(e.target.value)}
-                className="modal-select-fecha"
-              >
-                <option value="">Año</option>
-                {anos.map(a => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="modal-fila-edad">

@@ -1233,6 +1233,7 @@ const NuevoPaciente = () => {
 						apellido_paterno: pacienteData.apellido_paterno,
 						apellido_materno: pacienteData.apellido_materno,
 						primer_nombre: pacienteData.primer_nombre,
+						segundo_nombre: pacienteData.segundo_nombre,
 						fecha_nacimiento: pacienteData.fecha_nacimiento,
 						edad: pacienteData.edad,
 						sexo: pacienteData.sexo,
