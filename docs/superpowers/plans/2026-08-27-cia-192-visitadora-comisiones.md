@@ -4,7 +4,7 @@
 
 **Objetivo:** darle a la visitadora una ventana propia en la aplicación donde capture su reporte semanal de visitas médicas y su programación semanal (hoy los hace en Excel a mano), y sobre esos mismos médicos generar un concentrado mensual que calcule solo cuánto ingreso generó cada médico y cuánta comisión le toca según su porcentaje (10 %, 15 %, 20 %, el que sea).
 
-**Arquitectura:** tres pantallas nuevas bajo `/visitadora`, tres tablas nuevas en Supabase (`visitas_medicas`, `programacion_visitas`, `comisiones_doctor`) más una tabla de cierre (`comisiones_mensuales`). El concentrado **no guarda** los importes: los calcula en vivo desde `ventas` (igual que hace `reporte-ventas`), y sólo congela el mes cuando el administrador lo cierra. Cálculo puro en `src/utils/comisiones-medicos.js` para que sea testeable sin base de datos.
+**Arquitectura:** tres pantallas nuevas bajo `/visitadora`, tres tablas nuevas en Supabase (`visitas_medicas`, `programacion_visitas`, `comisiones_doctor`) más una tabla de cierre (`comisiones_mensuales`). El concentrado **no guarda** los importes: los calcula en vivo desde `ventas` (igual que hace `reporte-ventas`), y sólo congela el mes cuando el administrador lo cierra. Cálculo puro en `src/utils/comisiones-medicos.js` para que sea testeable sin base de datos. El módulo es cerrado: lo ven la visitadora (y sólo eso ve ella), administración y el radiólogo director.
 
 **Stack:** React 18, Supabase JS, @tanstack/react-query, xlsx 0.18 (ya es dependencia), jsPDF, Jest 29.
 
@@ -38,9 +38,10 @@ El origen del dinero ya existe: `ventas.id_doctor` referencia a `doctores.id_doc
 2. **Sólo cuentan las ventas con `estado = 'activo'`.** Una venta cancelada no genera comisión. Es el mismo filtro que usa el reporte de ventas.
 3. **El porcentaje tiene vigencia, no es un campo suelto en `doctores`.** En el reporte de agosto ya aparece «conforme incremente su flujo de pacientes se podrá aumentar su porcentaje». Si el porcentaje fuera un solo número mutable, subirle a un médico de 10 % a 15 % en octubre recalcularía agosto y septiembre hacia atrás y descuadraría lo ya pagado. Por eso `comisiones_doctor` guarda `(id_doctor, porcentaje, vigente_desde)` y el cálculo de un mes usa **el porcentaje vigente al último día de ese mes**.
 4. **El concentrado se calcula en vivo mientras el mes está abierto.** Congelarlo cada noche obligaría a un job y a resolver qué pasa con las ventas que se capturan tarde. Cuando el administrador cierra el mes, ahí sí se escribe el snapshot en `comisiones_mensuales` y a partir de entonces la pantalla muestra lo congelado.
-5. **La visitadora ve el concentrado pero no lo edita.** Necesita saber qué contestarle al médico que le pregunta por sus comisiones (pasa en tres visitas del reporte de agosto), pero cambiar porcentajes y marcar pagos es del administrador.
-6. **`tipo_convenio` es texto libre con sugerencias, no un enum.** En el Excel real conviven `MIXTO`, `PUNTOS`, `N/A`, `PENDIENTE`, `Descuento para Pacientes`, `30% de Descuento para los pacientes` y hasta un párrafo entero. Un `check` constraint rechazaría datos reales; el `datalist` guía sin bloquear.
-7. **Los médicos programados se guardan como `jsonb` array `[{nombre, id_doctor}]`,** no como el texto corrido de la celda. Permite ligar cada nombre al catálogo cuando exista y seguir exportando la celda tal cual concatenando; el texto corrido no permitiría lo contrario.
+5. **El módulo es cerrado en las dos direcciones.** La visitadora entra **únicamente** a sus tres pantallas: no ve dashboard, ni pacientes, ni caja, ni nada más de la aplicación. Y del otro lado, sólo administración y el radiólogo director ven el módulo; ningún otro rol lo encuentra en el menú ni puede entrar por URL. Detalle a tener presente: como la visitadora tampoco puede entrar a `/dashboard`, su pantalla de aterrizaje después de iniciar sesión tiene que ser `/visitadora/informe`, o queda dando vueltas entre redirecciones (Tarea 8, Paso 4).
+6. **La visitadora consulta el concentrado, pero no lo edita.** Necesita saber qué contestarle al médico que le pregunta por sus comisiones (pasa en tres visitas del reporte de agosto), pero fijar porcentajes, cerrar el mes y marcar pagos queda con administración y con el radiólogo director — que es quien de hecho los autoriza: en el reporte de agosto los porcentajes aparecen como «esquema establecido por el Dr. Juan Díaz» y «porcentaje autorizado por el Dr. Juan».
+7. **`tipo_convenio` es texto libre con sugerencias, no un enum.** En el Excel real conviven `MIXTO`, `PUNTOS`, `N/A`, `PENDIENTE`, `Descuento para Pacientes`, `30% de Descuento para los pacientes` y hasta un párrafo entero. Un `check` constraint rechazaría datos reales; el `datalist` guía sin bloquear.
+8. **Los médicos programados se guardan como `jsonb` array `[{nombre, id_doctor}]`,** no como el texto corrido de la celda. Permite ligar cada nombre al catálogo cuando exista y seguir exportando la celda tal cual concatenando; el texto corrido no permitiría lo contrario.
 
 ---
 
@@ -72,8 +73,12 @@ El origen del dinero ya existe: `ventas.id_doctor` referencia a `doctores.id_doc
 **Integración**
 - Modificar: `src/App.jsx` — tres rutas nuevas.
 - Modificar: `src/components/sidebar-menu.js` — sección «Visitadora».
-- Modificar: `src/utils/role-permissions.js` — rol `visitadora` y sus rutas.
+- Modificar: `src/utils/role-permissions.js` — rol `visitadora`, sus rutas y su pantalla de aterrizaje.
 - Modificar: `src/utils/role-permissions.test.js` — cobertura del rol nuevo.
+- Modificar: `src/context/auth-context.jsx` — `redirectTo` de la visitadora.
+- Modificar: `src/components/protected-route.jsx` — a dónde rebota la visitadora cuando pide una ruta que no le toca.
+- Modificar: `src/components/ModalAgregarUsuario.jsx` — la opción «Visitadora» en el alta de usuarios.
+- Modificar: `src/utils/usuarios-auth.js` — normalización y etiqueta del rol nuevo.
 
 ---
 
@@ -236,6 +241,8 @@ alter table public.programacion_visitas enable row level security;
 alter table public.comisiones_doctor enable row level security;
 alter table public.comisiones_mensuales enable row level security;
 
+-- Quién entra al módulo. Nadie más: ni recepción, ni laboratorio, ni el
+-- radiólogo clínico. 'radiologo' es como se guarda "Radiólogo - Director".
 create or replace function public.es_usuario_visitadora()
 returns boolean
 language sql
@@ -247,11 +254,14 @@ as $$
 		select 1 from public.empleados e
 		where e.auth_uuid = auth.uid()
 		and translate(lower(coalesce(e.rol, '')), 'áéíóúü', 'aeiouu')
-			in ('visitadora', 'visitador', 'administrador', 'admin', 'desarrollador')
+			in ('visitadora', 'visitador', 'administrador', 'admin',
+			    'desarrollador', 'radiologo', 'radiologo_director')
 	);
 $$;
 
-create or replace function public.es_usuario_admin_comisiones()
+-- Quién mueve dinero: fija porcentajes, cierra el mes y marca pagos. La
+-- visitadora queda fuera a propósito — ella consulta, no autoriza.
+create or replace function public.es_usuario_comisiones_admin()
 returns boolean
 language sql
 stable
@@ -262,12 +272,17 @@ as $$
 		select 1 from public.empleados e
 		where e.auth_uuid = auth.uid()
 		and translate(lower(coalesce(e.rol, '')), 'áéíóúü', 'aeiouu')
-			in ('administrador', 'admin', 'desarrollador')
+			in ('administrador', 'admin', 'desarrollador',
+			    'radiologo', 'radiologo_director')
 	);
 $$;
 ```
 
-Más las políticas: `select/insert/update/delete` sobre `visitas_medicas` y `programacion_visitas` para `es_usuario_visitadora()`; `select` sobre `comisiones_doctor` y `comisiones_mensuales` para `es_usuario_visitadora()` pero `insert/update/delete` sólo para `es_usuario_admin_comisiones()`. Cerrar con `NOTIFY pgrst, 'reload schema';`.
+Más las políticas: `select/insert/update/delete` sobre `visitas_medicas` y `programacion_visitas` para `es_usuario_visitadora()`; `select` sobre `comisiones_doctor` y `comisiones_mensuales` para `es_usuario_visitadora()` pero `insert/update/delete` sólo para `es_usuario_comisiones_admin()`. Cerrar con `NOTIFY pgrst, 'reload schema';`.
+
+Las dos funciones son la red de seguridad real: aunque alguien llegara a la URL con un rol que no
+le toca, la base no le devuelve un solo renglón. El filtro del menú y de las rutas es comodidad,
+no seguridad.
 
 - [ ] **Paso 2: verificar contra staging**
 
@@ -435,7 +450,7 @@ Ambas regresan `{ filas, advertencias }`. `advertencias` alimenta un panel de re
 
 **Archivos:** Crear `src/pages/visitadora/concentrado-comisiones.jsx`, `.css`, `.test.jsx`, y `componentes/modal-porcentaje-doctor.jsx`.
 
-- [ ] **Paso 1: test de render** — las tres tarjetas de resumen suman lo mismo que la tabla; los médicos sin porcentaje salen primero; el administrador ve «Cerrar mes» y la visitadora no; con el mes cerrado la pantalla lee el snapshot y no recalcula.
+- [ ] **Paso 1: test de render** — las tres tarjetas de resumen suman lo mismo que la tabla; los médicos sin porcentaje salen primero; administración y el radiólogo director ven «Cerrar mes» y la visitadora no; con el mes cerrado la pantalla lee el snapshot y no recalcula.
 - [ ] **Paso 2: implementar la tabla y el resumen** con `construirConcentradoMensual`.
 - [ ] **Paso 3: modal de porcentaje** — captura `porcentaje`, `vigente_desde` (por omisión el primer día del mes en curso) y `notas`, e inserta un renglón nuevo en `comisiones_doctor`; muestra el historial de porcentajes previos del médico para que quede claro que no se está sobrescribiendo nada.
 - [ ] **Paso 4: cierre de mes** — escribe el snapshot en `comisiones_mensuales` dentro de una sola llamada y pide confirmación explícita indicando el total a pagar.
@@ -446,31 +461,201 @@ Ambas regresan `{ filas, advertencias }`. `advertencias` alimenta un panel de re
 
 ### Tarea 8: Rutas, menú y permisos
 
-**Archivos:** Modificar `src/App.jsx`, `src/components/sidebar-menu.js`, `src/utils/role-permissions.js` y su test.
+El módulo es **cerrado**: la visitadora no ve nada más de la aplicación, y nadie fuera de
+administración y dirección ve el módulo. Sólo tres roles entran:
 
-- [ ] **Paso 1: tests de permisos**
+| Rol (valor guardado) | Alcance |
+| --- | --- |
+| `visitadora` | **Únicamente** las tres pantallas de `/visitadora` y su propio perfil. Sin dashboard, sin pacientes, sin nada más. |
+| `admin` / `administrador` / `desarrollador` | El módulo completo, además de todo lo que ya veían. Editan porcentajes, cierran el mes y marcan pagos. |
+| `radiologo` (así se guarda «Radiólogo - Director», ver `normalizarRolUsuario`) | Igual que administración: es quien autoriza los porcentajes. |
+
+Cualquier otro rol —recepcionista, químico, técnico en radiología, radiólogo clínico, médico,
+doctor externo— **no ve la sección en el menú y no puede entrar por URL**.
+
+**Archivos:** Modificar `src/App.jsx`, `src/components/sidebar-menu.js`, `src/utils/role-permissions.js` (+ test), `src/context/auth-context.jsx`, `src/components/protected-route.jsx`, `src/components/ModalAgregarUsuario.jsx`, `src/utils/usuarios-auth.js`.
+
+- [ ] **Paso 1: escribir los tests de permisos**
 
 ```js
-test('la visitadora entra a sus tres pantallas y no a caja ni configuración', () => {
-	expect(puedeAccederRuta('visitadora', '/visitadora/informe')).toBe(true);
-	expect(puedeAccederRuta('visitadora', '/visitadora/comisiones')).toBe(true);
-	expect(puedeAccederRuta('visitadora', '/doctores')).toBe(true);
-	expect(puedeAccederRuta('visitadora', '/cierre-caja')).toBe(false);
-	expect(puedeAccederRuta('visitadora', '/configuracion/precios')).toBe(false);
+describe('rol visitadora', () => {
+	test('sólo entra a sus tres pantallas y a su perfil', () => {
+		expect(puedeAccederRuta('visitadora', '/visitadora/informe')).toBe(true);
+		expect(puedeAccederRuta('visitadora', '/visitadora/programacion')).toBe(true);
+		expect(puedeAccederRuta('visitadora', '/visitadora/comisiones')).toBe(true);
+		expect(puedeAccederRuta('visitadora', '/perfil')).toBe(true);
+	});
+
+	test('no entra al dashboard ni a ninguna otra pantalla', () => {
+		for (const ruta of [
+			'/dashboard', '/pacientes', '/doctores', '/usuarios', '/nuevo-paciente',
+			'/captura', '/entrega-resultados', '/historial', '/cierre-caja',
+			'/reporte-ventas', '/radiologia', '/configuracion/precios',
+		]) {
+			expect(puedeAccederRuta('visitadora', ruta)).toBe(false);
+		}
+	});
+
+	test('su menú son sus tres pantallas y nada más', () => {
+		const menu = filtrarMenuPorRol(sidebarItems, 'visitadora');
+		expect(menu.map((item) => item.id)).toEqual(['visitadora']);
+		expect(menu[0].submenu.map((sub) => sub.id))
+			.toEqual(['visitadora-informe', 'visitadora-programacion', 'visitadora-comisiones']);
+	});
+
+	test('acepta las variantes con las que puede llegar escrito el rol', () => {
+		for (const rol of ['visitadora', 'Visitadora', 'visitador', ' VISITADORA ']) {
+			expect(puedeAccederRuta(rol, '/visitadora/informe')).toBe(true);
+		}
+	});
 });
 
-test('los roles de laboratorio no ven el menú de visitadora', () => {
-	const ids = filtrarMenuPorRol(sidebarItems, 'quimico').map((item) => item.id);
-	expect(ids).not.toContain('visitadora');
+describe('quién más ve el módulo', () => {
+	test.each(['admin', 'administrador', 'desarrollador', 'radiologo', 'Radiologo Director'])(
+		'%s entra al módulo y lo ve en el menú',
+		(rol) => {
+			expect(puedeAccederRuta(rol, '/visitadora/comisiones')).toBe(true);
+			expect(filtrarMenuPorRol(sidebarItems, rol).map((i) => i.id)).toContain('visitadora');
+		},
+	);
+
+	test.each(['recepcionista', 'quimico', 'tecnico_radiologia', 'radiologo_clinico', 'medico', 'doctor_externo'])(
+		'%s no ve el módulo ni por menú ni por URL',
+		(rol) => {
+			expect(puedeAccederRuta(rol, '/visitadora/informe')).toBe(false);
+			expect(filtrarMenuPorRol(sidebarItems, rol).map((i) => i.id)).not.toContain('visitadora');
+		},
+	);
+});
+
+describe('rutaInicialPorRol', () => {
+	test('la visitadora aterriza en su informe, no en el dashboard', () => {
+		expect(rutaInicialPorRol('visitadora')).toBe('/visitadora/informe');
+	});
+
+	test('los demás roles conservan su destino de siempre', () => {
+		expect(rutaInicialPorRol('recepcionista')).toBe('/dashboard');
+		expect(rutaInicialPorRol('radiologo_clinico')).toBe('/radiologia');
+		expect(rutaInicialPorRol('doctor_externo')).toBe('/radiologia');
+	});
 });
 ```
 
-- [ ] **Paso 2: verlos fallar** — `npm test -- role-permissions --runInBand`
-- [ ] **Paso 3: implementar** `VISITADORA_PATHS` (`/dashboard`, `/visitadora/*`, `/doctores`, `/pacientes`, `/perfil`) y la rama correspondiente en `filtrarMenuPorRol`, siguiendo el patrón de `esRecepcionista`.
-- [ ] **Paso 4: sección en el sidebar** con submenú Informe / Programación / Concentrado.
-- [ ] **Paso 5: rutas `lazy` en `App.jsx`** bajo `<P>`.
+- [ ] **Paso 2: correr los tests y verlos fallar**
 
----
+Ejecutar: `npm test -- role-permissions --runInBand`
+
+- [ ] **Paso 3: implementar los permisos en `src/utils/role-permissions.js`**
+
+```js
+const ROLES_VISITADORA = new Set(["visitadora", "visitador"]);
+// "Radiólogo - Director" se guarda como `radiologo`; ver normalizarRolUsuario.
+const ROLES_MODULO_VISITADORA = new Set([
+	"admin",
+	"administrador",
+	"desarrollador",
+	"radiologo",
+	"radiologo_director",
+]);
+
+export const esVisitadora = (rol) => ROLES_VISITADORA.has(normalizarRolPermisos(rol));
+
+// Quién puede ver el módulo. La visitadora, además, no puede ver nada más.
+export const puedeVerModuloVisitadora = (rol) =>
+	esVisitadora(rol) || ROLES_MODULO_VISITADORA.has(normalizarRolPermisos(rol));
+
+// Sólo administración y dirección editan porcentajes, cierran el mes y marcan pagos.
+export const puedeEditarComisiones = (rol) =>
+	ROLES_MODULO_VISITADORA.has(normalizarRolPermisos(rol));
+
+const VISITADORA_PATHS = ["/visitadora", "/perfil"];
+```
+
+En `puedeAccederRuta`, la rama de la visitadora va **antes** que las demás y es una lista blanca
+cerrada, como la del radiólogo clínico:
+
+```js
+if (esVisitadora(rol)) {
+	return VISITADORA_PATHS.some(
+		(path) => pathname === path || pathname.startsWith(`${path}/`),
+	);
+}
+```
+
+Y `/visitadora` se agrega a `QUIMICO_PATHS_BLOQUEADOS`, a `TECNICO_RADIOLOGIA_PATHS_BLOQUEADOS`
+y queda fuera de `RECEPCIONISTA_PATHS` (que ya es lista blanca, así que basta con no agregarlo).
+El radiólogo clínico y el doctor externo ya están cerrados a `/radiologia`, no hay que tocarlos.
+
+En `filtrarMenuPorRol`, la visitadora regresa **sólo** su sección; los demás roles sin acceso
+la quitan:
+
+```js
+if (esVisitadora(rol)) {
+	return items.filter((item) => item.id === "visitadora");
+}
+// …y al final de cada rama sin acceso:
+items.filter((item) => item.id !== "visitadora" || puedeVerModuloVisitadora(rol))
+```
+
+- [ ] **Paso 4: pantalla de aterrizaje**
+
+Exportar `rutaInicialPorRol(rol)` desde `role-permissions.js`, que centraliza lo que hoy está
+repartido entre `auth-context.jsx` y `protected-route.jsx`:
+
+```js
+export const rutaInicialPorRol = (rol) => {
+	if (esVisitadora(rol)) return "/visitadora/informe";
+	if (esDoctorExternoPermisos(rol) || esRadiologoClinicoPermisos(rol)) return "/radiologia";
+	return "/dashboard";
+};
+```
+
+Y usarla en los dos lugares:
+
+- `src/context/auth-context.jsx` — `redirectTo: rutaInicialPorRol(perfil?.rol)`, sustituyendo el
+  ternario actual.
+- `src/components/protected-route.jsx` — el rebote pasa a ser `<Navigate to={rutaInicialPorRol(empleadoData.rol)} replace />`.
+
+Esto no es cosmético: hoy el rebote manda a `/dashboard` sin condición, y como la visitadora
+tampoco puede entrar a `/dashboard`, dejarlo así la metería en un ciclo de redirecciones y no
+podría entrar a la aplicación.
+
+- [ ] **Paso 5: la sección del sidebar**
+
+En `src/components/sidebar-menu.js`, después de «Reportes»:
+
+```js
+{
+	id: "visitadora",
+	label: "Visitadora",
+	icon: visitadoraIcono,
+	path: "/visitadora/informe",
+	hasSubmenu: true,
+	submenu: [
+		{ id: "visitadora-informe", label: "Informe de visitas", icon: subIcon, path: "/visitadora/informe" },
+		{ id: "visitadora-programacion", label: "Programación", icon: subIcon, path: "/visitadora/programacion" },
+		{ id: "visitadora-comisiones", label: "Concentrado", icon: subIcon, path: "/visitadora/comisiones" },
+	],
+},
+```
+
+Para administración y dirección es una sección más del menú de siempre; para la visitadora es
+el menú completo. Hace falta un ícono en `src/assets/`: mientras no exista, reusar
+`pacientesIcono` y anotarlo como pendiente de diseño.
+
+- [ ] **Paso 6: el rol en el alta de usuarios**
+
+- `src/components/ModalAgregarUsuario.jsx`: `<option value="visitadora">Visitadora</option>`.
+- `src/utils/usuarios-auth.js`: agregar `visitadora: "visitadora"` y `visitador: "visitadora"` a
+  `normalizarRolUsuario`, y `visitadora: "Visitadora"` a `etiquetaRolUsuario`.
+
+Sin esto no hay manera de dar de alta a la visitadora desde la aplicación.
+
+- [ ] **Paso 7: rutas `lazy` en `App.jsx`** bajo `<P>`, con los tres paths.
+
+- [ ] **Paso 8: correr los tests y verlos pasar**
+
+Ejecutar: `npm test -- role-permissions protected-route auth-context usuarios-auth --runInBand`
 
 ### Tarea 9: Validación final
 
