@@ -99,7 +99,19 @@ const CalendarioCitas = () => {
 	const puedeCambiarSucursal = ["admin", "administrador", "radiologo", "desarrollador"].includes(rolNormalizado);
 	useEffect(() => setSucursalCalendario(empleadoData?.id_sucursal ? String(empleadoData.id_sucursal) : ""), [empleadoData?.id_sucursal]);
 	const { data: sucursales = [] } = useSucursales();
-	const { data: citas = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada, sucursalCalendario);
+	const { data: citasDelDia = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada, sucursalCalendario);
+
+	// Buscar al paciente a ojo en una rejilla de 26 renglones por ocho columnas
+	// no es práctico: el buscador acota la agenda del día al paciente capturado,
+	// sin tocar la fecha ni la sucursal consultadas.
+	const [busquedaPaciente, setBusquedaPaciente] = useState("");
+	const citas = useMemo(() => {
+		const termino = normalizar(busquedaPaciente).trim();
+		if (!termino) return citasDelDia;
+		return citasDelDia.filter((cita) =>
+			normalizar(obtenerNombrePaciente(cita)).includes(termino),
+		);
+	}, [citasDelDia, busquedaPaciente]);
 
 	const citasPorTipoYHora = useMemo(() => {
 		const grupos = new Map();
@@ -159,6 +171,14 @@ const CalendarioCitas = () => {
 						</div>
 
 						<div className="cal-controls" aria-label="Controles de calendario">
+							<input
+								type="search"
+								className="cal-search"
+								aria-label="Buscar cita por paciente"
+								placeholder="Buscar paciente del dia..."
+								value={busquedaPaciente}
+								onChange={(event) => setBusquedaPaciente(event.target.value)}
+							/>
 							{puedeCambiarSucursal && <select className="cal-branch-select" aria-label="Sucursal del calendario" value={sucursalCalendario} onChange={(event) => setSucursalCalendario(event.target.value)}><option value="">Selecciona sucursal</option>{sucursales.map((sucursal) => <option key={sucursal.id_sucursal} value={sucursal.id_sucursal}>{sucursal.nombre}</option>)}</select>}
 							<IconButton
 								className="cal-icon-button today"
@@ -189,6 +209,9 @@ const CalendarioCitas = () => {
 					</div>
 
 					{!sucursalCalendario && <div className="cal-state error">El usuario no tiene una sucursal asignada.</div>}
+					{Boolean(busquedaPaciente.trim()) && citas.length === 0 && !isLoading && (
+						<div className="cal-state">No hay citas de ese paciente en el dia seleccionado.</div>
+					)}
 					{isLoading && <div className="cal-state">Cargando citas...</div>}
 					{error && <div className="cal-state error">No se pudieron cargar las citas.</div>}
 

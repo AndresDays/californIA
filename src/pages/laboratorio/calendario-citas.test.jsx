@@ -105,3 +105,39 @@ test("el boton hoy regresa al dia local actual", () => {
 
 	expect(useCalendarioCitas).toHaveBeenLastCalledWith("2026-07-15", "2");
 });
+
+// El perfil del empleado vive en la sesión: cuando el hook traía sólo nombre y
+// rol, la agenda avisaba que no había sucursal asignada aunque sí la tuviera.
+test("la recepcionista con sucursal asignada no ve el aviso de sucursal", () => {
+	render(<CalendarioCitas />);
+
+	expect(
+		screen.queryByText("El usuario no tiene una sucursal asignada."),
+	).not.toBeInTheDocument();
+});
+
+test("el buscador deja en la agenda solo las citas del paciente buscado", () => {
+	render(<CalendarioCitas />);
+
+	fireEvent.change(screen.getByRole("searchbox", { name: /buscar cita por paciente/i }), {
+		target: { value: "lucia" },
+	});
+
+	expect(screen.getByText(/Lucia Root/i)).toBeInTheDocument();
+	expect(screen.queryByText(/Jacobo Andres/i)).not.toBeInTheDocument();
+	expect(screen.queryByText(/USG mamario/i)).not.toBeInTheDocument();
+});
+
+// Sin acentos y con el nombre a media palabra: se busca como lo teclea la caja.
+test("el buscador ignora acentos y avisa cuando no hay coincidencias", () => {
+	render(<CalendarioCitas />);
+	const buscador = screen.getByRole("searchbox", { name: /buscar cita por paciente/i });
+
+	fireEvent.change(buscador, { target: { value: "andres" } });
+	expect(screen.getByText(/Jacobo Andres/i)).toBeInTheDocument();
+
+	fireEvent.change(buscador, { target: { value: "zzz" } });
+	expect(
+		screen.getByText("No hay citas de ese paciente en el dia seleccionado."),
+	).toBeInTheDocument();
+});

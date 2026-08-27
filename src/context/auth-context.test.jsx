@@ -196,7 +196,7 @@ describe('AuthContext — Sesión activa', () => {
     await waitFor(() => {
       expect(screen.getByTestId('empleado-rol').textContent).toBe('admin');
     });
-    expect(empleadosQueryBase.select).toHaveBeenCalledWith('nombre, rol, id_doctor');
+    expect(empleadosQueryBase.select).toHaveBeenCalledWith('nombre, rol, id_doctor, sucursal');
   });
 });
 
