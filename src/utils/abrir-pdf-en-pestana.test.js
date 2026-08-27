@@ -23,3 +23,35 @@ describe('abrirPdfEnPestana', () => {
 		expect(replace).toHaveBeenCalledWith('blob:reporte');
 	});
 });
+
+// Al guardar se abren varias pestañas de un solo clic y el navegador deja pasar
+// nada más la primera: antes las demás se perdían sin decir nada y en caja sólo
+// salía el ticket.
+describe("cuando el navegador bloquea la pestaña", () => {
+	const abrirOriginal = window.open;
+
+	afterEach(() => {
+		window.open = abrirOriginal;
+		jest.restoreAllMocks();
+	});
+
+	test("descarga el PDF en lugar de perderlo en silencio", () => {
+		window.open = jest.fn(() => null);
+		const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+		expect(abrirPdfEnPestana({ url: "blob:etiqueta", titulo: "Etiqueta B0002" })).toBeNull();
+		expect(click).toHaveBeenCalled();
+	});
+
+	test("el archivo descargado lleva el nombre del comprobante", () => {
+		window.open = jest.fn(() => null);
+		let descargado = null;
+		jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function () {
+			descargado = this.getAttribute("download");
+		});
+
+		abrirPdfEnPestana({ url: "blob:etiqueta", titulo: "Etiqueta B0002" });
+
+		expect(descargado).toBe("Etiqueta B0002.pdf");
+	});
+});

@@ -126,17 +126,23 @@ export const agregarEtiquetasImagenAlPdf = (
 	return true;
 };
 
-export const generarEtiquetasEstudiosImagen = ({ ventana, ...datos } = {}) => {
+export const crearDocumentoEtiquetasImagen = (datos = {}) => {
 	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
 	const titulo = `Etiqueta ${datos.folio || ''}`.trim();
 	pdf.setProperties({ title: titulo });
 
-	if (!agregarEtiquetasImagenAlPdf(pdf, datos)) {
+	if (!agregarEtiquetasImagenAlPdf(pdf, datos)) return null;
+
+	return { url: URL.createObjectURL(pdf.output('blob')), titulo };
+};
+
+export const generarEtiquetasEstudiosImagen = ({ ventana, ...datos } = {}) => {
+	const documento = crearDocumentoEtiquetasImagen(datos);
+	if (!documento) {
 		ventana?.close?.();
 		return false;
 	}
 
-	const url = URL.createObjectURL(pdf.output('blob'));
-	abrirPdfEnPestana({ url, titulo, ventana });
+	abrirPdfEnPestana({ ...documento, ventana });
 	return true;
 };

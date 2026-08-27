@@ -560,13 +560,17 @@ const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
 export const TIPO_TICKET_IMAGEN = 'imagen';
 export const TIPO_TICKET_LABORATORIO = 'laboratorio';
 
-export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
+// Armar el documento se separa de abrirlo: al guardar una orden los
+// comprobantes se preparan primero y se abren desde el clic del usuario, que es
+// lo que evita que el navegador bloquee las pestañas.
+export const crearDocumentoTicketsVenta = async ({ tickets = [] } = {}) => {
 	const lista = tickets.filter(Boolean);
-	if (lista.length === 0) return;
+	if (lista.length === 0) return null;
 
 	const pdf = new jsPDF({ unit: 'mm', format: [80, 297] });
 	const folios = lista.map((ticket) => ticket.folio).filter(Boolean).join(' · ');
-	pdf.setProperties({ title: `Ticket ${folios}` });
+	const titulo = `Ticket ${folios}`;
+	pdf.setProperties({ title: titulo });
 
 	for (const [indice, ticket] of lista.entries()) {
 		if (indice > 0) pdf.addPage([80, 297]);
@@ -579,11 +583,14 @@ export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
 		}
 	}
 
-	abrirPdfEnPestana({
-		url: URL.createObjectURL(pdf.output('blob')),
-		titulo: `Ticket ${folios}`,
-		ventana,
-	});
+	return { url: URL.createObjectURL(pdf.output('blob')), titulo };
+};
+
+export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
+	const documento = await crearDocumentoTicketsVenta({ tickets });
+	if (!documento) return;
+
+	abrirPdfEnPestana({ ...documento, ventana });
 };
 
 export const generarTicketVenta = async (datosTicket = {}) =>

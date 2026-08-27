@@ -24,7 +24,8 @@ import {
 	tipoEstudioEsImagen,
 } from "../../utils/cita-nuevo-paciente";
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
-import { imprimirComprobantesVenta } from "../../utils/imprimir-comprobantes-venta";
+import { prepararComprobantesVenta } from "../../utils/imprimir-comprobantes-venta";
+import ModalImprimirComprobantes from "../../components/modal-imprimir-comprobantes";
 import {
 	TIPO_TICKET_IMAGEN,
 	TIPO_TICKET_LABORATORIO,
@@ -204,6 +205,9 @@ const NuevoPaciente = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
+	// Los comprobantes de la venta recién guardada, a la espera de que se
+	// impriman desde el modal.
+	const [comprobantesVenta, setComprobantesVenta] = useState(null);
 	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [reglasConvenio, setReglasConvenio] = useState([]);
 	const [pagosPorSerie, setPagosPorSerie] = useCampoPersistente(`${BORRADOR}pagosPorSerie`, {});
@@ -464,10 +468,6 @@ const NuevoPaciente = () => {
 			globalThis.mostrarNotificacion(pagoTarjeta.mensaje, "advertencia");
 			return;
 		}
-		const ventanaTicket = window.open("", "_blank");
-		const ventanaEtiquetasLaboratorio = window.open("", "_blank");
-		const ventanaEtiquetasImagen = window.open("", "_blank");
-
 		try {
 			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
 			const datosTarjetaVenta = construirDatosTarjeta({
@@ -871,7 +871,6 @@ const NuevoPaciente = () => {
 				observaciones,
 				vendedor: empleadoData?.nombre || getPrimerNombre(),
 			}));
-			ticketsOrden[0].ventana = ventanaTicket;
 
 			const registroLaboratorio = ventasRegistradas.find(
 				(registro) => registro.parte.serie === SERIE_LABORATORIO,
@@ -880,7 +879,7 @@ const NuevoPaciente = () => {
 				(registro) => registro.parte.serie !== SERIE_LABORATORIO,
 			);
 
-			const impresion = await imprimirComprobantesVenta({
+			const impresion = await prepararComprobantesVenta({
 				tickets: ticketsOrden,
 				etiquetasLaboratorio: registroLaboratorio
 					? {
@@ -889,7 +888,6 @@ const NuevoPaciente = () => {
 							sexo,
 							edad: edad ? `${edad} años` : "",
 							estudios: registroLaboratorio.parte.estudios,
-							ventana: ventanaEtiquetasLaboratorio,
 						}
 					: null,
 				etiquetasImagen: registrosImagen.length
@@ -901,13 +899,14 @@ const NuevoPaciente = () => {
 								folio: registro.folio,
 								estudios: registro.parte.estudios,
 							})),
-							ventana: ventanaEtiquetasImagen,
 						}
 					: null,
 			});
 
-			if (!registroLaboratorio) ventanaEtiquetasLaboratorio?.close?.();
-			if (!registrosImagen.length) ventanaEtiquetasImagen?.close?.();
+			// Los comprobantes se abren desde el clic de quien cobra: así el
+			// navegador no bloquea las pestañas, y se pueden reimprimir sin volver
+			// a capturar la orden.
+			setComprobantesVenta({ folio, comprobantes: impresion.comprobantes });
 
 			globalThis.mostrarNotificacion(
 				`¡Venta registrada exitosamente!\nFolio: ${folio}${
@@ -919,12 +918,12 @@ const NuevoPaciente = () => {
 				}${impresion.error ? `\n${impresion.error}` : ""}`,
 				impresion.error ? "advertencia" : undefined,
 			);
-			limpiarFormulario();
-			navigate("/captura");
+
+			if (impresion.comprobantes.length === 0) {
+				limpiarFormulario();
+				navigate("/captura");
+			}
 		} catch (error) {
-			ventanaTicket?.close?.();
-			ventanaEtiquetasLaboratorio?.close?.();
-			ventanaEtiquetasImagen?.close?.();
 			console.error("Error al guardar:", error);
 			globalThis.mostrarNotificacion("Error al guardar la venta: " + error.message, "error");
 		}
@@ -2420,6 +2419,18 @@ const NuevoPaciente = () => {
 					mensaje={notificacion.mensaje}
 					tipo={notificacion.tipo}
 				/>
+
+				{comprobantesVenta && (
+					<ModalImprimirComprobantes
+						folio={comprobantesVenta.folio}
+						comprobantes={comprobantesVenta.comprobantes}
+						onCerrar={() => {
+							setComprobantesVenta(null);
+							limpiarFormulario();
+							navigate("/captura");
+						}}
+					/>
+				)}
 			</div>
 		</PageLayout>
 	);

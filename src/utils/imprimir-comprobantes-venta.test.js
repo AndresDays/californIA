@@ -1,15 +1,29 @@
-jest.mock("./generarTicketVenta", () => ({ generarTicketsVenta: jest.fn() }));
+jest.mock("./generarTicketVenta", () => ({
+	generarTicketsVenta: jest.fn(),
+	crearDocumentoTicketsVenta: jest.fn(),
+}));
 jest.mock("./generar-etiquetas-estudios-laboratorio", () => ({
 	generarEtiquetasEstudiosLaboratorio: jest.fn(),
+	crearDocumentoEtiquetasLaboratorio: jest.fn(),
 }));
 jest.mock("./generar-etiquetas-estudios-imagen", () => ({
 	generarEtiquetasEstudiosImagen: jest.fn(),
+	crearDocumentoEtiquetasImagen: jest.fn(),
 }));
 
-import { imprimirComprobantesVenta } from "./imprimir-comprobantes-venta";
-import { generarTicketsVenta } from "./generarTicketVenta";
-import { generarEtiquetasEstudiosLaboratorio } from "./generar-etiquetas-estudios-laboratorio";
-import { generarEtiquetasEstudiosImagen } from "./generar-etiquetas-estudios-imagen";
+import {
+	imprimirComprobantesVenta,
+	prepararComprobantesVenta,
+} from "./imprimir-comprobantes-venta";
+import { crearDocumentoTicketsVenta, generarTicketsVenta } from "./generarTicketVenta";
+import {
+	crearDocumentoEtiquetasLaboratorio,
+	generarEtiquetasEstudiosLaboratorio,
+} from "./generar-etiquetas-estudios-laboratorio";
+import {
+	crearDocumentoEtiquetasImagen,
+	generarEtiquetasEstudiosImagen,
+} from "./generar-etiquetas-estudios-imagen";
 
 const crearVentana = () => ({ close: jest.fn() });
 
@@ -105,4 +119,80 @@ test("una orden que factura por dos empresas manda los dos tickets en un solo PD
 	const [{ tickets, ventana: ventanaUsada }] = generarTicketsVenta.mock.calls[0];
 	expect(tickets.map((t) => t.folio)).toEqual(["B0001", "A0001"]);
 	expect(ventanaUsada).toBe(ventana);
+});
+
+// Un generador devuelve false cuando no halló nada que etiquetar. Antes eso
+// cerraba la pestaña sin decir nada: en caja salía el ticket, las etiquetas no,
+// y no quedaba rastro del motivo.
+test("avisa cuando no hubo estudios que etiquetar", async () => {
+	generarEtiquetasEstudiosImagen.mockReturnValue(false);
+
+	const resultado = await imprimirComprobantesVenta({
+		etiquetasImagen: { grupos: [], ventana: { close: jest.fn() } },
+	});
+
+	expect(resultado.error).toContain("las etiquetas de imagen");
+	expect(resultado.error).toContain("no trae estudios que etiquetar");
+});
+
+// Los comprobantes se arman al guardar pero se abren desde el clic de quien
+// cobra: abrir tres pestañas de golpe hacía que el navegador dejara pasar nada
+// más la primera.
+describe("prepararComprobantesVenta", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		jest.spyOn(console, "error").mockImplementation(() => {});
+	});
+
+	afterEach(() => jest.restoreAllMocks());
+
+	test("devuelve un comprobante por documento, sin abrir nada", async () => {
+		crearDocumentoTicketsVenta.mockResolvedValue({ url: "blob:t", titulo: "Ticket F-1" });
+		crearDocumentoEtiquetasLaboratorio.mockReturnValue({ url: "blob:l", titulo: "Etiqueta F-1" });
+		crearDocumentoEtiquetasImagen.mockReturnValue({ url: "blob:i", titulo: "Etiqueta F-2" });
+
+		const resultado = await prepararComprobantesVenta({
+			tickets: [{ folio: "F-1" }],
+			etiquetasLaboratorio: { folio: "F-1" },
+			etiquetasImagen: { grupos: [{ folio: "F-2" }] },
+		});
+
+		expect(resultado.error).toBe("");
+		expect(resultado.comprobantes.map((c) => c.id)).toEqual([
+			"ticket",
+			"etiquetas-laboratorio",
+			"etiquetas-imagen",
+		]);
+		expect(resultado.comprobantes[0]).toMatchObject({ url: "blob:t", etiqueta: "Imprimir ticket" });
+		expect(generarTicketsVenta).not.toHaveBeenCalled();
+		expect(generarEtiquetasEstudiosLaboratorio).not.toHaveBeenCalled();
+		expect(generarEtiquetasEstudiosImagen).not.toHaveBeenCalled();
+	});
+
+	test("lo que no se pudo armar se reporta y no bloquea lo demás", async () => {
+		crearDocumentoTicketsVenta.mockResolvedValue({ url: "blob:t", titulo: "Ticket F-1" });
+		crearDocumentoEtiquetasImagen.mockReturnValue(null);
+
+		const resultado = await prepararComprobantesVenta({
+			tickets: [{ folio: "F-1" }],
+			etiquetasImagen: { grupos: [] },
+		});
+
+		expect(resultado.comprobantes.map((c) => c.id)).toEqual(["ticket"]);
+		expect(resultado.error).toContain("las etiquetas de imagen");
+		expect(resultado.error).toContain("no trae estudios que etiquetar");
+	});
+
+	test("un documento que truena no tira los otros", async () => {
+		crearDocumentoTicketsVenta.mockRejectedValue(new Error("sin logo"));
+		crearDocumentoEtiquetasLaboratorio.mockReturnValue({ url: "blob:l", titulo: "Etiqueta F-1" });
+
+		const resultado = await prepararComprobantesVenta({
+			tickets: [{ folio: "F-1" }],
+			etiquetasLaboratorio: { folio: "F-1" },
+		});
+
+		expect(resultado.comprobantes.map((c) => c.id)).toEqual(["etiquetas-laboratorio"]);
+		expect(resultado.error).toContain("sin logo");
+	});
 });
