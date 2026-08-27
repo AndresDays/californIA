@@ -104,6 +104,28 @@
 	padding: 0 6px 0 10px;
 }
 
+.cal-search {
+	min-width: 210px;
+	padding: 7px 11px;
+	border: 1px solid rgba(83, 185, 219, 0.55);
+	border-radius: 6px;
+	background: #0b2a3d;
+	color: #e2f4ff;
+	font: inherit;
+	font-size: 14px;
+	box-shadow: inset 0 0 0 1px rgba(5, 18, 30, 0.42);
+	outline: none;
+}
+
+.cal-search::placeholder {
+	color: rgba(226, 244, 255, 0.55);
+}
+
+.cal-search:focus-visible {
+	border-color: #77d6f6;
+	box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.28);
+}
+
 .cal-branch-select {
 	min-width: 290px;
 	max-width: 360px;
@@ -420,6 +442,23 @@
 .cal-state.error {
 	background: #fef2f2;
 	color: #b91c1c;
+}
+
+/* El resultado de la búsqueda: dice a qué hora quedó la cita, para no tener que
+   rastrearla en la rejilla. */
+.cal-state.found {
+	margin: 0 24px 12px;
+	padding: 12px 16px;
+	background: rgba(126, 231, 168, 0.14);
+	color: #b8f5d0;
+}
+
+/* La tarjeta que coincide con la búsqueda se marca, para dar con ella de un
+   vistazo aunque la rejilla siga larga. */
+.cal-card.encontrada {
+	outline: 2px solid #7ee7a8;
+	outline-offset: 1px;
+	box-shadow: 0 0 0 4px rgba(126, 231, 168, 0.22);
 }
 
 @media (max-width: 1023px) {

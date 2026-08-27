@@ -29,6 +29,12 @@ import {
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
+import {
+	COLUMNAS_TABLA_VENTAS,
+	copiarTextoAlPortapapeles,
+	filaTablaVenta,
+	tablaVentasComoTexto,
+} from "../../utils/tabla-reporte-ventas";
 import "./reporte-ventas.css";
 
 const hoyMexico = () =>
@@ -185,23 +191,10 @@ const ReporteVentas = () => {
 		setFechaFinal(fin.toISOString().split("T")[0]);
 	};
 
-	const colsVentas = ["Folio", "Fecha", "Paciente", "Estudios", "Vendedor", "Forma Pago", "Total", "Pagado", "Saldo", "Sucursal"];
+	// Excel y PDF salen con las mismas columnas que se ven en pantalla.
+	const colsVentas = COLUMNAS_TABLA_VENTAS;
 	const filasVentas = (ventasAExportar) =>
-		ventasAExportar.map((v) => {
-			const saldo = calcularSaldoVentaReporte(v);
-			return [
-				v.folio || v.id_venta || "",
-				v.fecha_venta ? new Date(v.fecha_venta).toLocaleDateString("es-MX") : "",
-				v.pacientes?.nombre || v.nombre_paciente || "",
-				(v.estudios_venta || []).map((e) => e.descripcion_estudio || e.clave_estudio).join(", "),
-				v.actor_nombre || v.empleado_nombre || "",
-				v.forma_pago || "",
-				`$${Number(v.total || 0).toFixed(2)}`,
-				`$${Number(v.pago_recibido || 0).toFixed(2)}`,
-				`$${Number(saldo || 0).toFixed(2)}`,
-				v.sucursal || v.sucursales?.nombre || "",
-			];
-		});
+		ventasAExportar.map((venta) => filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta }));
 
 	const descargarExcel = () => {
 		GRUPOS_REPORTE_POR_AREA.filter((grupo) => grupo.id === areaSalidaSeleccionada).forEach((grupo) => {
@@ -294,37 +287,45 @@ const ReporteVentas = () => {
 				<table className="rv-table">
 					<thead>
 						<tr>
-							<th>Folio</th>
-							<th>Fecha</th>
-							<th>Paciente</th>
-							<th>Cliente</th>
-							<th>Sucursal</th>
-							<th>Pago</th>
-							<th>Total</th>
-							<th>Adeudo</th>
+							{COLUMNAS_TABLA_VENTAS.map((columna) => (
+								<th key={columna}>{columna}</th>
+							))}
 						</tr>
 					</thead>
 					<tbody>
-						{ventasFiltradas.map((venta) => (
-							<tr key={venta.id_venta}>
-								<td>
-									<button
-										type="button"
-										className="rv-folio-link"
-										onClick={() => setVentaDetalle(venta)}
-										title="Ver detalle del folio">
-										{venta.folio}
-									</button>
-								</td>
-								<td>{new Date(venta.fecha_venta).toLocaleDateString("es-MX")}</td>
-								<td>{venta.pacientes?.nombre || "Sin paciente"}</td>
-								<td>{venta.clientes?.nombre || "Particular"}</td>
-								<td>{venta.sucursal || venta.citas?.sucursales?.nombre || "Sin sucursal"}</td>
-								<td>{venta.forma_pago || "-"}</td>
-								<td>{formatoMonedaReporte(venta.total)}</td>
-								<td>{formatoMonedaReporte(calcularSaldoVentaReporte(venta))}</td>
-							</tr>
-						))}
+						{ventasFiltradas.map((venta) => {
+							// El folio se pinta como botón para abrir el detalle; el resto del
+							// renglón sale de la misma definición que se copia y se exporta.
+							const [, ...celdas] = filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta });
+							return (
+								<tr key={venta.id_venta}>
+									<td>
+										{/* El folio va en un span y no en un button porque el
+										    navegador no inicia una selección de texto cuando el
+										    arrastre empieza sobre un botón, y el folio es la
+										    primera columna: justo por donde se empieza a
+										    seleccionar la tabla para copiarla. */}
+										<span
+											role="button"
+											tabIndex={0}
+											className="rv-folio-link"
+											onClick={() => setVentaDetalle(venta)}
+											onKeyDown={(evento) => {
+												if (evento.key === "Enter" || evento.key === " ") {
+													evento.preventDefault();
+													setVentaDetalle(venta);
+												}
+											}}
+											title="Ver detalle del folio">
+											{venta.folio}
+										</span>
+									</td>
+									{celdas.map((celda, indice) => (
+										<td key={COLUMNAS_TABLA_VENTAS[indice + 1]}>{celda}</td>
+									))}
+								</tr>
+							);
+						})}
 					</tbody>
 				</table>
 			</div>
@@ -348,6 +349,20 @@ const ReporteVentas = () => {
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
+
+	// Seleccionar la tabla con el mouse deja fuera el folio, que es un botón, y
+	// arrastra los saltos de renglón: se copia con tabuladores para que al pegar
+	// en Excel cada dato caiga en su celda.
+	const copiarTabla = async () => {
+		const texto = tablaVentasComoTexto(ventasFiltradas, { nombreDoctor: nombreDoctorVenta });
+		const copiado = await copiarTextoAlPortapapeles(texto);
+		mostrarNotificacion(
+			copiado
+				? `Se copiaron ${ventasFiltradas.length} renglones al portapapeles`
+				: "No se pudo copiar la tabla",
+			copiado ? "exito" : "error",
+		);
+	};
 
 	const cobrarAdeudo = async () => {
 		if (!ventaDetalle) return;
@@ -393,6 +408,9 @@ const ReporteVentas = () => {
 						<select value={areaSalidaSeleccionada} onChange={(e) => setAreaSalidaSeleccionada(e.target.value)} className="rv-btn-sm">
 							{GRUPOS_REPORTE_POR_AREA.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
 						</select>
+						<button className="rv-btn-sm" onClick={copiarTabla}>
+							Copiar tabla
+						</button>
 						<button className="rv-btn-sm" onClick={descargarExcel}>
 							Excel
 						</button>

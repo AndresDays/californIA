@@ -6,6 +6,14 @@ import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validat
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
+import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
+import {
+  construirEstudioCatalogoUnificado,
+  filtrarEstudiosCatalogo,
+} from '../utils/cita-nuevo-paciente';
+import { resolverTiposEstudioConvenio } from '../utils/tipos-estudio-convenio';
+import { cargarReglasConvenio } from '../utils/convenios-facturacion';
+import { cargarPreciosCliente, resolverClavesConPrecio } from '../utils/precios-cliente';
 
 const DEFAULT_PRECIO = 150;
 
@@ -34,6 +42,11 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
   const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 
+  // Igual que en nuevo paciente: el convenio del cliente decide qué modalidades
+  // se ofrecen y su tarifario acota la búsqueda.
+  const [reglasConvenio, setReglasConvenio] = useState([]);
+  const [preciosCliente, setPreciosCliente] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,14 +66,45 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   }, [isOpen, fechaInicial, horaInicial]);
 
   useEffect(() => {
-    if (empresaSeleccionada) cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
-    else setTiposEstudio([]);
     setTipoEstudioSeleccionado('');
     setClienteSeleccionado('');
     setBuscarEstudio('');
     setEstudiosSeleccionados([]);
     setShowBusquedaEstudios(false);
   }, [empresaSeleccionada]);
+
+  // Los tipos dependen de la empresa y del convenio del cliente, así que se
+  // vuelven a resolver cuando cambia cualquiera de los dos.
+  useEffect(() => {
+    if (empresaSeleccionada) cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
+    else setTiposEstudio([]);
+  }, [empresaSeleccionada, empresas, reglasConvenio]);
+
+  // El tarifario del cliente acota la búsqueda y su matriz de convenio define
+  // qué modalidades tiene pactadas con cada empresa.
+  useEffect(() => {
+    let cancelado = false;
+    const nombreCliente = clientes.find(
+      (cli) => String(cli.id_cliente) === String(clienteSeleccionado),
+    )?.nombre;
+
+    if (!clienteSeleccionado || !nombreCliente) {
+      setPreciosCliente(null);
+      setReglasConvenio([]);
+      return undefined;
+    }
+
+    cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)).then((precios) => {
+      if (!cancelado) setPreciosCliente(precios);
+    });
+    cargarReglasConvenio(supabase, clienteSeleccionado).then((reglas) => {
+      if (!cancelado) setReglasConvenio(reglas);
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [clienteSeleccionado, clientes]);
 
   const cargarClientes = async () => {
     const { data, error } = await supabase
@@ -79,13 +123,15 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   };
 
   const cargarTiposEstudio = async (idEmpresa) => {
+    // Se traen los tipos de todas las empresas porque el convenio puede
+    // facturar por la elegida estudios que el catálogo tiene en la otra.
     const { data, error } = await supabase
       .from('empresa_tipos_estudio')
       .select(`
+        id_empresa,
         id_tipo_estudio,
         tipos_estudio ( id_tipo_estudio, nombre )
       `)
-      .eq('id_empresa', idEmpresa)
       .order('tipos_estudio(nombre)');
 
     if (error) {
@@ -93,46 +139,64 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       return;
     }
 
-    const tipos = (data || []).map(x => ({
-      id_tipo_estudio: x.tipos_estudio.id_tipo_estudio,
-      nombre: x.tipos_estudio.nombre
-    }));
-
-    setTiposEstudio(tipos);
+    setTiposEstudio(
+      resolverTiposEstudioConvenio({
+        filas: data || [],
+        empresas,
+        idEmpresaSeleccionada: idEmpresa,
+        reglasConvenio,
+      }),
+    );
   };
 
+  // La cita se agenda para cualquiera de los dos módulos, así que la búsqueda
+  // ofrece el catálogo unificado: sólo con el de laboratorio, un paciente de
+  // tomografía no encontraba su estudio.
   const cargarEstudios = async () => {
-    const { data, error } = await supabase
+    const { data: estudiosLab, error } = await supabase
       .from('estudios_lab_catalogo')
-      .select('id, clave, descripcion, area')
+      .select('id, clave, descripcion, area, dias_proceso')
       .order('clave');
 
     if (error) {
       setError('Error al cargar estudios disponibles');
       return;
     }
-    setEstudios(data || []);
+
+    const estudiosLaboratorio = (estudiosLab || []).map((estudio) =>
+      construirEstudioCatalogoUnificado(estudio, 'laboratorio'),
+    );
+
+    const { data: estudiosImagen, error: errorImagen } = await supabase
+      .from('estudios_imagen_catalogo')
+      .select('id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, dias_proceso')
+      .eq('activo', true)
+      .order('clave');
+
+    // Sin catálogo de imagen se agenda igual con lo de laboratorio: dejar la
+    // búsqueda vacía impediría capturar la cita.
+    if (errorImagen) {
+      console.warn('No se pudo cargar el catálogo de imagen:', errorImagen);
+      setEstudios(estudiosLaboratorio);
+      return;
+    }
+
+    setEstudios([
+      ...estudiosLaboratorio,
+      ...(estudiosImagen || []).map((estudio) =>
+        construirEstudioCatalogoUnificado(estudio, 'imagen'),
+      ),
+    ]);
   };
 
-  const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
-    try {
-      const clave = (claveEstudio || '').trim();
-      // Un cliente de porcentaje cobra la lista de particular.
-      const cliente = clienteParaPrecios(nombreCliente);
-      if (!clave || !cliente) return DEFAULT_PRECIO;
-
-      const { data, error } = await supabase
-        .from('precios_estudios')
-        .select('precio')
-        .eq('clave', clave)
-        .eq('cliente', cliente)
-        .maybeSingle();
-
-      if (error || !data?.precio) return DEFAULT_PRECIO;
-      return Number(data.precio);
-    } catch {
-      return DEFAULT_PRECIO;
-    }
+  const obtenerPrecioEstudio = async (estudio, nombreCliente) => {
+    // Un cliente de porcentaje cobra la lista de particular.
+    const cliente = clienteParaPrecios(nombreCliente);
+    return resolverPrecioEstudioCliente(supabase, {
+      clave: estudio?.clave ?? estudio,
+      descripcion: estudio?.descripcion,
+      cliente,
+    });
   };
 
   const handleChange = (e) => {
@@ -158,7 +222,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     const clienteObj = clientes.find(c => String(c.id_cliente) === String(clienteSeleccionado));
     const nombreCliente = clienteObj?.nombre || '';
 
-    const precio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
+    const precio = await obtenerPrecioEstudio(estudio, nombreCliente);
 
     setEstudiosSeleccionados(prev => [...prev, { ...estudio, precio }]);
     setBuscarEstudio('');
@@ -250,10 +314,29 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
 
   if (!isOpen) return null;
 
-  const estudiosFiltrados = estudios.filter(est =>
-    est.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-    est.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
+  const empresaActual = empresas.find(
+    (emp) => String(emp.id_empresa) === String(empresaSeleccionada),
   );
+  const tipoEstudioActual = tiposEstudio.find(
+    (tipo) => String(tipo.id_tipo_estudio) === String(tipoEstudioSeleccionado),
+  );
+  const filtrosCatalogo = {
+    estudios,
+    busqueda: buscarEstudio,
+    empresaId: empresaSeleccionada,
+    empresaNombre: empresaActual?.nombre || '',
+    tipoNombre: tipoEstudioActual?.nombre || '',
+    reglasConvenio,
+  };
+  const estudiosConPrecio = filtrarEstudiosCatalogo({
+    ...filtrosCatalogo,
+    clavesConPrecio: resolverClavesConPrecio(preciosCliente, estudios),
+  });
+  // Si el convenio no tiene precio para lo que se busca se ofrece el catálogo
+  // de todos modos: dejar la búsqueda vacía impedía agendar la cita.
+  const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
+  const estudiosFiltrados =
+    estudiosConPrecio.length > 0 ? estudiosConPrecio : estudiosSinFiltroPrecio;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -299,6 +382,9 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
             <label className="form-label-cita">Cliente <span className="required">*</span></label>
             <select value={clienteSeleccionado} onChange={(e) => {
               setClienteSeleccionado(e.target.value);
+              // El convenio del cliente cambia los tipos ofrecidos, así que el
+              // que estaba elegido puede dejar de existir.
+              setTipoEstudioSeleccionado('');
               setBuscarEstudio('');
               setEstudiosSeleccionados([]);
               setShowBusquedaEstudios(false);
@@ -313,9 +399,9 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           <div className="form-group-cita">
             <label className="form-label-cita">Tipo Estudio <span className="required">*</span></label>
             <select value={tipoEstudioSeleccionado} onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
-              className="form-select-cita" disabled={loading || !empresaSeleccionada}>
+              className="form-select-cita" disabled={loading || !clienteSeleccionado}>
               <option value="">
-                {empresaSeleccionada ? 'Selecciona Tipo de Estudio' : 'Primero selecciona una Empresa'}
+                {clienteSeleccionado ? 'Selecciona Tipo de Estudio' : 'Primero selecciona un Cliente'}
               </option>
               {tiposEstudio.map(t => <option key={t.id_tipo_estudio} value={t.id_tipo_estudio}>{t.nombre}</option>)}
             </select>

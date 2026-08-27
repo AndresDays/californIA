@@ -1,8 +1,30 @@
 // La pestaña se lleva directo al PDF: así el visor nativo del navegador (móvil
 // incluido) lo abre a pantalla completa, sin pasar por una página intermedia.
+//
+// Al guardar se abren varias pestañas de un solo clic —el ticket y las
+// etiquetas— y el navegador suele dejar pasar nada más la primera: las demás
+// las bloquea. Antes eso se devolvía en silencio, así que en caja sólo salía el
+// ticket y nadie sabía por qué faltaban las etiquetas. Cuando la pestaña no se
+// puede abrir, el PDF se descarga y se avisa.
+const descargarPdf = (url, titulo) => {
+	const enlace = document.createElement("a");
+	enlace.href = url;
+	enlace.download = `${titulo || "documento"}.pdf`;
+	enlace.style.display = "none";
+	document.body.appendChild(enlace);
+	enlace.click();
+	document.body.removeChild(enlace);
+};
+
 export const abrirPdfEnPestana = ({ url, titulo, ventana = null }) => {
 	const destino = ventana || window.open(url, '_blank');
-	if (!destino) return null;
+
+	// Sin pestaña (el navegador la bloqueó) el PDF se descarga, para que el
+	// comprobante no se pierda, y se avisa devolviendo null.
+	if (!destino) {
+		descargarPdf(url, titulo);
+		return null;
+	}
 
 	try {
 		if (destino.location?.replace) destino.location.replace(url);

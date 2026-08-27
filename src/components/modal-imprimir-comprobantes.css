@@ -1,0 +1,73 @@
+.imp-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 1200;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.25rem;
+	background: rgba(2, 15, 35, 0.72);
+	backdrop-filter: blur(8px);
+}
+
+.imp-modal {
+	width: min(100%, 420px);
+	padding: 1.75rem;
+	border: 1px solid rgba(83, 185, 219, 0.28);
+	border-radius: 10px;
+	background: #0b2135;
+	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+	text-align: center;
+}
+
+.imp-titulo {
+	margin: 0;
+	color: #eaf7ff;
+	font-size: 1.4rem;
+	font-weight: 800;
+}
+
+.imp-folio {
+	margin: 0.35rem 0 0;
+	color: #7ee7a8;
+	font-size: 1.05rem;
+	font-weight: 800;
+}
+
+.imp-ayuda {
+	margin: 0.5rem 0 1.25rem;
+	color: #9ac8dd;
+	font-size: 0.88rem;
+}
+
+.imp-botones {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	margin-bottom: 1rem;
+}
+
+.imp-btn {
+	width: 100%;
+	padding: 0.8rem 1rem;
+	border: 1px solid rgba(83, 185, 219, 0.55);
+	border-radius: 8px;
+	background: rgba(83, 185, 219, 0.16);
+	color: #eaf7ff;
+	font: inherit;
+	font-size: 0.98rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.imp-btn:hover {
+	background: rgba(83, 185, 219, 0.28);
+	border-color: #77d6f6;
+}
+
+.imp-btn.cerrar {
+	background: transparent;
+	border-color: rgba(154, 200, 221, 0.35);
+	color: #9ac8dd;
+	font-weight: 600;
+}

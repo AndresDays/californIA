@@ -509,6 +509,10 @@
 	min-width: 760px;
 	border-collapse: collapse;
 	font-size: 0.74rem;
+	/* La tabla se copia arrastrando el mouse, así que el texto tiene que ser
+	   seleccionable aunque algo más arriba lo bloquee. */
+	user-select: text;
+	-webkit-user-select: text;
 }
 
 .rv-table th {
@@ -731,7 +735,10 @@
 }
 
 /* ── Detalle del folio ────────────────────────────────────────── */
+/* Se ve como boton pero es un span, para que arrastrar desde la primera
+   columna alcance a seleccionar la tabla. */
 .rv-folio-link {
+	display: inline-block;
 	border: 0;
 	background: rgba(83, 185, 219, 0.1);
 	color: #80d6ff;
@@ -741,6 +748,8 @@
 	font-family: inherit;
 	font-size: inherit;
 	cursor: pointer;
+	user-select: text;
+	-webkit-user-select: text;
 }
 
 .rv-folio-link:hover {

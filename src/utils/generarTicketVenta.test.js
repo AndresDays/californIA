@@ -1,3 +1,10 @@
+// El ancho del texto se estima a partir del tamaño de letra, como lo haría
+// jsPDF: sin eso no se puede probar que un nombre largo se acomode dentro del
+// papel.
+const ANCHO_POR_CARACTER = 0.18;
+const anchoDeTexto = (texto, tamano) =>
+	String(texto).length * tamano * ANCHO_POR_CARACTER;
+
 const mockDoc = {
 	addImage: jest.fn(),
 	addPage: jest.fn(),
@@ -5,12 +12,19 @@ const mockDoc = {
 	output: jest.fn(() => new Blob()),
 	setDrawColor: jest.fn(),
 	setFont: jest.fn(),
-	setFontSize: jest.fn(),
+	setFontSize: jest.fn((tamano) => { mockDoc.__tamano = tamano; }),
+	getFontSize: jest.fn(() => mockDoc.__tamano ?? 10),
+	getTextWidth: jest.fn((texto) => anchoDeTexto(texto, mockDoc.__tamano ?? 10)),
 	setLineWidth: jest.fn(),
 	setProperties: jest.fn(),
 	splitTextToSize: jest.fn((texto) => [texto]),
-	text: jest.fn(),
+	text: jest.fn((texto) => {
+		tamanoPorTexto.set(String(texto), mockDoc.__tamano ?? 10);
+	}),
 };
+
+const tamanoPorTexto = new Map();
+const tamanoUsadoEn = (texto) => tamanoPorTexto.get(String(texto)) ?? 10;
 
 jest.mock('jspdf', () => jest.fn(() => mockDoc));
 jest.mock('jsbarcode', () => jest.fn());
@@ -113,6 +127,32 @@ describe('generarTicketVenta', () => {
 		);
 		expect(mockDoc.setProperties).toHaveBeenCalledWith({ title: 'Ticket V-001' });
 		expect(window.open).toHaveBeenCalledWith('blob:ticket', '_blank');
+	});
+
+	// El renglón del paciente va centrado, así que un nombre largo se salía del
+	// papel por los dos lados.
+	test('acomoda un nombre largo dentro del ancho del ticket', async () => {
+		await generarTicketVenta({
+			folio: 'V-003',
+			fecha: new Date('2026-08-26T18:17:00'),
+			paciente: 'Muñoz Lomeli Maria Guadalupe del Refugio',
+			doctor: 'Valencia Romano Luis Eduardo',
+			empresa: 'CDC',
+			telefono: '3223566142',
+			email: '',
+			estudios: [],
+		});
+
+		const ANCHO_UTIL = 70;
+		const renglones = mockDoc.text.mock.calls.filter(([texto]) =>
+			String(texto).startsWith('Cliente:') || String(texto).startsWith('Doctor:'),
+		);
+
+		expect(renglones).toHaveLength(2);
+		renglones.forEach(([texto]) => {
+			const tamano = tamanoUsadoEn(texto);
+			expect(anchoDeTexto(texto, tamano)).toBeLessThanOrEqual(ANCHO_UTIL);
+		});
 	});
 });
 

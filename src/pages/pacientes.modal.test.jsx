@@ -41,13 +41,13 @@ describe("Pacientes: el alta sobrevive a que el navegador descarte la página", 
 	test("el modal se reabre con lo capturado al volver a la pestaña", () => {
 		render(<Pacientes />);
 		fireEvent.click(screen.getByAltText("Agregar Paciente"));
-		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Primer Nombre"), {
 			target: { value: "Maria Rosalia" },
 		});
 
 		const pantalla = volverTrasDescartarLaPagina();
 
-		expect(pantalla.getByPlaceholderText("Ingresar Nombre")).toHaveValue("Maria Rosalia");
+		expect(pantalla.getByPlaceholderText("Ingresar Primer Nombre")).toHaveValue("Maria Rosalia");
 	});
 
 	test("el modal sigue abierto aunque todavía no se capture nada", () => {
@@ -56,7 +56,7 @@ describe("Pacientes: el alta sobrevive a que el navegador descarte la página", 
 
 		const pantalla = volverTrasDescartarLaPagina();
 
-		expect(pantalla.getByPlaceholderText("Ingresar Nombre")).toBeInTheDocument();
+		expect(pantalla.getByPlaceholderText("Ingresar Primer Nombre")).toBeInTheDocument();
 	});
 
 	test("salir de la pantalla con el modal abierto no lo deja marcado", () => {
@@ -67,24 +67,24 @@ describe("Pacientes: el alta sobrevive a que el navegador descarte la página", 
 		unmount();
 		render(<Pacientes />);
 
-		expect(screen.queryByPlaceholderText("Ingresar Nombre")).not.toBeInTheDocument();
+		expect(screen.queryByPlaceholderText("Ingresar Primer Nombre")).not.toBeInTheDocument();
 	});
 
 	test("sin alta a medias la lista abre sin modal", () => {
 		render(<Pacientes />);
-		expect(screen.queryByPlaceholderText("Ingresar Nombre")).not.toBeInTheDocument();
+		expect(screen.queryByPlaceholderText("Ingresar Primer Nombre")).not.toBeInTheDocument();
 	});
 
 	test("al salir del modal deja de reabrirse", () => {
 		render(<Pacientes />);
 		fireEvent.click(screen.getByAltText("Agregar Paciente"));
-		fireEvent.change(screen.getByPlaceholderText("Ingresar Nombre"), {
+		fireEvent.change(screen.getByPlaceholderText("Ingresar Primer Nombre"), {
 			target: { value: "Maria Rosalia" },
 		});
 		fireEvent.click(screen.getByText("Salir"));
 
 		const pantalla = volverTrasDescartarLaPagina();
 
-		expect(pantalla.queryByPlaceholderText("Ingresar Nombre")).not.toBeInTheDocument();
+		expect(pantalla.queryByPlaceholderText("Ingresar Primer Nombre")).not.toBeInTheDocument();
 	});
 });

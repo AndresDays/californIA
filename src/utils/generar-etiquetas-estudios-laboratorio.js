@@ -103,17 +103,24 @@ export const agregarEtiquetasLaboratorioAlPdf = (
 	return true;
 };
 
-export const generarEtiquetasEstudiosLaboratorio = ({ ventana, ...datos } = {}) => {
+export const crearDocumentoEtiquetasLaboratorio = (datos = {}) => {
 	const pdf = new jsPDF({ unit: 'mm', format: [50, 30], orientation: 'landscape' });
-	pdf.setProperties({ title: `Etiqueta ${datos.folio}` });
+	const titulo = `Etiqueta ${datos.folio}`;
+	pdf.setProperties({ title: titulo });
 
-	if (!agregarEtiquetasLaboratorioAlPdf(pdf, datos)) {
+	if (!agregarEtiquetasLaboratorioAlPdf(pdf, datos)) return null;
+
+	return { url: URL.createObjectURL(pdf.output('blob')), titulo };
+};
+
+export const generarEtiquetasEstudiosLaboratorio = ({ ventana, ...datos } = {}) => {
+	const documento = crearDocumentoEtiquetasLaboratorio(datos);
+	if (!documento) {
 		ventana?.close?.();
 		return false;
 	}
 
-	const url = URL.createObjectURL(pdf.output('blob'));
-	abrirPdfEnPestana({ url, titulo: `Etiqueta ${datos.folio}`, ventana });
+	abrirPdfEnPestana({ ...documento, ventana });
 	return true;
 };
 import JsBarcode from 'jsbarcode';
