@@ -129,6 +129,35 @@ export const calcularMetricasVentas = (ventas = []) => {
 	};
 };
 
+// El folio dice a qué empresa se factura la orden sin abrirla: A es la imagen de
+// CDI, B la de CDC y C el laboratorio de CDC. Los folios anteriores al cambio
+// son de puros dígitos y no tienen serie.
+export const SERIES_FOLIO = [
+	{ id: "A", nombre: "A — Imagen CDI", empresa: "CDI" },
+	{ id: "B", nombre: "B — Imagen CDC", empresa: "CDC" },
+	{ id: "C", nombre: "C — Laboratorio CDC", empresa: "CDC" },
+];
+
+export const serieDeFolio = (folio = "") => {
+	const coincidencia = String(folio ?? "").trim().toUpperCase().match(/^([A-Z])\d+$/);
+	return coincidencia ? coincidencia[1] : "";
+};
+
+// La empresa que factura sale de la serie del folio, que es como se decidió al
+// cobrar. Una orden vieja, sin serie, se resuelve con la empresa del catálogo.
+export const empresaFacturaVenta = (venta = {}, nombreEmpresa = "") => {
+	const serie = SERIES_FOLIO.find((item) => item.id === serieDeFolio(venta?.folio));
+	if (serie) return serie.empresa;
+
+	const texto = String(nombreEmpresa || venta?.empresas?.nombre || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase();
+	if (/\bcdi\b|imagen/.test(texto)) return "CDI";
+	if (/\bcdc\b|california/.test(texto)) return "CDC";
+	return "";
+};
+
 export const filtrarVentasReporte = (ventas = [], filtros = {}) => {
 	const estudio = (filtros.estudio || "").trim().toLowerCase();
 
@@ -154,6 +183,14 @@ export const filtrarVentasReporte = (ventas = [], filtros = {}) => {
 			return false;
 		}
 		if (filtros.doctor && String(venta.id_doctor || "") !== String(filtros.doctor)) {
+			return false;
+		}
+		if (filtros.serie && serieDeFolio(venta.folio) !== filtros.serie) return false;
+		if (
+			filtros.empresaFactura &&
+			empresaFacturaVenta(venta, filtros.nombreEmpresaVenta?.(venta)) !==
+				filtros.empresaFactura
+		) {
 			return false;
 		}
 		if (

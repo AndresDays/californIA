@@ -3,8 +3,10 @@ import {
 	agruparVentasPorDia,
 	agruparVentasPorVendedor,
 	calcularMetricasVentas,
+	empresaFacturaVenta,
 	filtrarVentasReporte,
 	partirVentasPorArea,
+	serieDeFolio,
 } from "./reporte-ventas";
 
 const ventas = [
@@ -146,5 +148,76 @@ describe("reporte ventas helpers", () => {
 				estudios_venta: [expect.objectContaining({ descripcion_estudio: "Rx Torax" })],
 			})],
 		});
+	});
+});
+
+// El folio dice a qué empresa se factura la orden sin abrirla: A es la imagen de
+// CDI, B la de CDC y C el laboratorio de CDC.
+describe("serieDeFolio", () => {
+	test.each([
+		["A0001", "A"],
+		["b0002", "B"],
+		["C0123", "C"],
+		["  A0004 ", "A"],
+	])("resuelve la serie de %s", (folio, esperado) => {
+		expect(serieDeFolio(folio)).toBe(esperado);
+	});
+
+	// Los folios anteriores al cambio son DDMMYY + consecutivo, de puros dígitos.
+	test.each(["2608260001", "", null, undefined, "AB0001"])(
+		"un folio sin serie no inventa una: %s",
+		(folio) => {
+			expect(serieDeFolio(folio)).toBe("");
+		},
+	);
+});
+
+describe("empresaFacturaVenta", () => {
+	test.each([
+		["A0001", "CDI"],
+		["B0002", "CDC"],
+		["C0003", "CDC"],
+	])("la serie %s factura por %s", (folio, esperado) => {
+		expect(empresaFacturaVenta({ folio })).toBe(esperado);
+	});
+
+	// Una orden vieja, sin serie, se resuelve con la empresa del catálogo.
+	test("sin serie usa la empresa de la venta", () => {
+		expect(empresaFacturaVenta({ folio: "2608260001" }, "CENTRO DE DIAGNOSTICO POR IMAGEN PVR")).toBe("CDI");
+		expect(empresaFacturaVenta({ folio: "2608260001" }, "CENTRAL DIAGNOSTICA CALIFORNIA")).toBe("CDC");
+		expect(empresaFacturaVenta({ folio: "2608260001" }, "Veterinaria")).toBe("");
+	});
+});
+
+describe("filtrarVentasReporte: empresa y serie", () => {
+	const VENTAS = [
+		{ id_venta: 1, folio: "A0001" },
+		{ id_venta: 2, folio: "B0002" },
+		{ id_venta: 3, folio: "C0003" },
+		{ id_venta: 4, folio: "2608260001", empresas: { nombre: "CENTRAL DIAGNOSTICA CALIFORNIA" } },
+	];
+
+	test("filtra por la empresa que factura", () => {
+		expect(filtrarVentasReporte(VENTAS, { empresaFactura: "CDI" }).map((v) => v.id_venta)).toEqual([1]);
+		// CDC factura tanto su imagen (B) como su laboratorio (C), y las órdenes
+		// viejas suyas también cuentan.
+		expect(filtrarVentasReporte(VENTAS, { empresaFactura: "CDC" }).map((v) => v.id_venta)).toEqual([
+			2, 3, 4,
+		]);
+	});
+
+	test("filtra por la serie del folio", () => {
+		expect(filtrarVentasReporte(VENTAS, { serie: "C" }).map((v) => v.id_venta)).toEqual([3]);
+	});
+
+	test("los dos filtros juntos se acumulan", () => {
+		expect(
+			filtrarVentasReporte(VENTAS, { empresaFactura: "CDC", serie: "B" }).map((v) => v.id_venta),
+		).toEqual([2]);
+		expect(filtrarVentasReporte(VENTAS, { empresaFactura: "CDI", serie: "C" })).toEqual([]);
+	});
+
+	test("sin filtros no se descarta nada", () => {
+		expect(filtrarVentasReporte(VENTAS, {})).toHaveLength(4);
 	});
 });
