@@ -23,7 +23,18 @@ import { nombreDoctor } from "../../utils/comisiones-medicos";
 import ModalVisita from "./componentes/modal-visita";
 import "./visitadora.css";
 
-const COLUMNAS = ["Fecha", "Médico / Empresa", "Especialidad", "Ubicación", "Actividades", "Convenio", "Acción"];
+const COLUMNAS = [
+	"Fecha",
+	"Médico / Empresa",
+	"Especialidad",
+	"Ubicación",
+	"Actividades",
+	"Comentarios del médico",
+	"Observaciones",
+	"Seguimiento",
+	"Convenio",
+	"Acción",
+];
 
 // Se compara sin acentos ni mayúsculas porque el nombre del Excel casi nunca
 // coincide letra por letra con el del catálogo.
@@ -214,7 +225,7 @@ const InformeVisitas = () => {
 				)}
 
 				<div className="visitadora-tabla-contenedor">
-					<table className="visitadora-tabla">
+					<table className="visitadora-tabla informe">
 						<thead>
 							<tr>
 								{COLUMNAS.map((columna) => (
@@ -248,8 +259,22 @@ const InformeVisitas = () => {
 									</td>
 									<td>{visita.especialidad}</td>
 									<td>{visita.ubicacion}</td>
-									<td className="visitadora-celda-larga">{visita.actividades}</td>
-									<td>{visita.tipo_convenio}</td>
+									{/* El recorte va en un div y no en la celda: poner display
+									    en un <td> lo saca del modelo de tabla y descuadra las
+									    líneas de separación del renglón. */}
+									<td className="visitadora-celda-larga">
+										<div className="visitadora-recorte">{visita.actividades}</div>
+									</td>
+									<td className="visitadora-celda-larga">
+										<div className="visitadora-recorte">{visita.comentarios_medico}</div>
+									</td>
+									<td className="visitadora-celda-larga">
+										<div className="visitadora-recorte">{visita.observaciones}</div>
+									</td>
+									<td className="visitadora-celda-larga">
+										<div className="visitadora-recorte">{visita.seguimiento}</div>
+									</td>
+									<td className="visitadora-celda-convenio">{visita.tipo_convenio}</td>
 									<td>
 										<button
 											type="button"

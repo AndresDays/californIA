@@ -131,6 +131,59 @@ describe("InformeVisitas", () => {
 		expect(archivo).toBe("Reporte_visitas_2026-08-17");
 	});
 
+	test("muestra las nueve columnas del Excel mas la de acciones", async () => {
+		await mostrar();
+		const encabezados = screen.getAllByRole("columnheader").map((celda) => celda.textContent);
+		expect(encabezados).toEqual([
+			"Fecha",
+			"Médico / Empresa",
+			"Especialidad",
+			"Ubicación",
+			"Actividades",
+			"Comentarios del médico",
+			"Observaciones",
+			"Seguimiento",
+			"Convenio",
+			"Acción",
+		]);
+	});
+
+	test("lista los cuatro campos largos en su columna", async () => {
+		visitas.current = [
+			{
+				...visitas.current[0],
+				actividades: "Visita de seguimiento",
+				comentarios_medico: "Comento que tiene comisiones pendientes",
+				observaciones: "Se mostro reservado al principio",
+				seguimiento: "Dar seguimiento al pago de comisiones",
+			},
+		];
+		await mostrar();
+		const renglon = screen.getByText(/Dr. Saúl Ruiz/).closest("tr");
+		for (const texto of [
+			"Visita de seguimiento",
+			"Comento que tiene comisiones pendientes",
+			"Se mostro reservado al principio",
+			"Dar seguimiento al pago de comisiones",
+		]) {
+			expect(within(renglon).getByText(texto)).toBeInTheDocument();
+		}
+	});
+
+	// El recorte a dos renglones tiene que vivir en un div interno: aplicarle
+	// display al <td> lo saca del modelo de tabla y las lineas de separacion
+	// del renglon dejan de alinearse con las demas columnas.
+	test("el recorte va en un div y no en la celda", async () => {
+		await mostrar();
+		const renglon = screen.getByText(/Dr. Saúl Ruiz/).closest("tr");
+		const celdas = renglon.querySelectorAll("td.visitadora-celda-larga");
+		expect(celdas).toHaveLength(4);
+		for (const celda of celdas) {
+			expect(celda.classList.contains("visitadora-recorte")).toBe(false);
+			expect(celda.querySelector(":scope > .visitadora-recorte")).not.toBeNull();
+		}
+	});
+
 	test("una semana sin visitas lo dice", async () => {
 		visitas.current = [];
 		await mostrar();
