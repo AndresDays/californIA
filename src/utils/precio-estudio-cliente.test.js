@@ -26,6 +26,8 @@ const supabaseFalso = (filas) => {
 
 const PRECIOS = [
 	{ clave: "RM-RODILLA", descripcion: "RM RODILLA SIMPLE", cliente: "Medisim", precio: 2450 },
+	{ clave: "RM-RODILLA", descripcion: "RM RODILLA SIMPLE", cliente: "Particular", precio: 3200 },
+	{ clave: "UR-CURACION", descripcion: "CURACION", cliente: "Particular", precio: 480 },
 ];
 
 describe("buscarPrecioEstudioCliente", () => {
@@ -83,6 +85,15 @@ describe("buscarPrecioEstudioCliente", () => {
 		).resolves.toBeNull();
 	});
 
+	test("no mezcla el tarifario de otro cliente", async () => {
+		await expect(
+			buscarPrecioEstudioCliente(supabaseFalso(PRECIOS), {
+				clave: "UR-CURACION",
+				cliente: "Medisim",
+			}),
+		).resolves.toBeNull();
+	});
+
 	test("sin cliente no se consulta nada", async () => {
 		const supabase = supabaseFalso(PRECIOS);
 		await expect(
@@ -109,7 +120,27 @@ describe("resolverPrecioEstudioCliente", () => {
 		expect(aviso.mock.calls[0][0]).toContain("Medisim");
 	});
 
-	test("usa el precio por defecto sólo cuando no hay precio pactado", async () => {
+	// Lo que el convenio no tiene pactado se cobra como particular, no a un
+	// precio por defecto que no corresponde a nada.
+	test("lo que el convenio no tiene pactado se cobra al precio de particular", async () => {
+		await expect(
+			resolverPrecioEstudioCliente(supabaseFalso(PRECIOS), {
+				clave: "UR-CURACION",
+				cliente: "Medisim",
+			}),
+		).resolves.toBe(480);
+	});
+
+	test("el precio pactado del convenio gana sobre el de particular", async () => {
+		await expect(
+			resolverPrecioEstudioCliente(supabaseFalso(PRECIOS), {
+				clave: "RM-RODILLA",
+				cliente: "Medisim",
+			}),
+		).resolves.toBe(2450);
+	});
+
+	test("usa el precio por defecto sólo cuando no hay precio pactado ni de particular", async () => {
 		jest.spyOn(console, "warn").mockImplementation(() => {});
 		await expect(
 			resolverPrecioEstudioCliente(supabaseFalso(PRECIOS), {

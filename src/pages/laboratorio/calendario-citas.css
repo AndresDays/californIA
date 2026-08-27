@@ -444,6 +444,23 @@
 	color: #b91c1c;
 }
 
+/* El resultado de la búsqueda: dice a qué hora quedó la cita, para no tener que
+   rastrearla en la rejilla. */
+.cal-state.found {
+	margin: 0 24px 12px;
+	padding: 12px 16px;
+	background: rgba(126, 231, 168, 0.14);
+	color: #b8f5d0;
+}
+
+/* La tarjeta que coincide con la búsqueda se marca, para dar con ella de un
+   vistazo aunque la rejilla siga larga. */
+.cal-card.encontrada {
+	outline: 2px solid #7ee7a8;
+	outline-offset: 1px;
+	box-shadow: 0 0 0 4px rgba(126, 231, 168, 0.22);
+}
+
 @media (max-width: 1023px) {
 	.cal-page {
 		padding: 22px 14px 24px;

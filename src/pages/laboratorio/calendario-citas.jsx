@@ -113,6 +113,24 @@ const CalendarioCitas = () => {
 		);
 	}, [citasDelDia, busquedaPaciente]);
 
+	// Con la agenda filtrada, dar con el renglón entre 26 horarios y ocho
+	// columnas sigue costando: se dice de una vez a qué hora y en qué estudio
+	// quedó cada coincidencia, y su tarjeta se resalta.
+	const coincidencias = useMemo(() => {
+		if (!busquedaPaciente.trim()) return [];
+		return citas
+			.map((cita) => ({
+				id: cita.id_cita,
+				paciente: obtenerNombrePaciente(cita),
+				estudio: obtenerTipoCalendario(cita).label,
+				hora: new Date(cita.fecha_estudio).toLocaleTimeString("es-MX", {
+					hour: "2-digit",
+					minute: "2-digit",
+				}),
+			}))
+			.sort((una, otra) => una.hora.localeCompare(otra.hora));
+	}, [citas, busquedaPaciente]);
+
 	const citasPorTipoYHora = useMemo(() => {
 		const grupos = new Map();
 
@@ -212,6 +230,14 @@ const CalendarioCitas = () => {
 					{Boolean(busquedaPaciente.trim()) && citas.length === 0 && !isLoading && (
 						<div className="cal-state">No hay citas de ese paciente en el dia seleccionado.</div>
 					)}
+					{coincidencias.length > 0 && (
+						<div className="cal-state found" role="status">
+							{coincidencias.length === 1 ? "Cita encontrada: " : `${coincidencias.length} citas encontradas: `}
+							{coincidencias
+								.map((cita) => `${cita.paciente} a las ${cita.hora} en ${cita.estudio}`)
+								.join(" · ")}
+						</div>
+					)}
 					{isLoading && <div className="cal-state">Cargando citas...</div>}
 					{error && <div className="cal-state error">No se pudieron cargar las citas.</div>}
 
@@ -242,7 +268,7 @@ const CalendarioCitas = () => {
 														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor)} />
 													) : (
 														citasHora.map((cita) => (
-															<button type="button" className={`cal-card tipo-${tipo.id}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => setCitaActiva(cita)}>
+															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => setCitaActiva(cita)}>
 																<div className="cal-card-time">
 																	{new Date(cita.fecha_estudio).toLocaleTimeString("es-MX", {
 																		hour: "2-digit",

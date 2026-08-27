@@ -24,10 +24,15 @@ export const esEstudioDeLaboratorio = (estudio = {}) =>
 
 export const MODALIDAD_TODAS = "*";
 
-// Una regla de "toda la imagen" del convenio no arrastra el laboratorio ni la
-// veterinaria: eso se cobra como particular salvo que el convenio los tenga
-// pactados con su propia regla.
-export const MODALIDADES_FUERA_DE_CONVENIO = ["laboratorio", "veterinaria"];
+// Una regla de "toda la imagen" del convenio no arrastra el laboratorio, la
+// veterinaria ni las urgencias: eso se cobra como particular salvo que el
+// convenio los tenga pactados con su propia regla. Ningún convenio trae
+// urgencias, así que ofrecerlas con el comodín las metía a todos.
+export const MODALIDADES_FUERA_DE_CONVENIO = [
+	"laboratorio",
+	"veterinaria",
+	"urgencias_otros",
+];
 const CRITERIO_DOPPLER = "doppler";
 
 const esDoppler = (estudio = {}) =>

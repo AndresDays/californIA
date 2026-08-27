@@ -117,13 +117,16 @@ test("la recepcionista con sucursal asignada no ve el aviso de sucursal", () => 
 });
 
 test("el buscador deja en la agenda solo las citas del paciente buscado", () => {
-	render(<CalendarioCitas />);
+	const { container } = render(<CalendarioCitas />);
 
 	fireEvent.change(screen.getByRole("searchbox", { name: /buscar cita por paciente/i }), {
 		target: { value: "lucia" },
 	});
 
-	expect(screen.getByText(/Lucia Root/i)).toBeInTheDocument();
+	// El nombre también sale en el aviso de la búsqueda, así que se mira la rejilla.
+	const tarjetas = [...container.querySelectorAll(".cal-card")];
+	expect(tarjetas).toHaveLength(1);
+	expect(tarjetas[0]).toHaveTextContent(/Lucia Root/i);
 	expect(screen.queryByText(/Jacobo Andres/i)).not.toBeInTheDocument();
 	expect(screen.queryByText(/USG mamario/i)).not.toBeInTheDocument();
 });
@@ -134,10 +137,46 @@ test("el buscador ignora acentos y avisa cuando no hay coincidencias", () => {
 	const buscador = screen.getByRole("searchbox", { name: /buscar cita por paciente/i });
 
 	fireEvent.change(buscador, { target: { value: "andres" } });
-	expect(screen.getByText(/Jacobo Andres/i)).toBeInTheDocument();
+	expect(screen.getByRole("status")).toHaveTextContent(/Jacobo Andres/i);
 
 	fireEvent.change(buscador, { target: { value: "zzz" } });
 	expect(
 		screen.getByText("No hay citas de ese paciente en el dia seleccionado."),
 	).toBeInTheDocument();
+});
+
+// Filtrar la agenda no basta: entre 26 horarios y ocho columnas la cita sigue
+// costando de encontrar, así que se dice a qué hora quedó.
+test("el buscador dice a que hora es la cita encontrada", () => {
+	render(<CalendarioCitas />);
+
+	fireEvent.change(screen.getByRole("searchbox", { name: /buscar cita por paciente/i }), {
+		target: { value: "lucia" },
+	});
+
+	const aviso = screen.getByRole("status");
+	expect(aviso).toHaveTextContent(/Cita encontrada/i);
+	expect(aviso).toHaveTextContent(/Lucia Root/i);
+	expect(aviso).toHaveTextContent(/09:15/);
+	expect(aviso).toHaveTextContent(/TAC/i);
+});
+
+test("resalta la tarjeta de la cita encontrada", () => {
+	const { container } = render(<CalendarioCitas />);
+
+	expect(container.querySelectorAll(".cal-card.encontrada")).toHaveLength(0);
+
+	fireEvent.change(screen.getByRole("searchbox", { name: /buscar cita por paciente/i }), {
+		target: { value: "lucia" },
+	});
+
+	const resaltadas = container.querySelectorAll(".cal-card.encontrada");
+	expect(resaltadas).toHaveLength(1);
+	expect(resaltadas[0]).toHaveTextContent(/Lucia Root/i);
+});
+
+test("sin busqueda no se anuncia ninguna cita", () => {
+	render(<CalendarioCitas />);
+
+	expect(screen.queryByRole("status")).not.toBeInTheDocument();
 });

@@ -3,6 +3,8 @@
 // su tarifario guardado como "Medisim", y con una comparación exacta no se
 // encuentra nada. Cuando eso pasa el estudio se cobra al precio por defecto
 // aunque sí tenga precio pactado.
+import { CLIENTE_PRECIOS_PARTICULAR } from "./descuento-cliente";
+
 const escaparComodines = (valor) => String(valor ?? "").trim().replace(/[%_]/g, "\\$&");
 
 export const PRECIO_POR_DEFECTO = 150;
@@ -47,16 +49,30 @@ export const buscarPrecioEstudioCliente = async (
 	);
 };
 
+// Un convenio sólo tiene pactado parte del catálogo: lo que no le aparece en su
+// tarifario se cobra como particular, no a un precio por defecto que no
+// corresponde a nada. Ese es el aviso que ya sale en la captura cuando el
+// estudio no está en su lista.
 export const resolverPrecioEstudioCliente = async (supabase, datos = {}) => {
 	const precio = await buscarPrecioEstudioCliente(supabase, datos);
 	if (precio !== null) return precio;
+
+	const cliente = String(datos?.cliente ?? "").trim();
+	if (cliente.toLowerCase() !== CLIENTE_PRECIOS_PARTICULAR.toLowerCase()) {
+		const precioParticular = await buscarPrecioEstudioCliente(supabase, {
+			...datos,
+			cliente: CLIENTE_PRECIOS_PARTICULAR,
+		});
+		if (precioParticular !== null) return precioParticular;
+	}
 
 	// Cobrar al precio por defecto un estudio que sí tiene precio pactado es
 	// difícil de notar en caja y difícil de rastrear después, así que queda
 	// dicho en la consola con qué se buscó.
 	console.warn(
 		`Sin precio pactado para la clave "${datos?.clave}" (${datos?.descripcion || "sin descripción"}) ` +
-			`del cliente "${datos?.cliente}": se cobra el precio por defecto de $${PRECIO_POR_DEFECTO}.`,
+			`del cliente "${datos?.cliente}", ni en la lista de particular: se cobra el precio ` +
+			`por defecto de $${PRECIO_POR_DEFECTO}.`,
 	);
 	return PRECIO_POR_DEFECTO;
 };
