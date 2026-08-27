@@ -8,6 +8,9 @@ import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
+	borrarCampoPersistente,
+	guardarCampoPersistente,
+	leerCampoPersistente,
 	limpiarBorradorPersistente,
 	useCampoPersistente,
 	useModalPersistente,
@@ -69,6 +72,11 @@ import {
 } from "../../utils/pago-tarjeta";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
+// Los comprobantes de la venta recién guardada. Al ir a imprimir uno, el
+// navegador puede descartar la pantalla, y al volver el modal ya no estaba: la
+// orden quedaba registrada pero sin forma de sacar lo que faltaba. Se guarda con
+// qué armarlos —no los PDF, que no sobreviven— para rehacerlos al regresar.
+const CLAVE_COMPROBANTES = "nuevo-paciente:comprobantes";
 // Los datos capturados del paciente sobreviven a que el navegador descarte la
 // página al cambiar de pestaña o de app; se limpian al registrar la solicitud.
 const BORRADOR = "nuevo-paciente:";
@@ -255,6 +263,28 @@ const NuevoPaciente = () => {
 		cargarClientes();
 		cargarEmpresas();
 		cargarEstudiosDisponibles();
+	}, []);
+
+	// Al volver de imprimir, la pantalla pudo haberse descartado y con ella los
+	// PDF, que son objetos en memoria. Se rehacen con los datos guardados para
+	// que el modal siga ahí y no quede una venta sin forma de imprimirla.
+	useEffect(() => {
+		const guardado = leerCampoPersistente(CLAVE_COMPROBANTES, null);
+		if (!guardado?.datos) return undefined;
+
+		let cancelado = false;
+		prepararComprobantesVenta(guardado.datos).then((impresion) => {
+			if (cancelado) return;
+			if (impresion.comprobantes.length === 0) {
+				borrarCampoPersistente(CLAVE_COMPROBANTES);
+				return;
+			}
+			setComprobantesVenta({ folio: guardado.folio, comprobantes: impresion.comprobantes });
+		});
+
+		return () => {
+			cancelado = true;
+		};
 	}, []);
 
 	// La orden se parte por serie para el cobro y el ticket: A y B facturan por
@@ -879,7 +909,7 @@ const NuevoPaciente = () => {
 				(registro) => registro.parte.serie !== SERIE_LABORATORIO,
 			);
 
-			const impresion = await prepararComprobantesVenta({
+			const datosComprobantes = {
 				tickets: ticketsOrden,
 				etiquetasLaboratorio: registroLaboratorio
 					? {
@@ -901,11 +931,16 @@ const NuevoPaciente = () => {
 							})),
 						}
 					: null,
-			});
+			};
+
+			const impresion = await prepararComprobantesVenta(datosComprobantes);
 
 			// Los comprobantes se abren desde el clic de quien cobra: así el
 			// navegador no bloquea las pestañas, y se pueden reimprimir sin volver
 			// a capturar la orden.
+			if (impresion.comprobantes.length > 0) {
+				guardarCampoPersistente(CLAVE_COMPROBANTES, { folio, datos: datosComprobantes });
+			}
 			setComprobantesVenta({ folio, comprobantes: impresion.comprobantes });
 
 			globalThis.mostrarNotificacion(
@@ -2425,6 +2460,7 @@ const NuevoPaciente = () => {
 						folio={comprobantesVenta.folio}
 						comprobantes={comprobantesVenta.comprobantes}
 						onCerrar={() => {
+							borrarCampoPersistente(CLAVE_COMPROBANTES);
 							setComprobantesVenta(null);
 							limpiarFormulario();
 							navigate("/captura");

@@ -84,6 +84,27 @@ export const useModalPersistente = (clave, { persistir = true } = {}) => {
 	return [abierto, setAbierto];
 };
 
+// Para lo que no es un campo de captura sino el resultado de una operación
+// —los comprobantes de una venta ya guardada— que también tiene que sobrevivir
+// a que el navegador descarte la página.
+export const guardarCampoPersistente = (clave, valor) => {
+	if (!hayAlmacenamiento()) return;
+	try {
+		sessionStorage.setItem(`${PREFIJO}${clave}`, JSON.stringify(valor));
+	} catch {
+		// Sin espacio o en modo privado: es una ayuda, no un requisito.
+	}
+};
+
+export const borrarCampoPersistente = (clave) => {
+	if (!hayAlmacenamiento()) return;
+	try {
+		sessionStorage.removeItem(`${PREFIJO}${clave}`);
+	} catch {
+		// Igual que arriba.
+	}
+};
+
 export const hayBorradorPersistente = (prefijoClave) => {
 	if (!hayAlmacenamiento()) return false;
 	const inicio = `${PREFIJO}${prefijoClave}`;
