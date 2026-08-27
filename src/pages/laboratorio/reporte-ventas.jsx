@@ -26,6 +26,7 @@ import {
 	GRUPOS_REPORTE_POR_AREA,
 	obtenerIdSucursalVenta,
 	partirVentasPorArea,
+	SERIES_FOLIO,
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
@@ -56,6 +57,10 @@ const ReporteVentas = () => {
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("reporte-ventas:estudio");
 	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
 	const [doctorSeleccionado, setDoctorSeleccionado] = useState("");
+	// La empresa que factura y la serie del folio: son dos cortes distintos de lo
+	// mismo, porque CDC factura tanto su imagen (serie B) como su laboratorio (C).
+	const [empresaFacturaSeleccionada, setEmpresaFacturaSeleccionada] = useState("");
+	const [serieSeleccionada, setSerieSeleccionada] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
 	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState("laboratorio");
@@ -114,6 +119,9 @@ const ReporteVentas = () => {
 				cliente: empresaSeleccionada,
 				doctor: doctorSeleccionado,
 				estudio: buscarEstudio,
+				empresaFactura: empresaFacturaSeleccionada,
+				serie: serieSeleccionada,
+				nombreEmpresaVenta,
 			}),
 		[
 			ventas,
@@ -124,6 +132,9 @@ const ReporteVentas = () => {
 			empresaSeleccionada,
 			doctorSeleccionado,
 			buscarEstudio,
+			empresaFacturaSeleccionada,
+			serieSeleccionada,
+			empresaPorId,
 		],
 	);
 
@@ -583,6 +594,31 @@ const ReporteVentas = () => {
 											</option>
 										);
 									})}
+								</select>
+							</div>
+							<div className="rv-filter-group">
+								<label>Empresa</label>
+								<select
+									value={empresaFacturaSeleccionada}
+									onChange={(e) => setEmpresaFacturaSeleccionada(e.target.value)}
+									className="rv-select">
+									<option value="">Todas</option>
+									<option value="CDC">CDC</option>
+									<option value="CDI">CDI</option>
+								</select>
+							</div>
+							<div className="rv-filter-group">
+								<label>Serie</label>
+								<select
+									value={serieSeleccionada}
+									onChange={(e) => setSerieSeleccionada(e.target.value)}
+									className="rv-select">
+									<option value="">Todas</option>
+									{SERIES_FOLIO.map((serie) => (
+										<option key={serie.id} value={serie.id}>
+											{serie.nombre}
+										</option>
+									))}
 								</select>
 							</div>
 							<div className="rv-filter-group">
