@@ -5,11 +5,15 @@ import {
 
 const supabaseFalso = (paginas) => {
 	const llamadas = [];
+	const clientesConsultados = [];
 	return {
 		llamadas,
+		clientesConsultados,
 		from: () => ({
 			select: () => ({
-				eq: () => ({
+				ilike: (_columna, valor) => {
+					clientesConsultados.push(valor);
+					return {
 					range: (desde, hasta) => {
 						llamadas.push([desde, hasta]);
 						const pagina = paginas.shift();
@@ -19,13 +23,26 @@ const supabaseFalso = (paginas) => {
 								: { data: pagina || [], error: null },
 						);
 					},
-				}),
+					};
+				},
 			}),
 		}),
 	};
 };
 
 describe("cargarPreciosCliente", () => {
+	// El cliente puede estar dado de alta como MEDISIM y su tarifario guardado
+	// como Medisim: con la comparación exacta no cruzaba ninguna clave, así que
+	// la búsqueda ofrecía todo el catálogo y nada traía su precio pactado.
+	test("busca el tarifario sin distinguir mayúsculas", async () => {
+		const supabase = supabaseFalso([[{ clave: "RM-RODILLA", descripcion: "RM RODILLA" }]]);
+
+		const precios = await cargarPreciosCliente(supabase, "MEDISIM");
+
+		expect(supabase.clientesConsultados).toEqual(["MEDISIM"]);
+		expect(precios.claves.has("RM-RODILLA")).toBe(true);
+	});
+
 	test("sin cliente no filtra", async () => {
 		await expect(cargarPreciosCliente(supabaseFalso([]), "")).resolves.toBeNull();
 	});

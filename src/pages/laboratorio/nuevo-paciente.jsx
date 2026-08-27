@@ -36,6 +36,7 @@ import {
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
+import { resolverPrecioEstudioCliente } from "../../utils/precio-estudio-cliente";
 import {
 	clienteParaPrecios,
 	descuentoDeCliente,
@@ -1100,38 +1101,15 @@ const NuevoPaciente = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
-		try {
-			// Un cliente de porcentaje cobra la lista de particular y el descuento
-			// se aplica sobre ese precio.
-			const nombreCliente = clienteParaPrecios(nombreClienteOrden);
-			if (!nombreCliente) {
-				console.log("No hay cliente seleccionado, usando precio por defecto");
-				return 150;
-			}
-
-			const { data, error } = await supabase
-				.from("precios_estudios")
-				.select("precio")
-				.eq("clave", claveEstudio)
-				.eq("cliente", nombreCliente)
-				.single();
-
-			if (error) {
-				console.log(
-					`No se encontró precio para ${claveEstudio} - ${nombreCliente}, usando precio por defecto`,
-				);
-				return 150;
-			}
-
-			console.log(
-				`Precio encontrado para ${claveEstudio} - ${nombreCliente}: $${data.precio}`,
-			);
-			return parseFloat(data.precio);
-		} catch (error) {
-			console.error("Error al obtener precio:", error);
-			return 150;
-		}
+	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) => {
+		// Un cliente de porcentaje cobra la lista de particular y el descuento se
+		// aplica sobre ese precio.
+		const nombreCliente = clienteParaPrecios(nombreClienteOrden);
+		return resolverPrecioEstudioCliente(supabase, {
+			clave: estudio?.clave ?? estudio,
+			descripcion: estudio?.descripcion,
+			cliente: nombreCliente,
+		});
 	};
 
 	const buscarPacientes = async (termino) => {
@@ -1369,7 +1347,7 @@ const NuevoPaciente = () => {
 		);
 		const nombreCliente = clienteObj ? clienteObj.nombre : "";
 
-		const precioEstudio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
+		const precioEstudio = await obtenerPrecioEstudio(estudio, nombreCliente);
 
 		const estudioConPrecio = {
 			...estudio,
@@ -1538,7 +1516,7 @@ const NuevoPaciente = () => {
 						return null;
 					}
 
-					const precio = await obtenerPrecioEstudio(estudioCatalogo.clave, nombreCliente);
+					const precio = await obtenerPrecioEstudio(estudioCatalogo, nombreCliente);
 					return construirEstudioSeleccionado({
 						estudioCatalogo,
 						precio,

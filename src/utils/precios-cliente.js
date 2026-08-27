@@ -22,7 +22,11 @@ export const cargarPreciosCliente = async (supabase, nombreCliente) => {
 		const { data, error } = await supabase
 			.from("precios_estudios")
 			.select("clave, descripcion")
-			.eq("cliente", cliente)
+			// Sin distinguir mayúsculas: el cliente puede estar dado de alta como
+			// "MEDISIM" y su tarifario guardado como "Medisim". Con la comparación
+			// exacta no cruzaba ninguna clave, y entonces la búsqueda ofrecía todo
+			// el catálogo y cada estudio se cobraba al precio por defecto.
+			.ilike("cliente", cliente.replace(/[%_]/g, "\\$&"))
 			.range(desde, desde + TAMANO_PAGINA - 1);
 
 		if (error) {

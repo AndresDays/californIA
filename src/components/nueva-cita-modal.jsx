@@ -6,6 +6,7 @@ import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validat
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
+import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 import {
   construirEstudioCatalogoUnificado,
   filtrarEstudiosCatalogo,
@@ -188,25 +189,14 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     ]);
   };
 
-  const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
-    try {
-      const clave = (claveEstudio || '').trim();
-      // Un cliente de porcentaje cobra la lista de particular.
-      const cliente = clienteParaPrecios(nombreCliente);
-      if (!clave || !cliente) return DEFAULT_PRECIO;
-
-      const { data, error } = await supabase
-        .from('precios_estudios')
-        .select('precio')
-        .eq('clave', clave)
-        .eq('cliente', cliente)
-        .maybeSingle();
-
-      if (error || !data?.precio) return DEFAULT_PRECIO;
-      return Number(data.precio);
-    } catch {
-      return DEFAULT_PRECIO;
-    }
+  const obtenerPrecioEstudio = async (estudio, nombreCliente) => {
+    // Un cliente de porcentaje cobra la lista de particular.
+    const cliente = clienteParaPrecios(nombreCliente);
+    return resolverPrecioEstudioCliente(supabase, {
+      clave: estudio?.clave ?? estudio,
+      descripcion: estudio?.descripcion,
+      cliente,
+    });
   };
 
   const handleChange = (e) => {
@@ -232,7 +222,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     const clienteObj = clientes.find(c => String(c.id_cliente) === String(clienteSeleccionado));
     const nombreCliente = clienteObj?.nombre || '';
 
-    const precio = await obtenerPrecioEstudio(estudio.clave, nombreCliente);
+    const precio = await obtenerPrecioEstudio(estudio, nombreCliente);
 
     setEstudiosSeleccionados(prev => [...prev, { ...estudio, precio }]);
     setBuscarEstudio('');

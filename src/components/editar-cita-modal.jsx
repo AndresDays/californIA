@@ -4,6 +4,7 @@ import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validat
 import './nueva-cita-modal.css';
 import editarIcono from '../assets/editarIcono.png';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
+import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 
 const DEFAULT_PRECIO = 150;
 
@@ -192,26 +193,14 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     setTiposEstudio(tipos);
   };
 
-  const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
-    try {
-      const clave = (claveEstudio || '').trim();
-      // Un cliente de porcentaje cobra la lista de particular.
-      const cliente = clienteParaPrecios(nombreCliente);
-      if (!clave || !cliente) return DEFAULT_PRECIO;
-
-      const { data, error } = await supabase
-        .from('precios_estudios')
-        .select('precio')
-        .eq('clave', clave)
-        .eq('cliente', cliente)
-        .maybeSingle();
-
-      if (error || !data?.precio) return DEFAULT_PRECIO;
-      return Number(data.precio);
-    } catch (e) {
-      console.error(e);
-      return DEFAULT_PRECIO;
-    }
+  const obtenerPrecioEstudio = async (estudio, nombreCliente) => {
+    // Un cliente de porcentaje cobra la lista de particular.
+    const cliente = clienteParaPrecios(nombreCliente);
+    return resolverPrecioEstudioCliente(supabase, {
+      clave: estudio?.clave ?? estudio,
+      descripcion: estudio?.descripcion,
+      cliente,
+    });
   };
 
   const cargarEstudiosDeLaCitaConPrecios = async (nombreClienteSeguro) => {
@@ -244,7 +233,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           };
         }
 
-        const precio = await obtenerPrecioEstudio(estudioData.clave, nombreClienteSeguro);
+        const precio = await obtenerPrecioEstudio(estudioData, nombreClienteSeguro);
 
         return {
           id: estudioData.id,
@@ -262,7 +251,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     const actualizados = await Promise.all(
       estudiosSeleccionados.map(async (est) => {
         if (!est?.clave || est.clave === 'N/A') return est;
-        const precio = await obtenerPrecioEstudio(est.clave, nombreClienteSeguro);
+        const precio = await obtenerPrecioEstudio(est, nombreClienteSeguro);
         return { ...est, precio };
       })
     );
@@ -274,7 +263,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
   const agregarEstudio = async (est) => {
     if (estudiosSeleccionados.some((x) => x.clave === est.clave)) return;
 
-    const precio = await obtenerPrecioEstudio(est.clave, clienteNombre);
+    const precio = await obtenerPrecioEstudio(est, clienteNombre);
     setEstudiosSeleccionados((prev) => [...prev, { ...est, precio }]);
     setBuscarEstudio('');
     setShowBusquedaEstudios(false);

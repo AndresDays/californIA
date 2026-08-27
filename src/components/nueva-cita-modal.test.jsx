@@ -58,6 +58,7 @@ const respuestaDeTabla = (tabla) => {
 	const consulta = {
 		select: () => consulta,
 		eq: () => consulta,
+		ilike: () => consulta,
 		order: () => Promise.resolve({ data: datos, error: null }),
 		range: () => Promise.resolve({ data: datos, error: null }),
 		maybeSingle: () => Promise.resolve({ data: null, error: null }),
