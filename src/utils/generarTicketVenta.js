@@ -90,6 +90,39 @@ const generarQR = async (folio) => {
 	});
 };
 
+// El ticket es de 80 mm y hay nombres que no caben en un renglón: los de
+// paciente y doctor se salían del papel por los dos lados, al estar centrados.
+// Primero se aprieta un poco la letra, que resuelve la mayoría de los casos sin
+// gastar renglones, y si aun así no cabe se parte en varias líneas.
+const escribirCentradoAjustado = (
+	pdf,
+	texto,
+	y,
+	{ ancho, centro, alto, tamanoMinimo = 7 } = {},
+) => {
+	const contenido = String(texto || '').trim();
+	if (!contenido) return y;
+
+	const tamanoOriginal = pdf.getFontSize();
+	let tamano = tamanoOriginal;
+	while (tamano > tamanoMinimo && pdf.getTextWidth(contenido) > ancho) {
+		tamano -= 0.5;
+		pdf.setFontSize(tamano);
+	}
+
+	// El alto del renglón sigue al tamaño de letra para que las líneas de un
+	// nombre partido no se encimen.
+	const altoLinea = alto * (tamano / tamanoOriginal);
+	let siguiente = y;
+	pdf.splitTextToSize(contenido, ancho).forEach((linea) => {
+		pdf.text(linea, centro, siguiente, { align: 'center' });
+		siguiente += altoLinea;
+	});
+
+	pdf.setFontSize(tamanoOriginal);
+	return siguiente;
+};
+
 // Cada ticket se dibuja en la página actual del PDF: una orden que factura por
 // las dos empresas sale como un solo PDF de dos páginas, con un ticket completo
 // por empresa.
@@ -182,13 +215,22 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 
 	pdf.setFont('helvetica', 'bold');
 	pdf.setFontSize(10);
-	pdf.text(`Cliente: ${(paciente || '').toUpperCase()}`, W / 2, y, { align: 'center' });
-	y += 5;
+	y = escribirCentradoAjustado(pdf, `Cliente: ${(paciente || '').toUpperCase()}`, y, {
+		ancho: W - mg * 2,
+		centro: W / 2,
+		alto: 5,
+	});
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(8);
 	if (edad) { pdf.text(`Edad: ${edad}`, W / 2, y, { align: 'center' }); y += 4; }
-	if (doctor) { pdf.text(`Doctor: ${doctor.toUpperCase()}`, W / 2, y, { align: 'center' }); y += 4; }
+	if (doctor) {
+		y = escribirCentradoAjustado(pdf, `Doctor: ${doctor.toUpperCase()}`, y, {
+			ancho: W - mg * 2,
+			centro: W / 2,
+			alto: 4,
+		});
+	}
 
 	pdf.setFont('helvetica', 'bold');
 	pdf.setFontSize(11);
