@@ -34,7 +34,9 @@ El origen del dinero ya existe: `ventas.id_doctor` referencia a `doctores.id_doc
 
 ### Decisiones tomadas (y por qué)
 
-1. **La base de la comisión es `ventas.total`.** El usuario lo describió como «nos mandó 50,000 pesos de pacientes, le tocan 5,000»: 50,000 es lo que la clínica cobró. `total` incluye IVA. Si después se decide comisionar sobre `subtotal`, es una constante en `src/utils/comisiones-medicos.js`, no un cambio de esquema.
+1. **La base de la comisión es `ventas.total`** (confirmado). Los precios de la clínica ya vienen con IVA incluido: la captura de nuevo paciente guarda `iva: 0` y `total` = subtotal − descuento. Así que `ventas.total` es exactamente el importe con IVA del que se habla cuando se dice «nos mandó 50,000 pesos de pacientes, le tocan 5,000». Queda en una sola constante en `src/utils/comisiones-medicos.js` por si algún día cambia.
+
+	Consecuencia a tener presente: `total` va **después** del descuento, así que a un médico con convenio de descuento a paciente se le comisiona sobre lo que la clínica cobró de verdad, no sobre el precio de lista.
 2. **Sólo cuentan las ventas con `estado = 'activo'`.** Una venta cancelada no genera comisión. Es el mismo filtro que usa el reporte de ventas.
 3. **El porcentaje tiene vigencia, no es un campo suelto en `doctores`.** En el reporte de agosto ya aparece «conforme incremente su flujo de pacientes se podrá aumentar su porcentaje». Si el porcentaje fuera un solo número mutable, subirle a un médico de 10 % a 15 % en octubre recalcularía agosto y septiembre hacia atrás y descuadraría lo ya pagado. Por eso `comisiones_doctor` guarda `(id_doctor, porcentaje, vigente_desde)` y el cálculo de un mes usa **el porcentaje vigente al último día de ese mes**.
 4. **El concentrado se calcula en vivo mientras el mes está abierto.** Congelarlo cada noche obligaría a un job y a resolver qué pasa con las ventas que se capturan tarde. Cuando el administrador cierra el mes, ahí sí se escribe el snapshot en `comisiones_mensuales` y a partir de entonces la pantalla muestra lo congelado.
