@@ -45,16 +45,16 @@ export const filaTablaVenta = (venta, { nombreDoctor = () => "-" } = {}) => [
 
 // Se copia separado por tabuladores para que al pegar en Excel cada columna
 // caiga en su celda; un salto de línea dentro de un dato rompería el renglón,
-// así que se aplana.
+// así que se aplana. Va sin encabezado: lo copiado se pega debajo de lo que ya
+// se tenga capturado.
 export const tablaVentasComoTexto = (ventas = [], opciones = {}) =>
-	[
-		COLUMNAS_TABLA_VENTAS.join("\t"),
-		...ventas.map((venta) =>
+	ventas
+		.map((venta) =>
 			filaTablaVenta(venta, opciones)
 				.map((celda) => String(celda ?? "").replace(/\s*\n\s*/g, " ").trim())
 				.join("\t"),
-		),
-	].join("\n");
+		)
+		.join("\n");
 
 // navigator.clipboard no existe fuera de un contexto seguro y en algunos
 // navegadores pide permiso: si falla se copia con un textarea temporal, que es

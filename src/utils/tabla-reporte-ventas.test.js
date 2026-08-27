@@ -59,15 +59,16 @@ describe("tabla del reporte de ventas", () => {
 		expect(fila[6]).toBe("-");
 	});
 
-	// Con tabuladores cada dato cae en su celda al pegar en Excel.
-	test("la copia lleva encabezado y un renglón por venta, separados por tabuladores", () => {
-		const texto = tablaVentasComoTexto([venta], { nombreDoctor });
-		const [encabezado, primero, ...resto] = texto.split("\n");
+	// Con tabuladores cada dato cae en su celda al pegar en Excel, y sin
+	// encabezado para poder pegar debajo de lo que ya se tenga capturado.
+	test("la copia trae solo los renglones, separados por tabuladores", () => {
+		const texto = tablaVentasComoTexto([venta, venta], { nombreDoctor });
+		const renglones = texto.split("\n");
 
-		expect(encabezado.split("\t")).toEqual(COLUMNAS_TABLA_VENTAS);
-		expect(primero.split("\t")[0]).toBe("B0002");
-		expect(primero.split("\t")).toHaveLength(COLUMNAS_TABLA_VENTAS.length);
-		expect(resto).toEqual([]);
+		expect(renglones).toHaveLength(2);
+		expect(texto).not.toContain("Folio\tPaciente");
+		expect(renglones[0].split("\t")[0]).toBe("B0002");
+		expect(renglones[0].split("\t")).toHaveLength(COLUMNAS_TABLA_VENTAS.length);
 	});
 
 	// Varios estudios en un renglón traen comas y espacios: no deben partir la fila.
@@ -77,7 +78,7 @@ describe("tabla del reporte de ventas", () => {
 			{ nombreDoctor },
 		);
 
-		expect(texto.split("\n")).toHaveLength(2);
+		expect(texto.split("\n")).toHaveLength(1);
 		expect(texto).toContain("Maria Guadalupe");
 	});
 });
