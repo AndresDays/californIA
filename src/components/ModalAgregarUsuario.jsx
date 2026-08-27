@@ -211,6 +211,7 @@ const ModalAgregarUsuario = ({
                   <option value="tecnico_radiologia">Técnico en Radiología</option>
                   <option value="quimico">Químico</option>
                   <option value="recepcionista">Recepcionista</option>
+                  <option value="visitadora">Visitadora</option>
                   <option value="desarrollador">Desarrollador</option>
                 </select>
                 {errors.rol && <span className="error-message">{errors.rol}</span>}

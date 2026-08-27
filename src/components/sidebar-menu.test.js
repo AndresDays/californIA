@@ -14,6 +14,7 @@ describe("sidebar shared menu", () => {
 			"Recepción",
 			"Administración",
 			"Reportes",
+			"Visitadora",
 			"Configuración",
 		]);
 
@@ -23,6 +24,14 @@ describe("sidebar shared menu", () => {
 			"Historial",
 			"Turnos",
 			"Cierre Caja",
+		]);
+	});
+
+	test("groups the medical rep module into its own section", () => {
+		expect(labelsFor("visitadora")).toEqual([
+			"Informe de visitas",
+			"Programación",
+			"Concentrado",
 		]);
 	});
 
