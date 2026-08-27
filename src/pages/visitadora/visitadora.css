@@ -161,6 +161,12 @@
 	min-width: 900px;
 }
 
+/* El informe carga cuatro columnas de texto largo, así que pide más ancho que
+   las otras dos tablas; el contenedor ya scrollea en horizontal. */
+.visitadora-tabla.informe {
+	min-width: 1500px;
+}
+
 .visitadora-tabla th {
 	text-align: left;
 	font-size: 0.68rem;
@@ -199,14 +205,24 @@
 	background: rgba(239, 83, 80, 0.12);
 }
 
+/* El recorte a dos renglones vive en un div interno. Aplicarlo al <td> lo saca
+   del modelo de tabla y las líneas de separación del renglón dejan de
+   alinearse con el resto de las columnas. */
 .visitadora-celda-larga {
-	max-width: 22rem;
+	min-width: 13rem;
+	max-width: 17rem;
+}
+
+.visitadora-recorte {
 	overflow: hidden;
-	text-overflow: ellipsis;
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	line-clamp: 2;
 	-webkit-box-orient: vertical;
+}
+
+.visitadora-celda-convenio {
+	min-width: 7rem;
 }
 
 .visitadora-dia {
