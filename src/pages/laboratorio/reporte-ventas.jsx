@@ -300,13 +300,25 @@ const ReporteVentas = () => {
 							return (
 								<tr key={venta.id_venta}>
 									<td>
-										<button
-											type="button"
+										{/* El folio va en un span y no en un button porque el
+										    navegador no inicia una selección de texto cuando el
+										    arrastre empieza sobre un botón, y el folio es la
+										    primera columna: justo por donde se empieza a
+										    seleccionar la tabla para copiarla. */}
+										<span
+											role="button"
+											tabIndex={0}
 											className="rv-folio-link"
 											onClick={() => setVentaDetalle(venta)}
+											onKeyDown={(evento) => {
+												if (evento.key === "Enter" || evento.key === " ") {
+													evento.preventDefault();
+													setVentaDetalle(venta);
+												}
+											}}
 											title="Ver detalle del folio">
 											{venta.folio}
-										</button>
+										</span>
 									</td>
 									{celdas.map((celda, indice) => (
 										<td key={COLUMNAS_TABLA_VENTAS[indice + 1]}>{celda}</td>
