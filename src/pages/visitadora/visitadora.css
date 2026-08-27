@@ -1,0 +1,452 @@
+@import url('https://fonts.cdnfonts.com/css/codec-pro');
+
+/* Las tres pantallas del módulo comparten esta hoja: se ven y se navegan igual,
+   sólo cambia la tabla de en medio. El padding izquierdo deja libre el sidebar
+   fijo, igual que en el reporte administrativo. */
+.visitadora-pagina {
+	min-height: 100vh;
+	padding: 1.2rem 1.5rem 2rem 120px;
+	color: #fff;
+	font-family: 'Codec Pro', sans-serif;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.visitadora-encabezado {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.9rem;
+	padding-bottom: 0.9rem;
+	border-bottom: 1px solid rgba(83, 185, 219, 0.2);
+}
+
+.visitadora-titulo {
+	margin: 0;
+	font-size: 1.35rem;
+	font-weight: 500;
+	margin-right: auto;
+}
+
+.visitadora-navegador {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid rgba(83, 185, 219, 0.3);
+	border-radius: 6px;
+	background: rgba(2, 15, 35, 0.4);
+	font-size: 0.85rem;
+	white-space: nowrap;
+}
+
+.visitadora-navegador button {
+	background: none;
+	border: none;
+	color: #8fcde5;
+	cursor: pointer;
+	padding: 0.15rem 0.35rem;
+	font-size: 0.9rem;
+	border-radius: 4px;
+}
+
+.visitadora-navegador button:hover {
+	background: rgba(83, 185, 219, 0.15);
+}
+
+.visitadora-estado {
+	font-size: 0.68rem;
+	letter-spacing: 0.08em;
+	padding: 0.2rem 0.55rem;
+	border-radius: 4px;
+	font-weight: 600;
+}
+
+.visitadora-estado.abierto {
+	background: rgba(83, 185, 219, 0.18);
+	color: #8fcde5;
+}
+
+.visitadora-estado.cerrado {
+	background: rgba(255, 255, 255, 0.12);
+	color: rgba(255, 255, 255, 0.75);
+}
+
+.visitadora-acciones {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.visitadora-acciones button,
+.visitadora-modal-acciones button {
+	font-family: inherit;
+	font-size: 0.78rem;
+	padding: 0.4rem 0.8rem;
+	border-radius: 6px;
+	border: 1px solid rgba(83, 185, 219, 0.35);
+	background: rgba(2, 15, 35, 0.5);
+	color: rgba(255, 255, 255, 0.85);
+	cursor: pointer;
+}
+
+.visitadora-acciones button:hover:not(:disabled),
+.visitadora-modal-acciones button:hover:not(:disabled) {
+	background: rgba(83, 185, 219, 0.18);
+}
+
+.visitadora-boton-primario {
+	background: #106da0 !important;
+	border-color: #106da0 !important;
+	color: #fff !important;
+}
+
+.visitadora-acciones button:disabled,
+.visitadora-modal-acciones button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* --- tarjetas de resumen --- */
+.visitadora-tarjetas {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+	gap: 0.75rem;
+}
+
+.visitadora-tarjeta {
+	padding: 0.8rem 1rem;
+	border: 1px solid rgba(83, 185, 219, 0.2);
+	border-radius: 8px;
+	background: rgba(2, 15, 35, 0.36);
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.visitadora-tarjeta-clave {
+	font-size: 0.68rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: rgba(143, 205, 229, 0.82);
+}
+
+.visitadora-tarjeta-valor {
+	font-size: 1.5rem;
+	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.visitadora-tarjeta-valor.dinero {
+	color: #7fd6ac;
+}
+
+.visitadora-tarjeta-valor.alerta {
+	color: #ef8a80;
+}
+
+/* --- tabla --- */
+.visitadora-tabla-contenedor {
+	overflow-x: auto;
+	border: 1px solid rgba(83, 185, 219, 0.2);
+	border-radius: 8px;
+	background: rgba(2, 15, 35, 0.36);
+}
+
+.visitadora-tabla {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.8rem;
+	min-width: 900px;
+}
+
+.visitadora-tabla th {
+	text-align: left;
+	font-size: 0.68rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: rgba(143, 205, 229, 0.82);
+	font-weight: 600;
+	padding: 0.7rem 0.8rem;
+	border-bottom: 1px solid rgba(83, 185, 219, 0.25);
+	white-space: nowrap;
+}
+
+.visitadora-tabla td {
+	padding: 0.7rem 0.8rem;
+	border-bottom: 1px solid rgba(83, 185, 219, 0.12);
+	color: rgba(255, 255, 255, 0.85);
+	vertical-align: top;
+}
+
+.visitadora-tabla td.numero {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.visitadora-tabla tfoot td {
+	border-top: 1px solid rgba(83, 185, 219, 0.3);
+	border-bottom: none;
+	font-weight: 600;
+	background: rgba(2, 15, 35, 0.6);
+}
+
+/* Los médicos con ingreso y sin porcentaje asignado: el hueco que provoca los
+   reclamos de comisión, así que se ve de inmediato. */
+.visitadora-fila-alerta td {
+	background: rgba(239, 83, 80, 0.12);
+}
+
+.visitadora-celda-larga {
+	max-width: 22rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.visitadora-dia {
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.visitadora-tabla.programacion input,
+.visitadora-tabla.programacion textarea {
+	width: 100%;
+	font-family: inherit;
+	font-size: 0.78rem;
+	padding: 0.4rem 0.5rem;
+	border-radius: 6px;
+	border: 1px solid rgba(83, 185, 219, 0.25);
+	background: rgba(2, 15, 35, 0.6);
+	color: #fff;
+	resize: vertical;
+}
+
+.visitadora-enlace {
+	background: none;
+	border: none;
+	color: #8fcde5;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: inherit;
+	padding: 0;
+	margin-right: 0.7rem;
+	text-align: left;
+}
+
+.visitadora-enlace:hover {
+	text-decoration: underline;
+}
+
+.visitadora-enlace.peligro {
+	color: #ef8a80;
+}
+
+.visitadora-detalle {
+	margin: 0.5rem 0 0;
+	padding-left: 1rem;
+	font-size: 0.72rem;
+	color: rgba(255, 255, 255, 0.65);
+}
+
+/* --- pastillas y fichas --- */
+.visitadora-pastilla {
+	display: inline-block;
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	padding: 0.1rem 0.4rem;
+	border-radius: 4px;
+	white-space: nowrap;
+}
+
+.visitadora-pastilla.ligado,
+.visitadora-pastilla.pagado {
+	background: rgba(127, 214, 172, 0.18);
+	color: #7fd6ac;
+}
+
+.visitadora-pastilla.suelto {
+	background: rgba(255, 255, 255, 0.1);
+	color: rgba(255, 255, 255, 0.6);
+}
+
+.visitadora-pastilla.pendiente {
+	background: rgba(221, 171, 99, 0.18);
+	color: #ddab63;
+}
+
+.visitadora-pastilla.sin {
+	background: rgba(239, 83, 80, 0.2);
+	color: #ef8a80;
+}
+
+.visitadora-pastilla.abierto {
+	background: rgba(83, 185, 219, 0.18);
+	color: #8fcde5;
+}
+
+.visitadora-fichas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	margin-top: 0.4rem;
+}
+
+.visitadora-ficha {
+	font-size: 0.68rem;
+	padding: 0.1rem 0.5rem;
+	border-radius: 11px;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	color: rgba(255, 255, 255, 0.6);
+}
+
+.visitadora-ficha.ligada {
+	border-color: rgba(127, 214, 172, 0.5);
+	color: #7fd6ac;
+	background: rgba(127, 214, 172, 0.12);
+}
+
+/* --- avisos --- */
+.visitadora-error {
+	padding: 0.9rem 1rem;
+	border: 1px solid rgba(239, 83, 80, 0.35);
+	border-radius: 8px;
+	background: rgba(239, 83, 80, 0.12);
+	color: rgba(255, 255, 255, 0.85);
+	margin: 0;
+}
+
+.visitadora-nota {
+	font-size: 0.75rem;
+	color: rgba(143, 205, 229, 0.75);
+	margin: 0;
+}
+
+.visitadora-advertencias {
+	margin: 0.5rem 0 1rem;
+	padding-left: 1.1rem;
+	font-size: 0.78rem;
+	color: rgba(255, 255, 255, 0.75);
+	max-height: 14rem;
+	overflow-y: auto;
+}
+
+.visitadora-advertencias li {
+	margin-bottom: 0.35rem;
+}
+
+/* --- modales --- */
+.visitadora-modal-fondo {
+	position: fixed;
+	inset: 0;
+	background: rgba(2, 10, 22, 0.7);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	z-index: 1000;
+}
+
+.visitadora-modal {
+	background: #0a1929;
+	border: 1px solid rgba(83, 185, 219, 0.3);
+	border-radius: 10px;
+	padding: 1.3rem 1.5rem;
+	width: 100%;
+	max-width: 26rem;
+	max-height: 90vh;
+	overflow-y: auto;
+	color: #fff;
+	font-family: 'Codec Pro', sans-serif;
+}
+
+.visitadora-modal.ancho {
+	max-width: 46rem;
+}
+
+.visitadora-modal h2 {
+	margin: 0 0 0.3rem;
+	font-size: 1.1rem;
+	font-weight: 500;
+}
+
+.visitadora-modal-sujeto {
+	margin: 0 0 1rem;
+	color: rgba(143, 205, 229, 0.82);
+	font-size: 0.85rem;
+}
+
+.visitadora-modal label {
+	display: block;
+	font-size: 0.7rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: rgba(143, 205, 229, 0.82);
+	margin: 0.8rem 0 0.25rem;
+}
+
+.visitadora-modal input,
+.visitadora-modal select,
+.visitadora-modal textarea {
+	width: 100%;
+	font-family: inherit;
+	font-size: 0.85rem;
+	padding: 0.45rem 0.6rem;
+	border-radius: 6px;
+	border: 1px solid rgba(83, 185, 219, 0.3);
+	background: rgba(2, 15, 35, 0.6);
+	color: #fff;
+	resize: vertical;
+}
+
+.visitadora-modal-columnas {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+	gap: 0.8rem;
+}
+
+.visitadora-modal-acciones {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 1.2rem;
+}
+
+.visitadora-historial {
+	margin-top: 1rem;
+	padding: 0.7rem 0.9rem;
+	border: 1px solid rgba(83, 185, 219, 0.2);
+	border-radius: 8px;
+	background: rgba(2, 15, 35, 0.4);
+}
+
+.visitadora-historial-titulo {
+	font-size: 0.68rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: rgba(143, 205, 229, 0.82);
+}
+
+.visitadora-historial ul {
+	margin: 0.4rem 0;
+	padding-left: 1.1rem;
+	font-size: 0.78rem;
+	color: rgba(255, 255, 255, 0.8);
+}
+
+:focus-visible {
+	outline: 2px solid #8fcde5;
+	outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+	.visitadora-pagina {
+		padding: 1rem 1rem 2rem;
+	}
+}

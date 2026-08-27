@@ -1,6 +1,9 @@
 import {
 	filtrarMenuPorRol,
 	puedeAccederRuta,
+	puedeEditarComisiones,
+	puedeVerModuloVisitadora,
+	rutaInicialPorRol,
 } from "./role-permissions";
 
 const menu = [
@@ -159,4 +162,135 @@ test("limits radiologo clinico to radiology, viewer, and report routes", () => {
 	expect(puedeAccederRuta("radiologo_clinico", "/usuarios")).toBe(false);
 	expect(puedeAccederRuta("radiologo_clinico", "/captura")).toBe(false);
 	expect(puedeAccederRuta("radiologo_clinico", "/perfil")).toBe(false);
+});
+
+const menuConVisitadora = [
+	...menu,
+	{ id: "configuracion", path: "/configuracion" },
+	{
+		id: "visitadora",
+		label: "Visitadora",
+		path: "/visitadora/informe",
+		hasSubmenu: true,
+		submenu: [
+			{ id: "visitadora-informe", path: "/visitadora/informe" },
+			{ id: "visitadora-programacion", path: "/visitadora/programacion" },
+			{ id: "visitadora-comisiones", path: "/visitadora/comisiones" },
+		],
+	},
+];
+
+describe("rol visitadora", () => {
+	test("entra a sus tres pantallas y a su perfil", () => {
+		expect(puedeAccederRuta("visitadora", "/visitadora/informe")).toBe(true);
+		expect(puedeAccederRuta("visitadora", "/visitadora/programacion")).toBe(true);
+		expect(puedeAccederRuta("visitadora", "/visitadora/comisiones")).toBe(true);
+		expect(puedeAccederRuta("visitadora", "/perfil")).toBe(true);
+	});
+
+	test.each([
+		"/dashboard",
+		"/pacientes",
+		"/doctores",
+		"/usuarios",
+		"/nuevo-paciente",
+		"/captura",
+		"/entrega-resultados",
+		"/historial",
+		"/cierre-caja",
+		"/reporte-ventas",
+		"/reporte-administrativo",
+		"/radiologia",
+		"/configuracion/precios",
+	])("no entra a %s", (ruta) => {
+		expect(puedeAccederRuta("visitadora", ruta)).toBe(false);
+	});
+
+	test("su menu son sus tres pantallas y nada mas", () => {
+		const filtrado = filtrarMenuPorRol(menuConVisitadora, "visitadora");
+		expect(filtrado.map((item) => item.id)).toEqual(["visitadora"]);
+		expect(filtrado[0].submenu.map((item) => item.id)).toEqual([
+			"visitadora-informe",
+			"visitadora-programacion",
+			"visitadora-comisiones",
+		]);
+	});
+
+	test.each(["visitadora", "Visitadora", "visitador", " VISITADORA "])(
+		"reconoce el rol escrito como %s",
+		(rol) => {
+			expect(puedeAccederRuta(rol, "/visitadora/informe")).toBe(true);
+			expect(puedeAccederRuta(rol, "/dashboard")).toBe(false);
+		},
+	);
+
+	test("no puede fijar porcentajes ni cerrar el mes", () => {
+		expect(puedeVerModuloVisitadora("visitadora")).toBe(true);
+		expect(puedeEditarComisiones("visitadora")).toBe(false);
+	});
+});
+
+describe("acceso al modulo de visitadora desde los demas roles", () => {
+	test.each(["admin", "administrador", "desarrollador", "radiologo", "Radiologo Director"])(
+		"%s entra al modulo, lo ve en el menu y puede fijar porcentajes",
+		(rol) => {
+			expect(puedeAccederRuta(rol, "/visitadora/comisiones")).toBe(true);
+			expect(filtrarMenuPorRol(menuConVisitadora, rol).map((item) => item.id)).toContain("visitadora");
+			expect(puedeEditarComisiones(rol)).toBe(true);
+		},
+	);
+
+	test.each([
+		"recepcionista",
+		"quimico",
+		"tecnico",
+		"tecnico_radiologia",
+		"radiologo_clinico",
+		"medico",
+		"doctor_externo",
+	])("%s no ve el modulo ni por menu ni por URL", (rol) => {
+		expect(puedeAccederRuta(rol, "/visitadora/informe")).toBe(false);
+		expect(puedeAccederRuta(rol, "/visitadora/comisiones")).toBe(false);
+		expect(filtrarMenuPorRol(menuConVisitadora, rol).map((item) => item.id)).not.toContain("visitadora");
+		expect(puedeVerModuloVisitadora(rol)).toBe(false);
+		expect(puedeEditarComisiones(rol)).toBe(false);
+	});
+
+	test("el radiologo director conserva el resto de su menu", () => {
+		const ids = filtrarMenuPorRol(menuConVisitadora, "radiologo").map((item) => item.id);
+		expect(ids).toContain("inicio");
+		expect(ids).toContain("reportes");
+		expect(ids).toContain("visitadora");
+	});
+});
+
+describe("rutaInicialPorRol", () => {
+	// La visitadora no puede entrar a /dashboard, asi que mandarla ahi la
+	// dejaria rebotando entre redirecciones sin poder usar la aplicacion.
+	test("la visitadora aterriza en su informe, no en el dashboard", () => {
+		expect(rutaInicialPorRol("visitadora")).toBe("/visitadora/informe");
+		expect(rutaInicialPorRol("Visitadora")).toBe("/visitadora/informe");
+	});
+
+	test("los demas roles conservan su destino de siempre", () => {
+		expect(rutaInicialPorRol("recepcionista")).toBe("/dashboard");
+		expect(rutaInicialPorRol("admin")).toBe("/dashboard");
+		expect(rutaInicialPorRol("radiologo")).toBe("/dashboard");
+		expect(rutaInicialPorRol("radiologo_clinico")).toBe("/radiologia");
+		expect(rutaInicialPorRol("doctor_externo")).toBe("/radiologia");
+	});
+
+	test("cada rol aterriza en una pantalla a la que si tiene acceso", () => {
+		for (const rol of [
+			"visitadora",
+			"recepcionista",
+			"admin",
+			"quimico",
+			"tecnico_radiologia",
+			"radiologo_clinico",
+			"doctor_externo",
+		]) {
+			expect(puedeAccederRuta(rol, rutaInicialPorRol(rol))).toBe(true);
+		}
+	});
 });

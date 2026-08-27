@@ -23,6 +23,8 @@ export const normalizarRolUsuario = (rol) => {
 		tecnico: "tecnico_radiologia",
 		quimico: "quimico",
 		recepcionista: "recepcionista",
+		visitadora: "visitadora",
+		visitador: "visitadora",
 		desarrollador: "desarrollador",
 	};
 	return roles[normalizado] || normalizado;
@@ -38,6 +40,7 @@ export const etiquetaRolUsuario = (rol) => {
 		tecnico_radiologia: "Técnico en Radiología",
 		quimico: "Químico",
 		recepcionista: "Recepcionista",
+		visitadora: "Visitadora",
 		desarrollador: "Desarrollador",
 	};
 	const rolNormalizado = normalizarRolUsuario(rol);

@@ -48,6 +48,9 @@ const VisorDicom = lazy(() => import('./pages/radiologia/pages/visor-dicom'));
 const VisorPaciente = lazy(() => import('./pages/radiologia/pages/visor-paciente'));
 const SalaEspera = lazy(() => import('./pages/sala-espera'));
 const Usuarios = lazy(() => import('./pages/usuarios'));
+const InformeVisitas = lazy(() => import('./pages/visitadora/informe-visitas'));
+const ProgramacionSemanal = lazy(() => import('./pages/visitadora/programacion-semanal'));
+const ConcentradoComisiones = lazy(() => import('./pages/visitadora/concentrado-comisiones'));
 
 const B = ({ children }) => <AppBoundary>{children}</AppBoundary>;
 
@@ -97,6 +100,10 @@ function App() {
 							<Route path="/reporte-ventas" element={<P><ReporteVentas /></P>} />
 							<Route path="/cortes-dia" element={<P><CortesDia /></P>} />
 							<Route path="/reporte-administrativo" element={<P><ReporteAdministrativo /></P>} />
+
+							<Route path="/visitadora/informe" element={<P><InformeVisitas /></P>} />
+							<Route path="/visitadora/programacion" element={<P><ProgramacionSemanal /></P>} />
+							<Route path="/visitadora/comisiones" element={<P><ConcentradoComisiones /></P>} />
 
 							<Route path="/configuracion/estudios" element={<P><EstudiosLab /></P>} />
 							<Route path="/configuracion/analitos" element={<P><Analitos /></P>} />
