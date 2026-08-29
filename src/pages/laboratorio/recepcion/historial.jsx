@@ -5,6 +5,7 @@ import pacienteIcono from "../../../assets/pacienteIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
+import { cargarAnalitosDeEstudios } from "../../../utils/analitos-de-estudios";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import "./historial.css";
 
@@ -131,48 +132,7 @@ const Historial = () => {
 				.eq("id_venta", idVenta)
 				.order("fecha_estudio", { ascending: false });
 			if (errorRadiologia) throw errorRadiologia;
-			const estudiosConAnalitos = await Promise.all(
-				estudiosVenta.map(async (estudio) => {
-					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
-						.from("estudio_analitos")
-						.select("*")
-						.eq("clave_estudio", estudio.clave_estudio)
-						.order("orden", { ascending: true });
-					if (errorRelaciones || !relacionesAnalitos?.length)
-						return { ...estudio, analitos: [] };
-					const analitosConDetalles = await Promise.all(
-						relacionesAnalitos.map(async (relacion) => {
-							const { data: analitoDetalle, error: errorDetalle } = await supabase
-								.from("analitos")
-								.select("*")
-								.eq("id_analito", relacion.id_analito)
-								.single();
-							if (errorDetalle || !analitoDetalle) return null;
-							let resultadoGuardado = "";
-							if (estudio.resultados) {
-								try {
-									const r = JSON.parse(estudio.resultados);
-									resultadoGuardado = r[analitoDetalle.clave] || "";
-								} catch (e) {}
-							}
-							return {
-								id_analito: analitoDetalle.id_analito,
-								clave: analitoDetalle.clave,
-								descripcion: analitoDetalle.descripcion,
-								unidades: analitoDetalle.unidad || "",
-								referencia: analitoDetalle.valor_referencia_texto || "",
-								tipo_resultado: analitoDetalle.tipo_resultado || "Numerico",
-								resultado: resultadoGuardado,
-								orden: relacion.orden,
-							};
-						}),
-					);
-					return {
-						...estudio,
-						analitos: analitosConDetalles.filter((a) => a !== null),
-					};
-				}),
-			);
+			const estudiosConAnalitos = await cargarAnalitosDeEstudios(supabase, estudiosVenta || []);
 			const estudiosImagen = (estudiosRadiologia || []).map((estudio) => ({
 				...estudio,
 				id_estudio_venta: `radiologia-${estudio.id_estudio}`,
