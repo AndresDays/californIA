@@ -35,6 +35,17 @@ export const resolverModalidadDesdeTipo = (tipoNombre = "") => {
 	return "";
 };
 
+// Los paquetes son de laboratorio y se ofrecen a todos los clientes, tengan o no
+// precio pactado, así que se marcan para que el tarifario del convenio no los
+// deje fuera de la búsqueda.
+export const construirPaqueteCatalogoUnificado = (paquete) => ({
+	...construirEstudioCatalogoUnificado(paquete, "laboratorio"),
+	id: `paquete-${paquete.id}`,
+	es_paquete: true,
+	tipo: "Paquete",
+	area: paquete.area || "Paquetes",
+});
+
 export const construirEstudioCatalogoUnificado = (estudio, modulo = "laboratorio") => {
 	const esImagen = modulo === "imagen";
 	return {
@@ -85,7 +96,13 @@ export const filtrarEstudiosCatalogo = ({
 	const tipoEsLaboratorio = modalidad === "laboratorio";
 
 	return estudios.filter((estudio) => {
-		if (clavesPermitidas?.size && !clavesPermitidas.has(normalizarClaveEstudio(estudio.clave))) {
+		// Los paquetes se ofrecen a todos los clientes: no dependen de que el
+		// convenio los tenga en su tarifario.
+		if (
+			!estudio.es_paquete &&
+			clavesPermitidas?.size &&
+			!clavesPermitidas.has(normalizarClaveEstudio(estudio.clave))
+		) {
 			return false;
 		}
 

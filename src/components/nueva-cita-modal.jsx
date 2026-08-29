@@ -9,6 +9,7 @@ import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 import {
   construirEstudioCatalogoUnificado,
+  construirPaqueteCatalogoUnificado,
   filtrarEstudiosCatalogo,
 } from '../utils/cita-nuevo-paciente';
 import { resolverTiposEstudioConvenio } from '../utils/tipos-estudio-convenio';
@@ -167,6 +168,16 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       construirEstudioCatalogoUnificado(estudio, 'laboratorio'),
     );
 
+    // Los paquetes son de laboratorio y se ofrecen a todos los clientes.
+    const { data: paquetes, error: errorPaquetes } = await supabase
+      .from('paquetes')
+      .select('id, clave, descripcion, dias_proceso')
+      .order('clave');
+
+    if (errorPaquetes) console.warn('No se pudieron cargar los paquetes:', errorPaquetes);
+
+    const paquetesCatalogo = (paquetes || []).map(construirPaqueteCatalogoUnificado);
+
     const { data: estudiosImagen, error: errorImagen } = await supabase
       .from('estudios_imagen_catalogo')
       .select('id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, dias_proceso')
@@ -177,12 +188,13 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     // búsqueda vacía impediría capturar la cita.
     if (errorImagen) {
       console.warn('No se pudo cargar el catálogo de imagen:', errorImagen);
-      setEstudios(estudiosLaboratorio);
+      setEstudios([...estudiosLaboratorio, ...paquetesCatalogo]);
       return;
     }
 
     setEstudios([
       ...estudiosLaboratorio,
+      ...paquetesCatalogo,
       ...(estudiosImagen || []).map((estudio) =>
         construirEstudioCatalogoUnificado(estudio, 'imagen'),
       ),

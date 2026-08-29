@@ -17,6 +17,7 @@ import {
 } from "../../hooks/use-campo-persistente";
 import {
 	construirEstudioCatalogoUnificado,
+	construirPaqueteCatalogoUnificado,
 	construirEstudioSeleccionado,
 	dividirEstudiosCita,
 	encontrarEstudioCatalogo,
@@ -1049,6 +1050,16 @@ const NuevoPaciente = () => {
 				construirEstudioCatalogoUnificado(estudio, "laboratorio"),
 			);
 
+			// Los paquetes son de laboratorio y se ofrecen a todos los clientes.
+			const { data: paquetes, error: errorPaquetes } = await supabase
+				.from("paquetes")
+				.select("id, clave, descripcion, dias_proceso, condiciones")
+				.order("clave");
+
+			if (errorPaquetes) console.warn("No se pudieron cargar los paquetes:", errorPaquetes);
+
+			const paquetesCatalogo = (paquetes || []).map(construirPaqueteCatalogoUnificado);
+
 			const { data: estudiosImagen, error: errorImagen } = await supabase
 				.from("estudios_imagen_catalogo")
 				.select(
@@ -1062,7 +1073,7 @@ const NuevoPaciente = () => {
 				setCatalogoImagenError(
 					"No se pudo cargar el catalogo de imagen. Revisa que las migraciones esten aplicadas.",
 				);
-				setEstudiosDisponibles(estudiosLaboratorio);
+				setEstudiosDisponibles([...estudiosLaboratorio, ...paquetesCatalogo]);
 				return;
 			}
 			setCatalogoImagenError("");
@@ -1073,6 +1084,7 @@ const NuevoPaciente = () => {
 
 			setEstudiosDisponibles([
 				...estudiosLaboratorio,
+				...paquetesCatalogo,
 				...estudiosImagenFormateados,
 			]);
 		} catch (error) {
