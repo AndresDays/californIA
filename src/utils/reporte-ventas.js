@@ -26,14 +26,82 @@ const normalizarAreaReporte = (area) =>
 		.trim()
 		.toLowerCase();
 
+// El área que se guarda en estudios_venta es la del catálogo, y en laboratorio
+// esa columna trae el departamento -Hematologia, Quimica, Microbiologia-, no la
+// palabra "laboratorio". Reconocerlos por nombre es lo que permite separarlos
+// de la imagen cuando no hay serie de folio de por medio.
+const AREAS_LABORATORIO = [
+	"laboratorio",
+	"hematolog",
+	"quimica",
+	"bioquimica",
+	"inmuno",
+	"microbiolog",
+	"bacteriolog",
+	"parasitolog",
+	"uroanalisis",
+	"urianalisis",
+	"coprolog",
+	"coagulac",
+	"hormona",
+	"serolog",
+	"citolog",
+	"histopatolog",
+	"patolog",
+	"toxicolog",
+	"genetica",
+	"biologia molecular",
+];
+
+const AREAS_RESONANCIA_VETERINARIA = ["resonancia", "veterinaria", "mascota"];
+
+// La imagen sí nombra su área por la modalidad con que se estudia.
+const AREAS_IMAGEN = [
+	"radiolog",
+	"imagen",
+	"rayos",
+	"tomograf",
+	"ultrasonido",
+	"ecograf",
+	"sonograf",
+	"mastograf",
+	"densitometr",
+	"fluoroscop",
+	"angiograf",
+	"contrastado",
+	"medicina nuclear",
+];
+
+const incluyeAlguna = (texto, terminos) => terminos.some((termino) => texto.includes(termino));
+
 export const obtenerGrupoReportePorEstudio = (estudio = {}) => {
 	const area = normalizarAreaReporte(estudio.area);
 	if (!area) return "";
-	if (area.includes("laboratorio")) return "laboratorio";
-	if (area.includes("resonancia") || area.includes("veterinaria")) {
-		return "resonancias_veterinaria";
-	}
-	return "radiologia_imagen";
+	// Las resonancias y la veterinaria se revisan primero: son imagen, pero el
+	// reporte las cuenta aparte.
+	if (incluyeAlguna(area, AREAS_RESONANCIA_VETERINARIA)) return "resonancias_veterinaria";
+	if (incluyeAlguna(area, AREAS_LABORATORIO)) return "laboratorio";
+	if (incluyeAlguna(area, AREAS_IMAGEN)) return "radiologia_imagen";
+	return "";
+};
+
+// La serie del folio es la señal firme de a qué grupo pertenece una venta: se
+// decidió al cobrar y quedó escrita en el folio. C es el laboratorio de CDC, y
+// A y B son imagen. Un área que no se reconoce se resuelve con ella, en vez de
+// caer en un cajón por descarte -que era lo que mandaba los folios C a
+// Radiología/Imagen y dejaba vacío el grupo de Laboratorio-.
+const GRUPO_POR_SERIE = { A: "radiologia_imagen", B: "radiologia_imagen", C: "laboratorio" };
+
+export const obtenerGrupoReporteVenta = (venta = {}, estudio = {}) => {
+	const porArea = obtenerGrupoReportePorEstudio(estudio);
+	const porSerie = GRUPO_POR_SERIE[serieDeFolio(venta?.folio)] || "";
+	if (!porArea) return porSerie;
+	// La serie manda sobre un área de imagen genérica, porque una orden de
+	// laboratorio no cambia de grupo por cómo esté nombrada su área; lo que la
+	// serie no distingue son las resonancias y la veterinaria dentro de la
+	// imagen, así que ahí gana el área.
+	if (porSerie === "laboratorio" && porArea === "radiologia_imagen") return "laboratorio";
+	return porArea;
 };
 
 const distribuirMonto = (monto, fragmentos) => {
@@ -54,7 +122,7 @@ export const partirVentasPorArea = (ventas = []) => {
 	ventas.forEach((venta) => {
 		const estudiosPorGrupo = new Map();
 		(venta.estudios_venta || []).forEach((estudio) => {
-			const grupo = obtenerGrupoReportePorEstudio(estudio);
+			const grupo = obtenerGrupoReporteVenta(venta, estudio);
 			if (!grupo) return;
 			if (!estudiosPorGrupo.has(grupo)) estudiosPorGrupo.set(grupo, []);
 			estudiosPorGrupo.get(grupo).push(estudio);
