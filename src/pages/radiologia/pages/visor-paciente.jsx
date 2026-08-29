@@ -117,6 +117,9 @@ const VisorPaciente = () => {
 	const divRef = useRef(null);
 	const csRef = useRef(null);
 	const enabledRef = useRef(false);
+	// Handler del bus global de cornerstone, guardado para poder quitarlo al
+	// desmontar el visor.
+	const alRenderizarRef = useRef(null);
 	const dragRef = useRef(null);
 	const imageIdsRef = useRef([]);
 	const indiceRef = useRef(0);
@@ -325,7 +328,10 @@ const VisorPaciente = () => {
 					cornerstone.enable(divRef.current);
 					enabledRef.current = true;
 					csRef.current = cornerstone;
-					cornerstone.events.addEventListener("cornerstoneimagerendered", (ev) => {
+					// El bus de cornerstone es global y vive fuera de React: una
+					// función anónima aquí seguía registrada tras desmontar el
+					// visor y corría en cada cuadro. Se guarda para quitarla.
+					alRenderizarRef.current = (ev) => {
 						if (ev.detail.element !== divRef.current) return;
 						const vp = cornerstone.getViewport(divRef.current);
 						if (vp) {
@@ -334,7 +340,11 @@ const VisorPaciente = () => {
 								`W: ${Math.round(vp.voi?.windowWidth || 0)} L: ${Math.round(vp.voi?.windowCenter || 0)}`,
 							);
 						}
-					});
+					};
+					cornerstone.events.addEventListener(
+						"cornerstoneimagerendered",
+						alRenderizarRef.current,
+					);
 				}
 				await cargarImagen(seriesAgrupadas[0]?.imageIds?.[0]);
 			} catch (e) {
@@ -347,6 +357,13 @@ const VisorPaciente = () => {
 		cargar();
 		return () => {
 			cancelado = true;
+			if (csRef.current && alRenderizarRef.current) {
+				csRef.current.events.removeEventListener(
+					"cornerstoneimagerendered",
+					alRenderizarRef.current,
+				);
+				alRenderizarRef.current = null;
+			}
 		};
 		}, [estudioId, folioPortal, telefonoPortal]);
 
