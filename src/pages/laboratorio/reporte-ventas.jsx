@@ -48,6 +48,14 @@ const inicioMesMexico = () => {
 	return fecha.toISOString().split("T")[0];
 };
 
+// El grupo por defecto del encabezado: sin recortar por área. Vive aquí y no en
+// GRUPOS_REPORTE_POR_AREA porque los cortes del día sí exigen elegir un grupo.
+const GRUPO_TODAS_LAS_AREAS = {
+	id: "",
+	nombre: "Todas las áreas",
+	archivo: "todas-las-areas",
+};
+
 const ReporteVentas = () => {
 	const [fechaInicial, setFechaInicial] = useFechaPersistente("reporte-ventas:inicio", inicioMesMexico());
 	const [fechaFinal, setFechaFinal] = useFechaPersistente("reporte-ventas:fin", hoyMexico());
@@ -64,7 +72,7 @@ const ReporteVentas = () => {
 	const [serieSeleccionada, setSerieSeleccionada] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
-	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState("laboratorio");
+	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState(GRUPO_TODAS_LAS_AREAS.id);
 	const [ventaDetalle, setVentaDetalle] = useState(null);
 	const [montoAbono, setMontoAbono] = useState("");
 	const [formaPagoAbono, setFormaPagoAbono] = useState("efectivo");
@@ -139,55 +147,64 @@ const ReporteVentas = () => {
 		],
 	);
 
+	// El grupo de área del encabezado recorta TODO el reporte —métricas, gráfica,
+	// tabla, copiado y descargas— y no sólo el archivo que se bajaba: antes en
+	// pantalla no se notaba y parecía un control muerto. "Todas las áreas" deja
+	// las ventas tal como salen de los filtros de abajo, sin pasar por el reparto
+	// por área, que descarta las ventas cuyos estudios no traen área y ahí sí se
+	// perderían renglones.
+	const ventasDelArea = useMemo(
+		() => {
+			if (!areaSalidaSeleccionada) return ventasFiltradas;
+
+			const estudioBuscado = buscarEstudio.trim().toLowerCase();
+			// Al partir la venta, cada fragmento se queda sólo con los estudios de su
+			// grupo: el área y la búsqueda se vuelven a revisar contra ese fragmento
+			// porque la venta pudo entrar al filtro por un estudio de otro grupo.
+			return (partirVentasPorArea(ventasFiltradas)[areaSalidaSeleccionada] || []).filter(
+				(venta) => {
+					if (
+						areaSeleccionada &&
+						!venta.estudios_venta?.some((estudio) => estudio.area === areaSeleccionada)
+					) return false;
+					if (
+						estudioBuscado &&
+						!venta.estudios_venta?.some((estudio) =>
+							[estudio.clave_estudio, estudio.descripcion_estudio]
+								.filter(Boolean)
+								.join(" ")
+								.toLowerCase()
+								.includes(estudioBuscado),
+						)
+					) return false;
+					return true;
+				},
+			);
+		},
+		[ventasFiltradas, areaSalidaSeleccionada, areaSeleccionada, buscarEstudio],
+	);
+
 	const metricas = useMemo(
-		() => calcularMetricasVentas(ventasFiltradas),
-		[ventasFiltradas],
+		() => calcularMetricasVentas(ventasDelArea),
+		[ventasDelArea],
 	);
 	const ventasPorDia = useMemo(
-		() => agruparVentasPorDia(ventasFiltradas),
-		[ventasFiltradas],
+		() => agruparVentasPorDia(ventasDelArea),
+		[ventasDelArea],
 	);
 	const estudiosTop = useMemo(
-		() => agruparEstudiosVendidos(ventasFiltradas),
-		[ventasFiltradas],
+		() => agruparEstudiosVendidos(ventasDelArea),
+		[ventasDelArea],
 	);
 	const ventasPorVendedor = useMemo(
-		() => agruparVentasPorVendedor(ventasFiltradas),
-		[ventasFiltradas],
+		() => agruparVentasPorVendedor(ventasDelArea),
+		[ventasDelArea],
 	);
 	const ventasSinSucursal = useMemo(
 		() => ventas.filter((venta) => !obtenerIdSucursalVenta(venta)).length,
 		[ventas],
 	);
 	const maxVal = Math.max(...ventasPorDia.map((item) => item.total), 1);
-	const ventasPorArea = useMemo(
-		() => {
-			const estudioBuscado = buscarEstudio.trim().toLowerCase();
-			return Object.fromEntries(
-				Object.entries(partirVentasPorArea(ventasFiltradas)).map(([grupo, ventasGrupo]) => [
-					grupo,
-					ventasGrupo.filter((venta) => {
-						if (
-							areaSeleccionada &&
-							!venta.estudios_venta?.some((estudio) => estudio.area === areaSeleccionada)
-						) return false;
-						if (
-							estudioBuscado &&
-							!venta.estudios_venta?.some((estudio) =>
-								[estudio.clave_estudio, estudio.descripcion_estudio]
-									.filter(Boolean)
-									.join(" ")
-									.toLowerCase()
-									.includes(estudioBuscado),
-							)
-						) return false;
-						return true;
-					}),
-				]),
-			);
-		},
-		[ventasFiltradas, areaSeleccionada, buscarEstudio],
-	);
 
 	const setPeriodo = (periodo) => {
 		setPeriodoGrafica(periodo);
@@ -202,6 +219,20 @@ const ReporteVentas = () => {
 		setFechaInicial(inicio.toISOString().split("T")[0]);
 		setFechaFinal(fin.toISOString().split("T")[0]);
 	};
+
+	const mostrarNotificacion = (mensaje, tipo = "exito") =>
+		setNotificacion({ isOpen: true, mensaje, tipo });
+
+	// Excel y PDF salen con las mismas columnas que se ven en pantalla.
+	const colsVentas = COLUMNAS_TABLA_VENTAS;
+	const filasVentas = (ventasAExportar) =>
+		ventasAExportar.map((venta) => filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta }));
+
+	// El grupo elegido también nombra el archivo que se descarga.
+	const grupoSalida =
+		GRUPOS_REPORTE_POR_AREA.find((grupo) => grupo.id === areaSalidaSeleccionada) ||
+		GRUPO_TODAS_LAS_AREAS;
+	const nombreArchivoSalida = `reporte-ventas-${fechaInicial}-${fechaFinal}-${grupoSalida.archivo}`;
 
 	// La impresión sale con el formato del corte de caja: hoja apaisada, blanco y
 	// negro y tablas cuadriculadas. Antes se mandaba la pantalla tal cual, con su
@@ -225,7 +256,7 @@ const ReporteVentas = () => {
 				fechaFinal,
 				usuario: empleadoData?.nombre || getPrimerNombre(),
 				columnas: COLUMNAS_TABLA_VENTAS,
-				filas: filasVentas(ventasFiltradas),
+				filas: filasVentas(ventasDelArea),
 				metricas,
 				filtros: {
 					Sucursal: nombreDe(sucursales, sucursalSeleccionada, "id_sucursal", "nombre"),
@@ -234,6 +265,8 @@ const ReporteVentas = () => {
 					Empresa: empresaFacturaSeleccionada,
 					Serie: serieSeleccionada,
 					Area: areaSeleccionada,
+					// El impreso también dice por qué grupo está recortado el reporte.
+					Grupo: areaSalidaSeleccionada ? grupoSalida.nombre : "",
 					"Forma de pago": formaPagoSeleccionada,
 					Estudio: buscarEstudio,
 				},
@@ -244,39 +277,47 @@ const ReporteVentas = () => {
 		ventana.print();
 	};
 
-	// Excel y PDF salen con las mismas columnas que se ven en pantalla.
-	const colsVentas = COLUMNAS_TABLA_VENTAS;
-	const filasVentas = (ventasAExportar) =>
-		ventasAExportar.map((venta) => filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta }));
-
+	// Se exporta lo mismo que se está viendo. Antes se buscaba el grupo del
+	// selector dentro del reparto por área y, si ese grupo venía vacío, la
+	// descarga se cancelaba sin decir nada: el botón parecía descompuesto.
 	const descargarExcel = () => {
-		GRUPOS_REPORTE_POR_AREA.filter((grupo) => grupo.id === areaSalidaSeleccionada).forEach((grupo) => {
-			const ventasGrupo = ventasPorArea[grupo.id] || [];
-			if (ventasGrupo.length === 0) return;
-			exportarExcel(
-				colsVentas,
-				filasVentas(ventasGrupo),
-				`reporte-ventas-${fechaInicial}-${fechaFinal}-${grupo.archivo}`,
-			);
-		});
+		const filas = filasVentas(ventasDelArea);
+		if (filas.length === 0) {
+			mostrarNotificacion("No hay ventas que exportar con los filtros seleccionados", "advertencia");
+			return;
+		}
+		try {
+			exportarExcel(colsVentas, filas, nombreArchivoSalida);
+			mostrarNotificacion(`Se exportaron ${filas.length} renglones a Excel`);
+		} catch (error) {
+			console.error("Error al exportar a Excel:", error);
+			mostrarNotificacion(error.message || "No se pudo generar el archivo de Excel", "error");
+		}
 	};
 
 	const descargarPDF = () => {
-		GRUPOS_REPORTE_POR_AREA.filter((grupo) => grupo.id === areaSalidaSeleccionada).forEach((grupo) => {
-			const ventasGrupo = ventasPorArea[grupo.id] || [];
-			if (ventasGrupo.length === 0) return;
+		const filas = filasVentas(ventasDelArea);
+		if (filas.length === 0) {
+			mostrarNotificacion("No hay ventas que exportar con los filtros seleccionados", "advertencia");
+			return;
+		}
+		try {
 			exportarPDF(
-				`Reporte de Ventas ${fechaInicial} – ${fechaFinal} — ${grupo.nombre}`,
+				`Reporte de Ventas ${fechaInicial} – ${fechaFinal} — ${grupoSalida.nombre}`,
 				colsVentas,
-				filasVentas(ventasGrupo),
-				`reporte-ventas-${fechaInicial}-${fechaFinal}-${grupo.archivo}`,
+				filas,
+				nombreArchivoSalida,
 			);
-		});
+			mostrarNotificacion(`Se exportaron ${filas.length} renglones a PDF`);
+		} catch (error) {
+			console.error("Error al exportar a PDF:", error);
+			mostrarNotificacion(error.message || "No se pudo generar el archivo PDF", "error");
+		}
 	};
 
 	const renderReporte = () => {
 		if (cargando) return <div className="rv-empty-state">Cargando reporte...</div>;
-		if (ventasFiltradas.length === 0) {
+		if (ventasDelArea.length === 0) {
 			return <div className="rv-empty-state">No hay ventas para los filtros seleccionados.</div>;
 		}
 
@@ -346,7 +387,7 @@ const ReporteVentas = () => {
 						</tr>
 					</thead>
 					<tbody>
-						{ventasFiltradas.map((venta) => {
+						{ventasDelArea.map((venta) => {
 							// El folio se pinta como botón para abrir el detalle; el resto del
 							// renglón sale de la misma definición que se copia y se exporta.
 							const [, ...celdas] = filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta });
@@ -400,18 +441,15 @@ const ReporteVentas = () => {
 		setCodigoAprobacionAbono("");
 	}, [ventaDetalle]);
 
-	const mostrarNotificacion = (mensaje, tipo = "exito") =>
-		setNotificacion({ isOpen: true, mensaje, tipo });
-
 	// Seleccionar la tabla con el mouse deja fuera el folio, que es un botón, y
 	// arrastra los saltos de renglón: se copia con tabuladores para que al pegar
 	// en Excel cada dato caiga en su celda.
 	const copiarTabla = async () => {
-		const texto = tablaVentasComoTexto(ventasFiltradas, { nombreDoctor: nombreDoctorVenta });
+		const texto = tablaVentasComoTexto(ventasDelArea, { nombreDoctor: nombreDoctorVenta });
 		const copiado = await copiarTextoAlPortapapeles(texto);
 		mostrarNotificacion(
 			copiado
-				? `Se copiaron ${ventasFiltradas.length} renglones al portapapeles`
+				? `Se copiaron ${ventasDelArea.length} renglones al portapapeles`
 				: "No se pudo copiar la tabla",
 			copiado ? "exito" : "error",
 		);
@@ -458,7 +496,13 @@ const ReporteVentas = () => {
 				<div className="rv-header">
 					<h1 className="rv-title">Reporte de Ventas</h1>
 					<div className="rv-header-actions">
-						<select value={areaSalidaSeleccionada} onChange={(e) => setAreaSalidaSeleccionada(e.target.value)} className="rv-btn-sm">
+						<select
+							value={areaSalidaSeleccionada}
+							onChange={(e) => setAreaSalidaSeleccionada(e.target.value)}
+							className="rv-btn-sm"
+							title="Filtrar todo el reporte por grupo de área"
+							aria-label="Grupo de área">
+							<option value={GRUPO_TODAS_LAS_AREAS.id}>{GRUPO_TODAS_LAS_AREAS.nombre}</option>
 							{GRUPOS_REPORTE_POR_AREA.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
 						</select>
 						<button className="rv-btn-sm" onClick={copiarTabla}>
@@ -487,7 +531,7 @@ const ReporteVentas = () => {
 							</div>
 							<div className="rv-metric-sub up">
 								<span className="rv-dot up"></span>
-								{ventasFiltradas.length} ventas filtradas
+								{ventasDelArea.length} ventas filtradas
 							</div>
 						</div>
 						<div className="rv-metric">

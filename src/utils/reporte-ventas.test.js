@@ -149,6 +149,24 @@ describe("reporte ventas helpers", () => {
 			})],
 		});
 	});
+
+	// Por esto el reporte no reparte por area cuando se piden "Todas las areas":
+	// una venta cuyos estudios no traen area no cae en ningun grupo y se perderia
+	// del total y de las descargas.
+	test("una venta sin area en sus estudios no cae en ningun grupo", () => {
+		const ventaSinArea = {
+			id_venta: 4,
+			total: 300,
+			pago_recibido: 300,
+			estudios_venta: [{ descripcion_estudio: "Estudio sin area", precio: 300 }],
+		};
+
+		expect(partirVentasPorArea([ventaSinArea])).toEqual({
+			laboratorio: [],
+			resonancias_veterinaria: [],
+			radiologia_imagen: [],
+		});
+	});
 });
 
 // El folio dice a qué empresa se factura la orden sin abrirla: A es la imagen de
