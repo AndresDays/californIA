@@ -36,6 +36,18 @@ const menu = [
 			{ id: "reporte-administrativo", path: "/reporte-administrativo" },
 		],
 	},
+	{
+		id: "configuracion",
+		label: "Configuracion",
+		path: "/configuracion",
+		hasSubmenu: true,
+		submenu: [
+			{ id: "estudios", path: "/configuracion/estudios" },
+			{ id: "analitos", path: "/configuracion/analitos" },
+			{ id: "precios", path: "/configuracion/precios" },
+			{ id: "version", path: "/configuracion/version" },
+		],
+	},
 ];
 
 test("limits receptionist menu to reception and allowed admin catalogs", () => {
@@ -47,6 +59,7 @@ test("limits receptionist menu to reception and allowed admin catalogs", () => {
 		"recepcion",
 		"administracion",
 		"reportes",
+		"configuracion",
 	]);
 	expect(filtrado.find((item) => item.id === "administracion").submenu.map((item) => item.id)).toEqual([
 		"pacientes",
@@ -74,6 +87,65 @@ test("blocks receptionist access to restricted routes", () => {
 	expect(puedeAccederRuta("recepcionista", "/usuarios")).toBe(false);
 	expect(puedeAccederRuta("recepcionista", "/radiologia")).toBe(false);
 	expect(puedeAccederRuta("admin", "/usuarios")).toBe(true);
+});
+
+describe("recepcion en Configuracion", () => {
+	// Recepcion necesita saber que version tiene instalada para reportar fallas,
+	// pero los catalogos y los precios siguen siendo territorio ajeno.
+	test("entra solo a la version de la app", () => {
+		expect(puedeAccederRuta("recepcionista", "/configuracion/version")).toBe(true);
+		expect(puedeAccederRuta("Recepcion", "/configuracion/version")).toBe(true);
+	});
+
+	test.each([
+		"/configuracion",
+		"/configuracion/estudios",
+		"/configuracion/precios",
+		"/configuracion/analitos",
+		"/configuracion/paquetes",
+		"/configuracion/areas",
+		"/configuracion/tipo-muestra",
+		"/configuracion/recipientes",
+		"/configuracion/metodo",
+		"/configuracion/tecnica",
+		"/configuracion/equipos",
+		"/configuracion/nivel",
+	])("no entra a %s", (ruta) => {
+		expect(puedeAccederRuta("recepcionista", ruta)).toBe(false);
+		expect(puedeAccederRuta("Recepcion", ruta)).toBe(false);
+	});
+
+	// El permiso es la ruta exacta: nada colgado debajo de ella se abre solo.
+	test("no abre subrutas colgadas de la version", () => {
+		expect(puedeAccederRuta("recepcionista", "/configuracion/version/editar")).toBe(false);
+		expect(puedeAccederRuta("recepcionista", "/configuracion/versiones")).toBe(false);
+	});
+
+	test("ve Configuracion en el menu con la version como unica opcion", () => {
+		const configuracion = filtrarMenuPorRol(menu, "recepcionista").find(
+			(item) => item.id === "configuracion",
+		);
+
+		expect(configuracion).toBeDefined();
+		expect(configuracion.submenu.map((item) => item.id)).toEqual(["version"]);
+	});
+
+	test.each(["admin", "quimico", "tecnico", "medico"])(
+		"%s conserva Configuracion completa",
+		(rol) => {
+			const configuracion = filtrarMenuPorRol(menu, rol).find(
+				(item) => item.id === "configuracion",
+			);
+
+			expect(configuracion.submenu.map((item) => item.id)).toEqual([
+				"estudios",
+				"analitos",
+				"precios",
+				"version",
+			]);
+			expect(puedeAccederRuta(rol, "/configuracion/precios")).toBe(true);
+		},
+	);
 });
 
 test("hides reports users and reception module for quimico", () => {
@@ -116,10 +188,7 @@ test.each(["quimico", "tecnico", "medico"])(
 );
 
 test("hides capture administration and configuration for tecnico radiologia", () => {
-	const filtrado = filtrarMenuPorRol(
-		[...menu, { id: "configuracion", path: "/configuracion" }],
-		"tecnico_radiologia",
-	);
+	const filtrado = filtrarMenuPorRol(menu, "tecnico_radiologia");
 
 	expect(filtrado.map((item) => item.id)).not.toContain("captura");
 	expect(filtrado.map((item) => item.id)).not.toContain("administracion");
@@ -166,7 +235,6 @@ test("limits radiologo clinico to radiology, viewer, and report routes", () => {
 
 const menuConVisitadora = [
 	...menu,
-	{ id: "configuracion", path: "/configuracion" },
 	{
 		id: "visitadora",
 		label: "Visitadora",

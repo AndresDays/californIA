@@ -1,3 +1,4 @@
+import { filtrarMenuPorRol } from "../utils/role-permissions";
 import { sidebarItems } from "./sidebar-menu";
 
 const labelsFor = (itemId) =>
@@ -56,5 +57,31 @@ describe("sidebar shared menu", () => {
 			"Nivel del Mar",
 			"Versión de la app",
 		]);
+	});
+
+	// Recepción abre Configuración únicamente para consultar la versión
+	// instalada; los catálogos y los precios no le aparecen ni por error.
+	test("shows reception only the app version inside configuration", () => {
+		const configuracion = filtrarMenuPorRol(sidebarItems, "recepcionista").find(
+			(item) => item.id === "configuracion",
+		);
+
+		expect(configuracion).toBeDefined();
+		expect(configuracion.submenu.map((item) => item.label)).toEqual([
+			"Versión de la app",
+		]);
+		expect(configuracion.submenu.map((item) => item.path)).toEqual([
+			"/configuracion/version",
+		]);
+	});
+
+	test("keeps the full configuration submenu for the other roles", () => {
+		const configuracion = filtrarMenuPorRol(sidebarItems, "admin").find(
+			(item) => item.id === "configuracion",
+		);
+
+		expect(configuracion.submenu.map((item) => item.label)).toEqual(
+			labelsFor("configuracion"),
+		);
 	});
 });
