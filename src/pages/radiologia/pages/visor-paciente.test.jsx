@@ -155,6 +155,30 @@ describe("VisorPaciente", () => {
 		configurarSupabase();
 	});
 
+	// El bus de cornerstone es global: un handler que no se quita al desmontar
+	// se queda corriendo en cada cuadro y se acumula visor tras visor. La fuga
+	// no se ve en pantalla, por eso la cubre una prueba.
+	test("quita del bus de cornerstone su listener al desmontar", async () => {
+		const cornerstone = require("cornerstone-core");
+		const { unmount } = renderVisor();
+		await screen.findAllByText("Serie AP");
+
+		expect(cornerstone.events.addEventListener).toHaveBeenCalledWith(
+			"cornerstoneimagerendered",
+			expect.any(Function),
+		);
+		const registrado = cornerstone.events.addEventListener.mock.calls.find(
+			([evento]) => evento === "cornerstoneimagerendered",
+		)[1];
+
+		unmount();
+
+		expect(cornerstone.events.removeEventListener).toHaveBeenCalledWith(
+			"cornerstoneimagerendered",
+			registrado,
+		);
+	});
+
 	test("muestra los datos del paciente y las series al cargar", async () => {
 		renderVisor();
 		expect((await screen.findAllByText("Serie AP")).length).toBeGreaterThan(0);

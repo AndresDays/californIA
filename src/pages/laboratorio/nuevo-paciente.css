@@ -536,6 +536,15 @@
 	text-align: center;
 }
 
+/* La cantidad lleva ancho fijo para que los botones no se encimen con la
+   descripción cuando la clave del estudio es larga. */
+.estudios-table th:nth-child(4),
+.estudios-table td:nth-child(4) {
+	width: 110px;
+	text-align: center;
+	overflow: visible;
+}
+
 .estudios-table tbody tr {
 	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
 	transition: background 0.2s;
@@ -575,6 +584,57 @@
 .btn-detalle-estudio:focus-visible {
 	color: #8bc7e8;
 	text-decoration-color: currentColor;
+}
+
+/* Los botones de cantidad repiten el trazo del botón de borrar para que la
+   última columna y esta se lean como controles de la misma tabla. */
+.cantidad-control {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.btn-cantidad {
+	width: 26px;
+	height: 26px;
+	background: transparent;
+	border: 1px solid rgba(111, 179, 210, 0.25);
+	border-radius: 6px;
+	color: rgba(255, 255, 255, 0.9);
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: all 0.2s;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.btn-cantidad:hover:not(:disabled) {
+	background: rgba(111, 179, 210, 0.12);
+	border-color: rgba(111, 179, 210, 0.45);
+	transform: scale(1.08);
+}
+
+/* En cantidad 1 el "−" queda inerte a propósito: para quitar el estudio está el
+   botón de borrar, y así un click de más no desaparece el renglón. */
+.btn-cantidad:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.cantidad-valor {
+	min-width: 1.5rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+/* El precio unitario sólo aparece cuando hay más de una pieza: sirve para
+   revisar el cobro sin dividir de cabeza. */
+.precio-unitario {
+	display: block;
+	font-size: 0.72rem;
+	color: rgba(255, 255, 255, 0.55);
 }
 
 .btn-delete {

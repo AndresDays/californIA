@@ -84,6 +84,13 @@ const RECEPCIONISTA_PATHS = [
 	"/perfil",
 ];
 
+// Recepción necesita consultar qué versión de la aplicación tiene instalada,
+// pero nada más de Configuración (estudios, analitos, precios, equipos...).
+// Va en una lista aparte porque RECEPCIONISTA_PATHS se compara con
+// `startsWith`, y meter "/configuracion" ahí abriría todo el submódulo; aquí la
+// comparación es exacta, así que sólo pasa esta pantalla.
+const RECEPCIONISTA_PATHS_EXACTOS = ["/configuracion/version"];
+
 // La visitadora sólo sale de su módulo para su propio perfil, donde cambia su
 // contraseña.
 const VISITADORA_PATHS = ["/visitadora", "/perfil"];
@@ -142,6 +149,7 @@ export const puedeAccederRuta = (rol, pathname = "") => {
 	}
 
 	if (esRecepcionista(rol)) {
+		if (RECEPCIONISTA_PATHS_EXACTOS.includes(pathname)) return true;
 		return RECEPCIONISTA_PATHS.some(
 			(path) => pathname === path || pathname.startsWith(`${path}/`),
 		);
@@ -199,6 +207,19 @@ export const filtrarMenuPorRol = (items = [], rol) => {
 						...item,
 						submenu: item.submenu?.filter(
 							(subItem) => subItem.id === "reporte-ventas",
+						),
+					};
+				}
+				// Configuración aparece sólo como puerta a la versión de la
+				// app; los catálogos y los precios siguen fuera de su alcance.
+				// El ítem padre no navega -sólo despliega el submenú-, así que
+				// dejarlo con su `path` "/configuracion" no la lleva a ninguna
+				// pantalla prohibida.
+				if (item.id === "configuracion") {
+					return {
+						...item,
+						submenu: item.submenu?.filter(
+							(subItem) => subItem.id === "version",
 						),
 					};
 				}

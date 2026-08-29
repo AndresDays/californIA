@@ -133,6 +133,7 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 		paciente,
 		edad,
 		doctor,
+		cliente,
 		empresa,
 		telefono,
 		email,
@@ -215,7 +216,9 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 
 	pdf.setFont('helvetica', 'bold');
 	pdf.setFontSize(10);
-	y = escribirCentradoAjustado(pdf, `Cliente: ${(paciente || '').toUpperCase()}`, y, {
+	// El nombre que va aquí es el del paciente: rotularlo como "Cliente" lo
+	// confundía con el convenio, que ahora tiene su propio renglón bajo el médico.
+	y = escribirCentradoAjustado(pdf, `Paciente: ${(paciente || '').toUpperCase()}`, y, {
 		ancho: W - mg * 2,
 		centro: W / 2,
 		alto: 5,
@@ -226,6 +229,16 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 	if (edad) { pdf.text(`Edad: ${edad}`, W / 2, y, { align: 'center' }); y += 4; }
 	if (doctor) {
 		y = escribirCentradoAjustado(pdf, `Doctor: ${doctor.toUpperCase()}`, y, {
+			ancho: W - mg * 2,
+			centro: W / 2,
+			alto: 4,
+		});
+	}
+	// El convenio se imprime debajo del médico —y también cuando la orden no
+	// trae médico— con el mismo ajuste de ancho: los nombres de convenio son
+	// largos y, centrados, se salían del papel de 80 mm.
+	if (cliente) {
+		y = escribirCentradoAjustado(pdf, `Cliente: ${cliente}`, y, {
 			ancho: W - mg * 2,
 			centro: W / 2,
 			alto: 4,

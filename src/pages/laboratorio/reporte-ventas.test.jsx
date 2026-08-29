@@ -6,9 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 jest.mock('./reporte-ventas.css', () => ({}));
 
 jest.mock('../../utils/exportar-tabla', () => ({
-  exportarTablaAPDF: jest.fn(),
-  exportarTablaAExcel: jest.fn(),
-  crearCsvVentas: jest.fn(),
+  exportarPDF: jest.fn(),
+  exportarExcel: jest.fn(),
 }));
 
 jest.mock('../../components/page-layout.jsx', () => ({
@@ -83,6 +82,11 @@ describe('ReporteVentas — Renderizado', () => {
     await renderReporte();
     expect(screen.getByText('Excel')).toBeInTheDocument();
     expect(screen.getByText('PDF')).toBeInTheDocument();
+  });
+
+  test('el selector de área arranca en Todas las áreas', async () => {
+    await renderReporte();
+    expect(screen.getByLabelText('Grupo de área')).toHaveValue('');
   });
 });
 

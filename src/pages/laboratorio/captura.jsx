@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import calendarioIcono from "../../assets/calendarioIcono.png";
@@ -10,6 +10,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
+import { cargarAnalitosDeEstudios } from "../../utils/analitos-de-estudios";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { cargarRadiologiaParaCaptura, useCaptura, useCatalogosCaptura } from "../../hooks/use-captura";
@@ -85,7 +86,12 @@ const Captura = () => {
 	const { data: ventasDelPeriodo = [] } = useCaptura({ fechaInicial, fechaFinal });
 	// El químico trabaja el laboratorio: las partidas de imagen no se le
 	// muestran, y una orden que sólo trae imagen no aparece en su lista.
-	const ventas = filtrarVentasSoloLaboratorio(ventasDelPeriodo, empleadoData?.rol);
+	// Memoizado porque recorre las ventas del periodo con sus estudios anidados:
+	// sin esto se rehacía en cada setState (una tecla, un modal, una notificación).
+	const ventas = useMemo(
+		() => filtrarVentasSoloLaboratorio(ventasDelPeriodo, empleadoData?.rol),
+		[ventasDelPeriodo, empleadoData?.rol],
+	);
 	const { data: catalogosData } = useCatalogosCaptura();
 	const clientes = catalogosData?.clientes ?? [];
 	const areas = catalogosData?.areas ?? [];
@@ -153,56 +159,9 @@ const Captura = () => {
 				estudiosConAdjuntosCultivo,
 				estudiosRadiologia,
 			);
-			const estudiosConAnalitos = await Promise.all(
-				estudiosVentaConRadiologia.map(async (estudio) => {
-					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
-						.from("estudio_analitos")
-						.select("*")
-						.eq("clave_estudio", estudio.clave_estudio)
-						.order("orden", { ascending: true });
-					if (errorRelaciones || !relacionesAnalitos?.length)
-						return { ...estudio, analitos: [] };
-					const analitosConDetalles = await Promise.all(
-						relacionesAnalitos.map(async (relacion) => {
-							const { data: analitoDetalle, error: errorDetalle } = await supabase
-								.from("analitos")
-								.select("*")
-								.eq("id_analito", relacion.id_analito)
-								.single();
-							if (errorDetalle) return null;
-							let resultadoGuardado = "";
-							if (estudio.resultados) {
-								try {
-									const resultadosJSON = JSON.parse(estudio.resultados);
-									resultadoGuardado = resultadosJSON[analitoDetalle.clave] || "";
-								} catch (e) {}
-							}
-							return {
-								id_estudio_analito: relacion.id_estudio_analito,
-								id_analito: analitoDetalle.id_analito,
-								clave: analitoDetalle.clave,
-								descripcion: analitoDetalle.descripcion,
-								unidades: analitoDetalle.unidad || "",
-								referencia:
-									analitoDetalle.tipo_resultado === "Subtitulo"
-										? ""
-										: analitoDetalle.vr_bajo != null &&
-											  analitoDetalle.vr_alto != null
-											? `${analitoDetalle.vr_bajo} - ${analitoDetalle.vr_alto}`
-											: analitoDetalle.vr_bajo != null
-												? `>${analitoDetalle.vr_bajo}`
-												: analitoDetalle.referencia || "",
-								tipo_resultado: analitoDetalle.tipo_resultado || "Numerico",
-								resultado: resultadoGuardado,
-								orden: relacion.orden,
-							};
-						}),
-					);
-					return {
-						...estudio,
-						analitos: analitosConDetalles.filter((a) => a !== null),
-					};
-				}),
+			const estudiosConAnalitos = await cargarAnalitosDeEstudios(
+				supabase,
+				estudiosVentaConRadiologia,
 			);
 			setResultados(estudiosConAnalitos);
 		} catch (error) {
@@ -582,25 +541,36 @@ const Captura = () => {
 		setFiltroEstadoCaptura("todos");
 	};
 
-	const ventasPorBusqueda = ventas.filter((venta) => {
-		const matchPaciente =
-			buscarPaciente === "" ||
-			venta.pacientes?.nombre.toLowerCase().includes(buscarPaciente.toLowerCase());
-		const matchFolio =
-			buscarEstudio === "" ||
-			venta.folio.toLowerCase().includes(buscarEstudio.toLowerCase());
-		const matchCliente =
-			clienteFiltro === "" ||
-			venta.clientes?.id_cliente?.toString() === clienteFiltro.toString();
-		const matchArea =
-			areaFiltro === "" ||
-			venta.estudios_venta?.some((estudio) => estudio.area === areaFiltro);
-		return matchPaciente && matchFolio && matchCliente && matchArea;
-	});
-	const conteosEstadoCaptura = contarVentasPorEstadoCaptura(ventasPorBusqueda);
-	const ventasFiltradas = filtrarVentasPorEstadoCaptura(
-		ventasPorBusqueda,
-		filtroEstadoCaptura,
+	// Las tres derivaciones se memoizan por la misma razón: con 300-500 órdenes
+	// del día, rehacerlas en cada render (comparando texto y recorriendo los
+	// estudios de cada venta) es justo lo que hace que el buscador se sienta
+	// pegajoso mientras la química escribe. La lógica no cambia.
+	const ventasPorBusqueda = useMemo(
+		() =>
+			ventas.filter((venta) => {
+				const matchPaciente =
+					buscarPaciente === "" ||
+					venta.pacientes?.nombre.toLowerCase().includes(buscarPaciente.toLowerCase());
+				const matchFolio =
+					buscarEstudio === "" ||
+					venta.folio.toLowerCase().includes(buscarEstudio.toLowerCase());
+				const matchCliente =
+					clienteFiltro === "" ||
+					venta.clientes?.id_cliente?.toString() === clienteFiltro.toString();
+				const matchArea =
+					areaFiltro === "" ||
+					venta.estudios_venta?.some((estudio) => estudio.area === areaFiltro);
+				return matchPaciente && matchFolio && matchCliente && matchArea;
+			}),
+		[ventas, buscarPaciente, buscarEstudio, clienteFiltro, areaFiltro],
+	);
+	const conteosEstadoCaptura = useMemo(
+		() => contarVentasPorEstadoCaptura(ventasPorBusqueda),
+		[ventasPorBusqueda],
+	);
+	const ventasFiltradas = useMemo(
+		() => filtrarVentasPorEstadoCaptura(ventasPorBusqueda, filtroEstadoCaptura),
+		[ventasPorBusqueda, filtroEstadoCaptura],
 	);
 	const estadoVentaSeleccionada = ventaSeleccionada
 		? obtenerEstadoCapturaVenta(ventaSeleccionada.estudios_venta)

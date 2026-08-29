@@ -149,6 +149,101 @@ describe("reporte ventas helpers", () => {
 			})],
 		});
 	});
+
+	// El bug que reporto la clinica: los folios C -laboratorio- salian bajo
+	// Radiologia/Imagen y el grupo de Laboratorio quedaba vacio, porque el area
+	// que se guarda es el departamento y ninguno dice "laboratorio".
+	test("los estudios de laboratorio caen en su grupo aunque el area sea el departamento", () => {
+		const grupos = partirVentasPorArea([
+			{
+				id_venta: 1,
+				folio: "C0007",
+				total: 500,
+				pago_recibido: 500,
+				estudios_venta: [
+					{ descripcion_estudio: "Biometria hematica", precio: 300, area: "Hematologia" },
+					{ descripcion_estudio: "Glucosa", precio: 200, area: "Quimica" },
+				],
+			},
+		]);
+
+		expect(grupos.laboratorio).toHaveLength(1);
+		expect(grupos.laboratorio[0].total).toBe(500);
+		expect(grupos.radiologia_imagen).toHaveLength(0);
+	});
+
+	test("la serie C manda cuando el area del estudio no se reconoce", () => {
+		const grupos = partirVentasPorArea([
+			{
+				id_venta: 2,
+				folio: "C0008",
+				total: 400,
+				pago_recibido: 400,
+				estudios_venta: [
+					{ descripcion_estudio: "Perfil especial", precio: 400, area: "Area nueva sin catalogar" },
+				],
+			},
+		]);
+
+		expect(grupos.laboratorio).toHaveLength(1);
+		expect(grupos.radiologia_imagen).toHaveLength(0);
+	});
+
+	test("la imagen sigue en su grupo y la serie B no la arrastra a laboratorio", () => {
+		const grupos = partirVentasPorArea([
+			{
+				id_venta: 3,
+				folio: "B0004",
+				total: 900,
+				pago_recibido: 900,
+				estudios_venta: [
+					{ descripcion_estudio: "Rx Torax", precio: 400, area: "Radiologia" },
+					{ descripcion_estudio: "USG Abdomen", precio: 500, area: "Ultrasonidos" },
+				],
+			},
+		]);
+
+		expect(grupos.radiologia_imagen).toHaveLength(1);
+		expect(grupos.radiologia_imagen[0].total).toBe(900);
+		expect(grupos.laboratorio).toHaveLength(0);
+	});
+
+	// La resonancia y la veterinaria son imagen, pero el reporte las cuenta
+	// aparte: el area gana sobre la serie justo aqui.
+	test("la resonancia de una serie de imagen va a su propio grupo", () => {
+		const grupos = partirVentasPorArea([
+			{
+				id_venta: 4,
+				folio: "B0005",
+				total: 1000,
+				pago_recibido: 1000,
+				estudios_venta: [
+					{ descripcion_estudio: "RM Cerebro", precio: 1000, area: "Resonancia magnetica" },
+				],
+			},
+		]);
+
+		expect(grupos.resonancias_veterinaria).toHaveLength(1);
+		expect(grupos.radiologia_imagen).toHaveLength(0);
+	});
+
+	// Por esto el reporte no reparte por area cuando se piden "Todas las areas":
+	// una venta cuyos estudios no traen area no cae en ningun grupo y se perderia
+	// del total y de las descargas.
+	test("una venta sin area en sus estudios no cae en ningun grupo", () => {
+		const ventaSinArea = {
+			id_venta: 4,
+			total: 300,
+			pago_recibido: 300,
+			estudios_venta: [{ descripcion_estudio: "Estudio sin area", precio: 300 }],
+		};
+
+		expect(partirVentasPorArea([ventaSinArea])).toEqual({
+			laboratorio: [],
+			resonancias_veterinaria: [],
+			radiologia_imagen: [],
+		});
+	});
 });
 
 // El folio dice a qué empresa se factura la orden sin abrirla: A es la imagen de

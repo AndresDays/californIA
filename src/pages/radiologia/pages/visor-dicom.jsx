@@ -338,6 +338,9 @@ const PanelDicom = ({
 	const overlayRef = useRef(null);
 	const csRef = useRef(null);
 	const enabledRef = useRef(false);
+	// Handler del bus global de cornerstone, guardado para poder quitarlo al
+	// desmontar el panel.
+	const alRenderizarRef = useRef(null);
 	const requestedImageIdRef = useRef(null);
 	const imageIdRef = useRef(imageId);
 	const herramientaRef = useRef(herramienta);
@@ -474,7 +477,11 @@ const PanelDicom = ({
 					enabledRef.current = true;
 					csRef.current = cornerstone;
 					setCornerstoneListo(true);
-					cornerstone.events.addEventListener("cornerstoneimagerendered", (ev) => {
+					// El bus de eventos de cornerstone es global y vive fuera de
+					// React: una función anónima aquí se quedaba registrada al
+					// desmontar el panel, y cada panel montado sumaba una más
+					// corriendo en cada cuadro. Se guarda para poder quitarla.
+					alRenderizarRef.current = (ev) => {
 						if (ev.detail.element !== divRef.current) return;
 						const vp = cornerstone.getViewport(divRef.current);
 						if (vp) {
@@ -484,7 +491,11 @@ const PanelDicom = ({
 							);
 						}
 						if (redibujarOverlayRef.current) redibujarOverlayRef.current();
-					});
+					};
+					cornerstone.events.addEventListener(
+						"cornerstoneimagerendered",
+						alRenderizarRef.current,
+					);
 				} catch (err) {
 					console.error("[Panel] enable:", err.message);
 					return;
@@ -495,6 +506,13 @@ const PanelDicom = ({
 		init();
 		return () => {
 			cancelled = true;
+			if (csRef.current && alRenderizarRef.current) {
+				csRef.current.events.removeEventListener(
+					"cornerstoneimagerendered",
+					alRenderizarRef.current,
+				);
+				alRenderizarRef.current = null;
+			}
 		};
 	}, []);
 
