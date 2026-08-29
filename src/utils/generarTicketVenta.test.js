@@ -130,13 +130,14 @@ describe('generarTicketVenta', () => {
 	});
 
 	// El renglón del paciente va centrado, así que un nombre largo se salía del
-	// papel por los dos lados.
+	// papel por los dos lados. El del convenio comparte el mismo riesgo.
 	test('acomoda un nombre largo dentro del ancho del ticket', async () => {
 		await generarTicketVenta({
 			folio: 'V-003',
 			fecha: new Date('2026-08-26T18:17:00'),
 			paciente: 'Muñoz Lomeli Maria Guadalupe del Refugio',
 			doctor: 'Valencia Romano Luis Eduardo',
+			cliente: 'Convenio Seguros Monterrey New York Life',
 			empresa: 'CDC',
 			telefono: '3223566142',
 			email: '',
@@ -145,14 +146,95 @@ describe('generarTicketVenta', () => {
 
 		const ANCHO_UTIL = 70;
 		const renglones = mockDoc.text.mock.calls.filter(([texto]) =>
-			String(texto).startsWith('Cliente:') || String(texto).startsWith('Doctor:'),
+			['Paciente:', 'Doctor:', 'Cliente:'].some((etiqueta) =>
+				String(texto).startsWith(etiqueta),
+			),
 		);
 
-		expect(renglones).toHaveLength(2);
+		expect(renglones).toHaveLength(3);
 		renglones.forEach(([texto]) => {
 			const tamano = tamanoUsadoEn(texto);
 			expect(anchoDeTexto(texto, tamano)).toBeLessThanOrEqual(ANCHO_UTIL);
 		});
+	});
+
+	// El nombre del paciente salía rotulado como "Cliente", que en el sistema es
+	// el convenio: en caja no se distinguía a quién correspondía cada dato.
+	test('rotula el nombre del paciente como Paciente y no como Cliente', async () => {
+		await generarTicketVenta({
+			folio: 'V-004',
+			fecha: new Date('2026-08-26T18:17:00'),
+			paciente: 'Angelica Aguilar',
+			cliente: 'IMSS Convenio',
+			empresa: 'CDC',
+			telefono: '3223566142',
+			email: '',
+			estudios: [],
+		});
+
+		const textos = mockDoc.text.mock.calls.map(([texto]) => String(texto));
+
+		expect(textos).toContain('Paciente: ANGELICA AGUILAR');
+		expect(textos).not.toContain('Cliente: ANGELICA AGUILAR');
+	});
+
+	test('escribe el convenio del cliente debajo del doctor', async () => {
+		await generarTicketVenta({
+			folio: 'V-005',
+			fecha: new Date('2026-08-26T18:17:00'),
+			paciente: 'Angelica Aguilar',
+			doctor: 'Avila Rodriguez, Pedro',
+			cliente: 'IMSS Convenio',
+			empresa: 'CDC',
+			telefono: '3223566142',
+			email: '',
+			estudios: [],
+		});
+
+		const textos = mockDoc.text.mock.calls.map(([texto]) => String(texto));
+		const posicionDe = (inicio) => textos.findIndex((texto) => texto.startsWith(inicio));
+
+		expect(posicionDe('Doctor:')).toBeGreaterThanOrEqual(0);
+		expect(posicionDe('Cliente:')).toBeGreaterThan(posicionDe('Doctor:'));
+		expect(posicionDe('Folio:')).toBeGreaterThan(posicionDe('Cliente:'));
+		expect(textos).toContain('Cliente: IMSS Convenio');
+	});
+
+	// Una orden sin médico sigue necesitando el convenio para saber a quién se
+	// le factura.
+	test('escribe el convenio aunque la orden no traiga doctor', async () => {
+		await generarTicketVenta({
+			folio: 'V-006',
+			fecha: new Date('2026-08-26T18:17:00'),
+			paciente: 'Angelica Aguilar',
+			cliente: 'Particular',
+			empresa: 'CDC',
+			telefono: '3223566142',
+			email: '',
+			estudios: [],
+		});
+
+		const textos = mockDoc.text.mock.calls.map(([texto]) => String(texto));
+
+		expect(textos).toContain('Cliente: Particular');
+		expect(textos.some((texto) => texto.startsWith('Doctor:'))).toBe(false);
+	});
+
+	// Sin convenio no se imprime un renglón vacío ni un "undefined".
+	test('omite el renglón del convenio cuando la orden no trae cliente', async () => {
+		await generarTicketVenta({
+			folio: 'V-007',
+			fecha: new Date('2026-08-26T18:17:00'),
+			paciente: 'Angelica Aguilar',
+			empresa: 'CDC',
+			telefono: '3223566142',
+			email: '',
+			estudios: [],
+		});
+
+		const textos = mockDoc.text.mock.calls.map(([texto]) => String(texto));
+
+		expect(textos.some((texto) => texto.startsWith('Cliente:'))).toBe(false);
 	});
 });
 

@@ -844,12 +844,20 @@ const EditarSolicitud = () => {
 			}
 			const totalNum = parseFloat(orden.total) || 0;
 			const pagoNum = parseFloat(orden.pago_recibido) || 0;
+			// La reimpresión resuelve el convenio contra el catálogo ya cargado:
+			// la orden sólo guarda el id, y sin esto el ticket reimpreso saldría
+			// sin el renglón de cliente que sí trae el que se entregó en caja.
+			const nombreCliente =
+				clientes.find(
+					(cliente) => String(cliente.id_cliente) === String(orden.id_cliente),
+				)?.nombre || "Particular";
 			await generarTicketVenta({
 				folio: orden.folio,
 				fecha: new Date(orden.fecha_venta),
 				paciente: paciente?.nombre || "N/A",
 				edad: edadStr,
 				doctor: nombreDoctor,
+				cliente: nombreCliente,
 				empresa: nombreEmpresaOperativa,
 				telefono: paciente?.telefono || "",
 				email: paciente?.email || "",
