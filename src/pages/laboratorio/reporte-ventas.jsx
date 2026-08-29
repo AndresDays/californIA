@@ -30,6 +30,7 @@ import {
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
+import { construirDocumentoReporteVentas } from "../../utils/reporte-ventas-print";
 import {
 	COLUMNAS_TABLA_VENTAS,
 	copiarTextoAlPortapapeles,
@@ -200,6 +201,47 @@ const ReporteVentas = () => {
 		}
 		setFechaInicial(inicio.toISOString().split("T")[0]);
 		setFechaFinal(fin.toISOString().split("T")[0]);
+	};
+
+	// La impresión sale con el formato del corte de caja: hoja apaisada, blanco y
+	// negro y tablas cuadriculadas. Antes se mandaba la pantalla tal cual, con su
+	// fondo oscuro y los controles de la página encima.
+	const imprimirReporte = () => {
+		const nombreDe = (lista, id, campoId, campoNombre) =>
+			lista.find((item) => String(item[campoId]) === String(id))?.[campoNombre] || "";
+
+		const ventana = window.open("", "_blank");
+		if (!ventana) {
+			mostrarNotificacion(
+				"El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio.",
+				"error",
+			);
+			return;
+		}
+
+		ventana.document.write(
+			construirDocumentoReporteVentas({
+				fechaInicial,
+				fechaFinal,
+				usuario: empleadoData?.nombre || getPrimerNombre(),
+				columnas: COLUMNAS_TABLA_VENTAS,
+				filas: filasVentas(ventasFiltradas),
+				metricas,
+				filtros: {
+					Sucursal: nombreDe(sucursales, sucursalSeleccionada, "id_sucursal", "nombre"),
+					Cliente: nombreDe(clientes, empresaSeleccionada, "id_cliente", "nombre"),
+					Doctor: nombreDoctorVenta({ id_doctor: doctorSeleccionado }) === "-" ? "" : nombreDoctorVenta({ id_doctor: doctorSeleccionado }),
+					Empresa: empresaFacturaSeleccionada,
+					Serie: serieSeleccionada,
+					Area: areaSeleccionada,
+					"Forma de pago": formaPagoSeleccionada,
+					Estudio: buscarEstudio,
+				},
+			}),
+		);
+		ventana.document.close();
+		ventana.focus();
+		ventana.print();
 	};
 
 	// Excel y PDF salen con las mismas columnas que se ven en pantalla.
@@ -428,7 +470,7 @@ const ReporteVentas = () => {
 						<button className="rv-btn-sm" onClick={descargarPDF}>
 							PDF
 						</button>
-						<button className="rv-btn-sm accent" onClick={() => window.print()}>
+						<button className="rv-btn-sm accent" onClick={imprimirReporte}>
 							Imprimir
 						</button>
 					</div>
