@@ -1,6 +1,7 @@
 import {
-	construirEstudioSeleccionado,
 	construirEstudioCatalogoUnificado,
+	construirEstudioSeleccionado,
+	construirPaqueteCatalogoUnificado,
 	dividirEstudiosCita,
 	encontrarEstudioCatalogo,
 	filtrarEstudiosCatalogo,
@@ -366,5 +367,73 @@ describe("cita-nuevo-paciente helpers", () => {
 		expect(() =>
 			resolverCodigoTipoRadiologia({ modalidad: "estudios_contrastados" }),
 		).toThrow("Modalidad de radiologia no compatible con DICOM Cloud");
+	});
+});
+
+// Los paquetes viven en su propia tabla, son de laboratorio y se ofrecen a
+// todos los clientes: no dependen de que el convenio los tenga en su tarifario.
+describe("paquetes de laboratorio", () => {
+	const PAQUETE = construirPaqueteCatalogoUnificado({
+		id: 3,
+		clave: "PSELE",
+		descripcion: "PERFIL SMAC/ELECTROLITOS",
+		dias_proceso: 2,
+	});
+	const ESTUDIO = construirEstudioCatalogoUnificado(
+		{ id: 8, clave: "BH", descripcion: "BIOMETRIA HEMATICA", area: "Hematologia" },
+		"laboratorio",
+	);
+
+	test("un paquete entra al catalogo como laboratorio", () => {
+		expect(PAQUETE).toMatchObject({
+			id: "paquete-3",
+			clave: "PSELE",
+			modulo: "laboratorio",
+			modalidad: "laboratorio",
+			es_paquete: true,
+			tipo: "Paquete",
+			requiere_imagen: false,
+		});
+		expect(PAQUETE.diasProceso).toBe(2);
+	});
+
+	test("sale con el tipo Laboratorio elegido", () => {
+		const resultado = filtrarEstudiosCatalogo({
+			estudios: [ESTUDIO, PAQUETE],
+			tipoNombre: "Laboratorio",
+		});
+
+		expect(resultado.map((e) => e.clave)).toEqual(["BH", "PSELE"]);
+	});
+
+	// Un convenio sólo tiene pactada parte del catálogo, pero el paquete se
+	// ofrece igual.
+	test("el tarifario del convenio no deja fuera al paquete", () => {
+		const resultado = filtrarEstudiosCatalogo({
+			estudios: [ESTUDIO, PAQUETE],
+			tipoNombre: "Laboratorio",
+			clavesConPrecio: new Set(["BH"]),
+		});
+
+		expect(resultado.map((e) => e.clave)).toEqual(["BH", "PSELE"]);
+	});
+
+	test("un estudio suelto sin precio pactado si se acota", () => {
+		const resultado = filtrarEstudiosCatalogo({
+			estudios: [ESTUDIO, PAQUETE],
+			tipoNombre: "Laboratorio",
+			clavesConPrecio: new Set(["PSELE"]),
+		});
+
+		expect(resultado.map((e) => e.clave)).toEqual(["PSELE"]);
+	});
+
+	test("con un tipo de imagen elegido el paquete no aparece", () => {
+		const resultado = filtrarEstudiosCatalogo({
+			estudios: [ESTUDIO, PAQUETE],
+			tipoNombre: "Tomografia",
+		});
+
+		expect(resultado).toEqual([]);
 	});
 });
