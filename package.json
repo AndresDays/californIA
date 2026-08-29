@@ -1,7 +1,7 @@
 {
   "name": "california",
   "private": true,
-  "version": "1.57.0",
+  "version": "1.58.0",
   "type": "module",
   "description": "Sistema de diagnóstico asistido por IA para radiología - Centro Diagnóstico California",
   "engines": {
