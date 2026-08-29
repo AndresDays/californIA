@@ -1,4 +1,5 @@
 import configuracionIcono from "../assets/configuracionIcono.png";
+import doctorIcono from "../assets/doctorIcono.png";
 import calendarioIcono from "../assets/calendarioIcono.png";
 import entregaIcono from "../assets/entregaIcono.png";
 import imprimirIcono from "../assets/imprimirIcono.png";
@@ -96,6 +97,33 @@ export const sidebarItems = [
 				label: "Administrativo",
 				icon: subIcon,
 				path: "/reporte-administrativo",
+			},
+		],
+	},
+	{
+		id: "visitadora",
+		label: "Visitadora",
+		icon: doctorIcono,
+		path: "/visitadora/informe",
+		hasSubmenu: true,
+		submenu: [
+			{
+				id: "visitadora-informe",
+				label: "Informe de visitas",
+				icon: subIcon,
+				path: "/visitadora/informe",
+			},
+			{
+				id: "visitadora-programacion",
+				label: "Programación",
+				icon: subIcon,
+				path: "/visitadora/programacion",
+			},
+			{
+				id: "visitadora-comisiones",
+				label: "Concentrado",
+				icon: subIcon,
+				path: "/visitadora/comisiones",
 			},
 		],
 	},

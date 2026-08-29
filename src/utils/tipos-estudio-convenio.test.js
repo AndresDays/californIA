@@ -112,3 +112,30 @@ test("no repite un tipo dado de alta en las dos empresas", () => {
 
 	expect(tipos.filter((t) => t.nombre === "Tomografias")).toHaveLength(1);
 });
+
+// El laboratorio de un convenio se factura por CDC aunque su imagen vaya por
+// CDI. La regla de comodín no lo arrastra a propósito, así que hace falta la
+// suya: sin ella, elegir CDC con ISSSTE no ofrecía ningún tipo de estudio.
+describe("un convenio con laboratorio propio", () => {
+	const ISSSTE_CON_LABORATORIO = [
+		{ modalidad: "*", criterio: "", empresa: "CDI" },
+		{ modalidad: "laboratorio", criterio: "", empresa: "CDC" },
+	];
+
+	test("sin su regla, CDC no ofrece nada porque su imagen va por CDI", () => {
+		expect(tiposDe(1, ISSSTE)).toEqual([]);
+	});
+
+	test("con su regla, CDC ofrece laboratorio y nada mas", () => {
+		expect(tiposDe(1, ISSSTE_CON_LABORATORIO)).toEqual(["Laboratorio"]);
+	});
+
+	test("su imagen sigue saliendo con CDI", () => {
+		expect(tiposDe(2, ISSSTE_CON_LABORATORIO)).toEqual(tiposDe(2, ISSSTE));
+	});
+
+	// La veterinaria no se le abre de pasada: sigue fuera del convenio.
+	test("la veterinaria no se cuela con la regla de laboratorio", () => {
+		expect(tiposDe(1, ISSSTE_CON_LABORATORIO)).not.toContain("Veterinaria");
+	});
+});
