@@ -7,6 +7,7 @@ import { useEmpleadoActual } from '../../hooks/use-empleado-actual';
 import { supabase } from '../../lib/supabase-client';
 import { useClientes } from '../../hooks/use-clientes';
 import { useBusquedaPersistente } from '../../hooks/use-busqueda-persistente';
+import { useDebounce } from '../../hooks/use-debounce';
 import {
   buscarDuplicadoRegistro,
   crearMensajeRegistroDuplicado,
@@ -32,7 +33,9 @@ const Clientes = () => {
   const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
   const clientesPorPagina = 500;
 
-  const { data: clientesResult } = useClientes({ buscar: buscarCliente, pagina: paginaActual, porPagina: clientesPorPagina });
+  // La caja de búsqueda responde al instante; sólo se difiere la consulta.
+  const busquedaDiferida = useDebounce(buscarCliente, 300);
+  const { data: clientesResult } = useClientes({ buscar: busquedaDiferida, pagina: paginaActual, porPagina: clientesPorPagina });
   const totalClientes = clientesResult?.count ?? 0;
   const clientesRaw = clientesResult?.data ?? [];
 

@@ -17,6 +17,7 @@ import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
 import { useDoctores } from "../../hooks/use-doctores";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
+import { useDebounce } from "../../hooks/use-debounce";
 import {
 	buscarDuplicadoRegistro,
 	crearMensajeRegistroDuplicado,
@@ -49,7 +50,9 @@ const Doctores = () => {
 	});
 	const doctoresPorPagina = 500;
 
-	const { data: doctoresResult } = useDoctores({ buscar: buscarDoctor, pagina: paginaActual, porPagina: doctoresPorPagina });
+	// La caja de búsqueda responde al instante; sólo se difiere la consulta.
+	const busquedaDiferida = useDebounce(buscarDoctor, 300);
+	const { data: doctoresResult } = useDoctores({ buscar: busquedaDiferida, pagina: paginaActual, porPagina: doctoresPorPagina });
 	const totalDoctores = doctoresResult?.count ?? 0;
 	const doctoresRaw = doctoresResult?.data ?? [];
 

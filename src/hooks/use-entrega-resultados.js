@@ -32,10 +32,20 @@ export const useEntregaResultados = ({ fechaInicial, fechaFinal } = {}) =>
 	useQuery({
 		queryKey: ['entrega-resultados', fechaInicial, fechaFinal],
 		queryFn: async () => {
+			// El predicado que se aplicaba en el cliente (estudioLaboratorioListoEntrega)
+			// se empuja al servidor: sin esto la pantalla bajaba TODOS los estudios
+			// validados de la historia de la clínica para tirar en el navegador los que
+			// ya se entregaron hace años, y tardaba más cada mes que pasa.
+			// Se usa `.not(col, 'is', true)` y NO `.eq(col, false)` a propósito:
+			// `!estudio.entregado` y `estudio.muestra_pendiente !== true` en JS también
+			// son verdaderos cuando la columna es NULL, y `.eq(col, false)` dejaría
+			// fuera esos registros. Con `not.is.true` la semántica es idéntica.
 			const { data: estudiosValidados, error: errorEstudios } = await supabase
 				.from('estudios_venta')
 				.select('id_estudio_venta, id_venta, estado_validacion, entregado, muestra_pendiente, updated_at')
-				.eq('estado_validacion', 'validado');
+				.eq('estado_validacion', 'validado')
+				.not('entregado', 'is', true)
+				.not('muestra_pendiente', 'is', true);
 
 			if (errorEstudios) throw errorEstudios;
 

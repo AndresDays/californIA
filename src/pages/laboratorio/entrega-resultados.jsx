@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import checkIcono from "../../assets/checkIcono.png";
@@ -118,7 +118,12 @@ const EntregaResultados = () => {
 	const { data: ventasDelPeriodo = [] } = useEntregaResultados({ fechaInicial, fechaFinal });
 	// El químico trabaja el laboratorio: las partidas de imagen no se le
 	// muestran, y una orden que sólo trae imagen no aparece en su lista.
-	const ventas = filtrarVentasSoloLaboratorio(ventasDelPeriodo, empleadoData?.rol);
+	// Memoizado: recorre las ventas del periodo con sus estudios anidados y se
+	// rehacía en cada render (buscar, abrir un modal, una notificación).
+	const ventas = useMemo(
+		() => filtrarVentasSoloLaboratorio(ventasDelPeriodo, empleadoData?.rol),
+		[ventasDelPeriodo, empleadoData?.rol],
+	);
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
@@ -504,15 +509,22 @@ const EntregaResultados = () => {
 		setBusquedaEntrega("");
 	};
 
-	const ventasFiltradas = filtrarVentasEntrega(ventas, busquedaEntrega);
-	const totalEstudiosPendientes = ventasFiltradas.reduce(
-		(total, venta) =>
-			total +
-			calcularPendientesEntrega(
-				venta.estudios_venta,
-				venta.estudios_radiologia,
+	const ventasFiltradas = useMemo(
+		() => filtrarVentasEntrega(ventas, busquedaEntrega),
+		[ventas, busquedaEntrega],
+	);
+	const totalEstudiosPendientes = useMemo(
+		() =>
+			ventasFiltradas.reduce(
+				(total, venta) =>
+					total +
+					calcularPendientesEntrega(
+						venta.estudios_venta,
+						venta.estudios_radiologia,
+					),
+				0,
 			),
-		0,
+		[ventasFiltradas],
 	);
 	const saldoVentaSeleccionada = calcularSaldoEntrega(ventaSeleccionada || {});
 	const entregaAdeudoAutorizada = Boolean(

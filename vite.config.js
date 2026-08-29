@@ -68,12 +68,51 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           cleanupOutdatedCaches: true,
-          globPatterns: ['**/*.{js,css,html,ico,png,PNG,svg,webp,jpg,jpeg,woff2}'],
+          // El precache sólo lleva el "shell": el HTML, el chunk de entrada y su
+          // CSS, los iconos y las fuentes. Antes el patrón metía *todo* el build
+          // (~13 MB: cornerstone, xlsx, jspdf y las imágenes de botones), así que
+          // en la primera visita —y en cada despliegue— la clínica descargaba el
+          // visor DICOM completo aunque nadie fuera a abrirlo. Lo pesado ahora se
+          // guarda en caché la primera vez que se usa (runtimeCaching), no antes.
+          // (los iconos del manifest y los de `includeAssets` los añade el plugin
+          // por su cuenta, no hace falta listarlos aquí)
+          globPatterns: ['index.html', 'assets/index-*.{js,css}'],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           navigateFallbackDenylist: [
             /^\/rest\//,
             /^\/auth\//,
             /^\/storage\//,
+          ],
+          runtimeCaching: [
+            {
+              // Chunks y CSS diferidos de cada pantalla: se cachean al abrirla por
+              // primera vez. StaleWhileRevalidate sirve la copia local al instante
+              // y refresca en segundo plano, sin bloquear el flujo de actualización
+              // (el service worker sigue avisando por needRefresh como hasta ahora).
+              urlPattern: ({ url, sameOrigin, request }) =>
+                sameOrigin &&
+                url.pathname.startsWith('/assets/') &&
+                (request.destination === 'script' || request.destination === 'style'),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'california-chunks',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+            {
+              // Imágenes propias de la app (botones, logos, iconos). Son inmutables
+              // porque llevan hash en el nombre, por eso CacheFirst. Se limita a
+              // mismo origen para no cachear jamás imágenes de Supabase Storage,
+              // que sí cambian y no deben servirse rancias.
+              urlPattern: ({ sameOrigin, request }) =>
+                sameOrigin && request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'california-imagenes',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 60 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
           ],
         },
       }),

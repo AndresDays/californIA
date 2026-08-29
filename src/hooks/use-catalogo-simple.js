@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase-client";
 import { useBusquedaPersistente } from "./use-busqueda-persistente";
+import { useDebounce } from "./use-debounce";
 
 export function useCatalogoSimple({ tabla, idColumna = "id", storageKey, nombreEntidad }) {
 	const [buscar, setBuscar] = useBusquedaPersistente(storageKey);
+	// Aquí no hay caché de React Query detrás: cada cambio de `buscar` era una
+	// consulta garantizada a la red. El input sigue mostrando lo tecleado al
+	// instante; sólo la consulta espera a que el usuario deje de escribir.
+	const buscarDiferido = useDebounce(buscar, 300);
 	const [registros, setRegistros] = useState([]);
 	const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 	const [paginaActual, setPaginaActual] = useState(1);
@@ -15,7 +20,7 @@ export function useCatalogoSimple({ tabla, idColumna = "id", storageKey, nombreE
 	const cargar = async () => {
 		try {
 			let query = supabase.from(tabla).select("*", { count: "exact" });
-			if (buscar.trim()) query = query.ilike("nombre", `%${buscar}%`);
+			if (buscarDiferido.trim()) query = query.ilike("nombre", `%${buscarDiferido}%`);
 			const desde = (paginaActual - 1) * registrosPorPagina;
 			const { data, error, count } = await query
 				.range(desde, desde + registrosPorPagina - 1)
@@ -31,7 +36,7 @@ export function useCatalogoSimple({ tabla, idColumna = "id", storageKey, nombreE
 	useEffect(() => {
 		cargar();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [paginaActual, registrosPorPagina, buscar]);
+	}, [paginaActual, registrosPorPagina, buscarDiferido]);
 
 	const abrirAgregar = () => {
 		setModoEdicion(false);

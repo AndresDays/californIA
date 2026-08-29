@@ -46,7 +46,20 @@ const SalaEspera = () => {
 
 	useEffect(() => {
 		cargarTurnos();
-		const reloj = setInterval(() => setHora(new Date()), 1000);
+		// La pantalla sólo muestra fecha y hh:mm, así que no hace falta despertarla
+		// cada segundo: es una TV encendida 24/7 y eran ~86,400 renders al día para
+		// pintar el mismo texto. Se revisa cada 20 s y se conserva el estado
+		// anterior si el minuto no cambió, con lo que React ni siquiera re-renderiza.
+		const reloj = setInterval(() => {
+			setHora((anterior) => {
+				const ahora = new Date();
+				const mismoMinuto =
+					ahora.getMinutes() === anterior.getMinutes() &&
+					ahora.getHours() === anterior.getHours() &&
+					ahora.getDate() === anterior.getDate();
+				return mismoMinuto ? anterior : ahora;
+			});
+		}, 20000);
 
 		const channel = supabase
 			.channel("turnos-pacientes-sala")

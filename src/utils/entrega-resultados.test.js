@@ -4,6 +4,7 @@ import {
 	estaEnRangoEntrega,
 	filtrarVentasEntrega,
 	tieneSaldoPendiente,
+	estudioLaboratorioListoEntrega,
 	ventaCompletaListaEntrega,
 	ventaListaEnRangoEntrega,
 } from "./entrega-resultados";
@@ -189,5 +190,37 @@ describe("entrega-resultados helpers", () => {
 		expect(calcularSaldoEntrega(ventas[1])).toBe(500);
 		expect(tieneSaldoPendiente(ventas[0])).toBe(false);
 		expect(tieneSaldoPendiente(ventas[1])).toBe(true);
+	});
+
+	// Documenta por qué el filtro que se empujó al servidor en
+	// use-entrega-resultados usa `.not(col, 'is', true)` y no `.eq(col, false)`:
+	// aquí NULL cuenta como pendiente, así que `.eq(col, false)` perdería estudios.
+	test("trata entregado/muestra_pendiente nulos como pendientes de entrega", () => {
+		expect(
+			estudioLaboratorioListoEntrega({
+				estado_validacion: "validado",
+				entregado: null,
+				muestra_pendiente: null,
+			}),
+		).toBe(true);
+		expect(
+			estudioLaboratorioListoEntrega({
+				estado_validacion: "validado",
+				entregado: false,
+				muestra_pendiente: false,
+			}),
+		).toBe(true);
+		expect(
+			estudioLaboratorioListoEntrega({
+				estado_validacion: "validado",
+				entregado: true,
+			}),
+		).toBe(false);
+		expect(
+			estudioLaboratorioListoEntrega({
+				estado_validacion: "validado",
+				muestra_pendiente: true,
+			}),
+		).toBe(false);
 	});
 });

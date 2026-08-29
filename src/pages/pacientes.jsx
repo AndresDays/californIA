@@ -11,6 +11,7 @@ import { useEmpleadoActual } from '../hooks/use-empleado-actual';
 import { supabase } from '../lib/supabase-client.js';
 import { usePacientes } from '../hooks/use-pacientes';
 import { useBusquedaPersistente } from '../hooks/use-busqueda-persistente';
+import { useDebounce } from '../hooks/use-debounce';
 import {
   buscarDuplicadoRegistro,
   crearMensajeRegistroDuplicado,
@@ -37,7 +38,10 @@ const Pacientes = () => {
   const [pacienteAEliminar, setPacienteAEliminar] = useState(null);
   const [duplicadoPendiente, setDuplicadoPendiente] = useState(null);
 
-  const { data: pacientesResult } = usePacientes({ busqueda: buscarPaciente, pagina: paginaActual, porPagina: pacientesPorPagina });
+  // El input sigue pintando cada tecla; lo que se espera es la consulta.
+  // Sin esto, escribir "Rodriguez" disparaba una consulta por letra.
+  const busquedaDiferida = useDebounce(buscarPaciente, 300);
+  const { data: pacientesResult } = usePacientes({ busqueda: busquedaDiferida, pagina: paginaActual, porPagina: pacientesPorPagina });
   const totalPacientes = pacientesResult?.count ?? 0;
   const pacientesRaw = pacientesResult?.data ?? [];
 

@@ -1,8 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import ModalReferencias from './modal-referencias';
-import ModalDocumento from './modal-documento';
 import { supabase } from '../../../lib/supabase-client';
 import './modal-analito.css';
+
+// El editor de texto rico (react-quill) son ~230 kB que se pagaban al entrar a
+// Analitos aunque casi nadie abra el modal de documento. Diferido con lazy() se
+// descarga la primera vez que se abre, siguiendo el patrón de App.jsx.
+const ModalDocumento = lazy(() => import('./modal-documento'));
 
 const ModalAnalito = ({ isOpen, onClose, analitoInicial = null, modoEdicion = false, onGuardarImagen }) => {
   const [clave, setClave] = useState('');
@@ -569,13 +573,19 @@ const ModalAnalito = ({ isOpen, onClose, analitoInicial = null, modoEdicion = fa
           }}
         />
 
-        <ModalDocumento
-          isOpen={modalDocumentoOpen}
-          onClose={() => setModalDocumentoOpen(false)}
-          htmlInicial={htmlDocumento}
-          modoEdicion={modoEdicion}
-          onGuardar={(html) => setHtmlDocumento(html)}
-        />
+        {/* Sin fallback visible: el modal se pinta cuando el editor termina de
+            cargar, sin meter un spinner extra sobre el formulario. */}
+        {modalDocumentoOpen && (
+          <Suspense fallback={null}>
+            <ModalDocumento
+              isOpen={modalDocumentoOpen}
+              onClose={() => setModalDocumentoOpen(false)}
+              htmlInicial={htmlDocumento}
+              modoEdicion={modoEdicion}
+              onGuardar={(html) => setHtmlDocumento(html)}
+            />
+          </Suspense>
+        )}
       </div>
     </div>
   );
