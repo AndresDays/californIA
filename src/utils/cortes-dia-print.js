@@ -1,11 +1,27 @@
-const escaparHtml = (valor) => String(valor ?? "")
+// El corte de caja y el reporte de ventas se imprimen con el mismo formato: una
+// hoja apaisada, en blanco y negro y con las tablas cuadriculadas, que es como
+// se archiva y se firma en caja.
+export const ESTILOS_IMPRESION = `
+		@page { size: letter landscape; margin: 12mm; }
+		* { box-sizing: border-box; } body { color: #111; font-family: Arial, sans-serif; font-size: 10px; margin: 0; }
+		.corte { break-after: page; page-break-after: always; } .corte:last-child { break-after: auto; page-break-after: auto; }
+		h1 { font-size: 16px; margin: 0 0 7px; } header p { margin: 2px 0; } hr { border: 0; border-top: 2px solid #444; margin: 26px 0 20px; }
+		.resumenes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; } section { margin: 0 0 14px; } h2 { border-bottom: 2px solid #111; font-size: 13px; margin: 0 0 8px; padding-bottom: 2px; }
+		table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #111; padding: 4px 5px; text-align: left; vertical-align: top; } th { font-size: 10px; } td:last-child, th:last-child { text-align: right; } .total td { font-weight: bold; }
+		.sin-movimientos { color: #666; margin: 18px 0; text-align: center; } .movimientos { font-size: 9px; }
+	`;
+
+export const construirDocumentoImpresion = ({ titulo, contenido }) =>
+	`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escaparHtml(titulo)}</title><style>${ESTILOS_IMPRESION}</style></head><body>${contenido}</body></html>`;
+
+export const escaparHtml = (valor) => String(valor ?? "")
 	.replace(/&/g, "&amp;")
 	.replace(/</g, "&lt;")
 	.replace(/>/g, "&gt;")
-	.replace(/\"/g, "&quot;")
+	.replace(/"/g, "&quot;")
 	.replace(/'/g, "&#039;");
 
-const dinero = (valor) => `$${Number(valor || 0).toLocaleString("es-MX", {
+export const dinero = (valor) => `$${Number(valor || 0).toLocaleString("es-MX", {
 	minimumFractionDigits: 2,
 	maximumFractionDigits: 2,
 })} MXN`;
@@ -110,13 +126,5 @@ export const construirDocumentoCortes = ({ fecha, sucursal, cortes = [], transac
 		transacciones: transacciones.filter((tx) => String(tx.empleadoKey) === String(corte.empleadoKey)),
 	})).join("");
 
-	return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escaparHtml(titulo)}</title><style>
-		@page { size: letter landscape; margin: 12mm; }
-		* { box-sizing: border-box; } body { color: #111; font-family: Arial, sans-serif; font-size: 10px; margin: 0; }
-		.corte { break-after: page; page-break-after: always; } .corte:last-child { break-after: auto; page-break-after: auto; }
-		h1 { font-size: 16px; margin: 0 0 7px; } header p { margin: 2px 0; } hr { border: 0; border-top: 2px solid #444; margin: 26px 0 20px; }
-		.resumenes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; } section { margin: 0 0 14px; } h2 { border-bottom: 2px solid #111; font-size: 13px; margin: 0 0 8px; padding-bottom: 2px; }
-		table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #111; padding: 4px 5px; text-align: left; vertical-align: top; } th { font-size: 10px; } td:last-child, th:last-child { text-align: right; } .total td { font-weight: bold; }
-		.sin-movimientos { color: #666; margin: 18px 0; text-align: center; } .movimientos { font-size: 9px; }
-	</style></head><body>${hojas}</body></html>`;
+	return construirDocumentoImpresion({ titulo, contenido: hojas });
 };
