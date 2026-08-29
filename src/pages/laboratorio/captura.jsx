@@ -10,6 +10,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
+import { cargarAnalitosDeEstudios } from "../../utils/analitos-de-estudios";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { cargarRadiologiaParaCaptura, useCaptura, useCatalogosCaptura } from "../../hooks/use-captura";
@@ -158,56 +159,9 @@ const Captura = () => {
 				estudiosConAdjuntosCultivo,
 				estudiosRadiologia,
 			);
-			const estudiosConAnalitos = await Promise.all(
-				estudiosVentaConRadiologia.map(async (estudio) => {
-					const { data: relacionesAnalitos, error: errorRelaciones } = await supabase
-						.from("estudio_analitos")
-						.select("*")
-						.eq("clave_estudio", estudio.clave_estudio)
-						.order("orden", { ascending: true });
-					if (errorRelaciones || !relacionesAnalitos?.length)
-						return { ...estudio, analitos: [] };
-					const analitosConDetalles = await Promise.all(
-						relacionesAnalitos.map(async (relacion) => {
-							const { data: analitoDetalle, error: errorDetalle } = await supabase
-								.from("analitos")
-								.select("*")
-								.eq("id_analito", relacion.id_analito)
-								.single();
-							if (errorDetalle) return null;
-							let resultadoGuardado = "";
-							if (estudio.resultados) {
-								try {
-									const resultadosJSON = JSON.parse(estudio.resultados);
-									resultadoGuardado = resultadosJSON[analitoDetalle.clave] || "";
-								} catch (e) {}
-							}
-							return {
-								id_estudio_analito: relacion.id_estudio_analito,
-								id_analito: analitoDetalle.id_analito,
-								clave: analitoDetalle.clave,
-								descripcion: analitoDetalle.descripcion,
-								unidades: analitoDetalle.unidad || "",
-								referencia:
-									analitoDetalle.tipo_resultado === "Subtitulo"
-										? ""
-										: analitoDetalle.vr_bajo != null &&
-											  analitoDetalle.vr_alto != null
-											? `${analitoDetalle.vr_bajo} - ${analitoDetalle.vr_alto}`
-											: analitoDetalle.vr_bajo != null
-												? `>${analitoDetalle.vr_bajo}`
-												: analitoDetalle.referencia || "",
-								tipo_resultado: analitoDetalle.tipo_resultado || "Numerico",
-								resultado: resultadoGuardado,
-								orden: relacion.orden,
-							};
-						}),
-					);
-					return {
-						...estudio,
-						analitos: analitosConDetalles.filter((a) => a !== null),
-					};
-				}),
+			const estudiosConAnalitos = await cargarAnalitosDeEstudios(
+				supabase,
+				estudiosVentaConRadiologia,
 			);
 			setResultados(estudiosConAnalitos);
 		} catch (error) {
