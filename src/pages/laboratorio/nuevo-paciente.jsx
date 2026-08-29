@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
@@ -84,6 +84,15 @@ const BORRADOR = "nuevo-paciente:";
 const leerBorrador = () => {
 	try { return JSON.parse(sessionStorage.getItem(CLAVE_BORRADOR) || "{}"); } catch { return {}; }
 };
+
+// Un borrador guardado antes de que el renglón tuviera cantidad se lee como una
+// unidad por estudio: si no, la orden que quedó a medias reaparecería cobrando
+// $0 al retomarla.
+const normalizarEstudiosBorrador = (estudios) =>
+	(Array.isArray(estudios) ? estudios : []).map((estudio) => ({
+		...estudio,
+		cantidad: normalizarCantidadEstudio(estudio?.cantidad),
+	}));
 import {
 	EVENTOS_SOLICITUD,
 	registrarEventoSolicitud,
@@ -94,7 +103,12 @@ import {
 } from "../../utils/sucursal-empleado";
 import { crearNotificaciones } from "../../utils/notificaciones";
 import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
-import { calcularTotalesNuevoPaciente } from "../../utils/nuevo-paciente-totales";
+import {
+	CANTIDAD_MAXIMA_ESTUDIO,
+	calcularTotalesNuevoPaciente,
+	expandirEstudiosPorCantidad,
+	normalizarCantidadEstudio,
+} from "../../utils/nuevo-paciente-totales";
 import {
 	TIPOS_MOVIMIENTO_PAGO,
 	registrarMovimientoPagoVenta,
@@ -212,7 +226,7 @@ const NuevoPaciente = () => {
 
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("nuevo-paciente:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
-	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => leerBorrador().estudiosSeleccionados || []);
+	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState(() => normalizarEstudiosBorrador(leerBorrador().estudiosSeleccionados));
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	// Los comprobantes de la venta recién guardada, a la espera de que se
 	// impriman desde el modal.
@@ -290,12 +304,41 @@ const NuevoPaciente = () => {
 
 	// La orden se parte por serie para el cobro y el ticket: A y B facturan por
 	// su empresa y C es el laboratorio de CDC.
-	const partesOrden = dividirOrdenPorSerie({
-		estudios: estudiosSeleccionados,
-		reglasConvenio,
-		descuentoPercent,
-	});
+	// Partir la orden recorre todos los estudios y vuelve a sacar totales: se
+	// memoriza para no rehacerlo en cada repintado (cada tecla del cobro repinta
+	// la pantalla completa).
+	const partesOrden = useMemo(
+		() =>
+			dividirOrdenPorSerie({
+				estudios: estudiosSeleccionados,
+				reglasConvenio,
+				descuentoPercent,
+			}),
+		[estudiosSeleccionados, reglasConvenio, descuentoPercent],
+	);
 	const ordenMixta = esOrdenMixta(partesOrden);
+
+	// La tabla de estudios pinta cantidad e importe por renglón: se calculan una
+	// sola vez por cambio de estudios y no en cada render.
+	const renglonesEstudios = useMemo(
+		() =>
+			estudiosSeleccionados.map((estudio) => {
+				const cantidad = normalizarCantidadEstudio(estudio.cantidad);
+				return {
+					estudio,
+					cantidad,
+					importe: (Number(estudio.precio) || 0) * cantidad,
+				};
+			}),
+		[estudiosSeleccionados],
+	);
+
+	// En el resumen cuentan las piezas, no los renglones: dos biometrías son dos
+	// estudios para quien cobra y para quien toma la muestra.
+	const totalPiezasEstudios = useMemo(
+		() => renglonesEstudios.reduce((suma, renglon) => suma + renglon.cantidad, 0),
+		[renglonesEstudios],
+	);
 
 	useEffect(() => {
 		calcularTotales();
@@ -571,6 +614,10 @@ const NuevoPaciente = () => {
 			};
 
 			const registrarVentaDeParte = async (parte) => {
+				// Cada unidad cobrada se guarda como su propio renglón: la tabla de
+				// estudios_venta no tiene columna de cantidad y captura, radiología
+				// y etiquetas necesitan una fila por muestra.
+				const estudiosUnitarios = expandirEstudiosPorCantidad(parte.estudios);
 				const folioParte = await generarFolio(parte.serie);
 				const pagoParte = Math.min(
 					normalizarPagoRecibido(pagosPorParte[parte.serie]),
@@ -657,7 +704,7 @@ const NuevoPaciente = () => {
 					id_venta: venta.id_venta,
 					folio: folioParte,
 					evento: EVENTOS_SOLICITUD.CREADA,
-					descripcion: `Solicitud creada con ${parte.estudios.length} estudio(s)`,
+					descripcion: `Solicitud creada con ${estudiosUnitarios.length} estudio(s)`,
 					empleado,
 					user,
 					detalles: {
@@ -685,7 +732,7 @@ const NuevoPaciente = () => {
 					},
 				});
 
-				const estudiosParaInsertar = parte.estudios.map((est) =>
+				const estudiosParaInsertar = estudiosUnitarios.map((est) =>
 					agregarSucursalEmpleadoPayload(
 						{
 							id_venta: venta.id_venta,
@@ -819,6 +866,7 @@ const NuevoPaciente = () => {
 					folio: folioParte,
 					venta,
 					pago: pagoParte,
+					estudiosUnitarios,
 					estudiosGuardados: estudiosGuardados || [],
 				};
 			};
@@ -852,7 +900,7 @@ const NuevoPaciente = () => {
 							nombrePaciente: nombreCompleto,
 							estudios: registro.estudiosGuardados.length
 								? registro.estudiosGuardados
-								: registro.parte.estudios,
+								: registro.estudiosUnitarios,
 							fechaProgramada: ahora.toISOString(),
 						});
 						turnoCreado = true;
@@ -889,7 +937,14 @@ const NuevoPaciente = () => {
 				empresa: nombreEmpresaFiscal(registro.parte.empresa),
 				telefono,
 				email: correo,
-				estudios: registro.parte.estudios,
+				// El ticket imprime "cantidad x descripción" con el precio del
+				// renglón como importe, así que se le manda ya multiplicado para
+				// que la columna sume exactamente el subtotal de la parte.
+				estudios: registro.parte.estudios.map((est) => ({
+					...est,
+					precio:
+						(Number(est.precio) || 0) * normalizarCantidadEstudio(est.cantidad),
+				})),
 				subtotal: registro.parte.subtotal,
 				descuento: registro.parte.descuento,
 				total: registro.parte.total,
@@ -918,7 +973,7 @@ const NuevoPaciente = () => {
 							paciente: nombreCompleto,
 							sexo,
 							edad: edad ? `${edad} años` : "",
-							estudios: registroLaboratorio.parte.estudios,
+							estudios: registroLaboratorio.estudiosUnitarios,
 						}
 					: null,
 				etiquetasImagen: registrosImagen.length
@@ -928,7 +983,7 @@ const NuevoPaciente = () => {
 							doctor: doctorSeleccionado?.nombre || "",
 							grupos: registrosImagen.map((registro) => ({
 								folio: registro.folio,
-								estudios: registro.parte.estudios,
+								estudios: registro.estudiosUnitarios,
 							})),
 						}
 					: null,
@@ -1382,9 +1437,46 @@ const NuevoPaciente = () => {
 		setShowBusquedaEstudios(true);
 	};
 
+	// El +/- ajusta sobre el estado más reciente: el mismo renglón puede recibir
+	// varios clicks seguidos antes de que React repinte, y con la copia del
+	// render se perderían los intermedios.
+	const cambiarCantidadEstudio = (id, delta) => {
+		setEstudiosSeleccionados((actuales) =>
+			actuales.map((estudio) =>
+				estudio.id === id
+					? {
+							...estudio,
+							cantidad: normalizarCantidadEstudio(
+								normalizarCantidadEstudio(estudio.cantidad) + delta,
+							),
+						}
+					: estudio,
+			),
+		);
+	};
+
 	const agregarEstudio = async (estudio) => {
-		if (estudiosSeleccionados.find((e) => e.clave === estudio.clave)) {
-			globalThis.mostrarNotificacion("Este estudio ya fue agregado", "advertencia");
+		const yaSeleccionado = estudiosSeleccionados.find(
+			(e) => e.clave === estudio.clave,
+		);
+		// Volver a buscar un estudio que ya está en la orden es como se pide otro
+		// en recepción: en vez de no hacer nada, sube la cantidad del renglón.
+		if (yaSeleccionado) {
+			const cantidadActual = normalizarCantidadEstudio(yaSeleccionado.cantidad);
+			if (cantidadActual >= CANTIDAD_MAXIMA_ESTUDIO) {
+				globalThis.mostrarNotificacion(
+					`Este estudio ya fue agregado ${CANTIDAD_MAXIMA_ESTUDIO} veces, que es el máximo por orden`,
+					"advertencia",
+				);
+				return;
+			}
+			cambiarCantidadEstudio(yaSeleccionado.id, 1);
+			globalThis.mostrarNotificacion(
+				`Este estudio ya fue agregado: ahora va con cantidad ${cantidadActual + 1}`,
+				"advertencia",
+			);
+			setBuscarEstudio("");
+			setShowBusquedaEstudios(false);
 			return;
 		}
 
@@ -1404,13 +1496,13 @@ const NuevoPaciente = () => {
 			muestra_pendiente: false,
 		};
 
-		setEstudiosSeleccionados([...estudiosSeleccionados, estudioConPrecio]);
+		setEstudiosSeleccionados((actuales) => [...actuales, estudioConPrecio]);
 		setBuscarEstudio("");
 		setShowBusquedaEstudios(false);
 	};
 
 	const eliminarEstudio = (id) => {
-		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.id !== id));
+		setEstudiosSeleccionados((actuales) => actuales.filter((e) => e.id !== id));
 	};
 
 	const toggleMuestraPendiente = (idEstudio, muestraPendiente) => {
@@ -2025,7 +2117,7 @@ const NuevoPaciente = () => {
 							<section className="estudios-section">
 								<div className="section-title-row">
 									<h2 className="section-title">Estudios</h2>
-									<span>{estudiosSeleccionados.length} seleccionados</span>
+									<span>{totalPiezasEstudios} seleccionados</span>
 								</div>
 
 								{!clienteSeleccionado && (
@@ -2107,12 +2199,13 @@ const NuevoPaciente = () => {
 												<th>Clave</th>
 												<th>Descripción</th>
 												<th>Cliente</th>
+												<th>Cantidad</th>
 												<th>Precio</th>
 												<th>Borrar</th>
 											</tr>
 										</thead>
 										<tbody>
-											{estudiosSeleccionados.map((est) => (
+											{renglonesEstudios.map(({ estudio: est, cantidad, importe }) => (
 												<Fragment key={est.id}>
 													<tr>
 														<td>{est.clave}</td>
@@ -2126,7 +2219,38 @@ const NuevoPaciente = () => {
 														</button>
 													</td>
 														<td>{est.cliente}</td>
-														<td>${est.precio.toFixed(2)}</td>
+														<td>
+															<div
+																className="cantidad-control"
+																role="group"
+																aria-label={`Cantidad de ${est.clave}`}>
+																<button
+																	type="button"
+																	className="btn-cantidad"
+																	aria-label={`Disminuir cantidad de ${est.clave}`}
+																	disabled={cantidad <= 1}
+																	onClick={() => cambiarCantidadEstudio(est.id, -1)}>
+																	−
+																</button>
+																<span className="cantidad-valor">{cantidad}</span>
+																<button
+																	type="button"
+																	className="btn-cantidad"
+																	aria-label={`Aumentar cantidad de ${est.clave}`}
+																	disabled={cantidad >= CANTIDAD_MAXIMA_ESTUDIO}
+																	onClick={() => cambiarCantidadEstudio(est.id, 1)}>
+																	+
+																</button>
+															</div>
+														</td>
+														<td>
+															${importe.toFixed(2)}
+															{cantidad > 1 && (
+																<span className="precio-unitario">
+																	${(Number(est.precio) || 0).toFixed(2)} c/u
+																</span>
+															)}
+														</td>
 														<td>
 															<button
 																className="btn-delete"
@@ -2142,16 +2266,16 @@ const NuevoPaciente = () => {
 													</tr>
 													{est.muestra_pendiente && (
 														<tr className="estudio-muestra-pendiente-row">
-															<td colSpan="5">
+															<td colSpan="6">
 																Muestra pendiente para {est.clave}
 															</td>
 														</tr>
 													)}
 												</Fragment>
 											))}
-											{estudiosSeleccionados.length === 0 && (
+											{renglonesEstudios.length === 0 && (
 												<tr>
-													<td colSpan="5" className="empty-message"></td>
+													<td colSpan="6" className="empty-message"></td>
 												</tr>
 											)}
 										</tbody>
@@ -2186,7 +2310,7 @@ const NuevoPaciente = () => {
 									</div>
 									<div>
 										<span>Estudios</span>
-										<strong>{estudiosSeleccionados.length}</strong>
+										<strong>{totalPiezasEstudios}</strong>
 									</div>
 								</div>
 
