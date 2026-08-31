@@ -55,7 +55,7 @@
 }
 
 .rv-btn-sm.accent {
-	background: linear-gradient(135deg, #106DA0, #49B2D4);
+	background: #106DA0;
 	border-color: transparent;
 	color: #fff;
 }
@@ -282,7 +282,7 @@
 	padding: 0.5rem 1.25rem;
 	border-radius: 7px;
 	border: none;
-	background: linear-gradient(135deg, #106DA0, #49B2D4);
+	background: #106DA0;
 	color: #fff;
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.8rem;
@@ -475,7 +475,7 @@
 }
 
 .rv-bar.highlight {
-	background: linear-gradient(180deg, #49B2D4, #106DA0);
+	background: #49B2D4;
 }
 
 .rv-bar-label {
@@ -773,7 +773,7 @@
 	max-height: min(760px, calc(100vh - 2.5rem));
 	display: flex;
 	flex-direction: column;
-	background: linear-gradient(180deg, rgba(11, 35, 54, 0.98) 0%, rgba(6, 20, 32, 0.98) 100%);
+	background: rgba(9, 27, 43, 0.98);
 	color: #eaf7ff;
 	border: 1px solid rgba(73, 178, 212, 0.28);
 	border-radius: 12px;
@@ -788,7 +788,7 @@
 	justify-content: space-between;
 	gap: 1rem;
 	padding: 1rem 1.5rem;
-	background: linear-gradient(135deg, rgba(14, 59, 88, 0.98) 0%, rgba(17, 94, 130, 0.96) 100%);
+	background: rgba(15, 66, 97, 0.98);
 	border-bottom: 1px solid rgba(111, 179, 210, 0.3);
 	flex-shrink: 0;
 }
@@ -1031,4 +1031,102 @@
 .rv-modal-cobro-liquidado {
 	font-size: 0.85rem;
 	opacity: 0.8;
+}
+
+
+/* ── Resumen y secciones plegables ────────────────────────
+   El reporte se ordenó como el corte de caja: primero un resumen de renglones
+   -etiqueta a la izquierda, cifra a la derecha- y luego la tabla. La gráfica y
+   los rankings quedaron detrás de un control porque se consultan de vez en
+   cuando, no a diario. Se conserva el azul del proyecto y el fondo oscuro del
+   resto de la aplicación; lo que se quitó son los gradientes y los mosaicos. */
+
+.rv-metrics {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 0.85rem;
+}
+
+.rv-summary-card {
+	background: rgba(10, 25, 41, 0.75);
+	border: 1px solid rgba(83, 185, 219, 0.18);
+	border-radius: 10px;
+	padding: 0.9rem 1.1rem;
+}
+
+.rv-summary-title {
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: #53B9DB;
+	padding-bottom: 0.6rem;
+	margin-bottom: 0.2rem;
+	border-bottom: 1px solid rgba(83, 185, 219, 0.16);
+}
+
+.rv-summary-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.55rem 0;
+	font-size: 0.85rem;
+	color: rgba(255, 255, 255, 0.72);
+	border-bottom: 1px solid rgba(83, 185, 219, 0.08);
+}
+
+.rv-summary-row:last-child {
+	border-bottom: none;
+}
+
+/* El último renglón es el que se busca de un vistazo al cerrar el turno. */
+.rv-summary-row.total {
+	color: #fff;
+	font-weight: 500;
+	border-top: 1px solid rgba(83, 185, 219, 0.16);
+	margin-top: 0.2rem;
+	padding-top: 0.7rem;
+}
+
+.rv-summary-row strong {
+	font-size: 1rem;
+	font-weight: 600;
+	color: #fff;
+	white-space: nowrap;
+}
+
+.rv-summary-row .rv-metric-value.alerta {
+	color: #ffb5b3;
+}
+
+.rv-collapse-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0;
+	border: none;
+	background: none;
+	color: #fff;
+	font-family: inherit;
+	font-size: 0.92rem;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.rv-collapse-btn:hover {
+	color: #53B9DB;
+}
+
+.rv-collapse-lateral {
+	width: 100%;
+	justify-content: space-between;
+	padding: 0.75rem 1rem;
+	background: rgba(10, 25, 41, 0.75);
+	border: 1px solid rgba(83, 185, 219, 0.18);
+	border-radius: 10px;
+}
+
+.rv-chevron {
+	font-size: 0.7rem;
+	color: #53B9DB;
 }
