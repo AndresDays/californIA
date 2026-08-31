@@ -2694,7 +2694,7 @@
 }
 
 .vd-etiq-label {
-	font-size: 13.5px;
+	font-size: 0.8438rem;
 }
 
 .vd-etiq-input-wrap {
@@ -2714,7 +2714,7 @@
 	background: none;
 	border: none;
 	color: var(--color-accent, #49B2D4);
-	font-size: 16px;
+	font-size: 1.0rem;
 	cursor: pointer;
 	padding: 2px 6px;
 	line-height: 1;
@@ -2733,7 +2733,7 @@
 }
 
 .vd-etiq-label {
-	font-size: 13px;
+	font-size: 0.8125rem;
 	color: rgba(255, 255, 255, 0.75);
 	padding-top: 10px;
 	white-space: nowrap;
@@ -2768,7 +2768,7 @@
 	border: 1px solid rgba(83, 185, 219, 0.4);
 	border-radius: 20px;
 	padding: 2px 10px 2px 10px;
-	font-size: 12.5px;
+	font-size: 0.7812rem;
 	color: #d6f3fc;
 	white-space: nowrap;
 }
@@ -2777,7 +2777,7 @@
 	background: none;
 	border: none;
 	color: rgba(83, 185, 219, 0.7);
-	font-size: 14px;
+	font-size: 0.875rem;
 	line-height: 1;
 	cursor: pointer;
 	padding: 0;
@@ -2795,7 +2795,7 @@
 	border: none;
 	outline: none;
 	color: #fff;
-	font-size: 13px;
+	font-size: 0.8125rem;
 	flex: 1;
 	min-width: 120px;
 }
@@ -2819,7 +2819,7 @@
 
 .vd-etiq-dropdown-item {
 	padding: 10px 14px;
-	font-size: 13px;
+	font-size: 0.8125rem;
 	color: rgba(255, 255, 255, 0.8);
 	cursor: pointer;
 	transition: background 0.15s;

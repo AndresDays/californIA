@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .admin-usuarios-wrapper .admin-usuarios-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -24,7 +24,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -78,15 +78,15 @@
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .admin-usuarios-wrapper .select-registros {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -94,12 +94,12 @@
 
 .admin-usuarios-wrapper .select-registros:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .admin-usuarios-wrapper .select-registros option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .admin-usuarios-wrapper .buscar-usuarios-grupo {
@@ -107,15 +107,15 @@
 	align-items: center;
 	gap: 0.75rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .admin-usuarios-wrapper .input-buscar-usuarios {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	min-width: 200px;
@@ -124,16 +124,16 @@
 
 .admin-usuarios-wrapper .input-buscar-usuarios:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .admin-usuarios-wrapper .tabla-usuarios-container {
 	overflow-x: auto;
 	overflow-y: auto;
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
-	border: 1px solid rgba(111, 179, 210, 0.3);
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--borde);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
 	max-height: calc(100vh - 400px);
 	animation: fadeInUsuarios 0.5s ease;
 }
@@ -144,20 +144,20 @@
 }
 
 .admin-usuarios-wrapper .tabla-usuarios-container::-webkit-scrollbar-track {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .admin-usuarios-wrapper .tabla-usuarios-container::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
+	background: var(--superficie-activa);
 	border-radius: 4px;
 }
 
 .admin-usuarios-wrapper .tabla-usuarios-container::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
+	background: var(--superficie-activa);
 }
 
 .admin-usuarios-wrapper .tabla-usuarios-container::-webkit-scrollbar-corner {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .admin-usuarios-wrapper .tabla-usuarios {
@@ -169,7 +169,7 @@
 .admin-usuarios-wrapper .tabla-usuarios thead {
 	position: sticky;
 	top: 0;
-	background: rgba(10, 25, 41, 0.95);
+	background: var(--superficie);
 	z-index: 10;
 }
 
@@ -177,31 +177,31 @@
 	padding: 0.9rem 0.7rem;
 	text-align: left;
 	font-weight: 500;
-	color: white;
+	color: var(--texto);
 	font-size: 0.88rem;
 	letter-spacing: 0.3px;
-	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	border-bottom: 2px solid var(--borde);
 	white-space: nowrap;
 	cursor: pointer;
 	user-select: none;
 }
 
 .admin-usuarios-wrapper .tabla-usuarios th:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .admin-usuarios-wrapper .tabla-usuarios tbody tr {
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 }
 
 .admin-usuarios-wrapper .tabla-usuarios tbody tr:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .admin-usuarios-wrapper .tabla-usuarios td {
 	padding: 0.85rem 0.7rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-size: 0.875rem;
 	white-space: nowrap;
 }
@@ -209,7 +209,7 @@
 .admin-usuarios-wrapper .sin-usuarios {
 	text-align: center;
 	padding: 3rem !important;
-	color: rgba(255, 255, 255, 0.5);
+	color: var(--texto-suave);
 	font-style: italic;
 }
 
@@ -223,12 +223,12 @@
 
 .admin-usuarios-wrapper .estado-badge.activado {
 	background: #28a745;
-	color: white;
+	color: var(--texto);
 }
 
 .admin-usuarios-wrapper .estado-badge.desactivado {
 	background: #dc3545;
-	color: white;
+	color: #020508;
 }
 
 .admin-usuarios-wrapper .acciones-usuarios {
@@ -293,7 +293,7 @@
 
 .admin-usuarios-wrapper .contador-usuarios {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .admin-usuarios-wrapper .botones-paginacion {
@@ -306,10 +306,10 @@
 .admin-usuarios-wrapper .btn-pag,
 .admin-usuarios-wrapper .btn-pag-numero {
 	padding: 0.5rem 1rem;
-	background: rgba(10, 25, 41, 0.8);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -318,8 +318,8 @@
 
 .admin-usuarios-wrapper .btn-pag:hover:not(:disabled),
 .admin-usuarios-wrapper .btn-pag-numero:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-color: #6FB3D2;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
 }
 
 .admin-usuarios-wrapper .btn-pag:disabled {
@@ -328,8 +328,8 @@
 }
 
 .admin-usuarios-wrapper .btn-pag-numero.activo {
-	background: #007bff;
-	border-color: #007bff;
+	background: var(--azul);
+	border-color: rgba(255, 255, 255, 0.25);
 	font-weight: 600;
 }
 
@@ -391,14 +391,14 @@
 	}
 
 	.admin-usuarios-wrapper .tabla-usuarios-container {
-		background: white;
+		background: var(--superficie);
 		border: none;
 		box-shadow: none;
 	}
 
 	.admin-usuarios-wrapper .tabla-usuarios th,
 	.admin-usuarios-wrapper .tabla-usuarios td {
-		color: black;
-		border: 1px solid #ddd;
+		color: var(--texto);
+		border: 1px solid var(--borde);
 	}
 }

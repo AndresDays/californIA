@@ -247,18 +247,39 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
 
   const calcularTotal = () => estudiosSeleccionados.reduce((t, e) => t + (Number(e.precio) || 0), 0);
 
+  // Agendar por telefono es rapido y con datos a medias: quien llama muchas
+  // veces solo deja el nombre, y el resto se completa cuando llega. Por eso
+  // ningun campo del formulario es obligatorio.
+  //
+  // La unica excepcion es la fecha, y no por criterio nuestro: citas.fecha_estudio
+  // es NOT NULL, y una cita sin fecha ademas no aparecerian en ningun lado del
+  // calendario. Cuando se deja vacia se toma la del hueco donde se abrio el
+  // modal, y si tampoco la hay, hoy a la hora en curso.
   const validarFormulario = () => {
     if (!empleadoData?.id_sucursal) return setError('El usuario no tiene una sucursal asignada. Solicite la asignación a un administrador.'), false;
-    if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
-    if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
-    if (!esTelefono10Digitos(formData.telefono)) return setError('El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos'), false;
-    if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
-    if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
-    if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
-    if (estudiosSeleccionados.length === 0) return setError('Debe agregar al menos un estudio'), false;
-    if (!formData.fecha) return setError('La fecha es requerida'), false;
-    if (!formData.hora) return setError('La hora es requerida'), false;
+    // El telefono se revisa solo si se capturo: vacio esta bien, a medias no,
+    // porque despues no se puede llamar ni mandar el recordatorio.
+    if (formData.telefono.trim() && !esTelefono10Digitos(formData.telefono)) {
+      return setError('El teléfono debe tener 10 dígitos numéricos'), false;
+    }
     return true;
+  };
+
+  // Redondea al cuarto de hora siguiente: una cita puesta a las 9:07 no dice
+  // nada, y la agenda se maneja en bloques.
+  const horaPorDefecto = () => {
+    const ahora = new Date();
+    ahora.setMinutes(Math.ceil(ahora.getMinutes() / 15) * 15, 0, 0);
+    return `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const fechaHoraDeLaCita = () => {
+    const fecha =
+      formData.fecha ||
+      fechaInicial ||
+      new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    const hora = formData.hora || horaInicial || horaPorDefecto();
+    return `${fecha}T${hora}:00-06:00`;
   };
 
   const handleSubmit = async (e) => {
@@ -269,15 +290,20 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     setError('');
 
     try {
-      const { data: pacienteExistente } = await supabase
-        .from('pacientes')
-        .select('id_paciente')
-        .eq('telefono', formData.telefono)
-        .maybeSingle();
+      // El paciente se busca por telefono, asi que sin telefono no hay a quien
+      // enlazar: consultar con la cadena vacia engancharia la cita al primer
+      // registro que tenga el telefono en blanco.
+      let idPaciente = null;
+      if (formData.telefono.trim()) {
+        const { data: pacienteExistente } = await supabase
+          .from('pacientes')
+          .select('id_paciente')
+          .eq('telefono', formData.telefono.trim())
+          .maybeSingle();
+        idPaciente = pacienteExistente?.id_paciente ?? null;
+      }
 
-      const idPaciente = pacienteExistente?.id_paciente ?? null;
-
-      const fechaHora = `${formData.fecha}T${formData.hora}:00-06:00`; // si quieres tu lógica de offset, úsala aquí
+      const fechaHora = fechaHoraDeLaCita();
 
       const estudiosTexto = estudiosSeleccionados.map(e => e.descripcion).join(', ');
       const monto = calcularTotal();
@@ -285,14 +311,16 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       const payload = {
         id_paciente: idPaciente,
         id_sucursal: Number(empleadoData.id_sucursal),
-        id_cliente: Number(clienteSeleccionado),
-        id_empresa: Number(empresaSeleccionada),
-        id_tipo_estudio: Number(tipoEstudioSeleccionado),
+        // Un select vacio tiene que viajar como null: Number('') da NaN y el
+        // insert lo rechaza.
+        id_cliente: clienteSeleccionado ? Number(clienteSeleccionado) : null,
+        id_empresa: empresaSeleccionada ? Number(empresaSeleccionada) : null,
+        id_tipo_estudio: tipoEstudioSeleccionado ? Number(tipoEstudioSeleccionado) : null,
 
-        nombre_paciente: formData.nombreCompleto,
-        telefono_paciente: formData.telefono,
+        nombre_paciente: formData.nombreCompleto.trim() || null,
+        telefono_paciente: formData.telefono.trim() || null,
 
-        tipo_estudio: estudiosTexto,
+        tipo_estudio: estudiosTexto || null,
         fecha_estudio: fechaHora,
         estado: 'pendiente',
         monto
@@ -370,19 +398,19 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           )}
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Nombre Completo <span className="required">*</span></label>
+            <label className="form-label-cita">Nombre Completo</label>
             <input type="text" name="nombreCompleto" value={formData.nombreCompleto} onChange={handleChange}
               className="form-input-cita" disabled={loading} />
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Teléfono <span className="required">*</span></label>
+            <label className="form-label-cita">Teléfono</label>
             <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
               className="form-input-cita" disabled={loading} maxLength="10" inputMode="numeric" />
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Empresa <span className="required">*</span></label>
+            <label className="form-label-cita">Empresa</label>
             <select value={empresaSeleccionada} onChange={(e) => setEmpresaSeleccionada(e.target.value)}
               className="form-select-cita" disabled={loading}>
               <option value="">Seleccione una empresa</option>
@@ -391,7 +419,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Cliente <span className="required">*</span></label>
+            <label className="form-label-cita">Cliente</label>
             <select value={clienteSeleccionado} onChange={(e) => {
               setClienteSeleccionado(e.target.value);
               // El convenio del cliente cambia los tipos ofrecidos, así que el
@@ -409,7 +437,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Tipo Estudio <span className="required">*</span></label>
+            <label className="form-label-cita">Tipo Estudio</label>
             <select value={tipoEstudioSeleccionado} onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
               className="form-select-cita" disabled={loading || !clienteSeleccionado}>
               <option value="">
@@ -420,7 +448,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Estudios <span className="required">*</span></label>
+            <label className="form-label-cita">Estudios</label>
 
             <div className="search-group-cita">
               <input
@@ -477,13 +505,13 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
 
           <div className="form-row">
             <div className="form-group-cita">
-              <label className="form-label-cita">Fecha <span className="required">*</span></label>
+              <label className="form-label-cita">Fecha</label>
               <input type="date" name="fecha" value={formData.fecha} onChange={handleChange}
                 className="form-input-cita" disabled={loading} />
             </div>
 
             <div className="form-group-cita">
-              <label className="form-label-cita">Hora <span className="required">*</span></label>
+              <label className="form-label-cita">Hora</label>
               <input type="time" name="hora" value={formData.hora} onChange={handleChange}
                 className="form-input-cita" disabled={loading} />
             </div>

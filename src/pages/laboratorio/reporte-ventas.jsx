@@ -72,6 +72,12 @@ const ReporteVentas = () => {
 	const [serieSeleccionada, setSerieSeleccionada] = useState("");
 	const [periodoGrafica, setPeriodoGrafica] = useState("mes");
 	const [tipoReporte, setTipoReporte] = useState("general");
+	// La gráfica y los rankings arrancan plegados: lo que se consulta a diario es
+	// el resumen y la tabla, y así la pantalla abre limpia. Se recuerdan abiertos
+	// mientras dure la sesión de la página.
+	const [seccionesAbiertas, setSeccionesAbiertas] = useState({ grafica: false, rankings: false });
+	const alternarSeccion = (seccion) =>
+		setSeccionesAbiertas((actuales) => ({ ...actuales, [seccion]: !actuales[seccion] }));
 	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState(GRUPO_TODAS_LAS_AREAS.id);
 	const [ventaDetalle, setVentaDetalle] = useState(null);
 	const [montoAbono, setMontoAbono] = useState("");
@@ -524,42 +530,49 @@ const ReporteVentas = () => {
 					{errorReporte && <div className="rv-error">{errorReporte}</div>}
 
 					<div className="rv-metrics">
-						<div className="rv-metric">
-							<div className="rv-metric-label">Ventas del período</div>
-							<div className="rv-metric-value">
-								{formatoMonedaReporte(metricas.totalVentas)}
+						<div className="rv-summary-card">
+							<div className="rv-summary-title">Resumen de ventas</div>
+							<div className="rv-summary-row">
+								<span>Ventas del período</span>
+								<strong className="rv-metric-value">
+									{formatoMonedaReporte(metricas.totalVentas)}
+								</strong>
 							</div>
-							<div className="rv-metric-sub up">
-								<span className="rv-dot up"></span>
-								{ventasDelArea.length} ventas filtradas
+							<div className="rv-summary-row">
+								<span>Órdenes</span>
+								<strong className="rv-metric-value">{metricas.ordenes}</strong>
 							</div>
-						</div>
-						<div className="rv-metric">
-							<div className="rv-metric-label">Órdenes</div>
-							<div className="rv-metric-value">{metricas.ordenes}</div>
-							<div className="rv-metric-sub up">
-								<span className="rv-dot up"></span>
-								{ventas.length} ventas cargadas
+							<div className="rv-summary-row">
+								<span>Ticket promedio</span>
+								<strong className="rv-metric-value">
+									{formatoMonedaReporte(metricas.ticketPromedio)}
+								</strong>
 							</div>
-						</div>
-						<div className="rv-metric">
-							<div className="rv-metric-label">Ticket promedio</div>
-							<div className="rv-metric-value">
-								{formatoMonedaReporte(metricas.ticketPromedio)}
-							</div>
-							<div className="rv-metric-sub up">
-								<span className="rv-dot up"></span>
-								Promedio del filtro actual
+							<div className="rv-summary-row total">
+								<span>Ventas filtradas</span>
+								<strong>{ventasDelArea.length} de {ventas.length} cargadas</strong>
 							</div>
 						</div>
-						<div className="rv-metric">
-							<div className="rv-metric-label">Adeudos pendientes</div>
-							<div className="rv-metric-value">
-								{formatoMonedaReporte(metricas.adeudosPendientes)}
+
+						<div className="rv-summary-card">
+							<div className="rv-summary-title">Por cobrar</div>
+							<div className="rv-summary-row">
+								<span>Adeudos pendientes</span>
+								<strong className="rv-metric-value alerta">
+									{formatoMonedaReporte(metricas.adeudosPendientes)}
+								</strong>
 							</div>
-							<div className="rv-metric-sub down">
-								<span className="rv-dot down"></span>
-								{metricas.pacientesConSaldo} ventas con saldo
+							<div className="rv-summary-row">
+								<span>Ventas con saldo</span>
+								<strong>{metricas.pacientesConSaldo}</strong>
+							</div>
+							<div className="rv-summary-row total">
+								<span>Cobrado del período</span>
+								<strong>
+									{formatoMonedaReporte(
+										metricas.totalVentas - metricas.adeudosPendientes,
+									)}
+								</strong>
 							</div>
 						</div>
 					</div>
@@ -747,10 +760,17 @@ const ReporteVentas = () => {
 					<div className="rv-main-grid">
 						<div className="rv-chart-card">
 							<div className="rv-chart-header">
-								<div className="rv-chart-title">
+								<button
+									type="button"
+									className="rv-collapse-btn"
+									aria-expanded={seccionesAbiertas.grafica}
+									onClick={() => alternarSeccion("grafica")}>
 									<img src={metricasIcono} alt="" className="rv-metrics-icon" />
 									Ventas por día
-								</div>
+									<span className="rv-chevron" aria-hidden="true">
+										{seccionesAbiertas.grafica ? "▴" : "▾"}
+									</span>
+								</button>
 								<div className="rv-period-tabs">
 									{["sem", "mes", "ano"].map((p) => (
 										<button
@@ -762,6 +782,7 @@ const ReporteVentas = () => {
 									))}
 								</div>
 							</div>
+							{seccionesAbiertas.grafica && (
 							<div className="rv-chart-body">
 								<div className="rv-y-axis">
 									<span>{formatoMonedaReporte(maxVal)}</span>
@@ -784,10 +805,23 @@ const ReporteVentas = () => {
 									)}
 								</div>
 							</div>
+							)}
 							{renderReporte()}
 						</div>
 
 						<div className="rv-side-col">
+							<button
+								type="button"
+								className="rv-collapse-btn rv-collapse-lateral"
+								aria-expanded={seccionesAbiertas.rankings}
+								onClick={() => alternarSeccion("rankings")}>
+								Estudios y vendedores
+								<span className="rv-chevron" aria-hidden="true">
+									{seccionesAbiertas.rankings ? "▴" : "▾"}
+								</span>
+							</button>
+							{seccionesAbiertas.rankings && (
+							<>
 							<div className="rv-side-card">
 								<div className="rv-side-title">Estudios más vendidos</div>
 								{estudiosTop.map((p) => (
@@ -823,6 +857,8 @@ const ReporteVentas = () => {
 									<div className="rv-empty-state small">Sin vendedores</div>
 								)}
 							</div>
+							</>
+							)}
 						</div>
 					</div>
 				</div>

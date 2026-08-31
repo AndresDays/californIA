@@ -8,22 +8,22 @@
 	align-items: center;
 	justify-content: center;
 	gap: 1.5rem;
-	background: linear-gradient(135deg, #020F23 0%, #0D4369 100%);
+	background: var(--fondo-app);
 	font-family: 'Codec Pro', sans-serif;
 }
 
 .app-loading-spinner {
 	width: 48px;
 	height: 48px;
-	border: 3px solid rgba(83, 185, 219, 0.2);
-	border-top-color: #53B9DB;
+	border: 3px solid var(--borde);
+	border-top-color: var(--borde-fuerte);
 	border-radius: 50%;
 	animation: spin 0.75s linear infinite;
 }
 
 .app-loading-text {
 	font-size: 0.9rem;
-	color: rgba(83, 185, 219, 0.7);
+	color: var(--azul);
 	letter-spacing: 0.08em;
 	font-weight: 500;
 }
@@ -40,7 +40,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 1.25rem;
-	background: linear-gradient(135deg, #020F23 0%, #0D4369 100%);
+	background: var(--fondo-app);
 	font-family: 'Codec Pro', sans-serif;
 	padding: 2rem;
 	text-align: center;
@@ -62,14 +62,14 @@
 	margin: 0;
 	font-size: 1.3rem;
 	font-weight: 600;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 0.02em;
 }
 
 .app-error-message {
 	margin: 0;
 	font-size: 0.85rem;
-	color: rgba(255, 255, 255, 0.5);
+	color: var(--texto-suave);
 	max-width: 420px;
 	line-height: 1.6;
 }
@@ -77,7 +77,7 @@
 .app-error-detail {
 	margin: 0;
 	font-size: 0.75rem;
-	color: rgba(239, 83, 80, 0.7);
+	color: #a65c5a;
 	background: rgba(239, 83, 80, 0.06);
 	border: 1px solid rgba(239, 83, 80, 0.15);
 	border-radius: 8px;
@@ -109,8 +109,8 @@
 }
 
 .app-error-btn.primary {
-	background: linear-gradient(135deg, #106DA0, #49B2D4);
-	color: white;
+	background: linear-gradient(135deg, var(--azul), var(--azul-claro));
+	color: var(--texto-sobre-azul);
 	box-shadow: 0 2px 12px rgba(73, 178, 212, 0.3);
 }
 
@@ -120,12 +120,12 @@
 }
 
 .app-error-btn.secondary {
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.15);
-	color: rgba(255, 255, 255, 0.7);
+	background: var(--superficie-hover);
+	border: 1px solid var(--borde);
+	color: var(--texto);
 }
 
 .app-error-btn.secondary:hover {
-	background: rgba(255, 255, 255, 0.1);
-	color: white;
+	background: var(--superficie-hover);
+	color: var(--texto);
 }

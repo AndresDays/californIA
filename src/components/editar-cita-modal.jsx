@@ -287,17 +287,21 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     setError('');
   };
 
+  // Ningun campo es obligatorio, igual que al agendar: si una cita se pudo
+  // crear con solo el nombre, exigir el resto para guardar un cambio la dejaria
+  // imposible de editar.
   const validar = () => {
-    if (!formData.nombreCompleto.trim()) return setError('El nombre completo es requerido'), false;
-    if (!formData.telefono.trim()) return setError('El teléfono es requerido'), false;
-    if (!esTelefono10Digitos(formData.telefono)) return setError('El telÃ©fono debe tener 10 dÃ­gitos numÃ©ricos'), false;
-    if (!clienteSeleccionado) return setError('Debe seleccionar un cliente'), false;
-    if (!empresaSeleccionada) return setError('Debe seleccionar una empresa'), false;
-    if (!tipoEstudioSeleccionado) return setError('Debe seleccionar un tipo de estudio'), false;
-    if (!formData.fecha) return setError('La fecha es requerida'), false;
-    if (!formData.hora) return setError('La hora es requerida'), false;
-    if (estudiosSeleccionados.length === 0) return setError('Debe agregar al menos un estudio'), false;
+    if (formData.telefono.trim() && !esTelefono10Digitos(formData.telefono)) {
+      return setError('El teléfono debe tener 10 dígitos numéricos'), false;
+    }
     return true;
+  };
+
+  // fecha_estudio es NOT NULL en la base, asi que al vaciar la fecha se
+  // conserva la que la cita ya tenia en lugar de romper el guardado.
+  const fechaHoraDeLaCita = () => {
+    if (formData.fecha && formData.hora) return `${formData.fecha}T${formData.hora}:00-06:00`;
+    return cita?.fecha_estudio ?? null;
   };
 
   const handleSubmit = async (e) => {
@@ -308,21 +312,23 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     setError('');
 
     try {
-      const fechaHora = `${formData.fecha}T${formData.hora}:00-06:00`;
+      const fechaHora = fechaHoraDeLaCita();
 
       const payload = {
-        id_cliente: Number(clienteSeleccionado),
-        id_empresa: Number(empresaSeleccionada),
-        id_tipo_estudio: Number(tipoEstudioSeleccionado),
+        // Un select vacio viaja como null: Number('') da NaN y el update falla.
+        id_cliente: clienteSeleccionado ? Number(clienteSeleccionado) : null,
+        id_empresa: empresaSeleccionada ? Number(empresaSeleccionada) : null,
+        id_tipo_estudio: tipoEstudioSeleccionado ? Number(tipoEstudioSeleccionado) : null,
 
-        nombre_paciente: formData.nombreCompleto,
-        telefono_paciente: formData.telefono,
+        nombre_paciente: formData.nombreCompleto.trim() || null,
+        telefono_paciente: formData.telefono.trim() || null,
 
-        fecha_estudio: fechaHora,
         estado: formData.estado,
-        tipo_estudio: estudiosSeleccionados.map((x) => x.descripcion).join(', '),
+        tipo_estudio: estudiosSeleccionados.map((x) => x.descripcion).join(', ') || null,
         monto: total,
       };
+      // Solo se toca la fecha si hay una con que sustituirla.
+      if (fechaHora) payload.fecha_estudio = fechaHora;
 
       const { error } = await supabase
         .from('citas')

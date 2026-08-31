@@ -7,7 +7,7 @@
 }
 
 body {
-	background: #1a1a1a;
+	background: var(--fondo-app);
 	font-family: 'Inter', Arial, sans-serif;
 	min-height: 100vh;
 }
@@ -23,19 +23,19 @@ body {
 	position: sticky;
 	top: 0;
 	z-index: 100;
-	background: #111;
+	background: var(--superficie);
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
 	padding: 0.55rem 1.2rem;
-	border-bottom: 1px solid #333;
+	border-bottom: 1px solid var(--borde-fuerte);
 }
 
 .rr-select-plantilla {
-	background: #222;
-	border: 1px solid #444;
+	background: var(--superficie);
+	border: 1px solid var(--borde-fuerte);
 	border-radius: 8px;
-	color: #eee;
+	color: var(--texto);
 	font-size: 0.88rem;
 	padding: 0.4rem 2rem 0.4rem 0.75rem;
 	cursor: pointer;
@@ -48,7 +48,7 @@ body {
 
 .rr-select-plantilla:focus {
 	outline: none;
-	border-color: #4a90d9;
+	border-color: var(--borde-fuerte);
 }
 
 .rr-topbar-actions {
@@ -73,34 +73,34 @@ body {
 }
 
 .rr-btn-primary {
-	background: #2b7de9;
-	color: #fff;
+	background: var(--azul-claro);
+	color: var(--texto);
 }
 
 .rr-btn-primary:hover:not(:disabled) {
-	background: #1a6dd4;
+	background: var(--azul);
 }
 
 .rr-btn-outline {
 	background: transparent;
-	color: #ddd;
+	color: var(--texto);
 	border: 1.5px solid #555;
 }
 
 .rr-btn-outline:hover {
 	border-color: #888;
-	color: #fff;
+	color: var(--texto);
 }
 
 .rr-btn-cancel {
 	background: transparent;
-	color: #ccc;
+	color: var(--texto);
 	border: 1.5px solid #888;
 }
 
 .rr-btn-cancel:hover {
 	border-color: #bbb;
-	color: #fff;
+	color: var(--texto);
 }
 
 /* ── Toolbar de formato ─────────────────────────────────────── */
@@ -108,8 +108,8 @@ body {
 	position: sticky;
 	top: 42px;
 	z-index: 99;
-	background: #fff;
-	border-bottom: 1px solid #ddd;
+	background: var(--superficie);
+	border-bottom: 1px solid var(--borde);
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
@@ -121,7 +121,7 @@ body {
 	background: transparent;
 	border: none;
 	border-radius: 4px;
-	color: #222;
+	color: var(--texto);
 	cursor: pointer;
 	font-size: 0.82rem;
 	font-weight: 600;
@@ -135,13 +135,13 @@ body {
 }
 
 .rr-tool:hover {
-	background: #e8e8e8;
+	background: var(--superficie);
 }
 
 .rr-tool-sep {
 	width: 1px;
 	height: 20px;
-	background: #ccc;
+	background: var(--superficie);
 	margin: 0 4px;
 }
 
@@ -150,16 +150,16 @@ body {
 	padding: 2px 4px;
 	min-width: 50px;
 	height: 28px;
-	border: 1px solid #ccc;
+	border: 1px solid var(--borde);
 	border-radius: 4px;
-	background: #fff;
-	color: #222;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 /* ── Área de página ─────────────────────────────────────────── */
 .rr-page-wrapper {
 	flex: 1;
-	background: #e0e0e0;
+	background: var(--superficie);
 	display: flex;
 	justify-content: center;
 	padding: 2rem 1rem 5rem;
@@ -173,9 +173,9 @@ body {
 	width: min(100%, 794px);
 	min-height: 1123px;
 	overflow: hidden;
-	background: #fff;
-	color: #000;
-	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+	background: var(--superficie);
+	color: var(--texto);
+	box-shadow: 0 4px 24px rgba(18, 41, 61, 0.14);
 }
 
 .rr-membrete {
@@ -204,7 +204,7 @@ body {
 .rr-fecha-encabezado {
 	margin: 0 0 2.35rem auto;
 	max-width: 470px;
-	color: #000;
+	color: var(--texto);
 	font-size: 1.02rem;
 	font-weight: 800;
 	line-height: 1.2;
@@ -220,7 +220,7 @@ body {
 	width: min(520px, 100%);
 	margin-left: 62px;
 	font-size: 1.03rem;
-	color: #000;
+	color: var(--texto);
 	text-transform: uppercase;
 }
 
@@ -236,15 +236,15 @@ body {
 	display: flex;
 	align-items: center;
 	padding: 0 8px;
-	background: rgba(228, 228, 228, 0.92);
-	color: #000;
+	background: var(--superficie);
+	color: var(--texto);
 	font-weight: 700;
 	letter-spacing: 0.01em;
 }
 
 .rr-dato-row strong {
 	padding-left: 10px;
-	color: #000;
+	color: var(--texto);
 	font-size: 1.08rem;
 	font-weight: 800;
 	line-height: 1.15;
@@ -260,7 +260,7 @@ body {
 	min-height: 400px;
 	margin-top: 2.1rem;
 	font-size: 1rem;
-	color: #000;
+	color: var(--texto);
 	line-height: 1.55;
 	outline: none;
 	padding: 4px 0;
@@ -306,7 +306,7 @@ body {
 }
 
 .rr-firma-elemento, .rr-firma-datos-elemento { position: absolute; min-width: 150px; overflow: hidden; cursor: grab; border: 1px dashed transparent; text-align: center; }
-.rr-firma-elemento:hover, .rr-firma-datos-elemento:hover { border-color: #2388b3; }
+.rr-firma-elemento:hover, .rr-firma-datos-elemento:hover { border-color: var(--borde-fuerte); }
 .rr-firma-elemento:active, .rr-firma-datos-elemento:active { cursor: grabbing; }
 .rr-firma-elemento { width: 320px; height: 130px; }
 .rr-firma-datos-elemento { width: 330px; min-height: 62px; }
@@ -320,21 +320,21 @@ body {
 .rr-firma-placeholder {
 	width: 170px;
 	height: 66px;
-	border-bottom: 1.5px solid #000;
+	border-bottom: 1.5px solid var(--borde-fuerte);
 	margin-bottom: 5px;
 }
 
 .rr-firma-nombre {
 	font-size: 1.06rem;
 	font-weight: 700;
-	color: #000 !important;
+	color: var(--texto) !important;
 	text-align: center;
 }
 
 .rr-firma-dato {
 	font-size: 0.74rem;
 	font-weight: 700;
-	color: #000 !important;
+	color: var(--texto) !important;
 	text-align: center;
 	letter-spacing: 0.02em;
 }
@@ -358,7 +358,7 @@ body {
 	border-radius: 8px;
 	font-size: 0.88rem;
 	font-weight: 600;
-	color: #fff;
+	color: var(--texto);
 	animation: notif-in 0.2s ease;
 	z-index: 200;
 }
@@ -368,7 +368,7 @@ body {
 }
 
 .rr-notif.err {
-	background: #b91c1c;
+	background: var(--superficie);
 }
 
 @keyframes notif-in {
@@ -394,15 +394,15 @@ body {
 }
 
 .rr-toolbar-print button {
-	background: #2b7de9;
+	background: var(--azul-claro);
 	border: none;
 	border-radius: 8px;
-	color: #fff;
+	color: var(--texto);
 	font-size: 0.85rem;
 	font-weight: 600;
 	padding: 0.48rem 1.1rem;
 	cursor: pointer;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+	box-shadow: 0 2px 8px rgba(18, 41, 61, 0.14);
 	transition: background 0.15s;
 }
 
@@ -415,15 +415,15 @@ body {
 }
 
 .rr-toolbar-print button:hover {
-	background: #1a6dd4;
+	background: var(--azul);
 }
 
 .rr-toolbar-print button:last-child {
-	background: #444;
+	background: var(--superficie);
 }
 
 .rr-toolbar-print button:last-child:hover {
-	background: #222;
+	background: var(--superficie);
 }
 
 /* ── Print ──────────────────────────────────────────────────── */
@@ -444,12 +444,12 @@ body {
 	}
 
 	body {
-		background: #fff;
+		background: var(--superficie);
 	}
 
 	.rr-page-wrapper {
 		padding: 0;
-		background: #fff;
+		background: var(--superficie);
 	}
 
 	.rr-page-editor { display: none; }

@@ -43,7 +43,7 @@ const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar, backdropCl
 								display: "flex",
 								alignItems: "center",
 								gap: "0.5rem",
-								color: "#53B9DB",
+								color: "var(--azul)",
 								padding: "0.5rem 0",
 							}}>
 							<div className="vd-spinner" /> Cargando...
@@ -78,7 +78,7 @@ const ModalAsignar = ({ config, onSeleccionar, onConfirmar, onCerrar, backdropCl
 									<div
 										style={{
 											padding: "1rem",
-											color: "#8ab",
+											color: "var(--texto-tenue)",
 											textAlign: "center",
 											fontSize: "0.88rem",
 										}}>

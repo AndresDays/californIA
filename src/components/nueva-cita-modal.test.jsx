@@ -67,8 +67,27 @@ const respuestaDeTabla = (tabla) => {
 	return consulta;
 };
 
+const insertsDeCitas = [];
+
 jest.mock("../lib/supabase-client", () => ({
-	supabase: { from: (tabla) => respuestaDeTabla(tabla) },
+	supabase: {
+		from: (tabla) => {
+			if (tabla === "citas") {
+				return {
+					// El modal inserta un arreglo de una fila.
+					insert: (filas) => {
+						insertsDeCitas.push(Array.isArray(filas) ? filas[0] : filas);
+						return {
+							select: () => ({
+								single: () => Promise.resolve({ data: { id_cita: 1 }, error: null }),
+							}),
+						};
+					},
+				};
+			}
+			return respuestaDeTabla(tabla);
+		},
+	},
 }));
 
 import NuevaCitaModal from "./nueva-cita-modal";
@@ -112,5 +131,57 @@ describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 		expect(
 			screen.getByRole("option", { name: "Primero selecciona un Cliente" }),
 		).toBeInTheDocument();
+	});
+});
+
+// Agendar por telefono se hace con datos a medias: quien llama muchas veces
+// solo deja el nombre y el resto se completa al llegar.
+describe("NuevaCitaModal: ningun campo es obligatorio", () => {
+	beforeEach(() => {
+		insertsDeCitas.length = 0;
+	});
+
+	const guardar = async () => {
+		fireEvent.click(screen.getByRole("button", { name: /Crear Cita/i }));
+		await waitFor(() => expect(insertsDeCitas).toHaveLength(1));
+		return insertsDeCitas[0];
+	};
+
+	test("se agenda sin llenar nada y los campos vacios viajan como null", async () => {
+		abrirModal();
+		await screen.findAllByRole("combobox");
+
+		const fila = await guardar();
+
+		expect(fila.nombre_paciente).toBeNull();
+		expect(fila.telefono_paciente).toBeNull();
+		expect(fila.id_cliente).toBeNull();
+		expect(fila.id_empresa).toBeNull();
+		expect(fila.id_tipo_estudio).toBeNull();
+		expect(fila.id_paciente).toBeNull();
+	});
+
+	// fecha_estudio es NOT NULL en la base y una cita sin fecha no aparecería
+	// en el calendario, así que se toma la del hueco donde se abrió el modal.
+	test("sin fecha capturada toma la del hueco del calendario", async () => {
+		abrirModal();
+		await screen.findAllByRole("combobox");
+
+		const fila = await guardar();
+
+		expect(fila.fecha_estudio).toBe("2026-08-27T10:00:00-06:00");
+	});
+
+	test("un telefono a medias si se rechaza, porque despues no se puede llamar", async () => {
+		abrirModal();
+		await screen.findAllByRole("combobox");
+
+		fireEvent.change(document.querySelector('input[name="telefono"]'), {
+			target: { value: "123" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /Crear Cita/i }));
+
+		expect(await screen.findByText(/10 d[ií]gitos/i)).toBeInTheDocument();
+		expect(insertsDeCitas).toHaveLength(0);
 	});
 });

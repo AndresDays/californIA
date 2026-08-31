@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .admin-doctores-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -24,7 +24,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -88,20 +88,20 @@
 
 .btn-exportar {
 	padding: 0.6rem 1.25rem;
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s;
-	background: rgba(10, 25, 41, 0.8);
+	background: var(--superficie-2);
 }
 
 .btn-exportar:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-color: #6FB3D2;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
 }
 
 .busqueda-doctores {
@@ -112,17 +112,17 @@
 
 .busqueda-doctores label {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-weight: 500;
 	white-space: nowrap;
 }
 
 .input-buscar-doctores {
 	padding: 0.65rem 1rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	min-width: 220px;
@@ -131,7 +131,7 @@
 
 .input-buscar-doctores:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 	box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.2);
 }
 
@@ -139,10 +139,10 @@
 	flex: 1;
 	overflow-x: auto;
 	overflow-y: auto;
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
-	border: 1px solid rgba(111, 179, 210, 0.3);
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--borde);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
 	animation: fadeIn 0.5s ease;
 }
 
@@ -152,20 +152,20 @@
 }
 
 .tabla-admin-doctores-container::-webkit-scrollbar-track {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-admin-doctores-container::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
+	background: var(--superficie-activa);
 	border-radius: 4px;
 }
 
 .tabla-admin-doctores-container::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
+	background: var(--superficie-activa);
 }
 
 .tabla-admin-doctores-container::-webkit-scrollbar-corner {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-admin-doctores {
@@ -177,7 +177,7 @@
 .tabla-admin-doctores thead {
 	position: sticky;
 	top: 0;
-	background: rgba(10, 25, 41, 0.95);
+	background: var(--superficie);
 	z-index: 10;
 }
 
@@ -185,31 +185,31 @@
 	padding: 0.9rem 0.7rem;
 	text-align: left;
 	font-weight: 500;
-	color: white;
+	color: var(--texto);
 	font-size: 0.85rem;
 	letter-spacing: 0.3px;
-	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	border-bottom: 2px solid var(--borde);
 	white-space: nowrap;
 	cursor: pointer;
 	user-select: none;
 }
 
 .tabla-admin-doctores th:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-admin-doctores tbody tr {
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 }
 
 .tabla-admin-doctores tbody tr:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-admin-doctores td {
 	padding: 0.85rem 0.7rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-size: 0.875rem;
 	white-space: nowrap;
 }
@@ -217,7 +217,7 @@
 .sin-doctores {
 	text-align: center;
 	padding: 3rem !important;
-	color: rgba(255, 255, 255, 0.5);
+	color: var(--texto-suave);
 	font-style: italic;
 }
 
@@ -241,7 +241,7 @@
 }
 
 .btn-editar-doctor:hover {
-	background: rgba(111, 179, 210, 0.2);
+	background: var(--superficie-hover);
 	transform: scale(1.2);
 }
 
@@ -266,10 +266,10 @@
 
 .contador-registros {
 	padding: 0.75rem 1rem;
-	background: rgba(10, 25, 41, 0.6);
+	background: var(--superficie-2);
 	border-radius: 6px;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 @keyframes fadeIn {
@@ -343,23 +343,23 @@
 	}
 
 	.tabla-admin-doctores-container {
-		background: white;
+		background: var(--superficie);
 		border: none;
 		box-shadow: none;
 	}
 
 	.tabla-admin-doctores th,
 	.tabla-admin-doctores td {
-		color: black;
-		border: 1px solid #ddd;
+		color: var(--texto);
+		border: 1px solid var(--borde);
 	}
 
 	.tabla-admin-doctores thead {
-		background: #f0f0f0;
+		background: var(--superficie);
 	}
 
 	.contador-registros {
-		background: white;
-		color: black;
+		background: var(--superficie);
+		color: var(--texto);
 	}
 }

@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import fondoImg from "../assets/FONDO.jpg";
 import { useAuth } from "../context/auth-context";
 import { useSessionStore } from "../store/session-store";
 import useSidebar from "../utils/use-sidebar";
@@ -26,12 +25,9 @@ const PageLayout = ({ children, empleadoData, formatRol, getPrimerNombre }) => {
 		<div
 			style={{
 				minHeight: "100vh",
-				backgroundImage: `url(${fondoImg})`,
-				backgroundColor: "#020F23",
-				backgroundSize: "cover",
-				backgroundPosition: "center",
-				backgroundAttachment: "fixed",
-				backgroundRepeat: "no-repeat",
+				// El fondo lo pone el tema: antes era una fotografía navy fija que
+				// pesaba medio megabyte y obligaba a que todo el texto fuera blanco.
+				backgroundColor: "var(--fondo-app)",
 				display: "flex",
 				flexDirection: "column",
 			}}>

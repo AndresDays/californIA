@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(2, 15, 35, 0.85);
+  background: var(--superficie);
   backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
@@ -24,14 +24,14 @@
 }
 
 .modal-content-cita {
-  background: linear-gradient(135deg, #020F23 0%, #0D4369 100%);
-  border: 1px solid rgba(73, 178, 212, 0.3);
+  background: var(--superficie);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 20px;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(18, 41, 61, 0.14);
   animation: slideUp 0.4s ease-out;
 }
 
@@ -51,13 +51,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 2rem 2rem 1rem 2rem;
-  border-bottom: 1px solid rgba(73, 178, 212, 0.2);
+  border-bottom: 1px solid var(--borde);
 }
 
 .modal-title-cita {
   font-size: 1.8rem;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--texto);
   margin: 0;
   display: flex;
   align-items: center;
@@ -65,9 +65,9 @@
 }
 
 .modal-close-btn {
-  background: rgba(73, 178, 212, 0.2);
-  border: 1px solid rgba(73, 178, 212, 0.3);
-  color: #53B9DB;
+  background: var(--superficie-hover);
+  border: 1px solid var(--borde);
+  color: var(--azul);
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -83,7 +83,7 @@
 .modal-close-btn:hover {
   background: rgba(248, 113, 113, 0.3);
   border-color: rgba(248, 113, 113, 0.5);
-  color: #F87171;
+  color: #954444;
   transform: rotate(90deg);
 }
 
@@ -133,7 +133,7 @@
   display: block;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #53B9DB;
+  color: var(--azul);
   margin-bottom: 0.5rem;
 }
 
@@ -146,24 +146,24 @@
 .form-select-cita {
   width: 100%;
   padding: 0.875rem 1rem;
-  background: rgba(16, 109, 160, 0.3);
-  border: 1px solid rgba(73, 178, 212, 0.3);
+  background: var(--superficie-activa);
+  border: 1px solid var(--borde);
   border-radius: 30px;
-  color: #FFFFFF;
+  color: var(--texto);
   font-size: 1rem;
   font-family: 'Codec Pro', sans-serif;
   transition: all 0.3s ease;
 }
 
 .form-input-cita::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .form-input-cita:focus,
 .form-select-cita:focus {
   outline: none;
-  background: rgba(16, 109, 160, 0.4);
-  border-color: #53B9DB;
+  background: var(--superficie-activa);
+  border-color: var(--borde-fuerte);
   box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.2);
 }
 
@@ -183,8 +183,8 @@
 }
 
 .form-select-cita option {
-  background: #0D4369;
-  color: #FFFFFF;
+  background: var(--azul);
+  color: var(--texto-sobre-azul);
   padding: 0.5rem;
 }
 
@@ -195,27 +195,27 @@
   right: 0;
   max-height: 250px;
   overflow-y: auto;
-  background: rgba(13, 67, 105, 0.95);
-  border: 1px solid rgba(73, 178, 212, 0.4);
+  background: var(--azul);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 0 0 12px 12px;
   margin-top: -12px;
   padding-top: 12px;
   z-index: 100;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 20px rgba(18, 41, 61, 0.14);
 }
 
 .search-result-item-modal {
   padding: 0.75rem 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   font-size: 0.9rem;
-  border-bottom: 1px solid rgba(73, 178, 212, 0.1);
+  border-bottom: 1px solid var(--borde);
 }
 
 .search-result-item-modal:hover {
-  background: rgba(73, 178, 212, 0.2);
-  color: #FFFFFF;
+  background: var(--superficie-hover);
+  color: var(--texto);
 }
 
 .search-result-item-modal:last-child {
@@ -223,30 +223,30 @@
 }
 
 .search-result-item-modal strong {
-  color: #53B9DB;
+  color: var(--azul);
   font-weight: 700;
 }
 
 .search-no-results-modal {
   padding: 1rem;
   text-align: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
   font-size: 0.9rem;
 }
 
 .estudio-seleccionado-info {
   margin-top: 0.5rem;
   padding: 0.75rem;
-  background: rgba(73, 178, 212, 0.2);
+  background: var(--superficie-hover);
   border-radius: 8px;
-  border: 1px solid rgba(73, 178, 212, 0.3);
+  border: 1px solid var(--borde);
   font-size: 0.9rem;
 }
 
 .estudios-seleccionados-lista {
   margin-top: 1rem;
-  background: rgba(16, 109, 160, 0.2);
-  border: 1px solid rgba(73, 178, 212, 0.3);
+  background: var(--superficie-hover);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   padding: 1rem;
 }
@@ -254,11 +254,11 @@
 .lista-header {
   margin-bottom: 0.75rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(73, 178, 212, 0.2);
+  border-bottom: 1px solid var(--borde);
 }
 
 .lista-titulo {
-  color: #53B9DB;
+  color: var(--azul);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -268,16 +268,16 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: rgba(13, 67, 105, 0.5);
-  border: 1px solid rgba(73, 178, 212, 0.2);
+  background: var(--superficie-activa);
+  border: 1px solid var(--borde);
   border-radius: 8px;
   margin-bottom: 0.5rem;
   transition: all 0.2s ease;
 }
 
 .estudio-item:hover {
-  background: rgba(13, 67, 105, 0.7);
-  border-color: rgba(73, 178, 212, 0.4);
+  background: var(--superficie-activa);
+  border-color: var(--borde-fuerte);
 }
 
 .estudio-item:last-of-type {
@@ -292,13 +292,13 @@
 }
 
 .estudio-clave {
-  color: #53B9DB;
+  color: var(--azul);
   font-weight: 700;
   font-size: 0.85rem;
 }
 
 .estudio-descripcion {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
   font-size: 0.85rem;
 }
 
@@ -309,7 +309,7 @@
 }
 
 .estudio-precio {
-  color: #4ADE80;
+  color: var(--azul);
   font-weight: 700;
   font-size: 0.9rem;
   min-width: 80px;
@@ -319,7 +319,7 @@
 .btn-eliminar-estudio {
   background: rgba(248, 113, 113, 0.2);
   border: 1px solid rgba(248, 113, 113, 0.3);
-  color: #F87171;
+  color: #954444;
   width: 28px;
   height: 28px;
   border-radius: 6px;
@@ -343,32 +343,32 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: rgba(73, 178, 212, 0.3);
-  border: 1px solid rgba(73, 178, 212, 0.4);
+  background: var(--superficie-activa);
+  border: 1px solid var(--borde-fuerte);
   border-radius: 8px;
   margin-top: 0.75rem;
 }
 
 .total-label {
-  color: #53B9DB;
+  color: var(--azul);
   font-weight: 700;
   font-size: 1rem;
 }
 
 .total-precio {
-  color: #4ADE80;
+  color: var(--azul);
   font-weight: 700;
   font-size: 1.1rem;
 }
 
 .info-label {
-  color: #53B9DB;
+  color: var(--azul);
   font-weight: 600;
   margin-right: 0.5rem;
 }
 
 .estudio-seleccionado-info span:not(.info-label) {
-  color: #FFFFFF;
+  color: var(--texto);
   font-weight: 700;
 }
 
@@ -383,7 +383,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(73, 178, 212, 0.2);
+  border-top: 1px solid var(--borde);
   margin-top: 1rem;
 }
 
@@ -403,20 +403,20 @@
 
 .btn-cancel-cita {
   background: transparent;
-  border: 1px solid rgba(73, 178, 212, 0.3);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--borde);
+  color: var(--texto);
 }
 
 .btn-cancel-cita:hover {
-  background: rgba(73, 178, 212, 0.1);
-  border-color: rgba(73, 178, 212, 0.5);
-  color: #FFFFFF;
+  background: var(--superficie-hover);
+  border-color: var(--borde-fuerte);
+  color: var(--texto);
 }
 
 .btn-submit-cita {
-  background: linear-gradient(135deg, #49B2D4 0%, #106DA0 100%);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul) 100%);
   border: none;
-  color: #FFFFFF;
+  color: var(--texto-sobre-azul);
   box-shadow: 0 4px 15px rgba(73, 178, 212, 0.3);
 }
 
@@ -439,8 +439,8 @@
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #FFFFFF;
+  border: 2px solid var(--borde);
+  border-top-color: var(--borde);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -489,17 +489,17 @@
 }
 
 .modal-content-cita::-webkit-scrollbar-track {
-  background: rgba(16, 109, 160, 0.2);
+  background: var(--superficie-hover);
   border-radius: 10px;
 }
 
 .modal-content-cita::-webkit-scrollbar-thumb {
-  background: rgba(73, 178, 212, 0.5);
+  background: var(--superficie-activa);
   border-radius: 10px;
 }
 
 .modal-content-cita::-webkit-scrollbar-thumb:hover {
-  background: rgba(73, 178, 212, 0.7);
+  background: var(--superficie-activa);
 }
 
 .form-input-cita[type="date"],
@@ -516,22 +516,22 @@
 .estudio-readonly,
 .precio-readonly {
   padding: 0.875rem 1rem;
-  background: rgba(16, 109, 160, 0.2);
-  border: 1px solid rgba(73, 178, 212, 0.2);
+  background: var(--superficie-hover);
+  border: 1px solid var(--borde);
   border-radius: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--texto);
   font-size: 1rem;
 }
 
 .precio-readonly {
   font-weight: 600;
-  color: #4ADE80;
+  color: var(--azul);
 }
 
 .btn-cancelar-cita-accion {
   background: rgba(248, 113, 113, 0.2);
   border: 1px solid rgba(248, 113, 113, 0.4);
-  color: #F87171;
+  color: #954444;
   padding: 0.875rem 1.75rem;
   border-radius: 12px;
   font-size: 1rem;
@@ -564,7 +564,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 1rem;
-  border-top: 1px solid rgba(73, 178, 212, 0.2);
+  border-top: 1px solid var(--borde);
   margin-top: 1rem;
   flex-wrap: wrap;
   gap: 1rem;

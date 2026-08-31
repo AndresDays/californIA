@@ -4,7 +4,6 @@ import cancelarBtn from "../../../assets/cancelarBtn.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
 import empresaIcono from "../../../assets/empresaIcono.png";
-import guardarImpBtn from "../../../assets/guardarImpBtn.png";
 import imprimirIcono from "../../../assets/imprimirIcono.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import muestrasBtn from "../../../assets/muestrasBtn.png";
@@ -1328,14 +1327,27 @@ const EditarSolicitud = () => {
 								onClick={registrarDevolucion}>
 								Devolucion
 							</button>
+							{/* Era un PNG del diseño anterior, con su propio azul quemado
+							    dentro de la imagen: sobre el tema claro desentonaba y no
+							    podía seguir ningún color. Ahora es un botón de verdad. */}
 							<button
-								className="btn-guardar-imprimir-img"
+								type="button"
+								className="btn-guardar-imprimir"
 								onClick={guardarYImprimir}>
-								<img
-									src={guardarImpBtn}
-									alt="Guardar e Imprimir"
-									className="icono-guardar-imp"
-								/>
+								<svg
+									className="btn-guardar-imprimir-icono"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="1.8"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									aria-hidden="true">
+									<path d="M6 9V3h12v6" />
+									<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+									<rect x="6" y="14" width="12" height="8" rx="1" />
+								</svg>
+								Guardar e imprimir
 							</button>
 						</div>
 

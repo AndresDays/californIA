@@ -10,11 +10,11 @@ html, body {
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  background-color: #020F23;
-  background-image: url('./assets/FONDO.jpg');
+  /* La pagina va en gris azulado para que las tarjetas blancas se vean encima:
+     con todo blanco no habia escalon y la pantalla se leia plana. */
+  background-color: var(--fondo-app);
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
 }
 
 body {
@@ -27,7 +27,7 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
-  background-color: #020F23;
+  background-color: var(--superficie);
 }
 
 * {
@@ -40,16 +40,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(26, 35, 50, 0.3);
+  background: var(--superficie-2);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(94, 179, 214, 0.5);
+  background: var(--superficie-activa);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(94, 179, 214, 0.7);
+  background: var(--superficie-activa);
 }
 
 * {
@@ -57,16 +57,5 @@ body {
   scrollbar-color: rgba(94, 179, 214, 0.5) rgba(26, 35, 50, 0.3);
 }
 
-/* Pantallas grandes con baja resolución o escalado Windows */
-@media screen and (min-width: 1280px) and (max-resolution: 120dpi) {
-  html {
-    font-size: 14px;
-  }
-}
-
-/* Escalado 125% de Windows específicamente */
-@media screen and (-webkit-min-device-pixel-ratio: 1.25) and (min-width: 1024px) {
-  html {
-    font-size: 14px;
-  }
-}
+/* El tamaño de la raíz lo define el tema; estas pantallas sólo lo ajustan,
+   en styles/tema.css. Fijarlo aquí anulaba el aumento de toda la interfaz. */

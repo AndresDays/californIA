@@ -8,26 +8,26 @@
 	gap: 1rem;
 	max-width: min(420px, calc(100vw - 2rem));
 	padding: 0.9rem 1rem;
-	border: 1px solid rgba(83, 185, 219, 0.32);
+	border: 1px solid var(--borde);
 	border-radius: 10px;
-	background: rgba(10, 25, 41, 0.96);
-	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+	background: var(--superficie);
+	box-shadow: 0 18px 50px rgba(18, 41, 61, 0.14);
 	backdrop-filter: blur(12px);
-	color: #fff;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 }
 
 .pwa-update-prompt strong {
 	display: block;
 	margin-bottom: 0.18rem;
-	color: #53B9DB;
+	color: var(--azul);
 	font-size: 0.88rem;
 	font-weight: 700;
 }
 
 .pwa-update-prompt p {
 	margin: 0;
-	color: rgba(255, 255, 255, 0.7);
+	color: var(--texto);
 	font-size: 0.78rem;
 	line-height: 1.35;
 }
@@ -39,10 +39,10 @@
 }
 
 .pwa-update-btn {
-	border: 1px solid rgba(255, 255, 255, 0.14);
+	border: 1px solid var(--borde);
 	border-radius: 7px;
 	background: transparent;
-	color: rgba(255, 255, 255, 0.72);
+	color: var(--texto);
 	cursor: pointer;
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.78rem;
@@ -52,13 +52,13 @@
 
 .pwa-update-btn.primary {
 	border-color: transparent;
-	background: linear-gradient(135deg, #106DA0, #49B2D4);
-	color: #fff;
+	background: linear-gradient(135deg, var(--azul), var(--azul-claro));
+	color: var(--texto-sobre-azul);
 }
 
 .pwa-update-btn:hover {
-	border-color: rgba(83, 185, 219, 0.45);
-	color: #fff;
+	border-color: var(--borde-fuerte);
+	color: var(--texto);
 }
 
 @media (max-width: 560px) {

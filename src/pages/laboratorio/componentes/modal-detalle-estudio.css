@@ -1,6 +1,6 @@
 .modal-detalle-estudio-backdrop {
 	align-items: center;
-	background: rgba(0, 0, 0, 0.62);
+	background: var(--superficie-2);
 	display: flex;
 	inset: 0;
 	justify-content: center;
@@ -10,11 +10,11 @@
 }
 
 .modal-detalle-estudio {
-	background: #0b1d2f;
-	border: 1px solid rgba(111, 179, 210, 0.45);
+	background: var(--superficie);
+	border: 1px solid var(--borde-fuerte);
 	border-radius: 12px;
-	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
-	color: #fff;
+	box-shadow: 0 18px 50px rgba(18, 41, 61, 0.14);
+	color: var(--texto);
 	max-height: min(700px, calc(100vh - 2rem));
 	max-width: 620px;
 	overflow-y: auto;
@@ -30,13 +30,13 @@
 
 .modal-detalle-estudio-header h2,
 .modal-detalle-estudio-nombre { margin: 0; }
-.modal-detalle-estudio-clave { color: #8bc7e8; font-weight: 700; margin: 0 0 0.25rem; }
+.modal-detalle-estudio-clave { color: var(--azul); font-weight: 700; margin: 0 0 0.25rem; }
 .modal-detalle-estudio-nombre { font-size: 1.05rem; margin-top: 0.9rem; }
 
 .modal-detalle-estudio-cerrar {
 	background: transparent;
 	border: 0;
-	color: #fff;
+	color: var(--texto);
 	cursor: pointer;
 	font-size: 1.9rem;
 	line-height: 1;
@@ -49,20 +49,20 @@
 }
 
 .modal-detalle-estudio-campos div {
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	border-bottom: 1px solid var(--borde);
 	display: grid;
 	gap: 0.2rem;
 	padding-bottom: 0.7rem;
 }
 
-.modal-detalle-estudio-campos dt { color: rgba(255, 255, 255, 0.62); font-size: 0.78rem; }
+.modal-detalle-estudio-campos dt { color: var(--texto-suave); font-size: 0.78rem; }
 .modal-detalle-estudio-campos dd { margin: 0; white-space: pre-wrap; }
 
 .modal-detalle-estudio-btn-cerrar {
-	background: rgba(111, 179, 210, 0.18);
-	border: 1px solid rgba(111, 179, 210, 0.55);
+	background: var(--superficie-hover);
+	border: 1px solid var(--borde-fuerte);
 	border-radius: 6px;
-	color: #fff;
+	color: var(--texto);
 	cursor: pointer;
 	font: inherit;
 	padding: 0.5rem 1rem;

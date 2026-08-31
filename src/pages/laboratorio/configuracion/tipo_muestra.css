@@ -6,7 +6,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -15,8 +15,8 @@
 
 .tipo-muestra-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -25,7 +25,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -48,17 +48,17 @@
 	padding: 0.7rem 1.5rem;
 	border: none;
 	border-radius: 6px;
-	color: white;
+	color: var(--texto-sobre-azul);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s;
-	background: linear-gradient(135deg, #007bff, #0056b3);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 }
 
 .btn-agregar-muestra:hover {
-	background: linear-gradient(135deg, #0056b3, #004085);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
@@ -76,15 +76,15 @@
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .select-registros-muestra {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -92,12 +92,12 @@
 
 .select-registros-muestra:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .select-registros-muestra option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .buscar-muestra-grupo {
@@ -105,15 +105,15 @@
 	align-items: center;
 	gap: 0.75rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .input-buscar-muestra {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	min-width: 200px;
@@ -122,7 +122,7 @@
 
 .input-buscar-muestra:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .paginacion-muestra {
@@ -136,7 +136,7 @@
 
 .contador-muestra {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .botones-paginacion-muestra {
@@ -149,10 +149,10 @@
 .btn-pag-muestra,
 .btn-pag-numero-muestra {
 	padding: 0.5rem 1rem;
-	background: rgba(10, 25, 41, 0.8);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -161,8 +161,8 @@
 
 .btn-pag-muestra:hover:not(:disabled),
 .btn-pag-numero-muestra:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-color: #6FB3D2;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
 }
 
 .btn-pag-muestra:disabled {
@@ -171,8 +171,8 @@
 }
 
 .btn-pag-numero-muestra.activo {
-	background: #007bff;
-	border-color: #007bff;
+	background: var(--azul);
+	border-color: rgba(255, 255, 255, 0.25);
 	font-weight: 600;
 }
 

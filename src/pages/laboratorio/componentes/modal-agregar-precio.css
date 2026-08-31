@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--superficie-2);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
@@ -16,12 +16,12 @@
 }
 
 .modal-container-precio {
-  background: linear-gradient(135deg, #0a1929 0%, #1a2942 100%);
-  border: 1px solid rgba(111, 179, 210, 0.3);
+  background: linear-gradient(135deg, var(--superficie) 0%, var(--superficie) 100%);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(18, 41, 61, 0.14);
   font-family: 'Codec Pro', sans-serif;
   display: flex;
   flex-direction: column;
@@ -29,17 +29,17 @@
 
 .modal-header-precio {
   padding: 1.5rem 2rem;
-  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+  border-bottom: 1px solid var(--borde);
   border-radius: 12px 12px 0 0;
 }
 
 .modal-titulo-precio {
   margin: 0;
-  color: white;
+  color: var(--texto);
   font-size: 1.25rem;
   font-weight: 500;
 }
@@ -47,7 +47,7 @@
 .modal-btn-cerrar-precio {
   background: none;
   border: none;
-  color: white;
+  color: var(--texto);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;
@@ -61,7 +61,7 @@
 }
 
 .modal-btn-cerrar-precio:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--superficie-hover);
 }
 
 .modal-body-precio {
@@ -78,7 +78,7 @@
 }
 
 .form-group-precio label {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   font-size: 0.875rem;
   font-weight: 400;
 }
@@ -92,10 +92,10 @@
 .input-buscar-estudio {
   flex: 1;
   padding: 0.75rem;
-  background: rgba(10, 25, 41, 0.6);
-  border: 1px solid rgba(111, 179, 210, 0.3);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
   border-radius: 7px;
-  color: white;
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.9rem;
   transition: all 0.3s;
@@ -103,26 +103,26 @@
 
 .input-buscar-estudio:focus {
   outline: none;
-  border-color: #6FB3D2;
-  background: rgba(10, 25, 41, 0.8);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-2);
 }
 
 .input-buscar-estudio::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .input-buscar-estudio:disabled {
-  background: rgba(10, 25, 41, 0.3);
+  background: var(--superficie-2);
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .btn-search-precio {
   padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
   border: none;
   border-radius: 7px;
-  color: white;
+  color: var(--texto);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s;
@@ -138,29 +138,29 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(10, 25, 41, 0.98);
+  background: var(--superficie);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(111, 179, 210, 0.3);
+  border: 1px solid var(--borde);
   border-radius: 8px;
   margin-top: 0.5rem;
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(18, 41, 61, 0.14);
 }
 
 .search-result-item-precio {
   padding: 0.9rem 1rem;
   cursor: pointer;
-  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  border-bottom: 1px solid var(--borde);
   transition: all 0.2s;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   font-size: 0.9rem;
 }
 
 .search-result-item-precio:hover {
-  background: rgba(111, 179, 210, 0.2);
-  border-left: 3px solid #6FB3D2;
+  background: var(--superficie-hover);
+  border-left: 3px solid var(--borde-fuerte);
   padding-left: calc(1rem - 3px);
 }
 
@@ -169,7 +169,7 @@
 }
 
 .search-result-item-precio strong {
-  color: #6FB3D2;
+  color: var(--azul);
 }
 
 .form-row-precio {
@@ -182,10 +182,10 @@
 .input-precio {
   width: 100%;
   padding: 0.75rem;
-  background: rgba(10, 25, 41, 0.6);
-  border: 1px solid rgba(111, 179, 210, 0.3);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
   border-radius: 7px;
-  color: white;
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.9rem;
   transition: all 0.3s;
@@ -194,23 +194,23 @@
 .select-empresa-precio:focus,
 .input-precio:focus {
   outline: none;
-  border-color: #6FB3D2;
-  background: rgba(10, 25, 41, 0.8);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-2);
 }
 
 .select-empresa-precio option {
-  background: #0a1929;
-  color: white;
+  background: var(--superficie);
+  color: var(--texto);
 }
 
 .input-precio::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .modal-footer-precio {
   padding: 1.5rem 2rem;
-  background: rgba(10, 25, 41, 0.4);
-  border-top: 1px solid rgba(111, 179, 210, 0.2);
+  background: var(--superficie-2);
+  border-top: 1px solid var(--borde);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
@@ -232,7 +232,7 @@
 .btn-salir-precio {
   background: rgba(255, 107, 107, 0.2);
   border: 1px solid rgba(255, 107, 107, 0.3);
-  color: #ff6b6b;
+  color: #994040;
 }
 
 .btn-salir-precio:hover {
@@ -241,8 +241,8 @@
 }
 
 .btn-guardar-precio {
-  background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
+  color: var(--texto);
   box-shadow: 0 4px 12px rgba(111, 179, 210, 0.3);
 }
 
@@ -256,16 +256,16 @@
 }
 
 .search-results-precio::-webkit-scrollbar-track {
-  background: rgba(40, 50, 60, 0.3);
+  background: var(--superficie-2);
 }
 
 .search-results-precio::-webkit-scrollbar-thumb {
-  background: rgba(111, 179, 210, 0.5);
+  background: var(--superficie-activa);
   border-radius: 3px;
 }
 
 .search-results-precio::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 179, 210, 0.7);
+  background: var(--superficie-activa);
 }
 
 @media (max-width: 768px) {

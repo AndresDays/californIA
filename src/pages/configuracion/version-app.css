@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background: transparent !important;
 	background-image: none !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .version-app-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -29,7 +29,7 @@
 
 .version-app-subtitulo {
 	margin: 0.35rem 0 0;
-	color: rgba(255, 255, 255, 0.6);
+	color: var(--texto-suave);
 	font-size: 0.85rem;
 }
 
@@ -45,9 +45,9 @@
 }
 
 .version-app-estado {
-	border: 1px solid rgba(83, 185, 219, 0.3);
+	border: 1px solid var(--borde);
 	border-radius: 10px;
-	background: rgba(10, 25, 41, 0.72);
+	background: var(--superficie-2);
 	padding: 0.95rem 1.15rem;
 }
 
@@ -59,21 +59,21 @@
 
 .version-app-estado p {
 	margin: 0;
-	color: rgba(255, 255, 255, 0.65);
+	color: var(--texto-suave);
 	font-size: 0.82rem;
 	line-height: 1.4;
 }
 
 .version-app-estado.al-dia strong {
-	color: #4ddb9c;
+	color: var(--azul);
 }
 
 .version-app-estado.pendiente {
-	border-color: rgba(240, 180, 60, 0.45);
+	border-color: var(--naranja-claro);
 }
 
 .version-app-estado.pendiente strong {
-	color: #f0b43c;
+	color: var(--naranja);
 }
 
 .version-app-datos {
@@ -84,14 +84,14 @@
 }
 
 .version-app-dato {
-	border: 1px solid rgba(111, 179, 210, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 10px;
-	background: rgba(10, 25, 41, 0.62);
+	background: var(--superficie-2);
 	padding: 0.85rem 1rem;
 }
 
 .version-app-dato dt {
-	color: rgba(255, 255, 255, 0.55);
+	color: var(--texto-suave);
 	font-size: 0.74rem;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
@@ -111,10 +111,10 @@
 }
 
 .version-app-btn {
-	border: 1px solid rgba(255, 255, 255, 0.18);
+	border: 1px solid var(--borde);
 	border-radius: 7px;
 	background: transparent;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 	cursor: pointer;
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
@@ -124,8 +124,8 @@
 }
 
 .version-app-btn:hover:not(:disabled) {
-	border-color: rgba(83, 185, 219, 0.5);
-	color: #fff;
+	border-color: var(--borde-fuerte);
+	color: var(--texto);
 }
 
 .version-app-btn:disabled {
@@ -135,8 +135,8 @@
 
 .version-app-btn.primario {
 	border-color: transparent;
-	background: linear-gradient(135deg, #106DA0, #49B2D4);
-	color: #fff;
+	background: linear-gradient(135deg, var(--azul), var(--azul-claro));
+	color: var(--texto-sobre-azul);
 }
 
 @media (max-width: 768px) {

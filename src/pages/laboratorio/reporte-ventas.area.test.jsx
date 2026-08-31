@@ -97,6 +97,16 @@ const elegirGrupo = (nombre) =>
 		target: { value: nombre },
 	});
 
+// Los rankings arrancan plegados, así que hay que abrirlos para leerlos.
+const abrirRankings = () =>
+	fireEvent.click(screen.getByRole("button", { name: /Estudios y vendedores/ }));
+
+// El renglón "Ventas filtradas" del resumen dice cuántas quedaron de cuántas.
+const ventasFiltradas = () =>
+	[...document.querySelectorAll(".rv-summary-row")]
+		.find((fila) => fila.textContent.includes("Ventas filtradas"))
+		?.querySelector("strong").textContent;
+
 describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 	beforeEach(() => jest.clearAllMocks());
 
@@ -106,7 +116,7 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 		expect(screen.getByLabelText("Grupo de área")).toHaveValue("");
 		expect(totalDelPeriodo()).toBe("$1,500.00");
 		expect(foliosEnTabla()).toEqual(["C0001", "B0002", "2608260003"]);
-		expect(screen.getByText("3 ventas filtradas")).toBeInTheDocument();
+		expect(ventasFiltradas()).toBe("3 de 3 cargadas");
 	});
 
 	test("al elegir un grupo recorta métricas, tabla y estudios más vendidos", () => {
@@ -116,11 +126,27 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 
 		expect(totalDelPeriodo()).toBe("$500.00");
 		expect(foliosEnTabla()).toEqual(["C0001"]);
-		expect(screen.getByText("1 ventas filtradas")).toBeInTheDocument();
+		expect(ventasFiltradas()).toBe("1 de 3 cargadas");
 
+		abrirRankings();
 		const estudios = within(document.querySelectorAll(".rv-side-card")[0]);
 		expect(estudios.getByText("Biometría Hemática")).toBeInTheDocument();
 		expect(estudios.queryByText("Rx Tórax")).not.toBeInTheDocument();
+	});
+
+	// La pantalla abre en el resumen y la tabla, que es lo que se consulta a
+	// diario; la grafica y los rankings quedan detras de su control.
+	test("la grafica y los rankings arrancan plegados y se abren con un clic", () => {
+		render(<ReporteVentas />);
+
+		expect(document.querySelector(".rv-chart-body")).toBeNull();
+		expect(document.querySelectorAll(".rv-side-card")).toHaveLength(0);
+
+		fireEvent.click(screen.getByRole("button", { name: /Ventas por día/ }));
+		expect(document.querySelector(".rv-chart-body")).not.toBeNull();
+
+		abrirRankings();
+		expect(document.querySelectorAll(".rv-side-card")).toHaveLength(2);
 	});
 
 	test("un grupo sin ventas deja el reporte vacío", () => {
