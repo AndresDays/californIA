@@ -10,7 +10,9 @@ html, body {
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
-  background-color: var(--superficie);
+  /* La pagina va en gris azulado para que las tarjetas blancas se vean encima:
+     con todo blanco no habia escalon y la pantalla se leia plana. */
+  background-color: var(--fondo-app);
   background-size: cover;
   background-position: center;
 }

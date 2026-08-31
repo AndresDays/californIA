@@ -795,14 +795,14 @@
 
 .rv-modal-header h2 {
 	margin: 0;
-	color: var(--texto);
+	color: var(--texto-sobre-azul);
 	font-size: 1.2rem;
 	font-weight: 600;
 }
 
 .rv-modal-header p {
 	margin: 4px 0 0;
-	color: var(--texto);
+	color: var(--texto-sobre-azul);
 	font-size: 0.9rem;
 }
 

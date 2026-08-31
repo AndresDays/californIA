@@ -1,0 +1,139 @@
+/* Capa de acabado.
+ *
+ * El paso a tema claro tradujo los colores uno por uno, y eso solo deja la
+ * pantalla invertida: todo blanco, al mismo peso, sin que se distinga una
+ * tarjeta de la página ni un encabezado de un dato. Aquí se le devuelve la
+ * jerarquía, que es lo que hace que una interfaz se vea terminada:
+ *
+ *   - la página es gris y las tarjetas blancas, para que se vean encima;
+ *   - los bordes y las sombras marcan los bloques en lugar de insinuarlos;
+ *   - los encabezados de tabla se separan del cuerpo;
+ *   - los controles comparten radio, altura y anillo de foco.
+ *
+ * Va después del CSS de cada pantalla a propósito, para uniformar lo que quedó
+ * disparejo, pero sin `!important`: una pantalla que necesite algo distinto lo
+ * sigue pudiendo pedir con un selector más específico.
+ */
+
+/* ── Tarjetas y paneles ──────────────────────────────────── */
+/* Todo lo que el tema oscuro dibujaba como bloque elevado sobre el navy. */
+.rv-summary-card,
+.rv-filters,
+.rv-chart-card,
+.rv-side-card,
+.stat-card,
+.dashboard-card,
+.quick-actions,
+.admin-catalog-card,
+.ra-card,
+.version-app-content,
+.perfil-card {
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: var(--radio);
+	box-shadow: var(--sombra);
+}
+
+/* ── Tablas ──────────────────────────────────────────────── */
+/* El encabezado tiene que despegarse del cuerpo: sobre blanco puro una tabla
+   se lee como un bloque de texto corrido. */
+table thead th {
+	background: var(--superficie-3);
+	color: var(--texto-suave);
+	font-weight: 600;
+	font-size: 0.78rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	border-bottom: 1px solid var(--borde);
+}
+
+table tbody tr {
+	border-bottom: 1px solid var(--borde);
+}
+
+table tbody tr:last-child {
+	border-bottom: none;
+}
+
+table tbody tr:hover {
+	background: var(--superficie-hover);
+}
+
+/* ── Controles ───────────────────────────────────────────── */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: var(--radio-chico);
+	color: var(--texto);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+	outline: 2px solid var(--azul);
+	outline-offset: 2px;
+}
+
+/* El foco por teclado se veía igual que el reposo, así que no se sabía dónde
+   se estaba escribiendo. */
+input:focus,
+select:focus,
+textarea:focus {
+	border-color: var(--azul);
+	box-shadow: 0 0 0 3px var(--anillo-foco);
+}
+
+::placeholder {
+	color: var(--texto-tenue);
+	opacity: 1;
+}
+
+/* ── Menú lateral ────────────────────────────────────────── */
+/* El estado activo se marcaba con un fondo apenas más claro, invisible sobre
+   blanco. Se marca con la barra azul de la izquierda, que es lo que se busca
+   de reojo para saber dónde se está. */
+.sidebar-item.active,
+.sidebar-subitem.active,
+.menu-link.active {
+	position: relative;
+	background: var(--superficie-hover);
+	color: var(--azul);
+	font-weight: 600;
+}
+
+.sidebar-item.active::before,
+.menu-link.active::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 3px;
+	height: 60%;
+	border-radius: 0 3px 3px 0;
+	background: var(--azul);
+}
+
+.sidebar-home-item.active {
+	background: var(--superficie-activa);
+}
+
+/* ── Encabezados de pantalla ─────────────────────────────── */
+h1, h2, h3 {
+	color: var(--texto);
+	letter-spacing: -0.01em;
+}
+
+/* Las etiquetas pequeñas en mayúsculas son las que ordenan la lectura de un
+   panel de datos; sin peso ni color propio se confunden con el dato. */
+.rv-summary-title,
+.rv-filter-title,
+.rv-side-title,
+.submenu-header {
+	color: var(--texto-tenue);
+	font-weight: 600;
+}

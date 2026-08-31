@@ -361,11 +361,13 @@
 	box-shadow: inset 4px 0 0 #06b6d4;
 }
 
+/* Era la única tarjeta rellena de verde oscuro, con el texto encima sin
+   contraste; sus hermanas son blancas con la barra de color a la izquierda. */
 .cal-study-header.tipo-resonancia,
 .cal-card.tipo-resonancia {
-	background: #0f6334;
-	border-left-color: var(--borde-fuerte);
-	box-shadow: inset 4px 0 0 #22c55e;
+	background: var(--superficie);
+	border-left-color: var(--exito);
+	box-shadow: inset 4px 0 0 var(--exito);
 }
 
 .cal-study-header.tipo-mastografia,
@@ -406,7 +408,7 @@
 .cal-card.tipo-ultrasonido { color: #eab308; }
 .cal-card.tipo-rayos-x { color: var(--azul); }
 .cal-card.tipo-tac { color: var(--azul); }
-.cal-card.tipo-resonancia { color: var(--azul); }
+.cal-card.tipo-resonancia { color: var(--exito); }
 .cal-card.tipo-mastografia { color: #db2777; }
 .cal-card.tipo-densitometria { color: #f97316; }
 .cal-card.tipo-otros { color: var(--azul); }

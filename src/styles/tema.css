@@ -18,10 +18,14 @@
 
 :root {
 	/* ── Superficies ─────────────────────────────────────────── */
-	--fondo-app: #eef3f8;
+	/* La jerarquía la da el escalón entre la página y la tarjeta: si todo es
+	 * blanco no se distingue una cosa de otra y la pantalla se lee como una
+	 * hoja plana. La página va en gris azulado y las tarjetas en blanco, que es
+	 * lo que las hace verse encima. */
+	--fondo-app: #eef2f7;
 	--superficie: #ffffff;
-	--superficie-2: #f6f9fc;
-	--superficie-3: #eaf1f7;
+	--superficie-2: #ffffff;
+	--superficie-3: #f4f7fa;
 	/* Fila alterna y hover de tabla: apenas un velo azul sobre el blanco. */
 	--superficie-hover: rgba(16, 109, 160, 0.06);
 	--superficie-activa: rgba(16, 109, 160, 0.12);
@@ -37,9 +41,10 @@
 	--azul-oscuro: #0b4f76;
 	--azul-claro: #49b2d4;
 	--azul-palido: #d7e8f3;
-	/* Los bordes van con alfa para que se apoyen en el blanco sin ensuciarlo. */
-	--borde: rgba(16, 109, 160, 0.18);
-	--borde-fuerte: rgba(16, 109, 160, 0.32);
+	/* Los bordes eran demasiado tenues: a un pixel de grosor un alfa de 0.18 se
+	 * desvanece y las tarjetas dejaban de tener contorno. Van sólidos. */
+	--borde: #dbe3ec;
+	--borde-fuerte: #bccddd;
 	--anillo-foco: rgba(16, 109, 160, 0.25);
 
 	/* ── Naranja: lo que debe saltar ─────────────────────────── */
@@ -60,8 +65,11 @@
 
 	/* ── Sombras ─────────────────────────────────────────────── */
 	/* Suaves y azuladas: una sombra negra sobre blanco se ve sucia. */
-	--sombra: 0 1px 2px rgba(18, 41, 61, 0.06), 0 2px 8px rgba(18, 41, 61, 0.06);
-	--sombra-alta: 0 8px 28px rgba(18, 41, 61, 0.14);
+	--sombra: 0 1px 2px rgba(18, 41, 61, 0.05), 0 1px 3px rgba(18, 41, 61, 0.08);
+	--sombra-media: 0 2px 4px rgba(18, 41, 61, 0.06), 0 4px 12px rgba(18, 41, 61, 0.08);
+	--sombra-alta: 0 12px 32px rgba(18, 41, 61, 0.18);
+	--radio: 10px;
+	--radio-chico: 7px;
 
 	/* ── Tipografía ──────────────────────────────────────────── */
 	/* La base sube de los 16px del navegador a 17.5px, un 9% más grande en toda

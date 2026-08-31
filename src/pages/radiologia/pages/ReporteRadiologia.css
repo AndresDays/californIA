@@ -7,7 +7,7 @@
 }
 
 body {
-	background: var(--superficie);
+	background: var(--fondo-app);
 	font-family: 'Inter', Arial, sans-serif;
 	min-height: 100vh;
 }

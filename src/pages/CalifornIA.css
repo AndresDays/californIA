@@ -16,7 +16,7 @@ body, html {
 
 .dashboard-container {
   min-height: 100vh;
-  background: var(--superficie);
+  background: var(--fondo-app);
   display: flex;
   flex-direction: column;
   color: var(--texto);
