@@ -26,6 +26,10 @@ const createBuilder = (table) => {
 		select: jest.fn(() => builder),
 		eq: jest.fn(() => builder),
 		gte: jest.fn(() => builder),
+		// Los hooks acotan el dia con .lt(), no con .lte(): sin este metodo la
+		// llamada lanzaba y la consulta se quedaba sin datos, que es por lo que
+		// estas pruebas fallaban aunque la pantalla funcionara.
+		lt: jest.fn(() => builder),
 		lte: jest.fn(() => builder),
 		not: jest.fn(() => builder),
 		ilike: jest.fn(() => builder),
