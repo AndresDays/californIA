@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--superficie-2);
   backdrop-filter: blur(4px);
   z-index: 9998;
   animation: fadeIn 0.2s ease;
@@ -17,10 +17,10 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: linear-gradient(135deg, rgba(2, 15, 35, 0.98) 0%, rgba(13, 67, 105, 0.98) 100%);
-  border: 1px solid rgba(83, 185, 219, 0.3);
+  background: var(--superficie);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(18, 41, 61, 0.14);
   z-index: 9999;
   width: 90%;
   max-width: 800px;
@@ -52,21 +52,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 1.5rem 1rem;
-  border-bottom: 1px solid rgba(83, 185, 219, 0.2);
+  border-bottom: 1px solid var(--borde);
 }
 
 .modal-usuario-titulo {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 500;
-  color: white;
+  color: var(--texto);
   letter-spacing: 0.5px;
 }
 
 .modal-usuario-close {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0.25rem;
@@ -80,8 +80,8 @@
 }
 
 .modal-usuario-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--superficie-hover);
+  color: var(--texto);
 }
 
 .modal-usuario-form {
@@ -116,17 +116,17 @@
 
 .form-group label {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   font-weight: 500;
 }
 
 .form-input,
 .form-select {
   padding: 0.75rem;
-  background: rgba(2, 15, 35, 0.6);
-  border: 1px solid rgba(73, 178, 212, 0.3);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
   border-radius: 6px;
-  color: white;
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.9rem;
   transition: all 0.3s;
@@ -135,12 +135,12 @@
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: #53B9DB;
-  background: rgba(2, 15, 35, 0.8);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-2);
 }
 
 .form-input::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .form-input.error,
@@ -153,8 +153,8 @@
 }
 
 .form-select option {
-  background: #020F23;
-  color: white;
+  background: var(--superficie);
+  color: var(--texto);
 }
 
 .error-message {
@@ -174,7 +174,7 @@
   gap: 0.75rem;
   cursor: pointer;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -188,7 +188,7 @@
   gap: 1rem;
   padding: 1rem 1.5rem 1.5rem;
   justify-content: flex-end;
-  border-top: 1px solid rgba(83, 185, 219, 0.2);
+  border-top: 1px solid var(--borde);
 }
 
 .btn-cancelar,
@@ -205,25 +205,25 @@
 }
 
 .btn-cancelar {
-  background: rgba(73, 178, 212, 0.2);
-  border: 1px solid rgba(73, 178, 212, 0.3);
-  color: white;
+  background: var(--superficie-hover);
+  border: 1px solid var(--borde);
+  color: var(--texto);
 }
 
 .btn-cancelar:hover {
-  background: rgba(73, 178, 212, 0.3);
-  border-color: #53B9DB;
+  background: var(--superficie-activa);
+  border-color: var(--borde-fuerte);
   transform: translateY(-2px);
 }
 
 .btn-guardar {
-  background: linear-gradient(135deg, #49B2D4 0%, #53B9DB 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
+  color: var(--texto);
   box-shadow: 0 4px 12px rgba(73, 178, 212, 0.3);
 }
 
 .btn-guardar:hover {
-  background: linear-gradient(135deg, #53B9DB 0%, #49B2D4 100%);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(73, 178, 212, 0.4);
 }
@@ -233,16 +233,16 @@
 }
 
 .modal-usuario-body::-webkit-scrollbar-track {
-  background: rgba(2, 15, 35, 0.3);
+  background: var(--superficie-2);
 }
 
 .modal-usuario-body::-webkit-scrollbar-thumb {
-  background: rgba(73, 178, 212, 0.5);
+  background: var(--superficie-activa);
   border-radius: 4px;
 }
 
 .modal-usuario-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(83, 185, 219, 0.7);
+  background: var(--superficie-activa);
 }
 
 @media (max-width: 768px) {

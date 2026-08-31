@@ -3,7 +3,7 @@
 .modal-motivo-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--superficie-2);
   backdrop-filter: blur(4px);
   z-index: 9998;
   animation: motivoFadeIn 0.2s ease;
@@ -14,10 +14,10 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: linear-gradient(135deg, rgba(2, 15, 35, 0.98) 0%, rgba(13, 67, 105, 0.98) 100%);
-  border: 1px solid rgba(83, 185, 219, 0.3);
+  background: var(--superficie);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(18, 41, 61, 0.14);
   z-index: 9999;
   width: 90%;
   max-width: 520px;
@@ -42,7 +42,7 @@
   align-items: center;
   gap: 1rem;
   padding: 1.5rem 1.5rem 1rem;
-  border-bottom: 1px solid rgba(83, 185, 219, 0.2);
+  border-bottom: 1px solid var(--borde);
 }
 
 .modal-motivo-icon {
@@ -56,7 +56,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 500;
-  color: white;
+  color: var(--texto);
   letter-spacing: 0.5px;
 }
 
@@ -67,7 +67,7 @@
 .modal-motivo-mensaje {
   margin: 0 0 0.75rem 0;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   line-height: 1.5;
 }
 
@@ -75,19 +75,19 @@
   margin: 0 0 1rem 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #53B9DB;
+  color: var(--azul);
   text-align: center;
   padding: 0.6rem;
-  background: rgba(83, 185, 219, 0.1);
+  background: var(--superficie-hover);
   border-radius: 6px;
-  border: 1px solid rgba(83, 185, 219, 0.3);
+  border: 1px solid var(--borde);
 }
 
 .modal-motivo-label {
   display: block;
   margin: 0 0 0.35rem 0;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--texto);
   letter-spacing: 0.3px;
 }
 
@@ -102,9 +102,9 @@
   margin-bottom: 1rem;
   padding: 0.65rem 0.75rem;
   border-radius: 6px;
-  border: 1px solid rgba(83, 185, 219, 0.3);
-  background: rgba(2, 15, 35, 0.6);
-  color: white;
+  border: 1px solid var(--borde);
+  background: var(--superficie-2);
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.95rem;
 }
@@ -112,7 +112,7 @@
 .modal-motivo-select:focus,
 .modal-motivo-textarea:focus {
   outline: none;
-  border-color: #53B9DB;
+  border-color: var(--borde-fuerte);
   box-shadow: 0 0 0 2px rgba(83, 185, 219, 0.2);
 }
 
@@ -127,7 +127,7 @@
 }
 
 .modal-motivo-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--texto-suave);
 }
 
 .modal-motivo-error {
@@ -140,7 +140,7 @@
 .modal-motivo-advertencia {
   margin: 0;
   font-size: 0.85rem;
-  color: #ff6b6b;
+  color: #ae4949;
   text-align: center;
   padding: 0.5rem;
   background: rgba(255, 107, 107, 0.1);
@@ -169,25 +169,25 @@
 }
 
 .btn-motivo-volver {
-  background: rgba(73, 178, 212, 0.2);
-  border: 1px solid rgba(73, 178, 212, 0.3);
-  color: white;
+  background: var(--superficie-hover);
+  border: 1px solid var(--borde);
+  color: var(--texto);
 }
 
 .btn-motivo-volver:hover:not(:disabled) {
-  background: rgba(73, 178, 212, 0.3);
-  border-color: #53B9DB;
+  background: var(--superficie-activa);
+  border-color: var(--borde-fuerte);
   transform: translateY(-2px);
 }
 
 .btn-motivo-confirmar {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: white;
+  background: linear-gradient(135deg, #dc3545 0%, var(--superficie) 100%);
+  color: var(--texto);
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 .btn-motivo-confirmar:hover:not(:disabled) {
-  background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+  background: linear-gradient(135deg, var(--superficie) 0%, var(--superficie) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
 }

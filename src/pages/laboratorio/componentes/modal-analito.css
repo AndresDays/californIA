@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--superficie-2);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
@@ -17,12 +17,12 @@
 
 .modal-contenedor-analito {
   background: linear-gradient(180deg, 
-    rgba(15, 35, 55, 0.98) 0%, 
-    rgba(10, 25, 41, 0.98) 100%
+    var(--superficie) 0%, 
+    var(--superficie) 100%
   );
   border-radius: 12px;
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--borde);
+  box-shadow: 0 10px 40px rgba(18, 41, 61, 0.14);
   width: 90%;
   max-width: 700px;
   animation: slideDown 0.3s ease;
@@ -33,29 +33,29 @@
 
 .modal-header-analito {
   background: linear-gradient(135deg,
-    rgba(41, 128, 185, 0.9) 0%,
-    rgba(52, 152, 219, 0.9) 100%
+    var(--azul) 0%,
+    var(--azul-claro) 100%
   );
   padding: 1.2rem 1.5rem;
   border-radius: 12px 12px 0 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .modal-titulo-analito {
   margin: 0;
   font-size: 1.3rem;
   font-weight: 500;
-  color: white;
+  color: var(--texto);
   letter-spacing: 0.5px;
 }
 
 .modal-btn-cerrar-analito {
   background: transparent;
   border: none;
-  color: white;
+  color: var(--texto);
   font-size: 2rem;
   line-height: 1;
   cursor: pointer;
@@ -70,7 +70,7 @@
 }
 
 .modal-btn-cerrar-analito:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--superficie-3);
   transform: rotate(90deg);
 }
 
@@ -101,23 +101,23 @@
 
 .modal-campo-analito label {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   font-weight: 500;
   letter-spacing: 0.3px;
 }
 
 .modal-label-vr {
-  color: #17a2b8 !important;
+  color: var(--azul) !important;
   font-weight: 600 !important;
 }
 
 .modal-input-analito,
 .modal-select-analito {
   padding: 0.8rem 1rem;
-  background: rgba(10, 25, 41, 0.6);
-  border: 1px solid rgba(111, 179, 210, 0.3);
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
   border-radius: 6px;
-  color: white;
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.95rem;
   transition: all 0.3s;
@@ -128,14 +128,14 @@
 .modal-input-analito:focus,
 .modal-select-analito:focus {
   outline: none;
-  border-color: #6FB3D2;
-  background: rgba(10, 25, 41, 0.8);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-2);
   box-shadow: 0 0 0 3px rgba(111, 179, 210, 0.1);
   box-sizing: border-box;
 }
 
 .modal-input-analito::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .modal-select-analito {
@@ -143,8 +143,8 @@
 }
 
 .modal-select-analito option {
-  background: #0a1929;
-  color: white;
+  background: var(--superficie);
+  color: var(--texto);
   padding: 0.5rem;
 }
 
@@ -153,7 +153,7 @@
   gap: 1rem;
   padding-top: 0.5rem;
   margin-top: 0.5rem;
-  border-top: 1px solid rgba(111, 179, 210, 0.2);
+  border-top: 1px solid var(--borde);
 }
 
 .modal-btn-salir-analito,
@@ -162,7 +162,7 @@
   padding: 0.85rem 1.5rem;
   border: none;
   border-radius: 8px;
-  color: white;
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 1rem;
   font-weight: 600;
@@ -183,12 +183,12 @@
 }
 
 .modal-btn-guardar-analito {
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-  border: 1px solid rgba(23, 162, 184, 0.5);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .modal-btn-guardar-analito:hover {
-  background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul) 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
 }
@@ -266,7 +266,7 @@
 .modal-btn-accion-inline {
     background: linear-gradient(135deg, #28a745 0%, #218838 100%);
     border: 1px solid rgba(40, 167, 69, 0.6);
-    color: white; font-family: 'Codec Pro', sans-serif;
+    color: var(--texto); font-family: 'Codec Pro', sans-serif;
     font-size: 0.95rem;
     font-weight: 600;
     padding: 0.65rem 1.3rem;
@@ -304,7 +304,7 @@
   cursor: pointer;
   user-select: none;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
 }
 
 .modal-radio-item input[type="radio"] {
@@ -315,8 +315,8 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid rgba(111, 179, 210, 0.6);
-  background: rgba(10, 25, 41, 0.7);
+  border: 2px solid var(--borde-fuerte);
+  background: var(--superficie-2);
   position: relative;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -329,14 +329,14 @@
   left: 50%;
   width: 8px;
   height: 8px;
-  background: #17a2b8;
+  background: var(--azul-claro);
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
   transition: transform 0.2s ease;
 }
 
 .modal-radio-item input[type="radio"]:checked {
-  border-color: #17a2b8;
+  border-color: var(--borde-fuerte);
 }
 
 .modal-radio-item input[type="radio"]:checked::after {
@@ -344,7 +344,7 @@
 }
 
 .modal-radio-item:hover input[type="radio"] {
-  border-color: #6FB3D2;
+  border-color: var(--borde-fuerte);
 }
 
 .modal-radio-item input[type="radio"]:focus-visible {
@@ -357,7 +357,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   cursor: pointer;
 }
 
@@ -367,16 +367,16 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  border: 2px solid rgba(111, 179, 210, 0.6);
-  background: rgba(10, 25, 41, 0.7);
+  border: 2px solid var(--borde-fuerte);
+  background: var(--superficie-2);
   cursor: pointer;
   position: relative;
   transition: all 0.25s ease;
 }
 
 .modal-checkbox-item input[type="checkbox"]:checked {
-  background: #17a2b8;
-  border-color: #17a2b8;
+  background: var(--azul-claro);
+  border-color: var(--borde-fuerte);
 }
 
 .modal-checkbox-item input[type="checkbox"]:checked::after {
@@ -387,7 +387,7 @@
   transform: translate(-50%, -55%);
   font-size: 0.75rem;
   font-weight: bold;
-  color: white;
+  color: var(--texto);
 }
 
 .modal-checkbox-item input[type="checkbox"]:focus-visible {
@@ -397,13 +397,13 @@
 
 .modal-input-analito[type="file"] {
   padding: 0.55rem 0.8rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--texto);
 }
 
 .modal-input-analito[type="file"]::file-selector-button {
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-  border: 1px solid rgba(23, 162, 184, 0.55);
-  color: #fff;
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--texto-sobre-azul);
   border-radius: 8px;
   padding: 0.55rem 0.9rem;
   font-family: 'Codec Pro', sans-serif;

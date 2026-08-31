@@ -4,8 +4,8 @@
 	grid-template-rows: auto 1fr auto;
 	gap: 28px;
 	padding: 34px clamp(22px, 5vw, 72px) 40px;
-	background: linear-gradient(135deg, #061621 0%, #0a2a37 58%, #132326 100%);
-	color: #f8fcff;
+	background: linear-gradient(135deg, var(--superficie) 0%, var(--superficie) 58%, var(--superficie) 100%);
+	color: var(--texto);
 	overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .sala-espera-topbar span {
-	color: rgba(248, 252, 255, 0.72);
+	color: var(--texto);
 	font-size: clamp(14px, 1.5vw, 22px);
 	text-transform: capitalize;
 }
@@ -52,7 +52,7 @@
 
 .sala-kicker {
 	margin-bottom: 8px;
-	color: #f2c94c;
+	color: var(--texto);
 	font-size: clamp(22px, 2.6vw, 44px);
 	font-weight: 900;
 	text-transform: uppercase;
@@ -66,8 +66,8 @@
 	min-height: clamp(112px, 14vw, 210px);
 	margin-bottom: 22px;
 	border-radius: 8px;
-	background: #f2c94c;
-	color: #101820;
+	background: var(--superficie);
+	color: var(--texto);
 	font-size: clamp(72px, 11vw, 180px);
 	font-weight: 950;
 	line-height: 1;
@@ -84,7 +84,7 @@
 
 .sala-destination {
 	margin-top: 22px;
-	color: #a9ecff;
+	color: var(--texto);
 	font-size: clamp(32px, 5vw, 82px);
 	font-weight: 900;
 }
@@ -100,7 +100,7 @@
 
 .sala-recent h2 {
 	font-size: clamp(20px, 2vw, 34px);
-	color: rgba(248, 252, 255, 0.84);
+	color: var(--texto);
 }
 
 .sala-recent-grid {
@@ -112,9 +112,9 @@
 .sala-recent-item,
 .sala-empty {
 	min-height: 86px;
-	border: 1px solid rgba(255, 255, 255, 0.14);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.09);
+	background: var(--superficie-hover);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -124,14 +124,14 @@
 }
 
 .sala-recent-item strong {
-	color: #f2c94c;
+	color: var(--texto);
 	font-size: clamp(24px, 2.6vw, 44px);
 	font-weight: 950;
 }
 
 .sala-recent-item span,
 .sala-empty {
-	color: rgba(248, 252, 255, 0.74);
+	color: var(--texto);
 	font-size: clamp(14px, 1.5vw, 20px);
 }
 

@@ -2,11 +2,10 @@
 
 .login-container {
   min-height: 100vh;
-    background-image: url('../assets/fondo-login.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  /* El fondo era una fotografía navy que obligaba a que todo el formulario
+     fuera claro sobre oscuro; ahora el login entra en el mismo tema que el
+     resto y sólo lleva un velo azul muy tenue. */
+  background: linear-gradient(160deg, var(--superficie) 0%, var(--superficie-3) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -30,7 +29,7 @@
 .login-logo-text {
   font-size: 4rem;
   font-weight: 600;
-  color: #6FB3D2;
+  color: var(--azul);
   margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
@@ -44,7 +43,7 @@
 }
 
 .login-subtitle {
-  color: #6FB3D2;
+  color: var(--azul);
   font-size: 1rem;
   margin: 0;
   opacity: 0.9;
@@ -55,12 +54,12 @@
 .login-card {
   width: 100%;
   max-width: 450px;
-  background: rgba(10, 20, 35, 0.8);
+  background: var(--superficie-2);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 3rem 2.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(18, 41, 61, 0.14);
 }
 
 .login-form {
@@ -76,7 +75,7 @@
 }
 
 .login-label {
-  color: #ffffff;
+  color: var(--texto);
   font-size: 1rem;
   font-weight: 400;
   margin: 0;
@@ -87,15 +86,15 @@
   padding: 0.75rem 0;
   background: transparent;
   border: none;
-  border-bottom: 2px solid #ffffff;
-  color: #ffffff;
+  border-bottom: 2px solid var(--borde);
+  color: var(--texto);
   font-size: 1rem;
   outline: none;
   transition: border-color 0.3s ease;
 }
 
 .login-input:focus {
-  border-bottom-color: #6FB3D2;
+  border-bottom-color: var(--borde-fuerte);
 }
 
 .login-input:disabled {
@@ -104,7 +103,7 @@
 }
 
 .login-error {
-  color: #ff6b6b;
+  color: #ae4949;
   font-size: 0.875rem;
   text-align: center;
   background: rgba(255, 107, 107, 0.1);
@@ -115,8 +114,8 @@
 
 .login-button {
   width: 100%;
-  background: #4A7FA8;
-  color: rgba(0, 0, 0, 0.8);
+  background: var(--azul-claro);
+  color: var(--texto);
   font-size: 1rem;
   font-weight: 700;
   padding: 1rem 2rem;
@@ -130,7 +129,7 @@
 }
 
 .login-button:hover:not(:disabled) {
-  background: #5a90b8;
+  background: var(--azul-claro);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(74, 127, 168, 0.4);
 }
@@ -150,14 +149,14 @@
 }
 
 .login-forgot-link a {
-  color: #ffffff;
+  color: var(--texto);
   font-size: 0.875rem;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .login-forgot-link a:hover {
-  color: #6FB3D2;
+  color: var(--azul);
 }
 
 .login-disclaimer {
@@ -168,7 +167,7 @@
 }
 
 .login-disclaimer p {
-  color: #6FB3D2;
+  color: var(--azul);
   font-size: 0.8rem;
   line-height: 1.6;
   margin: 0;

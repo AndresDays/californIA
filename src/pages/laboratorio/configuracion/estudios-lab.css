@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .admin-estudios-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -24,7 +24,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -39,11 +39,11 @@
 }
 
 .panel-formulario-estudios {
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
 	padding: 1.5rem;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
+	border: 1px solid var(--borde);
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -58,16 +58,16 @@
 }
 
 .panel-formulario-estudios::-webkit-scrollbar-track {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .panel-formulario-estudios::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
+	background: var(--superficie-activa);
 	border-radius: 4px;
 }
 
 .panel-formulario-estudios::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
+	background: var(--superficie-activa);
 }
 
 .campo-estudio {
@@ -82,8 +82,8 @@
 	gap: 1rem;
 	align-items: end;
 	padding: 1rem;
-	background: rgba(111, 179, 210, 0.08);
-	border: 1px solid rgba(111, 179, 210, 0.22);
+	background: var(--superficie-hover);
+	border: 1px solid var(--borde);
 	border-radius: 10px;
 }
 
@@ -94,9 +94,9 @@
 	justify-content: center;
 	padding: 0 0.9rem;
 	border-radius: 8px;
-	background: rgba(83, 185, 219, 0.18);
-	border: 1px solid rgba(83, 185, 219, 0.28);
-	color: #d9f6ff;
+	background: var(--superficie-hover);
+	border: 1px solid var(--borde);
+	color: var(--texto);
 	font-size: 0.86rem;
 	font-weight: 600;
 	white-space: nowrap;
@@ -104,7 +104,7 @@
 
 .campo-estudio label {
 	font-size: 0.88rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-weight: 500;
 }
 
@@ -112,10 +112,10 @@
 .select-estudio,
 .textarea-estudio {
 	padding: 0.65rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 15px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	box-sizing: border-box;
@@ -128,14 +128,14 @@
 .input-estudio[readonly] {
 	opacity: 0.72;
 	cursor: not-allowed;
-	background: rgba(10, 25, 41, 0.38);
+	background: var(--superficie-2);
 }
 
 .input-estudio:focus,
 .select-estudio:focus,
 .textarea-estudio:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .select-estudio {
@@ -143,8 +143,8 @@
 }
 
 .select-estudio option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .textarea-estudio {
@@ -171,7 +171,7 @@
 	gap: 0.5rem;
 	cursor: pointer;
 	font-size: 0.88rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -190,7 +190,7 @@
 	gap: 1rem;
 	margin-top: 0.5rem;
 	padding-top: 1rem;
-	border-top: 1px solid rgba(111, 179, 210, 0.2);
+	border-top: 1px solid var(--borde);
 }
 
 .btn-guardar-estudio,
@@ -200,7 +200,7 @@
 	padding: 0.7rem 1rem;
 	border: none;
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	font-weight: 600;
@@ -209,11 +209,11 @@
 }
 
 .btn-guardar-estudio {
-	background: linear-gradient(135deg, #007bff, #0056b3);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 }
 
 .btn-guardar-estudio:hover {
-	background: linear-gradient(135deg, #0056b3, #004085);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
@@ -229,21 +229,21 @@
 }
 
 .btn-nuevo-estudio {
-	background: linear-gradient(135deg, #17a2b8, #138496);
+	background: linear-gradient(135deg, var(--azul-claro), var(--azul));
 }
 
 .btn-nuevo-estudio:hover {
-	background: linear-gradient(135deg, #138496, #117a8b);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
 }
 
 .panel-tabla-estudios {
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
 	padding: 1.5rem;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
+	border: 1px solid var(--borde);
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -262,10 +262,10 @@
 	flex: 1;
 	min-width: 0;
 	padding: 0.65rem 1rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	box-sizing: border-box;
@@ -273,11 +273,11 @@
 
 .input-buscar-estudios-adm:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .input-buscar-estudios-adm::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .botones-exportar-estudios {
@@ -318,7 +318,7 @@
 	flex: 1;
 	overflow-x: auto;
 	overflow-y: auto;
-	border: 1px solid rgba(111, 179, 210, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 	max-height: 500px;
 }
@@ -329,16 +329,16 @@
 }
 
 .tabla-estudios-adm-container::-webkit-scrollbar-track {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-estudios-adm-container::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
+	background: var(--superficie-activa);
 	border-radius: 4px;
 }
 
 .tabla-estudios-adm-container::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
+	background: var(--superficie-activa);
 }
 
 .tabla-estudios-adm {
@@ -350,7 +350,7 @@
 .tabla-estudios-adm thead {
 	position: sticky;
 	top: 0;
-	background: rgba(10, 25, 41, 0.95);
+	background: var(--superficie);
 	z-index: 10;
 }
 
@@ -358,38 +358,38 @@
 	padding: 0.85rem 0.7rem;
 	text-align: left;
 	font-weight: 500;
-	color: white;
+	color: var(--texto);
 	font-size: 0.88rem;
 	letter-spacing: 0.3px;
-	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	border-bottom: 2px solid var(--borde);
 	white-space: nowrap;
 	cursor: pointer;
 	user-select: none;
 }
 
 .tabla-estudios-adm th:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-estudios-adm tbody tr {
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 }
 
 .tabla-estudios-adm tbody tr:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-estudios-adm td {
 	padding: 0.85rem 0.7rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-size: 0.875rem;
 }
 
 .sin-estudios-adm {
 	text-align: center;
 	padding: 3rem !important;
-	color: rgba(255, 255, 255, 0.75);
+	color: var(--texto);
 	font-style: italic;
 }
 
@@ -415,7 +415,7 @@
 .btn-editar-estudio-tabla:hover,
 .btn-eliminar-estudio-tabla:hover {
 	transform: scale(1.15);
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .icono-accion {
@@ -428,7 +428,7 @@
 .contador-estudios {
 	padding: 0.5rem 0;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 @keyframes fadeIn {
@@ -505,14 +505,14 @@
 	}
 
 	.panel-tabla-estudios {
-		background: white;
+		background: var(--superficie);
 		border: none;
 		box-shadow: none;
 	}
 
 	.tabla-estudios-adm th,
 	.tabla-estudios-adm td {
-		color: black;
-		border: 1px solid #ddd;
+		color: var(--texto);
+		border: 1px solid var(--borde);
 	}
 }

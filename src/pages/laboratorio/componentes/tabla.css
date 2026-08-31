@@ -3,10 +3,10 @@
 .tabla-generica-container {
   flex: 1;
   overflow: auto;
-  background: rgba(10, 25, 41, 0.85);
+  background: var(--superficie);
   border-radius: 12px;
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--borde);
+  box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
 
   max-height: 600px;
   overflow-y: auto;
@@ -22,7 +22,7 @@
 .tabla-generica thead {
   position: sticky;
   top: 0;
-  background: rgba(10, 25, 41, 0.95);
+  background: var(--superficie);
   z-index: 10;
 }
 
@@ -30,31 +30,31 @@
   padding: 0.9rem 0.7rem;
   text-align: left;
   font-weight: 500;
-  color: white;
+  color: var(--texto);
   font-size: 0.9rem;
   letter-spacing: 0.3px;
-  border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+  border-bottom: 2px solid var(--borde);
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
 }
 
 .tabla-generica th:hover {
-  background: rgba(111, 179, 210, 0.1);
+  background: var(--superficie-hover);
 }
 
 .tabla-generica tbody tr {
-  border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+  border-bottom: 1px solid var(--borde);
   transition: all 0.2s;
 }
 
 .tabla-generica tbody tr:hover {
-  background: rgba(111, 179, 210, 0.1);
+  background: var(--superficie-hover);
 }
 
 .tabla-generica td {
   padding: 0.9rem 0.7rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--texto);
   font-size: 0.88rem;
   white-space: nowrap;
 }
@@ -62,7 +62,7 @@
 .sin-datos {
   text-align: center;
   padding: 3rem !important;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--texto-suave);
   font-style: italic;
 }
 
@@ -83,8 +83,8 @@
 }
 
 .btn-editar-tabla-generica {
-  background: #ffc107;
-  color: #333;
+  background: var(--superficie);
+  color: var(--texto);
 }
 
 .btn-editar-tabla-generica:hover {
@@ -94,11 +94,11 @@
 
 .btn-eliminar-tabla-generica {
   background: #dc3545;
-  color: white;
+  color: #020508;
 }
 
 .btn-eliminar-tabla-generica:hover {
-  background: #c82333;
+  background: var(--superficie);
   transform: scale(1.1);
 }
 
@@ -108,16 +108,16 @@
 }
 
 .tabla-generica-container::-webkit-scrollbar-track {
-  background: rgba(10, 25, 41, 0.3);
+  background: var(--superficie-2);
 }
 
 .tabla-generica-container::-webkit-scrollbar-thumb {
-  background: rgba(111, 179, 210, 0.5);
+  background: var(--superficie-activa);
   border-radius: 4px;
 }
 
 .tabla-generica-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 179, 210, 0.7);
+  background: var(--superficie-activa);
 }
 
 .tabla-generica-container {
@@ -156,7 +156,7 @@
 .btn-editar-estudio-tabla:hover,
 .btn-eliminar-estudio-tabla:hover {
 	transform: scale(1.15);
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .icono-accion {

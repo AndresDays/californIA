@@ -5,7 +5,7 @@
 	max-width: 1800px;
 	margin: 0 auto;
 	padding: 0.65rem 1.5rem 2rem 120px;
-	color: #fff;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 }
 
@@ -16,9 +16,9 @@
 	gap: 1rem;
 	margin-bottom: 1rem;
 	padding: 0.85rem 1rem;
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(10, 25, 41, 0.36);
+	background: var(--superficie-2);
 	backdrop-filter: blur(10px);
 }
 
@@ -31,7 +31,7 @@
 
 .turnos-header p {
 	margin: 0;
-	color: rgba(255, 255, 255, 0.66);
+	color: var(--texto-suave);
 	font-size: 0.86rem;
 }
 
@@ -39,10 +39,10 @@
 .turnos-primary,
 .turnos-cita button,
 .turno-actions button {
-	border: 1px solid rgba(83, 185, 219, 0.36);
+	border: 1px solid var(--borde-fuerte);
 	border-radius: 7px;
-	background: rgba(83, 185, 219, 0.92);
-	color: #061621;
+	background: var(--azul-claro);
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.88rem;
 	font-weight: 800;
@@ -54,8 +54,8 @@
 .turnos-primary:hover,
 .turnos-cita button:hover,
 .turno-actions button:hover {
-	background: #6bc7e6;
-	border-color: rgba(111, 179, 210, 0.7);
+	background: var(--azul-claro);
+	border-color: var(--borde-fuerte);
 	transform: translateY(-1px);
 }
 
@@ -80,10 +80,10 @@
 	gap: 1rem;
 	padding: 0.75rem 0.9rem;
 	margin-bottom: 1rem;
-	border: 1px solid rgba(83, 185, 219, 0.3);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(10, 25, 41, 0.46);
-	color: #d8f6ff;
+	background: var(--superficie-2);
+	color: var(--texto);
 	font-size: 0.86rem;
 	backdrop-filter: blur(10px);
 }
@@ -91,10 +91,10 @@
 .turnos-alert button {
 	width: 28px;
 	height: 28px;
-	border: 1px solid rgba(255, 255, 255, 0.12);
+	border: 1px solid var(--borde);
 	border-radius: 7px;
-	background: rgba(255, 255, 255, 0.08);
-	color: #fff;
+	background: var(--superficie-hover);
+	color: var(--texto);
 	cursor: pointer;
 }
 
@@ -107,10 +107,10 @@
 
 .turnos-panel,
 .turnos-column {
-	border: 1px solid rgba(255, 255, 255, 0.08);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(10, 25, 41, 0.42);
-	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.16);
+	background: var(--superficie-2);
+	box-shadow: 0 18px 50px rgba(18, 41, 61, 0.08);
 	backdrop-filter: blur(10px);
 }
 
@@ -121,7 +121,7 @@
 .turnos-panel h2,
 .turnos-column-header h2 {
 	margin: 0;
-	color: rgba(255, 255, 255, 0.92);
+	color: var(--texto);
 	font-size: 0.98rem;
 	font-weight: 800;
 }
@@ -129,7 +129,7 @@
 .turnos-panel h2 {
 	margin-bottom: 0.9rem;
 	padding-bottom: 0.75rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid var(--borde);
 }
 
 .turnos-field {
@@ -145,7 +145,7 @@
 	font-weight: 800;
 	text-transform: uppercase;
 	letter-spacing: 0.02em;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .turnos-field input,
@@ -153,10 +153,10 @@
 .turnos-cita select {
 	width: 100%;
 	min-height: 40px;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid var(--borde);
 	border-radius: 7px;
-	background: rgba(7, 20, 34, 0.54);
-	color: #fff;
+	background: var(--superficie-2);
+	color: var(--texto);
 	padding: 0 0.65rem;
 	outline: none;
 	font-family: 'Codec Pro', sans-serif;
@@ -167,18 +167,18 @@
 .turnos-field input:focus,
 .turnos-field select:focus,
 .turnos-cita select:focus {
-	border-color: rgba(111, 179, 210, 0.65);
-	background: rgba(7, 20, 34, 0.78);
+	border-color: var(--borde-fuerte);
+	background: var(--superficie-2);
 }
 
 .turnos-field input::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .turnos-field select option,
 .turnos-cita select option {
-	background: #fff;
-	color: #0a1929;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .turnos-form-row {
@@ -195,10 +195,10 @@
 	z-index: 20;
 	max-height: 260px;
 	overflow: auto;
-	border: 1px solid rgba(83, 185, 219, 0.28);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: #061a2e;
-	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+	background: var(--superficie);
+	box-shadow: 0 18px 42px rgba(18, 41, 61, 0.14);
 }
 
 .turnos-results button {
@@ -208,20 +208,20 @@
 	width: 100%;
 	padding: 0.7rem 0.75rem;
 	border: 0;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid var(--borde);
 	background: transparent;
-	color: #fff;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	text-align: left;
 	cursor: pointer;
 }
 
 .turnos-results button:hover {
-	background: rgba(83, 185, 219, 0.12);
+	background: var(--superficie-hover);
 }
 
 .turnos-results span {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .turnos-primary {
@@ -244,9 +244,9 @@
 	align-items: center;
 	gap: 0.85rem;
 	padding: 0.75rem;
-	border: 1px solid rgba(255, 255, 255, 0.09);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(7, 20, 34, 0.45);
+	background: var(--superficie-2);
 }
 
 .turnos-cita div,
@@ -262,14 +262,14 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	color: rgba(255, 255, 255, 0.92);
+	color: var(--texto);
 	font-size: 0.9rem;
 }
 
 .turnos-cita span,
 .turno-card-main span,
 .turnos-empty {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 	font-size: 0.82rem;
 }
 
@@ -296,7 +296,7 @@
 	gap: 0.75rem;
 	margin-bottom: 0.8rem;
 	padding-bottom: 0.75rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid var(--borde);
 }
 
 .turnos-column-header span {
@@ -305,8 +305,8 @@
 	min-width: 32px;
 	height: 26px;
 	border-radius: 999px;
-	background: rgba(83, 185, 219, 0.18);
-	color: #a9ecff;
+	background: var(--superficie-hover);
+	color: var(--texto);
 	font-size: 0.78rem;
 	font-weight: 800;
 }
@@ -316,14 +316,14 @@
 	gap: 0.85rem;
 	padding: 0.85rem;
 	margin-bottom: 0.75rem;
-	border: 1px solid rgba(255, 255, 255, 0.1);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(7, 20, 34, 0.46);
+	background: var(--superficie-2);
 }
 
 .turno-card.called {
-	border-color: rgba(83, 185, 219, 0.42);
-	background: rgba(13, 67, 105, 0.32);
+	border-color: var(--borde-fuerte);
+	background: var(--superficie-activa);
 }
 
 .turno-card-main {
@@ -339,8 +339,8 @@
 	flex: 0 0 68px;
 	height: 46px;
 	border-radius: 8px;
-	background: #f2c94c;
-	color: #17202a;
+	background: var(--superficie);
+	color: var(--texto);
 	font-size: 1rem;
 	font-weight: 900;
 }
@@ -357,23 +357,23 @@
 }
 
 .turno-actions .secondary {
-	background: rgba(255, 255, 255, 0.14);
-	color: #fff;
-	border-color: rgba(255, 255, 255, 0.14);
+	background: var(--superficie-3);
+	color: var(--texto);
+	border-color: var(--borde);
 }
 
 .turno-actions .secondary:hover {
-	background: rgba(255, 255, 255, 0.2);
+	background: var(--superficie-3);
 }
 
 .turno-actions .ghost {
 	background: transparent;
-	color: #f7fbff;
-	border-color: rgba(255, 255, 255, 0.18);
+	color: var(--texto);
+	border-color: var(--borde);
 }
 
 .turno-actions .ghost:hover {
-	background: rgba(255, 255, 255, 0.08);
+	background: var(--superficie-hover);
 }
 
 .turno-mini {
@@ -382,16 +382,16 @@
 	justify-content: space-between;
 	gap: 0.75rem;
 	padding: 0.65rem 0;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	border-bottom: 1px solid var(--borde);
 }
 
 .turno-mini span {
-	color: #f2c94c;
+	color: var(--texto);
 	font-weight: 900;
 }
 
 .turno-mini strong {
-	color: rgba(255, 255, 255, 0.74);
+	color: var(--texto);
 	font-size: 0.82rem;
 }
 

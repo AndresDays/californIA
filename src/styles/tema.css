@@ -1,0 +1,114 @@
+/* Paleta de la plataforma.
+ *
+ * La aplicación pasó de un tablero oscuro a una interfaz clara: blanco de base,
+ * azul para la estructura -navegación, encabezados, botones- y naranja
+ * reservado para lo que tiene que saltar a la vista: adeudos, pendientes,
+ * alertas y la acción principal de cada pantalla. Si el naranja se reparte por
+ * todos lados deja de avisar nada, así que se usa poco a propósito.
+ *
+ * Todo el color vive aquí. Una pantalla que necesite un tono nuevo agrega su
+ * token en este archivo en vez de escribir el valor suelto en su CSS: así el
+ * día que cambie la identidad se cambia en un solo lugar, que es justo lo que
+ * no se pudo hacer con el tema oscuro.
+ *
+ * El visor DICOM y el lienzo de imágenes son la excepción deliberada y siguen
+ * oscuros: sobre fondo blanco el ojo pierde rango en las escalas de grises y
+ * los estudios se leen peor. Sus tokens son los `--visor-*`.
+ */
+
+:root {
+	/* ── Superficies ─────────────────────────────────────────── */
+	--fondo-app: #eef3f8;
+	--superficie: #ffffff;
+	--superficie-2: #f6f9fc;
+	--superficie-3: #eaf1f7;
+	/* Fila alterna y hover de tabla: apenas un velo azul sobre el blanco. */
+	--superficie-hover: rgba(16, 109, 160, 0.06);
+	--superficie-activa: rgba(16, 109, 160, 0.12);
+
+	/* ── Texto ───────────────────────────────────────────────── */
+	--texto: #12293d;
+	--texto-suave: #4a6178;
+	--texto-tenue: #7b8fa3;
+	--texto-sobre-azul: #ffffff;
+
+	/* ── Azul: la estructura ─────────────────────────────────── */
+	--azul: #106da0;
+	--azul-oscuro: #0b4f76;
+	--azul-claro: #49b2d4;
+	--azul-palido: #d7e8f3;
+	/* Los bordes van con alfa para que se apoyen en el blanco sin ensuciarlo. */
+	--borde: rgba(16, 109, 160, 0.18);
+	--borde-fuerte: rgba(16, 109, 160, 0.32);
+	--anillo-foco: rgba(16, 109, 160, 0.25);
+
+	/* ── Naranja: lo que debe saltar ─────────────────────────── */
+	/* El tono está elegido para dar 4.9:1 contra el blanco, así sirve tanto de
+	 * fondo con la letra blanca encima como de color de texto sobre la página.
+	 * Un naranja más vivo se veía mejor pero no llegaba al mínimo legible. */
+	--naranja: #b8520c;
+	--naranja-claro: #f59152;
+	--naranja-palido: #fdf4ec;
+
+	/* ── Estados ─────────────────────────────────────────────── */
+	--exito: #1d7a4c;
+	--exito-palido: #e3f5eb;
+	--peligro: #c0392b;
+	--peligro-palido: #fbeae8;
+	--aviso: var(--naranja);
+	--aviso-palido: var(--naranja-palido);
+
+	/* ── Sombras ─────────────────────────────────────────────── */
+	/* Suaves y azuladas: una sombra negra sobre blanco se ve sucia. */
+	--sombra: 0 1px 2px rgba(18, 41, 61, 0.06), 0 2px 8px rgba(18, 41, 61, 0.06);
+	--sombra-alta: 0 8px 28px rgba(18, 41, 61, 0.14);
+
+	/* ── Tipografía ──────────────────────────────────────────── */
+	/* La base sube de los 16px del navegador a 17.5px, un 9% más grande en toda
+	 * la interfaz: la plantilla trabaja de pie y a distancia de la pantalla.
+	 * Casi todo el CSS está en rem, y los pocos tamaños que estaban en px se
+	 * pasaron a rem para que crezcan en la misma proporción y no se queden
+	 * atrás. */
+	--texto-base: 17.5px;
+
+	/* ── Iconos ──────────────────────────────────────────────── */
+	/* Los PNG del diseño son negros y el tema oscuro los volteaba a blanco
+	 * invirtiéndolos. Sobre blanco eso los dejaría invisibles, así que ahora se
+	 * atenúan en vez de invertirse. El azul marca el estado activo del menú. */
+	--icono-tinte: brightness(0) opacity(0.68);
+	--icono-tinte-azul: brightness(0) saturate(100%) invert(31%) sepia(85%) saturate(1200%) hue-rotate(174deg);
+
+	/* ── Visor DICOM: la excepción oscura ────────────────────── */
+	--visor-fondo: #0a1016;
+	--visor-superficie: #141c25;
+	--visor-borde: rgba(255, 255, 255, 0.14);
+	--visor-texto: #e8eef4;
+	--visor-texto-suave: rgba(232, 238, 244, 0.65);
+	--visor-acento: #53b9db;
+}
+
+html {
+	font-size: var(--texto-base);
+}
+
+body {
+	background-color: var(--fondo-app);
+	color: var(--texto);
+}
+
+/* En pantallas grandes de baja resolución y con el escalado al 125% de Windows
+ * -que es como está la mayoría de los equipos de recepción- la interfaz se
+ * apretaba, así que ahí la base baja un punto. Sigue siendo mayor que los 14px
+ * que se usaban antes: el ajuste reduce el aumento, no lo cancela, que es lo
+ * que pasaba cuando estas reglas fijaban el tamaño de la raíz. */
+@media screen and (min-width: 1280px) and (max-resolution: 120dpi) {
+	:root {
+		--texto-base: 15.5px;
+	}
+}
+
+@media screen and (-webkit-min-device-pixel-ratio: 1.25) and (min-width: 1024px) {
+	:root {
+		--texto-base: 15.5px;
+	}
+}

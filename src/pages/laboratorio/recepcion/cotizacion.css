@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .cotizacion-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -24,7 +24,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -46,11 +46,11 @@
 }
 
 .datos-cotizacion-section {
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
 	padding: 1.25rem;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
+	border: 1px solid var(--borde);
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -62,30 +62,30 @@
 	font-weight: 500;
 	padding-bottom: 0.75rem;
 	letter-spacing: 0.5px;
-	color: white;
+	color: var(--texto);
 }
 
 .section-title.turquesa {
-	border-bottom: 2px solid #53B9DB;
+	border-bottom: 2px solid var(--borde-fuerte);
 }
 
 .section-title.amarillo {
-	border-bottom: 2px solid #53B9DB;
+	border-bottom: 2px solid var(--borde-fuerte);
 }
 
 .campo-icon-grupo {
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
 	padding: 0 0.75rem;
 	min-width: 0;
 }
 
 .selector-label-cot {
-	color: rgba(255, 255, 255, 0.78);
+	color: var(--texto);
 	font-size: 0.82rem;
 	font-weight: 500;
 	white-space: nowrap;
@@ -96,13 +96,13 @@
 }
 
 .campo-icon-grupo:focus-within {
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .icon-img {
 	width: 22px;
 	height: 22px;
-	filter: brightness(0) invert(1);
+	filter: var(--icono-tinte);
 	opacity: 0.7;
 	flex-shrink: 0;
 }
@@ -114,7 +114,7 @@
 	padding: 0.75rem 0;
 	background: transparent;
 	border: none;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 }
@@ -130,8 +130,8 @@
 }
 
 .select-empresa-cot option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .input-nombre-paciente:focus,
@@ -140,7 +140,7 @@
 }
 
 .input-nombre-paciente::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .condiciones-grupo {
@@ -151,17 +151,17 @@
 
 .condiciones-grupo label {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 	font-weight: 500;
 }
 
 .textarea-condiciones {
 	width: 100%;
 	padding: 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	resize: vertical;
@@ -171,19 +171,19 @@
 
 .textarea-condiciones:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .textarea-condiciones::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .historial-cotizaciones-section {
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
 	padding: 1.25rem;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
+	border: 1px solid var(--borde);
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -198,10 +198,10 @@
 .input-buscar-cotizacion {
 	flex: 1;
 	padding: 0.7rem 0.9rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	box-sizing: border-box;
@@ -210,18 +210,18 @@
 
 .input-buscar-cotizacion:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .input-buscar-cotizacion::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .tabla-cotizaciones-container {
 	flex: 1;
 	overflow-x: auto;
 	overflow-y: auto;
-	border: 1px solid rgba(111, 179, 210, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 	max-height: 220px;
 }
@@ -235,7 +235,7 @@
 .tabla-cotizaciones thead {
 	position: sticky;
 	top: 0;
-	background: rgba(10, 25, 41, 0.95);
+	background: var(--superficie);
 	z-index: 10;
 }
 
@@ -243,25 +243,25 @@
 	padding: 0.7rem 0.6rem;
 	text-align: left;
 	font-weight: 500;
-	color: white;
+	color: var(--texto);
 	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	border-bottom: 2px solid var(--borde);
 }
 
 .tabla-cotizaciones tbody tr {
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 }
 
 .tabla-cotizaciones tbody tr:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-cotizaciones td {
 	padding: 0.7rem 0.6rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-size: 0.875rem;
 }
 
@@ -269,7 +269,7 @@
 	padding: 0.35rem 0.75rem;
 	border: none;
 	border-radius: 4px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.82rem;
 	font-weight: 500;
@@ -280,20 +280,20 @@
 .btn-accion-tabla.azul,
 .btn-accion-tabla.verde-whatsapp,
 .btn-accion-tabla.azul-correo {
-	background: #6FB3D2;
+	background: var(--azul-claro);
 }
 
 .btn-accion-tabla:hover {
-	background: #5A9DBE;
+	background: var(--azul-claro);
 	transform: scale(1.05);
 }
 
 .cotizaciones-footer {
 	padding: 0.6rem;
-	background: rgba(10, 25, 41, 0.5);
+	background: var(--superficie-2);
 	border-radius: 6px;
 	font-size: 0.82rem;
-	color: rgba(255, 255, 255, 0.7);
+	color: var(--texto);
 	text-align: center;
 }
 
@@ -307,11 +307,11 @@
 }
 
 .agrega-estudios-section {
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
 	padding: 1.25rem;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
+	border: 1px solid var(--borde);
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
@@ -329,10 +329,10 @@
 .input-buscar-estudios-cot {
 	width: 100%;
 	padding: 0.7rem 0.9rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	box-sizing: border-box;
@@ -340,11 +340,11 @@
 
 .input-buscar-estudios-cot:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .input-buscar-estudios-cot::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .search-results-estudios-cot {
@@ -352,29 +352,29 @@
 	top: 100%;
 	left: 0;
 	right: 0;
-	background: #071625;
+	background: var(--superficie);
 	backdrop-filter: blur(10px);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 	margin-top: 0.4rem;
 	max-height: 300px;
 	overflow-y: auto;
 	z-index: 80;
-	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.48);
+	box-shadow: 0 18px 42px rgba(18, 41, 61, 0.14);
 }
 
 .search-result-item-cot {
 	padding: 0.8rem 1rem;
 	cursor: pointer;
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 	font-size: 0.88rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .search-result-item-cot:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-left: 3px solid #6FB3D2;
+	background: var(--superficie-hover);
+	border-left: 3px solid var(--borde-fuerte);
 	padding-left: calc(1rem - 3px);
 }
 
@@ -384,12 +384,12 @@
 
 .sin-resultados-cot {
 	cursor: default;
-	color: rgba(255, 255, 255, 0.72);
+	color: var(--texto);
 	font-style: italic;
 }
 
 .search-result-item-cot strong {
-	color: #6FB3D2;
+	color: var(--azul);
 	margin-right: 0.4rem;
 }
 
@@ -397,7 +397,7 @@
 	flex: 1;
 	overflow-x: auto;
 	overflow-y: auto;
-	border: 1px solid rgba(111, 179, 210, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 	max-height: 240px;
 }
@@ -411,7 +411,7 @@
 .tabla-estudios-cot thead {
 	position: sticky;
 	top: 0;
-	background: rgba(10, 25, 41, 0.95);
+	background: var(--superficie);
 	z-index: 10;
 }
 
@@ -419,32 +419,32 @@
 	padding: 0.7rem 0.6rem;
 	text-align: left;
 	font-weight: 500;
-	color: white;
+	color: var(--texto);
 	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	border-bottom: 2px solid var(--borde);
 }
 
 .tabla-estudios-cot tbody tr {
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: background 0.2s;
 }
 
 .tabla-estudios-cot tbody tr:hover {
-	background: rgba(111, 179, 210, 0.05);
+	background: var(--superficie-hover);
 }
 
 .tabla-estudios-cot td {
 	padding: 0.7rem 0.6rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-size: 0.875rem;
 }
 
 .sin-estudios-cot {
 	text-align: center;
 	padding: 2.5rem !important;
-	color: rgba(255, 255, 255, 0.75);
+	color: var(--texto);
 	font-style: italic;
 }
 
@@ -454,7 +454,7 @@
 	border-radius: 4px;
 	padding: 0.3rem 0.6rem;
 	cursor: pointer;
-	color: #dc3545;
+	color: #aa2935;
 	font-size: 0.9rem;
 	transition: all 0.2s;
 }
@@ -469,7 +469,7 @@
 	grid-template-columns: repeat(4, 1fr);
 	gap: 0.75rem;
 	padding-top: 0.75rem;
-	border-top: 1px solid rgba(111, 179, 210, 0.2);
+	border-top: 1px solid var(--borde);
 }
 
 .campo-total-cot {
@@ -481,17 +481,17 @@
 
 .campo-total-cot label {
 	font-size: 0.82rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 	font-weight: 500;
 	white-space: nowrap;
 }
 
 .campo-total-cot input {
 	padding: 0.6rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.875rem;
 	box-sizing: border-box;
@@ -500,12 +500,12 @@
 
 .campo-total-cot input:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .input-total-final-cot {
-	background: rgba(111, 179, 210, 0.2) !important;
-	border-color: #6FB3D2 !important;
+	background: var(--superficie-hover) !important;
+	border-color: var(--borde-fuerte) !important;
 	font-weight: 600 !important;
 }
 
@@ -513,7 +513,7 @@
 	display: flex;
 	gap: 0.75rem;
 	padding-top: 0.75rem;
-	border-top: 1px solid rgba(111, 179, 210, 0.2);
+	border-top: 1px solid var(--borde);
 	flex-wrap: wrap;
 }
 
@@ -524,7 +524,7 @@
 	padding: 0.75rem 1rem;
 	border: none;
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	font-weight: 600;
@@ -532,7 +532,7 @@
 	transition: all 0.3s;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-	background: linear-gradient(135deg, #6FB3D2 0%, #5A9DBE 100%);
+	background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
 	min-width: 0;
 	white-space: nowrap;
 }
@@ -540,7 +540,7 @@
 .btn-whatsapp-cot:hover,
 .btn-guardar-cot:hover,
 .btn-correo-cot:hover {
-	background: linear-gradient(135deg, #5A9DBE 0%, #4A8DAE 100%);
+	background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(111, 179, 210, 0.4);
 } */
@@ -555,13 +555,13 @@
 .tabla-cotizaciones-container::-webkit-scrollbar-track,
 .tabla-estudios-cot-container::-webkit-scrollbar-track,
 .search-results-estudios-cot::-webkit-scrollbar-track {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-cotizaciones-container::-webkit-scrollbar-thumb,
 .tabla-estudios-cot-container::-webkit-scrollbar-thumb,
 .search-results-estudios-cot::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
+	background: var(--superficie-activa);
 	border-radius: 4px;
 }
 
@@ -617,5 +617,5 @@
 .nota-precios-cliente-cot {
 	margin: 0.25rem 0 0 0;
 	font-size: 0.78rem;
-	color: rgba(255, 193, 7, 0.95);
+	color: var(--texto);
 }

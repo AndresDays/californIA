@@ -6,7 +6,7 @@
 .visitadora-pagina {
 	min-height: 100vh;
 	padding: 1.2rem 1.5rem 2rem 120px;
-	color: #fff;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	display: flex;
 	flex-direction: column;
@@ -19,7 +19,7 @@
 	align-items: center;
 	gap: 0.9rem;
 	padding-bottom: 0.9rem;
-	border-bottom: 1px solid rgba(83, 185, 219, 0.2);
+	border-bottom: 1px solid var(--borde);
 }
 
 .visitadora-titulo {
@@ -34,9 +34,9 @@
 	align-items: center;
 	gap: 0.5rem;
 	padding: 0.25rem 0.5rem;
-	border: 1px solid rgba(83, 185, 219, 0.3);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	background: rgba(2, 15, 35, 0.4);
+	background: var(--superficie-2);
 	font-size: 0.85rem;
 	white-space: nowrap;
 }
@@ -44,7 +44,7 @@
 .visitadora-navegador button {
 	background: none;
 	border: none;
-	color: #8fcde5;
+	color: var(--texto);
 	cursor: pointer;
 	padding: 0.15rem 0.35rem;
 	font-size: 0.9rem;
@@ -52,7 +52,7 @@
 }
 
 .visitadora-navegador button:hover {
-	background: rgba(83, 185, 219, 0.15);
+	background: var(--superficie-hover);
 }
 
 .visitadora-estado {
@@ -64,13 +64,13 @@
 }
 
 .visitadora-estado.abierto {
-	background: rgba(83, 185, 219, 0.18);
-	color: #8fcde5;
+	background: var(--superficie-hover);
+	color: var(--texto);
 }
 
 .visitadora-estado.cerrado {
-	background: rgba(255, 255, 255, 0.12);
-	color: rgba(255, 255, 255, 0.75);
+	background: var(--superficie-3);
+	color: var(--texto);
 }
 
 .visitadora-acciones {
@@ -85,21 +85,21 @@
 	font-size: 0.78rem;
 	padding: 0.4rem 0.8rem;
 	border-radius: 6px;
-	border: 1px solid rgba(83, 185, 219, 0.35);
-	background: rgba(2, 15, 35, 0.5);
-	color: rgba(255, 255, 255, 0.85);
+	border: 1px solid var(--borde-fuerte);
+	background: var(--superficie-2);
+	color: var(--texto);
 	cursor: pointer;
 }
 
 .visitadora-acciones button:hover:not(:disabled),
 .visitadora-modal-acciones button:hover:not(:disabled) {
-	background: rgba(83, 185, 219, 0.18);
+	background: var(--superficie-hover);
 }
 
 .visitadora-boton-primario {
-	background: #106da0 !important;
-	border-color: #106da0 !important;
-	color: #fff !important;
+	background: var(--azul) !important;
+	border-color: rgba(255, 255, 255, 0.25) !important;
+	color: var(--texto-sobre-azul) !important;
 }
 
 .visitadora-acciones button:disabled,
@@ -117,9 +117,9 @@
 
 .visitadora-tarjeta {
 	padding: 0.8rem 1rem;
-	border: 1px solid rgba(83, 185, 219, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(2, 15, 35, 0.36);
+	background: var(--superficie-2);
 	display: flex;
 	flex-direction: column;
 	gap: 0.25rem;
@@ -129,7 +129,7 @@
 	font-size: 0.68rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: rgba(143, 205, 229, 0.82);
+	color: var(--texto);
 }
 
 .visitadora-tarjeta-valor {
@@ -139,7 +139,7 @@
 }
 
 .visitadora-tarjeta-valor.dinero {
-	color: #7fd6ac;
+	color: var(--texto);
 }
 
 .visitadora-tarjeta-valor.alerta {
@@ -149,9 +149,9 @@
 /* --- tabla --- */
 .visitadora-tabla-contenedor {
 	overflow-x: auto;
-	border: 1px solid rgba(83, 185, 219, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(2, 15, 35, 0.36);
+	background: var(--superficie-2);
 }
 
 .visitadora-tabla {
@@ -172,17 +172,17 @@
 	font-size: 0.68rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: rgba(143, 205, 229, 0.82);
+	color: var(--texto);
 	font-weight: 600;
 	padding: 0.7rem 0.8rem;
-	border-bottom: 1px solid rgba(83, 185, 219, 0.25);
+	border-bottom: 1px solid var(--borde);
 	white-space: nowrap;
 }
 
 .visitadora-tabla td {
 	padding: 0.7rem 0.8rem;
-	border-bottom: 1px solid rgba(83, 185, 219, 0.12);
-	color: rgba(255, 255, 255, 0.85);
+	border-bottom: 1px solid var(--borde);
+	color: var(--texto);
 	vertical-align: top;
 }
 
@@ -193,10 +193,10 @@
 }
 
 .visitadora-tabla tfoot td {
-	border-top: 1px solid rgba(83, 185, 219, 0.3);
+	border-top: 1px solid var(--borde);
 	border-bottom: none;
 	font-weight: 600;
-	background: rgba(2, 15, 35, 0.6);
+	background: var(--superficie-2);
 }
 
 /* Los médicos con ingreso y sin porcentaje asignado: el hueco que provoca los
@@ -237,16 +237,16 @@
 	font-size: 0.78rem;
 	padding: 0.4rem 0.5rem;
 	border-radius: 6px;
-	border: 1px solid rgba(83, 185, 219, 0.25);
-	background: rgba(2, 15, 35, 0.6);
-	color: #fff;
+	border: 1px solid var(--borde);
+	background: var(--superficie-2);
+	color: var(--texto);
 	resize: vertical;
 }
 
 .visitadora-enlace {
 	background: none;
 	border: none;
-	color: #8fcde5;
+	color: var(--texto);
 	cursor: pointer;
 	font-family: inherit;
 	font-size: inherit;
@@ -267,7 +267,7 @@
 	margin: 0.5rem 0 0;
 	padding-left: 1rem;
 	font-size: 0.72rem;
-	color: rgba(255, 255, 255, 0.65);
+	color: var(--texto-suave);
 }
 
 /* --- pastillas y fichas --- */
@@ -283,28 +283,28 @@
 
 .visitadora-pastilla.ligado,
 .visitadora-pastilla.pagado {
-	background: rgba(127, 214, 172, 0.18);
-	color: #7fd6ac;
+	background: var(--superficie-hover);
+	color: var(--texto);
 }
 
 .visitadora-pastilla.suelto {
-	background: rgba(255, 255, 255, 0.1);
-	color: rgba(255, 255, 255, 0.6);
+	background: var(--superficie-hover);
+	color: var(--texto-suave);
 }
 
 .visitadora-pastilla.pendiente {
-	background: rgba(221, 171, 99, 0.18);
-	color: #ddab63;
+	background: var(--naranja-palido);
+	color: var(--naranja);
 }
 
 .visitadora-pastilla.sin {
 	background: rgba(239, 83, 80, 0.2);
-	color: #ef8a80;
+	color: #8f534d;
 }
 
 .visitadora-pastilla.abierto {
-	background: rgba(83, 185, 219, 0.18);
-	color: #8fcde5;
+	background: var(--superficie-hover);
+	color: var(--texto);
 }
 
 .visitadora-fichas {
@@ -318,14 +318,14 @@
 	font-size: 0.68rem;
 	padding: 0.1rem 0.5rem;
 	border-radius: 11px;
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	color: rgba(255, 255, 255, 0.6);
+	border: 1px solid var(--borde);
+	color: var(--texto-suave);
 }
 
 .visitadora-ficha.ligada {
-	border-color: rgba(127, 214, 172, 0.5);
-	color: #7fd6ac;
-	background: rgba(127, 214, 172, 0.12);
+	border-color: var(--borde-fuerte);
+	color: var(--texto);
+	background: var(--superficie-hover);
 }
 
 /* --- avisos --- */
@@ -334,13 +334,13 @@
 	border: 1px solid rgba(239, 83, 80, 0.35);
 	border-radius: 8px;
 	background: rgba(239, 83, 80, 0.12);
-	color: rgba(255, 255, 255, 0.85);
+	color: var(--texto);
 	margin: 0;
 }
 
 .visitadora-nota {
 	font-size: 0.75rem;
-	color: rgba(143, 205, 229, 0.75);
+	color: var(--texto);
 	margin: 0;
 }
 
@@ -348,7 +348,7 @@
 	margin: 0.5rem 0 1rem;
 	padding-left: 1.1rem;
 	font-size: 0.78rem;
-	color: rgba(255, 255, 255, 0.75);
+	color: var(--texto);
 	max-height: 14rem;
 	overflow-y: auto;
 }
@@ -361,7 +361,7 @@
 .visitadora-modal-fondo {
 	position: fixed;
 	inset: 0;
-	background: rgba(2, 10, 22, 0.7);
+	background: var(--superficie-2);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -370,15 +370,15 @@
 }
 
 .visitadora-modal {
-	background: #0a1929;
-	border: 1px solid rgba(83, 185, 219, 0.3);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 10px;
 	padding: 1.3rem 1.5rem;
 	width: 100%;
 	max-width: 26rem;
 	max-height: 90vh;
 	overflow-y: auto;
-	color: #fff;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 }
 
@@ -394,7 +394,7 @@
 
 .visitadora-modal-sujeto {
 	margin: 0 0 1rem;
-	color: rgba(143, 205, 229, 0.82);
+	color: var(--texto);
 	font-size: 0.85rem;
 }
 
@@ -403,7 +403,7 @@
 	font-size: 0.7rem;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	color: rgba(143, 205, 229, 0.82);
+	color: var(--texto);
 	margin: 0.8rem 0 0.25rem;
 }
 
@@ -415,9 +415,9 @@
 	font-size: 0.85rem;
 	padding: 0.45rem 0.6rem;
 	border-radius: 6px;
-	border: 1px solid rgba(83, 185, 219, 0.3);
-	background: rgba(2, 15, 35, 0.6);
-	color: #fff;
+	border: 1px solid var(--borde);
+	background: var(--superficie-2);
+	color: var(--texto);
 	resize: vertical;
 }
 
@@ -437,27 +437,27 @@
 .visitadora-historial {
 	margin-top: 1rem;
 	padding: 0.7rem 0.9rem;
-	border: 1px solid rgba(83, 185, 219, 0.2);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
-	background: rgba(2, 15, 35, 0.4);
+	background: var(--superficie-2);
 }
 
 .visitadora-historial-titulo {
 	font-size: 0.68rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: rgba(143, 205, 229, 0.82);
+	color: var(--texto);
 }
 
 .visitadora-historial ul {
 	margin: 0.4rem 0;
 	padding-left: 1.1rem;
 	font-size: 0.78rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 :focus-visible {
-	outline: 2px solid #8fcde5;
+	outline: 2px solid var(--borde-fuerte);
 	outline-offset: 2px;
 }
 

@@ -20,7 +20,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: var(--font);
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -30,7 +30,7 @@
 .historial-header {
 	padding: 1rem 2rem 1rem 120px;
 	border-bottom: 1px solid var(--color-border);
-	background: rgba(2, 15, 35, 0.5);
+	background: var(--superficie-2);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -39,7 +39,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 	letter-spacing: 1px;
 }
 
@@ -71,7 +71,7 @@
 	display: flex;
 	align-items: center;
 	gap: 0.75rem;
-	background: rgba(2, 15, 35, 0.8);
+	background: var(--superficie-2);
 	border: 1px solid var(--color-border-strong);
 	border-radius: 8px;
 	padding: 0 1rem;
@@ -88,7 +88,7 @@
 	object-fit: contain;
 	opacity: 0.8;
 	flex-shrink: 0;
-	filter: brightness(0) invert(1);
+	filter: var(--icono-tinte);
 }
 
 .input-buscar-cliente {
@@ -97,7 +97,7 @@
 	padding: 0.85rem 0;
 	background: transparent;
 	border: none;
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 	font-family: var(--font);
 	font-size: 0.95rem;
 }
@@ -107,7 +107,7 @@
 }
 
 .input-buscar-cliente::placeholder {
-	color: rgba(255, 255, 255, 0.82);
+	color: var(--texto);
 }
 
 .btn-buscar {
@@ -125,11 +125,11 @@
 }
 
 .dropdown-resultados {
-	background: rgba(2, 15, 35, 0.97);
+	background: var(--superficie);
 	border: 1px solid var(--color-border-strong);
 	border-radius: 8px;
 	overflow: hidden;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+	box-shadow: 0 8px 24px rgba(18, 41, 61, 0.14);
 }
 
 .dropdown-item {
@@ -147,11 +147,11 @@
 
 .dropdown-item:hover {
 	background: var(--color-surface-hover);
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 }
 
 .datos-paciente-card {
-	background: rgba(2, 15, 35, 0.8);
+	background: var(--superficie-2);
 	border: 1px solid var(--color-border-strong);
 	border-radius: 10px;
 	padding: 1rem 1.25rem;
@@ -176,12 +176,12 @@
 
 .dato-valor {
 	font-size: 0.88rem;
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 	margin-right: 0.75rem;
 }
 
 .historial-visitas-section {
-	background: rgba(2, 15, 35, 0.8);
+	background: var(--superficie-2);
 	border-radius: 12px;
 	padding: 1.25rem;
 	border: 1px solid var(--color-border);
@@ -201,12 +201,12 @@
 
 .section-title-hist.turquesa {
 	border-bottom: 2px solid var(--color-accent);
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 }
 
 .section-title-hist.amarillo {
 	border-bottom: 2px solid #d4a017;
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 }
 
 .tabla-historial-container {
@@ -224,7 +224,7 @@
 }
 
 .tabla-historial-container::-webkit-scrollbar-track {
-	background: rgba(2, 15, 35, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-historial-container::-webkit-scrollbar-thumb {
@@ -245,7 +245,7 @@
 .tabla-historial thead {
 	position: sticky;
 	top: 0;
-	background: rgba(13, 67, 105, 0.97);
+	background: var(--azul);
 	z-index: 10;
 }
 
@@ -271,7 +271,7 @@
 }
 
 .tabla-historial tbody tr.selected {
-	background: rgba(73, 178, 212, 0.2);
+	background: var(--superficie-hover);
 	border-left: 3px solid var(--color-accent);
 }
 
@@ -292,7 +292,7 @@
 	display: flex;
 	align-items: center;
 	gap: 1.5rem;
-	background: rgba(2, 15, 35, 0.8);
+	background: var(--superficie-2);
 	border: 1px solid var(--color-border-strong);
 	border-radius: 10px;
 	padding: 0.85rem 1.25rem;
@@ -312,7 +312,7 @@
 }
 
 .estudios-paciente-section {
-	background: rgba(2, 15, 35, 0.8);
+	background: var(--superficie-2);
 	border-radius: 12px;
 	padding: 1.25rem;
 	border: 1px solid var(--color-border);
@@ -337,7 +337,7 @@
 }
 
 .tabla-estudios-hist-container::-webkit-scrollbar-track {
-	background: rgba(2, 15, 35, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-estudios-hist-container::-webkit-scrollbar-thumb {
@@ -358,7 +358,7 @@
 .tabla-estudios-hist thead {
 	position: sticky;
 	top: 0;
-	background: rgba(13, 67, 105, 0.97);
+	background: var(--azul);
 	z-index: 10;
 }
 
@@ -379,11 +379,11 @@
 }
 
 .fila-estudio-hist {
-	background: rgba(13, 67, 105, 0.45) !important;
+	background: var(--superficie-activa) !important;
 }
 
 .fila-estudio-hist:hover {
-	background: rgba(13, 67, 105, 0.55) !important;
+	background: var(--superficie-activa) !important;
 }
 
 .estudio-header-hist {
@@ -412,7 +412,7 @@
 .estudio-nombre-hist {
 	font-weight: 500;
 	font-size: 0.88rem;
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 	flex: 1;
 }
 
@@ -424,19 +424,19 @@
 }
 
 .badge-estado-hist.estado-validado {
-	background: rgba(83, 185, 219, 0.2);
+	background: var(--superficie-hover);
 	color: var(--color-light);
-	border: 1px solid rgba(83, 185, 219, 0.4);
+	border: 1px solid var(--borde-fuerte);
 }
 
 .badge-estado-hist.estado-guardado {
-	background: rgba(73, 178, 212, 0.15);
+	background: var(--superficie-hover);
 	color: var(--color-accent);
-	border: 1px solid rgba(73, 178, 212, 0.35);
+	border: 1px solid var(--borde-fuerte);
 }
 
 .badge-estado-hist.estado-captura {
-	background: rgba(13, 67, 105, 0.5);
+	background: var(--superficie-activa);
 	color: var(--color-text-muted);
 	border: 1px solid var(--color-border);
 }
@@ -444,17 +444,17 @@
 .link-visor-hist {
 	border: 1px solid var(--color-border-strong);
 	border-radius: 6px;
-	color: var(--color-white);
+	color: var(--color-var(--texto));
 	font-size: 0.75rem;
 	font-weight: 500;
 	padding: 0.3rem 0.65rem;
 	text-decoration: none;
 	white-space: nowrap;
-	background: rgba(73, 178, 212, 0.14);
+	background: var(--superficie-hover);
 }
 
 .link-visor-hist:hover {
-	background: rgba(73, 178, 212, 0.28);
+	background: var(--superficie-activa);
 	border-color: var(--color-accent);
 }
 
@@ -479,7 +479,7 @@
 	font-weight: 500;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
-	background: rgba(73, 178, 212, 0.07);
+	background: var(--superficie-hover);
 }
 
 .clave-analito {
@@ -494,7 +494,7 @@
 }
 
 .resultado-valor.tiene-resultado {
-	color: var(--color-white) !important;
+	color: var(--color-var(--texto)) !important;
 	font-weight: 500;
 }
 
@@ -530,7 +530,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 1rem;
-	background: rgba(2, 15, 35, 0.6);
+	background: var(--superficie-2);
 	border-radius: 12px;
 	border: 1px dashed var(--color-border-strong);
 	padding: 3rem;

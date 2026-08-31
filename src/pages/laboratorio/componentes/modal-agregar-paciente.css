@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--superficie-2);
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
@@ -17,12 +17,12 @@
 
 .modal-contenedor-paciente {
   background: linear-gradient(180deg, 
-    rgba(25, 35, 45, 0.98) 0%, 
-    rgba(15, 25, 35, 0.98) 100%
+    var(--superficie) 0%, 
+    var(--superficie) 100%
   );
   border-radius: 12px;
-  border: 1px solid rgba(111, 179, 210, 0.3);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--borde);
+  box-shadow: 0 10px 40px rgba(18, 41, 61, 0.14);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
@@ -35,29 +35,29 @@
 
 .modal-header-paciente {
   background: linear-gradient(135deg, 
-    rgba(52, 108, 145, 0.95) 0%, 
-    rgba(41, 128, 185, 0.95) 100%
+    var(--azul) 0%, 
+    var(--azul) 100%
   );
   padding: 1rem 1.5rem;
   border-radius: 12px 12px 0 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(111, 179, 210, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .modal-titulo-paciente {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 500;
-  color: white;
+  color: var(--texto);
   letter-spacing: 0.5px;
 }
 
 .modal-btn-cerrar-paciente {
   background: transparent;
   border: none;
-  color: white;
+  color: var(--texto);
   font-size: 2rem;
   line-height: 1;
   cursor: pointer;
@@ -72,7 +72,7 @@
 }
 
 .modal-btn-cerrar-paciente:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--superficie-3);
   transform: rotate(90deg);
 }
 
@@ -89,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(40, 50, 60, 0.5);
+  background: var(--superficie-2);
   border: 1px solid rgba(80, 90, 100, 0.5);
   border-radius: 6px;
   padding: 0 0.75rem;
@@ -110,7 +110,7 @@
   padding: 0.75rem 0;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.9rem;
 }
@@ -121,11 +121,11 @@
 }
 
 .modal-input-paciente::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .modal-input-paciente:read-only {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--texto);
   cursor: not-allowed;
 }
 
@@ -134,8 +134,8 @@
 }
 
 .modal-select-paciente option {
-  background: #1a252f;
-  color: white;
+  background: var(--superficie);
+  color: var(--texto);
   padding: 0.5rem;
 }
 
@@ -146,7 +146,7 @@
 }
 
 .modal-campo-fecha {
-  background: rgba(40, 50, 60, 0.5);
+  background: var(--superficie-2);
   border: 1px solid rgba(80, 90, 100, 0.5);
   border-radius: 6px;
   padding: 0 0.75rem;
@@ -157,7 +157,7 @@
   padding: 0.75rem 0;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.9rem;
   cursor: pointer;
@@ -168,8 +168,8 @@
 }
 
 .modal-select-fecha option {
-  background: #1a252f;
-  color: white;
+  background: var(--superficie);
+  color: var(--texto);
 }
 
 /* El control nativo de fecha pinta su icono en negro, que sobre el fondo
@@ -205,7 +205,7 @@
   padding: 0.85rem 1.5rem;
   border: none;
   border-radius: 8px;
-  color: white;
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
@@ -226,12 +226,12 @@
 }
 
 .modal-btn-guardar-paciente {
-  background: linear-gradient(135deg, #4A90B8 0%, #3A7FA8 100%);
-  border: 1px solid rgba(74, 144, 184, 0.5);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul-claro) 100%);
+  border: 1px solid var(--borde-fuerte);
 }
 
 .modal-btn-guardar-paciente:hover {
-  background: linear-gradient(135deg, #3A7FA8 0%, #2A6F98 100%);
+  background: linear-gradient(135deg, var(--azul-claro) 0%, var(--azul) 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(74, 144, 184, 0.4);
 }
@@ -241,17 +241,17 @@
 }
 
 .modal-contenido-paciente::-webkit-scrollbar-track {
-  background: rgba(40, 50, 60, 0.3);
+  background: var(--superficie-2);
   border-radius: 4px;
 }
 
 .modal-contenido-paciente::-webkit-scrollbar-thumb {
-  background: rgba(111, 179, 210, 0.5);
+  background: var(--superficie-activa);
   border-radius: 4px;
 }
 
 .modal-contenido-paciente::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 179, 210, 0.7);
+  background: var(--superficie-activa);
 }
 
 .modal-campo-telefono {
@@ -263,7 +263,7 @@
   left: 48px;
   top: 50%;
   transform: translateY(-50%);
-  color: #53B9DB;
+  color: var(--azul);
   font-weight: 600;
   font-size: 0.95rem;
   pointer-events: none;

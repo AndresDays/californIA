@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .admin-catalogo-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -24,7 +24,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -47,17 +47,17 @@
 	padding: 0.7rem 1.5rem;
 	border: none;
 	border-radius: 6px;
-	color: white;
+	color: var(--texto-sobre-azul);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s;
-	background: linear-gradient(135deg, #007bff, #0056b3);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 }
 
 .btn-agregar-catalogo:hover {
-	background: linear-gradient(135deg, #0056b3, #004085);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
@@ -75,15 +75,15 @@
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .select-registros-catalogo {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -91,12 +91,12 @@
 
 .select-registros-catalogo:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .select-registros-catalogo option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .buscar-catalogo-grupo {
@@ -104,15 +104,15 @@
 	align-items: center;
 	gap: 0.75rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .input-buscar-catalogo {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	min-width: 200px;
@@ -121,7 +121,7 @@
 
 .input-buscar-catalogo:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .paginacion-catalogo {
@@ -135,7 +135,7 @@
 
 .contador-catalogo {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .botones-paginacion-catalogo {
@@ -148,10 +148,10 @@
 .btn-pag-catalogo,
 .btn-pag-numero-catalogo {
 	padding: 0.5rem 1rem;
-	background: rgba(10, 25, 41, 0.8);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -160,8 +160,8 @@
 
 .btn-pag-catalogo:hover:not(:disabled),
 .btn-pag-numero-catalogo:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-color: #6FB3D2;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
 }
 
 .btn-pag-catalogo:disabled {
@@ -170,8 +170,8 @@
 }
 
 .btn-pag-numero-catalogo.activo {
-	background: #007bff;
-	border-color: #007bff;
+	background: var(--azul);
+	border-color: rgba(255, 255, 255, 0.25);
 	font-weight: 600;
 }
 

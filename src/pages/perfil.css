@@ -2,10 +2,8 @@
 
 .perfil-usuario-wrapper {
   min-height: 100vh;
-  background-image: url('../assets/FONDO.jpg');
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
   font-family: 'Codec Pro', sans-serif;
 }
 
@@ -17,14 +15,14 @@
 .perfil-container {
   width: min(1180px, 100%);
   margin: 0 auto;
-  color: #ffffff;
+  color: var(--texto);
 }
 
 .perfil-hero,
 .perfil-panel {
-  background: rgba(4, 18, 35, 0.88);
-  border: 1px solid rgba(83, 185, 219, 0.24);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: 0 18px 40px rgba(18, 41, 61, 0.11);
   backdrop-filter: blur(16px);
 }
 
@@ -51,8 +49,8 @@
   width: 104px;
   height: 104px;
   border-radius: 50%;
-  border: 2px solid rgba(83, 185, 219, 0.45);
-  background: linear-gradient(135deg, #123148 0%, #49B2D4 100%);
+  border: 2px solid var(--borde-fuerte);
+  background: linear-gradient(135deg, var(--superficie) 0%, var(--azul-claro) 100%);
   overflow: hidden;
 }
 
@@ -70,7 +68,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--texto);
   font-size: 2rem;
   font-weight: 700;
 }
@@ -83,8 +81,8 @@
   justify-content: center;
   min-height: 28px;
   border-radius: 8px;
-  background: rgba(5, 24, 42, 0.86);
-  color: #ffffff;
+  background: var(--superficie);
+  color: var(--texto);
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
@@ -109,7 +107,7 @@
 .perfil-firma-preview > span {
   display: block;
   margin-bottom: 6px;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--texto-suave);
   font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -125,7 +123,7 @@
 
 .perfil-hero-texto p {
   margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--texto);
   font-size: 0.95rem;
 }
 
@@ -138,14 +136,14 @@
 .perfil-resumen div {
   min-height: 78px;
   padding: 14px 16px;
-  border: 1px solid rgba(83, 185, 219, 0.18);
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  background: rgba(1, 9, 19, 0.28);
+  background: var(--superficie-2);
 }
 
 .perfil-resumen strong {
   display: block;
-  color: #ffffff;
+  color: var(--texto);
   font-size: 0.98rem;
   line-height: 1.25;
 }
@@ -154,9 +152,9 @@
   display: flex;
   gap: 8px;
   padding: 10px 12px;
-  border-right: 1px solid rgba(83, 185, 219, 0.24);
-  border-left: 1px solid rgba(83, 185, 219, 0.24);
-  background: rgba(3, 16, 31, 0.92);
+  border-right: 1px solid var(--borde);
+  border-left: 1px solid var(--borde);
+  background: var(--superficie);
 }
 
 .perfil-tabs button {
@@ -165,7 +163,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-weight: 700;
   cursor: pointer;
@@ -173,9 +171,9 @@
 
 .perfil-tabs button:hover,
 .perfil-tabs button.activo {
-  border-color: rgba(83, 185, 219, 0.36);
-  background: rgba(83, 185, 219, 0.14);
-  color: #ffffff;
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-hover);
+  color: var(--texto);
 }
 
 .perfil-panel {
@@ -202,7 +200,7 @@
 }
 
 .perfil-campo-grupo label {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--texto);
   font-size: 0.88rem;
   font-weight: 700;
 }
@@ -211,27 +209,27 @@
   width: 100%;
   min-height: 46px;
   padding: 0 14px;
-  border: 1px solid rgba(83, 185, 219, 0.26);
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  background: rgba(1, 10, 21, 0.55);
-  color: #ffffff;
+  background: var(--superficie-2);
+  color: var(--texto);
   font-family: 'Codec Pro', sans-serif;
   font-size: 0.95rem;
 }
 
 .perfil-input:focus {
   outline: none;
-  border-color: #53B9DB;
+  border-color: var(--borde-fuerte);
   box-shadow: 0 0 0 3px rgba(83, 185, 219, 0.16);
 }
 
 .perfil-input:disabled {
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--texto-suave);
   cursor: not-allowed;
 }
 
 .perfil-input::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--texto);
 }
 
 .perfil-panel-intro {
@@ -246,7 +244,7 @@
 
 .perfil-panel-intro p {
   margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--texto-suave);
   line-height: 1.45;
 }
 
@@ -259,9 +257,9 @@
 .perfil-firma-preview {
   min-height: 250px;
   padding: 18px;
-  border: 1px solid rgba(83, 185, 219, 0.2);
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  background: rgba(1, 10, 21, 0.36);
+  background: var(--superficie-2);
 }
 
 .firma-preview-img {
@@ -270,7 +268,7 @@
   object-fit: contain;
   padding: 12px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--superficie-hover);
 }
 
 .firma-preview-vacia {
@@ -278,16 +276,16 @@
   align-items: center;
   justify-content: center;
   min-height: 190px;
-  border: 1px dashed rgba(83, 185, 219, 0.28);
+  border: 1px dashed var(--borde);
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--texto-suave);
 }
 
 .firma-canvas-container {
   padding: 12px;
-  border: 1px solid rgba(83, 185, 219, 0.28);
+  border: 1px solid var(--borde);
   border-radius: 8px;
-  background: rgba(1, 10, 21, 0.46);
+  background: var(--superficie-2);
 }
 
 .firma-canvas {
@@ -295,7 +293,7 @@
   width: 100%;
   height: 200px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--superficie-hover);
   cursor: crosshair;
   touch-action: none;
 }
@@ -329,28 +327,28 @@
 .btn-limpiar-firma {
   position: relative;
   padding: 0 16px;
-  border: 1px solid rgba(83, 185, 219, 0.34);
-  background: rgba(83, 185, 219, 0.1);
-  color: #ffffff;
+  border: 1px solid var(--borde);
+  background: var(--superficie-hover);
+  color: var(--texto);
 }
 
 .btn-subir-firma:hover,
 .btn-limpiar-firma:hover {
-  border-color: rgba(83, 185, 219, 0.68);
-  background: rgba(83, 185, 219, 0.18);
+  border-color: var(--borde-fuerte);
+  background: var(--superficie-hover);
 }
 
 .btn-guardar-perfil {
   min-width: 170px;
   padding: 0 22px;
   border: 0;
-  background: #49B2D4;
-  color: #062235;
+  background: var(--azul-claro);
+  color: var(--texto);
   box-shadow: 0 10px 22px rgba(73, 178, 212, 0.22);
 }
 
 .btn-guardar-perfil:hover:not(:disabled) {
-  background: #65c8e7;
+  background: var(--azul-claro);
 }
 
 .btn-guardar-perfil:disabled {

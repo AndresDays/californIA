@@ -5,7 +5,7 @@
 	display: flex;
 	flex-direction: column;
 	font-family: 'Codec Pro', sans-serif;
-	color: white;
+	color: var(--texto);
 	background-image: none !important;
 	background: transparent !important;
 	overflow-x: hidden;
@@ -14,8 +14,8 @@
 
 .admin-precios-header {
 	padding: 1rem 2rem 1rem 120px;
-	background: rgba(10, 25, 41, 0.8);
-	border-bottom: 1px solid rgba(111, 179, 210, 0.2);
+	background: var(--superficie-2);
+	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
 	width: 100%;
 }
@@ -24,7 +24,7 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: white;
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
@@ -55,16 +55,16 @@
 
 .filtro-empresa-grupo label {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-weight: 500;
 }
 
 .select-empresa-filtro {
 	padding: 0.65rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -73,12 +73,12 @@
 
 .select-empresa-filtro:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .select-empresa-filtro option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .botones-accion-precios {
@@ -92,19 +92,19 @@
 	padding: 0.7rem 1.5rem;
 	border: none;
 	border-radius: 6px;
-	color: white;
+	color: var(--texto-sobre-azul);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	font-weight: 600;
 	cursor: pointer;
 	transition: all 0.2s;
-	background: linear-gradient(135deg, #007bff, #0056b3);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 	white-space: nowrap;
 }
 
 .btn-alta-precios:hover,
 .btn-duplicar-lista:hover {
-	background: linear-gradient(135deg, #0056b3, #004085);
+	background: linear-gradient(135deg, var(--azul), var(--azul));
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
@@ -120,10 +120,10 @@
 	flex: 1;
 	min-width: 0;
 	padding: 0.65rem 1rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	box-sizing: border-box;
@@ -131,11 +131,11 @@
 
 .input-buscar-precios:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .input-buscar-precios::placeholder {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .botones-exportar-precios {
@@ -146,10 +146,10 @@
 
 .btn-exportar-precio {
 	padding: 0.65rem 1.25rem;
-	background: rgba(10, 25, 41, 0.8);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	font-weight: 600;
@@ -158,8 +158,8 @@
 }
 
 .btn-exportar-precio:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-color: #6FB3D2;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
 }
 
 .mostrar-registros-precios {
@@ -167,15 +167,15 @@
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 }
 
 .select-registros-precios {
 	padding: 0.5rem 0.75rem;
-	background: rgba(10, 25, 41, 0.6);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -183,22 +183,22 @@
 
 .select-registros-precios:focus {
 	outline: none;
-	border-color: #6FB3D2;
+	border-color: var(--borde-fuerte);
 }
 
 .select-registros-precios option {
-	background: #0a1929;
-	color: white;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .tabla-precios-container {
 	flex: 1;
 	overflow-x: auto;
 	overflow-y: auto;
-	background: rgba(10, 25, 41, 0.85);
+	background: var(--superficie);
 	border-radius: 12px;
-	border: 1px solid rgba(111, 179, 210, 0.3);
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--borde);
+	box-shadow: 0 4px 20px rgba(18, 41, 61, 0.14);
 	animation: fadeIn 0.5s ease;
 }
 
@@ -208,16 +208,16 @@
 }
 
 .tabla-precios-container::-webkit-scrollbar-track {
-	background: rgba(10, 25, 41, 0.3);
+	background: var(--superficie-2);
 }
 
 .tabla-precios-container::-webkit-scrollbar-thumb {
-	background: rgba(111, 179, 210, 0.5);
+	background: var(--superficie-activa);
 	border-radius: 4px;
 }
 
 .tabla-precios-container::-webkit-scrollbar-thumb:hover {
-	background: rgba(111, 179, 210, 0.7);
+	background: var(--superficie-activa);
 }
 
 .tabla-precios {
@@ -229,7 +229,7 @@
 .tabla-precios thead {
 	position: sticky;
 	top: 0;
-	background: rgba(10, 25, 41, 0.95);
+	background: var(--superficie);
 	z-index: 10;
 }
 
@@ -237,17 +237,17 @@
 	padding: 0.9rem 0.7rem;
 	text-align: left;
 	font-weight: 500;
-	color: white;
+	color: var(--texto);
 	font-size: 0.88rem;
 	letter-spacing: 0.3px;
-	border-bottom: 2px solid rgba(111, 179, 210, 0.3);
+	border-bottom: 2px solid var(--borde);
 	white-space: nowrap;
 	cursor: pointer;
 	user-select: none;
 }
 
 .tabla-precios th:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-precios th input[type="checkbox"],
@@ -259,17 +259,17 @@
 }
 
 .tabla-precios tbody tr {
-	border-bottom: 1px solid rgba(111, 179, 210, 0.1);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 }
 
 .tabla-precios tbody tr:hover {
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .tabla-precios td {
 	padding: 0.85rem 0.7rem;
-	color: rgba(255, 255, 255, 0.9);
+	color: var(--texto);
 	font-size: 0.875rem;
 	white-space: nowrap;
 }
@@ -277,7 +277,7 @@
 .sin-precios {
 	text-align: center;
 	padding: 3rem !important;
-	color: rgba(255, 255, 255, 0.75);
+	color: var(--texto);
 	font-style: italic;
 }
 
@@ -298,8 +298,8 @@
 }
 
 .btn-editar-precio {
-	background: #ffc107;
-	color: #333;
+	background: var(--superficie);
+	color: var(--texto);
 }
 
 .btn-editar-precio:hover {
@@ -309,11 +309,11 @@
 
 .btn-eliminar-precio {
 	background: #dc3545;
-	color: white;
+	color: #020508;
 }
 
 .btn-eliminar-precio:hover {
-	background: #c82333;
+	background: var(--superficie);
 	transform: scale(1.1);
 }
 
@@ -328,7 +328,7 @@
 
 .contador-precios {
 	font-size: 0.9rem;
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 }
 
 .botones-paginacion-precios {
@@ -341,10 +341,10 @@
 .btn-pag-precios,
 .btn-pag-numero-precios {
 	padding: 0.5rem 1rem;
-	background: rgba(10, 25, 41, 0.8);
-	border: 1px solid rgba(111, 179, 210, 0.3);
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: white;
+	color: var(--texto);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.9rem;
 	cursor: pointer;
@@ -353,8 +353,8 @@
 
 .btn-pag-precios:hover:not(:disabled),
 .btn-pag-numero-precios:hover {
-	background: rgba(111, 179, 210, 0.2);
-	border-color: #6FB3D2;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
 }
 
 .btn-pag-precios:disabled {
@@ -363,13 +363,13 @@
 }
 
 .btn-pag-numero-precios.activo {
-	background: #007bff;
-	border-color: #007bff;
+	background: var(--azul);
+	border-color: rgba(255, 255, 255, 0.25);
 	font-weight: 600;
 }
 
 .paginacion-ellipsis {
-	color: rgba(255, 255, 255, 0.8);
+	color: var(--texto);
 	padding: 0 0.5rem;
 }
 
@@ -449,7 +449,7 @@
 .btn-editar-estudio-tabla:hover,
 .btn-eliminar-estudio-tabla:hover {
 	transform: scale(1.15);
-	background: rgba(111, 179, 210, 0.1);
+	background: var(--superficie-hover);
 }
 
 .icono-accion {
@@ -461,45 +461,45 @@
 
 .modal-duplicar-overlay {
 	position: fixed; inset: 0;
-	background: rgba(0,0,0,0.65);
+	background: var(--superficie-2);
 	display: flex; align-items: center; justify-content: center;
 	z-index: 1000; backdrop-filter: blur(6px);
 }
 .modal-duplicar-box {
-	background: rgba(10,25,41,0.97);
-	border: 1px solid rgba(83,185,219,0.25);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 14px; padding: 1.75rem 2rem;
 	width: 100%; max-width: 400px;
 	display: flex; flex-direction: column; gap: 1.1rem;
-	box-shadow: 0 24px 64px rgba(0,0,0,0.55);
-	font-family: 'Codec Pro', sans-serif; color: white;
+	box-shadow: 0 24px 64px rgba(18, 41, 61, 0.14);
+	font-family: 'Codec Pro', sans-serif; color: var(--texto);
 }
 .modal-duplicar-titulo { margin: 0; font-size: 1.1rem; font-weight: 600; }
-.modal-duplicar-subtitulo { margin: -0.5rem 0 0; font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+.modal-duplicar-subtitulo { margin: -0.5rem 0 0; font-size: 0.82rem; color: var(--texto-suave); }
 .modal-duplicar-campo { display: flex; flex-direction: column; gap: 0.35rem; }
-.modal-duplicar-campo label { font-size: 0.75rem; color: rgba(83,185,219,0.85); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.modal-duplicar-campo label { font-size: 0.75rem; color: var(--azul); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .modal-duplicar-select {
 	padding: 0.65rem 0.9rem;
-	background: rgba(10,25,41,0.7);
-	border: 1px solid rgba(83,185,219,0.25);
-	border-radius: 7px; color: white;
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
+	border-radius: 7px; color: var(--texto);
 	font-family: 'Codec Pro', sans-serif; font-size: 0.9rem;
 	width: 100%; cursor: pointer;
 }
-.modal-duplicar-select option { background: #0a1929; }
-.modal-duplicar-select:focus { outline: none; border-color: #53B9DB; }
+.modal-duplicar-select option { background: var(--superficie); }
+.modal-duplicar-select:focus { outline: none; border-color: var(--borde-fuerte); }
 .modal-duplicar-acciones { display: flex; gap: 0.65rem; justify-content: flex-end; padding-top: 0.25rem; }
 .btn-duplicar-cancelar {
 	padding: 0.6rem 1.2rem; background: transparent;
-	border: 1px solid rgba(255,255,255,0.15); border-radius: 7px;
-	color: rgba(255,255,255,0.55); font-family: 'Codec Pro', sans-serif;
+	border: 1px solid var(--borde); border-radius: 7px;
+	color: var(--texto-suave); font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem; cursor: pointer;
 }
-.btn-duplicar-cancelar:hover { border-color: rgba(255,255,255,0.35); color: white; }
+.btn-duplicar-cancelar:hover { border-color: var(--borde); color: var(--texto); }
 .btn-duplicar-confirmar {
 	padding: 0.6rem 1.4rem;
-	background: linear-gradient(135deg, #106DA0, #49B2D4);
-	border: none; border-radius: 7px; color: white;
+	background: linear-gradient(135deg, var(--azul), var(--azul-claro));
+	border: none; border-radius: 7px; color: var(--texto-sobre-azul);
 	font-family: 'Codec Pro', sans-serif; font-size: 0.85rem; font-weight: 600;
 	cursor: pointer;
 }

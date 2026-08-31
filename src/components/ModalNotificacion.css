@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--superficie-2);
   backdrop-filter: blur(2px);
   z-index: 10000;
   animation: fadeInNotif 0.2s ease;
@@ -16,10 +16,10 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  background: linear-gradient(135deg, rgba(2, 15, 35, 0.98) 0%, rgba(13, 67, 105, 0.98) 100%);
-  border: 1px solid rgba(83, 185, 219, 0.3);
+  background: var(--superficie);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(18, 41, 61, 0.14);
   z-index: 10001;
   min-width: 320px;
   max-width: 500px;
@@ -69,7 +69,7 @@
 
 .modal-notificacion-container.exito .modal-notificacion-icono {
   background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
+  color: #1b722f;
 }
 
 .modal-notificacion-container.error {
@@ -78,25 +78,25 @@
 
 .modal-notificacion-container.error .modal-notificacion-icono {
   background: rgba(220, 53, 69, 0.2);
-  color: #dc3545;
+  color: #aa2935;
 }
 
 .modal-notificacion-container.advertencia {
-  border-left: 4px solid #ffc107;
+  border-left: 4px solid var(--borde);
 }
 
 .modal-notificacion-container.advertencia .modal-notificacion-icono {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
+  background: var(--superficie-3);
+  color: var(--texto);
 }
 
 .modal-notificacion-container.info {
-  border-left: 4px solid #53B9DB;
+  border-left: 4px solid var(--borde-fuerte);
 }
 
 .modal-notificacion-container.info .modal-notificacion-icono {
-  background: rgba(83, 185, 219, 0.2);
-  color: #53B9DB;
+  background: var(--superficie-hover);
+  color: var(--azul);
 }
 
 .modal-notificacion-contenido {
@@ -106,14 +106,14 @@
 .modal-notificacion-mensaje {
   margin: 0;
   font-size: 0.95rem;
-  color: white;
+  color: var(--texto);
   line-height: 1.4;
 }
 
 .modal-notificacion-cerrar {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--texto-suave);
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0.25rem;
@@ -128,8 +128,8 @@
 }
 
 .modal-notificacion-cerrar:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--superficie-hover);
+  color: var(--texto);
 }
 
 @media (max-width: 768px) {
