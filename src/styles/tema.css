@@ -72,12 +72,12 @@
 	--radio-chico: 7px;
 
 	/* ── Tipografía ──────────────────────────────────────────── */
-	/* La base sube de los 16px del navegador a 17.5px, un 9% más grande en toda
+	/* La base sube de los 16px del navegador a 18.5px, un 16% más grande en toda
 	 * la interfaz: la plantilla trabaja de pie y a distancia de la pantalla.
 	 * Casi todo el CSS está en rem, y los pocos tamaños que estaban en px se
 	 * pasaron a rem para que crezcan en la misma proporción y no se queden
 	 * atrás. */
-	--texto-base: 17.5px;
+	--texto-base: 18.5px;
 
 	/* ── Iconos ──────────────────────────────────────────────── */
 	/* Los PNG del diseño son negros y el tema oscuro los volteaba a blanco
@@ -111,12 +111,12 @@ body {
  * que pasaba cuando estas reglas fijaban el tamaño de la raíz. */
 @media screen and (min-width: 1280px) and (max-resolution: 120dpi) {
 	:root {
-		--texto-base: 15.5px;
+		--texto-base: 16.5px;
 	}
 }
 
 @media screen and (-webkit-min-device-pixel-ratio: 1.25) and (min-width: 1024px) {
 	:root {
-		--texto-base: 15.5px;
+		--texto-base: 16.5px;
 	}
 }
