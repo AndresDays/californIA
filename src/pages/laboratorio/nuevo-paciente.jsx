@@ -1837,7 +1837,7 @@ const NuevoPaciente = () => {
 												<div style={{ width: '100%' }}>
 													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{pac.nombre}</div>
 													{detalles.length > 0 && (
-														<div style={{ fontSize: '0.75rem', color: 'rgba(83,185,219,0.75)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+														<div style={{ fontSize: '0.75rem', color: 'var(--texto-suave)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
 															{detalles.map((d) => <span key={d}>{d}</span>)}
 														</div>
 													)}
@@ -1970,7 +1970,7 @@ const NuevoPaciente = () => {
 												<div style={{ width: '100%' }}>
 													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{nombre}</div>
 													{detalles.length > 0 && (
-														<div style={{ fontSize: '0.75rem', color: 'rgba(83,185,219,0.75)', marginTop: '2px' }}>
+														<div style={{ fontSize: '0.75rem', color: 'var(--texto-suave)', marginTop: '2px' }}>
 															{detalles.join(' · ')}
 														</div>
 													)}

@@ -341,28 +341,29 @@
 	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
-	width: 34px;
-	height: 34px;
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	aspect-ratio: 1;
 	border-radius: 50%;
-	border: 1.5px solid rgba(255, 255, 255, 0.25);
-	background: linear-gradient(135deg, var(--azul) 0%, var(--superficie) 100%);
+	border: none;
+	background: var(--azul);
 	cursor: pointer;
-	flex-shrink: 0;
-	transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+	flex: 0 0 auto;
+	transition: box-shadow 0.2s, transform 0.2s;
 	padding: 0;
+	overflow: hidden;
 }
 
 .user-avatar-btn:hover,
 .user-avatar-btn.open {
-	border-color: var(--borde-fuerte);
-	box-shadow: 0 0 0 3px rgba(73, 178, 212, 0.2);
-	transform: scale(1.07);
+	box-shadow: 0 0 0 3px var(--anillo-foco);
 }
 
 .user-avatar-initials {
-	font-size: 0.65rem;
-	font-weight: 700;
-	color: var(--azul);
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: var(--texto-sobre-azul);
 	letter-spacing: 0.04em;
 	line-height: 1;
 	user-select: none;
@@ -377,13 +378,12 @@
 
 /* ── Dropdown ────────────────────────────────────────────────────── */
 .user-dropdown-menu {
-	width: 220px;
+	width: 244px;
 	background: var(--superficie);
-	border: none;
-	border-radius: 14px;
+	border: 1px solid var(--borde);
+	border-radius: 12px;
 	overflow: hidden;
-	box-shadow: 0 0 0 1px rgba(73, 178, 212, 0.2), 0 24px 60px rgba(18, 41, 61, 0.14);
-	outline: 4px solid var(--borde-fuerte);
+	box-shadow: var(--sombra-alta);
 	z-index: 99999;
 	font-family: 'Codec Pro', sans-serif;
 	animation: dropdown-in 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -402,30 +402,32 @@
 }
 
 .dropdown-header {
-	padding: 1rem 1.1rem;
+	padding: 0.9rem 1rem;
 	border-bottom: 1px solid var(--borde);
 	display: flex;
 	align-items: center;
-	gap: 0.8rem;
-	background: var(--superficie);
+	gap: 0.7rem;
+	background: var(--superficie-3);
 }
 
 .dropdown-avatar-large {
-	width: 38px;
-	height: 38px;
+	width: 40px;
+	height: 40px;
+	min-width: 40px;
+	aspect-ratio: 1;
 	border-radius: 50%;
-	background: linear-gradient(135deg, var(--azul), var(--superficie));
-	border: 1.5px solid rgba(255, 255, 255, 0.25);
+	background: var(--azul);
+	border: none;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	flex-shrink: 0;
+	flex: 0 0 auto;
 }
 
 .dropdown-avatar-large span {
-	font-size: 0.75rem;
-	font-weight: 700;
-	color: var(--azul);
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--texto-sobre-azul);
 	letter-spacing: 0.04em;
 	font-family: 'Codec Pro', sans-serif;
 }
@@ -448,8 +450,8 @@
 }
 
 .dropdown-user-rol {
-	font-size: 0.65rem;
-	color: var(--azul);
+	font-size: 0.68rem;
+	color: var(--texto-tenue);
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
 	font-family: 'Codec Pro', sans-serif;
@@ -468,55 +470,59 @@
 	padding: 0.7rem 0.8rem;
 	background: transparent;
 	border: none;
-	color: var(--azul);
+	color: var(--texto);
 	text-align: left;
 	cursor: pointer;
 	border-radius: 8px;
 	transition: background 0.15s, color 0.15s;
-	font-size: 0.88rem;
+	font-size: 0.9rem;
 	font-family: 'Codec Pro', sans-serif;
 	white-space: nowrap;
 }
 
 .menu-item-icon {
-	width: 16px;
-	height: 16px;
+	width: 18px;
+	height: 18px;
 	flex-shrink: 0;
-	opacity: 0.6;
-	transition: opacity 0.15s;
-	color: var(--azul);
+	transition: color 0.15s;
+	color: var(--texto-tenue);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
 
 .menu-item-icon svg {
-	width: 16px;
-	height: 16px;
+	width: 18px;
+	height: 18px;
 }
 
 .menu-item:hover {
 	background: var(--superficie-hover);
-	color: var(--texto);
+	color: var(--azul);
 }
 
 .menu-item:hover .menu-item-icon {
-	opacity: 1;
+	color: var(--azul);
 }
 
 .dropdown-divider {
 	height: 1px;
-	background: var(--superficie-hover);
-	margin: 0.3rem 0.5rem;
+	background: var(--borde);
+	margin: 0.35rem 0.45rem;
 }
 
 .menu-item-logout {
-	color: var(--azul);
+	color: var(--peligro);
 }
 
-.menu-item-logout:hover {
-	background: var(--superficie-hover);
-	color: var(--azul);
+.menu-item-logout .menu-item-icon {
+	color: var(--peligro);
+}
+
+.menu-item-logout:hover,
+.menu-item-logout:hover .menu-item-icon {
+	background: var(--peligro-palido);
+	color: var(--peligro);
 }
 
 /* ── Móvil ───────────────────────────────────────────────────────── */

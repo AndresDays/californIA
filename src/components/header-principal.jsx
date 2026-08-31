@@ -40,7 +40,9 @@ const DropdownPortal = ({ anchorRef, onClose, children }) => {
 				position: "fixed",
 				top: pos.top,
 				right: pos.right,
-				background: "#061a2e",
+				// El fondo lo pone la hoja de estilos: aquí estaba el navy del tema
+				// anterior escrito a mano, y un estilo en línea gana sobre el CSS,
+				// así que el desplegable seguía saliendo oscuro.
 				isolation: "isolate",
 			}}
 			onMouseDown={(e) => e.stopPropagation()}>

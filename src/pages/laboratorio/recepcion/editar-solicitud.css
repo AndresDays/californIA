@@ -738,26 +738,38 @@
 	border-top: 1px solid var(--color-border);
 }
 
-.btn-guardar-imprimir-img {
-	background: transparent;
-	border: none;
-	padding: 0;
-	cursor: pointer;
-	display: flex;
+/* La accion principal de la pantalla: solida en azul, con el icono en linea
+   para que tome el color del boton en lugar de traerlo quemado en un PNG. */
+.btn-guardar-imprimir {
+	display: inline-flex;
 	align-items: center;
-	transition: transform 0.2s, opacity 0.2s;
+	gap: 0.55rem;
+	padding: 0.7rem 1.25rem;
+	border: none;
+	border-radius: var(--radio-chico);
+	background: var(--azul);
+	color: var(--texto-sobre-azul);
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.92rem;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: var(--sombra);
+	transition: background 0.15s, box-shadow 0.15s;
 }
 
-.btn-guardar-imprimir-img:hover {
-	transform: translateY(-2px);
-	opacity: 0.85;
+.btn-guardar-imprimir:hover {
+	background: var(--azul-oscuro);
+	box-shadow: var(--sombra-media);
 }
 
-.icono-guardar-imp {
-	height: 42px;
-	width: auto;
-	object-fit: contain;
-	display: block;
+.btn-guardar-imprimir:active {
+	box-shadow: none;
+}
+
+.btn-guardar-imprimir-icono {
+	width: 18px;
+	height: 18px;
+	flex-shrink: 0;
 }
 
 .icono-campo {

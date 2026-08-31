@@ -3,12 +3,28 @@ import TextField from '@mui/material/TextField';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useCallback, useState } from 'react';
 
-const darkTheme = createTheme({
+// El buscador monta su propio tema de Material UI, así que no lo alcanzaba la
+// conversión del CSS: seguía en modo oscuro y aparecía como un recuadro navy
+// en medio de las pantallas claras. Los colores salen de los tokens para que
+// no vuelva a quedarse atrás cuando cambie la paleta.
+const leerToken = (nombre, respaldo) => {
+	if (typeof window === "undefined") return respaldo;
+	const valor = getComputedStyle(document.documentElement).getPropertyValue(nombre);
+	return valor.trim() || respaldo;
+};
+
+const temaBuscador = createTheme({
 	palette: {
-		mode: 'dark',
-		primary: { main: '#53B9DB' },
-		background: { paper: '#0d2137', default: '#020F23' },
-		text: { primary: '#ffffff', secondary: 'rgba(255,255,255,0.55)' },
+		mode: 'light',
+		primary: { main: leerToken('--azul', '#106da0') },
+		background: {
+			paper: leerToken('--superficie', '#ffffff'),
+			default: leerToken('--fondo-app', '#eef2f7'),
+		},
+		text: {
+			primary: leerToken('--texto', '#12293d'),
+			secondary: leerToken('--texto-suave', '#4a6178'),
+		},
 	},
 	typography: {
 		fontFamily: "'Codec Pro', sans-serif",
@@ -18,11 +34,10 @@ const darkTheme = createTheme({
 		MuiAutocomplete: {
 			styleOverrides: {
 				paper: {
-					background: 'rgba(10, 25, 41, 0.98)',
-					border: '1px solid rgba(83, 185, 219, 0.25)',
-					backdropFilter: 'blur(12px)',
+					background: 'var(--superficie)',
+					border: '1px solid var(--borde)',
 					borderRadius: '10px',
-					boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+					boxShadow: 'var(--sombra-alta)',
 					marginTop: '4px',
 				},
 				listbox: {
@@ -31,56 +46,57 @@ const darkTheme = createTheme({
 						borderRadius: '7px',
 						padding: '10px 12px',
 						fontSize: '0.88rem',
+						color: 'var(--texto)',
 						'&[aria-selected="true"]': {
-							background: 'rgba(83, 185, 219, 0.15)',
+							background: 'var(--superficie-activa)',
 						},
 						'&.Mui-focused': {
-							background: 'rgba(83, 185, 219, 0.1)',
+							background: 'var(--superficie-hover)',
 						},
 					},
 				},
 				noOptions: {
 					fontSize: '0.85rem',
-					color: 'rgba(255,255,255,0.4)',
+					color: 'var(--texto-tenue)',
 					padding: '12px',
 				},
 				loading: {
 					fontSize: '0.85rem',
-					color: 'rgba(83, 185, 219, 0.7)',
+					color: 'var(--texto-suave)',
 					padding: '12px',
 				},
-				clearIndicator: { color: 'rgba(255,255,255,0.35)' },
-				popupIndicator: { color: 'rgba(255,255,255,0.35)' },
+				clearIndicator: { color: 'var(--texto-tenue)' },
+				popupIndicator: { color: 'var(--texto-tenue)' },
 			},
 		},
 		MuiTextField: {
 			styleOverrides: {
 				root: {
 					'& .MuiOutlinedInput-root': {
-						background: 'rgba(10, 25, 41, 0.55)',
+						background: 'var(--superficie)',
 						borderRadius: '8px',
 						fontSize: '0.9rem',
 						fontFamily: "'Codec Pro', sans-serif",
-						color: 'white',
+						color: 'var(--texto)',
 						'& fieldset': {
-							borderColor: 'rgba(83, 185, 219, 0.25)',
+							borderColor: 'var(--borde)',
 						},
 						'&:hover fieldset': {
-							borderColor: 'rgba(83, 185, 219, 0.5)',
+							borderColor: 'var(--borde-fuerte)',
 						},
 						'&.Mui-focused fieldset': {
-							borderColor: '#53B9DB',
+							borderColor: 'var(--azul)',
 							borderWidth: '1px',
 						},
 					},
 					'& .MuiInputLabel-root': {
 						fontFamily: "'Codec Pro', sans-serif",
 						fontSize: '0.85rem',
-						color: 'rgba(255,255,255,0.45)',
-						'&.Mui-focused': { color: '#53B9DB' },
+						color: 'var(--texto-tenue)',
+						'&.Mui-focused': { color: 'var(--azul)' },
 					},
 					'& input::placeholder': {
-						color: 'rgba(255,255,255,0.8)',
+						color: 'var(--texto-tenue)',
 						opacity: 1,
 					},
 				},
@@ -141,7 +157,7 @@ const SearchAutocomplete = ({
 	);
 
 	return (
-		<ThemeProvider theme={darkTheme}>
+		<ThemeProvider theme={temaBuscador}>
 			<Autocomplete
 				className={className}
 				options={opciones}
