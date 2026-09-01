@@ -60,11 +60,21 @@ const Cotizacion = () => {
 		cargarEmpresas();
 		cargarEstudiosDisponibles();
 	}, []);
+	// Cambiar de empresa vacia lo que colgaba de ella, y solo eso: este efecto
+	// depende unicamente de la empresa. Antes escuchaba tambien a reglasConvenio
+	// y a empresas, y ahi estaba el ciclo -al elegir cliente se cargan sus
+	// reglas, reglasConvenio cambiaba y el efecto volvia a correr borrando el
+	// cliente recien elegido, que se ponia y se quitaba solo-.
 	useEffect(() => {
 		setTipoEstudioSeleccionado("");
 		setClienteSeleccionado("");
 		setBuscarEstudio("");
 		setShowBusquedaEstudios(false);
+	}, [empresaSeleccionada]);
+
+	// Los tipos si dependen del convenio y del catalogo de empresas, porque el
+	// convenio puede facturar por una empresa estudios que estan en la otra.
+	useEffect(() => {
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
 	}, [empresaSeleccionada, reglasConvenio, empresas]);
