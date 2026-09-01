@@ -65,7 +65,7 @@
 }
 
 .version-app-estado.al-dia strong {
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .version-app-estado.pendiente {

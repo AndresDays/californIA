@@ -159,7 +159,7 @@
 
 .error-message {
   font-size: 0.8rem;
-  color: #ff6b6b;
+  color: var(--texto);
   margin-top: -0.25rem;
 }
 

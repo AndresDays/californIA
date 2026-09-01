@@ -115,9 +115,15 @@ for (const ruta of listarCss(join(RAIZ, "src")).filter((r) => !EXCLUIDOS.some((x
 				contenedor = rgb;
 			}
 		}
-		if (!contenedor) return completo;
+		// Sin contenedor, debajo esta la pagina. El blanco se excluye: solo se usa
+		// sobre un fondo de color, y la relacion padre-hijo no siempre se puede
+		// deducir del selector, asi que medirlo contra la pagina daria falsos
+		// positivos.
+		if (!contenedor && colorTexto === "var(--texto-sobre-azul)") return completo;
+		const fondoReal = contenedor ?? aRgb(resolver("var(--fondo-app)"));
+		if (!fondoReal) return completo;
 
-		const fondoPlano = sobreBlanco(contenedor);
+		const fondoPlano = sobreBlanco(fondoReal);
 		if (contraste(sobreBlanco(rgbTexto), fondoPlano) >= MINIMO) return completo;
 
 		// Sobre un contenedor oscuro se lee el blanco; sobre uno claro, el texto

@@ -32,9 +32,17 @@
 
 	/* ── Texto ───────────────────────────────────────────────── */
 	--texto: #12293d;
-	--texto-suave: #4a6178;
-	--texto-tenue: #7b8fa3;
+	/* Los dos tonos apagados estaban demasiado claros: el tenue daba 3.3:1
+	 * contra el blanco, por debajo del minimo legible, y se usaba justo en las
+	 * etiquetas pequenas. Ahora dan 7.6:1 y 5.1:1. */
+	--texto-suave: #3d566e;
+	--texto-tenue: #5a7186;
 	--texto-sobre-azul: #ffffff;
+	/* El azul de marca sirve de fondo, pero como letra sobre blanco se queda en
+	 * 5.6:1 y se lee lavado a tamano pequeno. El texto azul usa este otro, mas
+	 * oscuro -11.9:1-, que conserva la senal de "esto es un enlace o un dato
+	 * destacado" sin costar legibilidad. */
+	--texto-azul: #0a3a5c;
 
 	/* ── Azul: la estructura ─────────────────────────────────── */
 	--azul: #106da0;
@@ -48,10 +56,10 @@
 	--anillo-foco: rgba(16, 109, 160, 0.25);
 
 	/* ── Naranja: lo que debe saltar ─────────────────────────── */
-	/* El tono está elegido para dar 4.9:1 contra el blanco, así sirve tanto de
-	 * fondo con la letra blanca encima como de color de texto sobre la página.
-	 * Un naranja más vivo se veía mejor pero no llegaba al mínimo legible. */
-	--naranja: #b8520c;
+	/* El tono da 5.4:1 contra el blanco y 4.8:1 contra el gris de la pagina, asi
+	 * que se lee tanto de fondo con la letra blanca encima como de color de
+	 * texto. Un naranja mas vivo se veia mejor pero no llegaba al minimo. */
+	--naranja: #ad4e0b;
 	--naranja-claro: #f59152;
 	--naranja-palido: #fdf4ec;
 

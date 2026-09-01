@@ -159,7 +159,7 @@
 }
 
 .notification-menu-header span {
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.72rem;
 }
 
@@ -167,7 +167,7 @@
 	border: 1px solid var(--borde);
 	border-radius: 8px;
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.72rem;
 	font-weight: 700;
 	cursor: pointer;
@@ -260,7 +260,7 @@
 }
 
 .notification-item time {
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.68rem;
 	white-space: nowrap;
 	margin-top: 0.05rem;
@@ -276,7 +276,7 @@
 .header-title {
 	font-size: 1rem;
 	font-weight: 400;
-	color: var(--azul);
+	color: var(--texto-azul);
 	margin: 0;
 	font-family: 'Codec Pro', sans-serif;
 	white-space: nowrap;
@@ -498,11 +498,11 @@
 
 .menu-item:hover {
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .menu-item:hover .menu-item-icon {
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .dropdown-divider {

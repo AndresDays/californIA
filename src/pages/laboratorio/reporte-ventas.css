@@ -42,7 +42,7 @@
 	border-radius: 6px;
 	border: 1px solid var(--borde);
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.78rem;
 	font-weight: 500;
@@ -123,11 +123,11 @@
 }
 
 .rv-metric-sub.up {
-	color: #4CAF50;
+	color: var(--texto);
 }
 
 .rv-metric-sub.down {
-	color: #ef5350;
+	color: var(--texto);
 }
 
 .rv-dot {
@@ -158,7 +158,7 @@
 
 .rv-filter-title {
 	font-size: 0.68rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 }
@@ -337,7 +337,7 @@
 
 .rv-report-icon {
 	font-size: 1rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	line-height: 1;
 }
 
@@ -405,7 +405,7 @@
 
 .rv-tab.active {
 	background: var(--superficie-activa);
-	color: var(--azul);
+	color: var(--texto-azul);
 	border-color: var(--borde-fuerte);
 }
 
@@ -521,7 +521,7 @@
 	z-index: 1;
 	padding: 0.65rem 0.75rem;
 	background: var(--superficie);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 500;
 	text-align: left;
 	text-transform: uppercase;
@@ -577,7 +577,7 @@
 
 .rv-side-title {
 	font-size: 0.68rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 	margin-bottom: 0.7rem;
@@ -660,7 +660,7 @@
 
 .rv-vendedor-amount {
 	font-size: 0.78rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 500;
 	flex-shrink: 0;
 }
@@ -887,7 +887,7 @@
 	display: block;
 	font-size: 0.72rem;
 	text-transform: uppercase;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 800;
 	margin-bottom: 0.35rem;
 }
@@ -1058,7 +1058,7 @@
 	font-size: 0.72rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--azul);
+	color: var(--texto-azul);
 	padding-bottom: 0.6rem;
 	margin-bottom: 0.2rem;
 	border-bottom: 1px solid var(--borde);
@@ -1114,7 +1114,7 @@
 }
 
 .rv-collapse-btn:hover {
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .rv-collapse-lateral {
@@ -1128,5 +1128,5 @@
 
 .rv-chevron {
 	font-size: 0.7rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 }

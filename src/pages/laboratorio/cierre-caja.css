@@ -72,7 +72,7 @@
 
 .fecha-actual-grupo label {
 	font-size: 0.75rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -112,7 +112,7 @@
 .sucursal-grupo label,
 .usuario-grupo label {
 	font-size: 0.75rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -185,7 +185,7 @@
 .btn-nuevo-movimiento {
 	background: var(--superficie-hover);
 	border: 1px solid var(--borde-fuerte);
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .btn-nuevo-movimiento:hover {
@@ -223,7 +223,7 @@
 
 .monto-apertura-section label {
 	font-size: 0.82rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 	letter-spacing: 0.05em;
 	text-transform: uppercase;
@@ -289,7 +289,7 @@
 
 .fila-encabezado span {
 	font-size: 0.72rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 	letter-spacing: 0.07em;
 	text-transform: uppercase;
@@ -358,7 +358,7 @@
 	border-color: var(--borde);
 	background: var(--superficie-hover);
 	font-weight: 700;
-	color: var(--azul);
+	color: var(--texto-azul);
 	cursor: not-allowed;
 }
 
@@ -390,7 +390,7 @@
 
 .total-card label {
 	font-size: 0.72rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 	letter-spacing: 0.07em;
 	text-transform: uppercase;
@@ -406,12 +406,12 @@
 }
 
 .total-card.destacado .input-campo-cierre {
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 1.15rem;
 }
 
 .total-card.cancelados .input-campo-cierre {
-	color: #ef9a9a;
+	color: var(--texto);
 	border-color: rgba(239, 83, 80, 0.25);
 }
 
@@ -465,7 +465,7 @@
 
 .modal-cierre-campo label {
 	font-size: 0.75rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -542,7 +542,7 @@
 
 .toggle-tipo.activo.verde {
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	box-shadow: 0 0 0 1px rgba(38,166,154,0.35);
 }
 

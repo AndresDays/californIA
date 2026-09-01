@@ -386,7 +386,7 @@
 
 .badge-estado-fila.estado-guardado {
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
@@ -418,7 +418,7 @@
 
 .estado-solicitud-guardado {
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
@@ -1065,7 +1065,7 @@
 
 .estudio-titulo {
 	font-size: 1rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 }
@@ -1146,7 +1146,7 @@
 .estudio-icono-estado.estado-guardado {
 	background: var(--superficie-hover);
 	border: 2px solid var(--borde-fuerte);
-	color: var(--azul);
+	color: var(--texto-azul);
 	padding: 2px;
 }
 
@@ -1194,7 +1194,7 @@
 
 .badge-estado.estado-guardado {
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde);
 }
 

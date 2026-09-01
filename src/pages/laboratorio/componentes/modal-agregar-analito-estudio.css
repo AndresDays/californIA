@@ -53,7 +53,7 @@
 }
 
 .btn-close-modal:hover {
-	color: #dc3545;
+	color: var(--texto);
 	transform: scale(1.1);
 }
 
@@ -148,7 +148,7 @@
 
 .analito-item-clave {
 	font-weight: 600;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.9rem;
 	margin-bottom: 0.25rem;
 }
@@ -230,7 +230,7 @@
 
 .orden-numero {
 	background: var(--superficie-activa);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 700;
 	font-size: 0.85rem;
 	padding: 0.25rem 0.5rem;
@@ -246,7 +246,7 @@
 
 .item-clave {
 	font-weight: 600;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.85rem;
 	margin-bottom: 0.15rem;
 }
@@ -276,7 +276,7 @@
 
 .btn-mover {
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .btn-mover:hover:not(:disabled) {

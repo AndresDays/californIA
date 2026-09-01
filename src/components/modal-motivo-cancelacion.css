@@ -75,7 +75,7 @@
   margin: 0 0 1rem 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--azul);
+  color: var(--texto-azul);
   text-align: center;
   padding: 0.6rem;
   background: var(--superficie-hover);
@@ -92,7 +92,7 @@
 }
 
 .modal-motivo-requerido {
-  color: #ff6b6b;
+  color: var(--texto);
 }
 
 .modal-motivo-select,
@@ -133,7 +133,7 @@
 .modal-motivo-error {
   margin: 0 0 0.75rem 0;
   font-size: 0.88rem;
-  color: #ff6b6b;
+  color: var(--texto);
   font-weight: 500;
 }
 

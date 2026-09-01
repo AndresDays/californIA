@@ -268,7 +268,7 @@ body {
 
 .rr-editor:empty::before {
 	content: attr(data-placeholder);
-	color: #aaa;
+	color: var(--texto);
 	font-style: italic;
 	pointer-events: none;
 }
