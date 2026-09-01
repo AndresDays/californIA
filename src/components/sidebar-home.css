@@ -207,12 +207,12 @@
 
 .submenu-item:hover {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .submenu-item.active {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 @media (max-width: 968px) {

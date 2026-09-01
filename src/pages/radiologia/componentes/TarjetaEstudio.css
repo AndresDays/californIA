@@ -104,7 +104,7 @@
 
 .estado-en-proceso {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
   border: 1px solid var(--borde);
 }
 

@@ -236,7 +236,7 @@
 }
 
 .admin-entity-modal .error-message {
-  color: #ff9a9a;
+  color: var(--texto);
   font-size: 0.78rem;
 }
 

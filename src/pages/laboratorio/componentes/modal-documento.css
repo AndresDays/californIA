@@ -124,7 +124,7 @@
 }
 
 .editor-wrapper .ql-snow.ql-toolbar .ql-picker-label:hover {
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .modal-footer-documento {

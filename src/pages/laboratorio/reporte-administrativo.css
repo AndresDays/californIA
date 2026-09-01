@@ -124,7 +124,7 @@
 	border-radius: 7px;
 	border: 1px solid var(--borde);
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-family: 'Codec Pro', sans-serif;
 	font-weight: 600;
 	cursor: pointer;
@@ -156,7 +156,7 @@
 .ra-metric span {
 	display: block;
 	font-size: 0.68rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 }
@@ -192,7 +192,7 @@
 	margin-bottom: 0.8rem;
 	padding-bottom: 0.55rem;
 	border-bottom: 1px solid var(--borde);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.76rem;
 	font-weight: 700;
 	text-transform: uppercase;
@@ -313,7 +313,7 @@
 }
 
 .ra-time-row strong {
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .ra-time-row small {

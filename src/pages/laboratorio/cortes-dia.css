@@ -26,7 +26,7 @@
 .cortes-header p,
 .cortes-empty p {
 	margin: 5px 0 0;
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .cortes-filtros {
@@ -105,7 +105,7 @@
 .cortes-metricas span {
 	display: block;
 	font-size: 0.75rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	text-transform: uppercase;
 	font-weight: 700;
 }
@@ -131,7 +131,7 @@
 .cortes-panel-title {
 	font-size: 0.8125rem;
 	font-weight: 800;
-	color: var(--azul);
+	color: var(--texto-azul);
 	text-transform: uppercase;
 	margin: 4px 6px 10px;
 }
@@ -161,7 +161,7 @@
 }
 
 .cortes-empleado small {
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .cortes-detalle {
@@ -184,7 +184,7 @@
 
 .cortes-detalle-header p {
 	margin: 4px 0 0;
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .cortes-empleado-totales {
@@ -228,7 +228,7 @@
 	text-align: left;
 	font-size: 0.75rem;
 	text-transform: uppercase;
-	color: var(--azul);
+	color: var(--texto-azul);
 	background: var(--superficie);
 	padding: 12px;
 	border-bottom: 1px solid var(--borde);
@@ -279,7 +279,7 @@
 .cortes-empty-row,
 .cortes-error {
 	padding: 18px;
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .cortes-loading-page {
@@ -423,7 +423,7 @@
 	display: block;
 	font-size: 0.72rem;
 	text-transform: uppercase;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 800;
 	margin-bottom: 0.35rem;
 }

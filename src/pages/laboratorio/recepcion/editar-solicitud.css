@@ -238,7 +238,7 @@
 }
 
 .folio-cell {
-	color: #f0a500 !important;
+	color: var(--texto) !important;
 	font-weight: 500;
 }
 
@@ -357,7 +357,7 @@
 }
 
 .input-folio-edit.folio-highlight {
-	color: #f0a500;
+	color: var(--texto);
 	font-weight: 600;
 	border-color: rgba(240, 165, 0, 0.4);
 }

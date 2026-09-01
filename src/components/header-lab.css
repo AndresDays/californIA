@@ -109,11 +109,11 @@
 
 .menu-item:hover {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .menu-item.logout {
-  color: #ff6b6b;
+  color: var(--texto);
   border-top: 1px solid var(--borde);
   margin-top: 0.5rem;
   padding-top: 1rem;

@@ -57,7 +57,7 @@ body, html {
 .header-title {
   font-size: 1.1rem;
   font-weight: 400;
-  color: var(--azul);
+  color: var(--texto-azul);
   margin: 0;
 }
 
@@ -82,7 +82,7 @@ body, html {
 }
 
 .menu-link:hover {
-  color: var(--azul);
+  color: var(--texto-azul);
   background: var(--superficie-hover);
 }
 
@@ -178,7 +178,7 @@ body, html {
 }
 
 .menu-item-logout {
-  color: var(--azul);
+  color: var(--texto-azul);
   margin-top: 0.5rem;
   border-top: 1px solid var(--borde);
   padding-top: 1rem;
@@ -288,7 +288,7 @@ body, html {
 }
 
 .stat-card.clickable .stat-change {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 600;
 }
 
@@ -352,7 +352,7 @@ body, html {
 }
 
 .stat-change.positive {
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .stat-change.neutral {
@@ -435,7 +435,7 @@ body, html {
 }
 
 .workbench-card strong {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 2rem;
   line-height: 1;
 }
@@ -518,7 +518,7 @@ body, html {
   padding: 0.5rem;
   border-radius: 6px;
   font-size: 0.85rem;
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 600;
 }
 
@@ -642,7 +642,7 @@ body, html {
 }
 
 .toggle-btn:hover {
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .toggle-btn.active {
@@ -769,12 +769,12 @@ body, html {
 }
 
 .chart-label.current {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 700;
 }
 
 .current-indicator {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 0.6rem;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -861,7 +861,7 @@ body, html {
 .btn-see-more {
   background: transparent;
   border: 1px solid var(--borde);
-  color: var(--azul);
+  color: var(--texto-azul);
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -954,7 +954,7 @@ body, html {
 .time-value {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .date-value {
@@ -965,7 +965,7 @@ body, html {
 .btn-view-details {
   background: var(--superficie-hover);
   border: 1px solid var(--borde);
-  color: var(--azul);
+  color: var(--texto-azul);
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -991,7 +991,7 @@ body, html {
 .btn-load-cita {
   background: transparent;
   border: 1px solid var(--borde);
-  color: var(--azul);
+  color: var(--texto-azul);
   padding: 0.4rem 0.8rem;
   border-radius: 8px;
   font-size: 1.2rem;
@@ -1017,7 +1017,7 @@ body, html {
 
 .price-value {
   font-weight: 600;
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 0.9rem;
 }
 
@@ -1038,13 +1038,13 @@ body, html {
 
 .status-badge.completed {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
   border: 1px solid var(--borde);
 }
 
 .status-badge.processing {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
   border: 1px solid var(--borde);
 }
 
@@ -1070,7 +1070,7 @@ body, html {
 .footer-disclaimer {
   max-width: 1400px;
   margin: 0 auto;
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 0.85rem;
   line-height: 1.5;
   text-align: center;

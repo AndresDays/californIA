@@ -96,7 +96,7 @@
 
 .modal-notificacion-container.info .modal-notificacion-icono {
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .modal-notificacion-contenido {

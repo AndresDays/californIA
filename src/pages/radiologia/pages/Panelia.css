@@ -177,7 +177,7 @@
 }
 
 .pia-api-badge.connected {
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .pia-api-dot,

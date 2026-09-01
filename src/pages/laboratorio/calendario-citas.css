@@ -55,7 +55,7 @@
 
 .cal-title-block p {
 	margin: 4px 0 0;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.875rem;
 }
 
@@ -405,12 +405,12 @@
 }
 
 .cal-card.tipo-lab { color: var(--azul); }
-.cal-card.tipo-ultrasonido { color: #eab308; }
+.cal-card.tipo-ultrasonido { color: var(--texto); }
 .cal-card.tipo-rayos-x { color: var(--azul); }
 .cal-card.tipo-tac { color: var(--azul); }
 .cal-card.tipo-resonancia { color: var(--exito); }
-.cal-card.tipo-mastografia { color: #db2777; }
-.cal-card.tipo-densitometria { color: #f97316; }
+.cal-card.tipo-mastografia { color: var(--texto); }
+.cal-card.tipo-densitometria { color: var(--texto); }
 .cal-card.tipo-otros { color: var(--azul); }
 
 .cal-card.tipo-lab strong,

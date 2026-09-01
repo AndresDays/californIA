@@ -263,7 +263,7 @@
   left: 48px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 600;
   font-size: 0.95rem;
   pointer-events: none;

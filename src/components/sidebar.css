@@ -127,7 +127,7 @@
 .sidebar-title {
   font-size: 1.2rem;
   font-weight: 500;
-  color: var(--azul);
+  color: var(--texto-azul);
   margin: 0;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -357,7 +357,7 @@
 .sidebar-subitem.active {
   background: var(--superficie-hover);
   border-color: var(--borde-fuerte);
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 500;
 }
 
@@ -367,7 +367,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .sidebar-sublabel {
@@ -390,7 +390,7 @@
 
 .sidebar-version {
   font-size: 0.85rem;
-  color: var(--azul);
+  color: var(--texto-azul);
   margin: 0 0 0.25rem 0;
 }
 
@@ -541,7 +541,7 @@
 .sidebar-section-title {
   padding: 0.75rem 1rem 0.5rem;
   font-size: 0.75rem;
-  color: var(--azul);
+  color: var(--texto-azul);
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 500;
