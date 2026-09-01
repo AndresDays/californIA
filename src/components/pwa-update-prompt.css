@@ -20,7 +20,7 @@
 .pwa-update-prompt strong {
 	display: block;
 	margin-bottom: 0.18rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.88rem;
 	font-weight: 700;
 }

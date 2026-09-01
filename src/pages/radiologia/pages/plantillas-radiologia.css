@@ -22,7 +22,7 @@
 }
 
 .plantillas-eyebrow {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -135,7 +135,7 @@
 }
 
 .plantillas-tabs strong {
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .plantillas-busqueda {
@@ -213,7 +213,7 @@
   height: 44px;
   border-radius: 8px;
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .plantillas-doc-icon svg {
@@ -290,7 +290,7 @@
   margin-bottom: 1rem;
   border-radius: 50%;
   background: var(--superficie-hover);
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 2rem;
   font-weight: 900;
 }
@@ -388,7 +388,7 @@
 
 .plantillas-preview span {
   display: block;
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 800;
   margin-bottom: 0.35rem;
 }

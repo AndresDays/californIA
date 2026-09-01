@@ -143,7 +143,7 @@
 }
 
 .visitadora-tarjeta-valor.alerta {
-	color: #ef8a80;
+	color: var(--texto);
 }
 
 /* --- tabla --- */
@@ -260,7 +260,7 @@
 }
 
 .visitadora-enlace.peligro {
-	color: #ef8a80;
+	color: var(--texto);
 }
 
 .visitadora-detalle {

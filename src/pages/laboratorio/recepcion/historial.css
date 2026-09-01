@@ -306,7 +306,7 @@
 }
 
 .folio-highlight {
-	color: #f0a500;
+	color: var(--texto);
 	font-weight: 600;
 	font-size: 1rem;
 }

@@ -151,7 +151,7 @@
 	text-transform: uppercase;
 	font-size: 0.75rem;
 	font-weight: 700;
-	color: var(--azul);
+	color: var(--texto-azul);
 }
 
 .portal-resumen strong {
@@ -268,7 +268,7 @@
 	padding: 0 0 9px;
 	margin-bottom: 8px;
 	border-bottom: 1px solid var(--borde-fuerte);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.75rem;
 	font-weight: 800;
 	text-transform: uppercase;
@@ -304,14 +304,14 @@
 
 .portal-tabla th {
 	background: var(--superficie);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.8125rem;
 }
 
 .portal-tabla td span {
 	display: block;
 	margin-top: 3px;
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-size: 0.8125rem;
 }
 

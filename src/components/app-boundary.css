@@ -23,7 +23,7 @@
 
 .app-loading-text {
 	font-size: 0.9rem;
-	color: var(--azul);
+	color: var(--texto-azul);
 	letter-spacing: 0.08em;
 	font-weight: 500;
 }

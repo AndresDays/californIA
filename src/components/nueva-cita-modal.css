@@ -67,7 +67,7 @@
 .modal-close-btn {
   background: var(--superficie-hover);
   border: 1px solid var(--borde);
-  color: var(--azul);
+  color: var(--texto-azul);
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -114,7 +114,7 @@
 }
 
 .error-message p {
-  color: #F87171;
+  color: var(--texto);
   margin: 0;
   font-size: 0.9rem;
   font-weight: 500;
@@ -133,12 +133,12 @@
   display: block;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--azul);
+  color: var(--texto-azul);
   margin-bottom: 0.5rem;
 }
 
 .required {
-  color: #F87171;
+  color: var(--texto);
   font-weight: 700;
 }
 
@@ -223,7 +223,7 @@
 }
 
 .search-result-item-modal strong {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 700;
 }
 
@@ -258,7 +258,7 @@
 }
 
 .lista-titulo {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -292,7 +292,7 @@
 }
 
 .estudio-clave {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 700;
   font-size: 0.85rem;
 }
@@ -309,7 +309,7 @@
 }
 
 .estudio-precio {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 700;
   font-size: 0.9rem;
   min-width: 80px;
@@ -350,19 +350,19 @@
 }
 
 .total-label {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 700;
   font-size: 1rem;
 }
 
 .total-precio {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 700;
   font-size: 1.1rem;
 }
 
 .info-label {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-weight: 600;
   margin-right: 0.5rem;
 }
@@ -525,7 +525,7 @@
 
 .precio-readonly {
   font-weight: 600;
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .btn-cancelar-cita-accion {

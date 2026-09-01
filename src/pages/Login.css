@@ -29,7 +29,7 @@
 .login-logo-text {
   font-size: 4rem;
   font-weight: 600;
-  color: var(--azul);
+  color: var(--texto-azul);
   margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@
 }
 
 .login-subtitle {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 1rem;
   margin: 0;
   opacity: 0.9;
@@ -156,7 +156,7 @@
 }
 
 .login-forgot-link a:hover {
-  color: var(--azul);
+  color: var(--texto-azul);
 }
 
 .login-disclaimer {
@@ -167,7 +167,7 @@
 }
 
 .login-disclaimer p {
-  color: var(--azul);
+  color: var(--texto-azul);
   font-size: 0.8rem;
   line-height: 1.6;
   margin: 0;

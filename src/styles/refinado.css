@@ -101,7 +101,7 @@ textarea:focus {
 .menu-link.active {
 	position: relative;
 	background: var(--superficie-hover);
-	color: var(--azul);
+	color: var(--texto-azul);
 	font-weight: 600;
 }
 
