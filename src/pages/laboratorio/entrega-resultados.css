@@ -1,34 +1,18 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-:root {
-	--color-bg-deep: #020F23;
-	--color-bg-mid: #0D4369;
-	--color-primary: #106DA0;
-	--color-accent: #49B2D4;
-	--color-light: #53B9DB;
-	--color-white: #FFFFFF;
-	--color-surface: rgba(13, 67, 105, 0.35);
-	--color-surface-hover: rgba(16, 109, 160, 0.3);
-	--color-border: rgba(83, 185, 219, 0.25);
-	--color-border-strong: rgba(83, 185, 219, 0.5);
-	--color-text-muted: rgba(255, 255, 255, 0.8);
-	--color-text-sub: rgba(255, 255, 255, 0.8);
-	--font: 'Codec Pro', sans-serif;
-}
-
 .entrega-wrapper {
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
-	font-family: var(--font);
-	color: var(--color-var(--texto));
+	font-family: 'Codec Pro', sans-serif;
+	color: var(--texto);
 	background-size: cover;
 	background-position: center;
 }
 
 .entrega-header-section {
 	padding: 1.5rem 2rem 1.5rem 120px;
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--borde);
 	transition: padding-left 0.3s ease;
 }
 
@@ -36,13 +20,13 @@
 	margin: 0;
 	font-size: 1.5rem;
 	font-weight: 400;
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	letter-spacing: 1px;
 }
 
 .entrega-filtros-section {
 	padding: 1rem 1.5rem 1rem 120px;
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--borde);
 	transition: padding-left 0.3s ease;
 	background: var(--superficie-2);
 }
@@ -65,7 +49,7 @@
 
 .entrega-filtros-header span {
 	display: block;
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	font-size: 0.92rem;
 	font-weight: 600;
 	text-transform: uppercase;
@@ -85,7 +69,7 @@
 	border: 1px solid var(--borde-fuerte);
 	background: var(--superficie-activa);
 	color: var(--texto);
-	font-family: var(--font);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.82rem;
 	cursor: pointer;
 	transition: border-color 0.2s, background-color 0.2s;
@@ -150,7 +134,7 @@
 
 .filtro-fecha label {
 	font-size: 0.85rem;
-	color: var(--color-text-sub);
+	color: var(--texto-tenue);
 	white-space: nowrap;
 }
 
@@ -170,11 +154,11 @@
 	width: 100%;
 	height: 38px;
 	padding: 0 0.75rem;
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: var(--color-var(--texto));
-	font-family: var(--font);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	min-width: 0;
 	transition: border-color 0.2s;
@@ -183,7 +167,7 @@
 
 .input-fecha:focus {
 	outline: none;
-	border-color: var(--color-accent);
+	border-color: var(--borde-fuerte);
 }
 
 .input-fecha::-webkit-calendar-picker-indicator {
@@ -202,18 +186,18 @@
 .input-busqueda {
 	flex: 1;
 	padding: 0.55rem 0.85rem;
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: var(--color-var(--texto));
-	font-family: var(--font);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	transition: border-color 0.2s;
 }
 
 .input-busqueda:focus {
 	outline: none;
-	border-color: var(--color-accent);
+	border-color: var(--borde-fuerte);
 }
 
 .input-busqueda::placeholder {
@@ -225,7 +209,7 @@
 	align-items: center;
 	gap: 0.45rem;
 	font-size: 0.85rem;
-	color: var(--color-text-sub);
+	color: var(--texto-tenue);
 	cursor: pointer;
 	white-space: nowrap;
 }
@@ -234,16 +218,16 @@
 	cursor: pointer;
 	width: 15px;
 	height: 15px;
-	accent-color: var(--color-accent);
+	accent-color: var(--azul);
 }
 
 .select-idioma {
 	padding: 0.55rem 0.85rem;
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: var(--color-var(--texto));
-	font-family: var(--font);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	cursor: pointer;
 	min-width: 115px;
@@ -252,21 +236,21 @@
 
 .select-idioma:focus {
 	outline: none;
-	border-color: var(--color-accent);
+	border-color: var(--borde-fuerte);
 }
 
 .select-idioma option {
-	background: var(--color-bg-deep);
-	color: var(--color-var(--texto));
+	background: var(--fondo-app);
+	color: var(--texto);
 }
 
 .btn-action-entrega {
 	padding: 0.55rem 1.1rem;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+	background: linear-gradient(135deg, var(--azul) 0%, var(--azul) 100%);
 	border: none;
 	border-radius: 6px;
-	color: var(--color-var(--texto));
-	font-family: var(--font);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	font-weight: 500;
 	cursor: pointer;
@@ -277,7 +261,7 @@
 .btn-action-entrega:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 14px rgba(83, 185, 219, 0.35);
-	background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-light) 100%);
+	background: linear-gradient(135deg, var(--azul) 0%, var(--azul) 100%);
 }
 
 .btn-action-entrega:active {
@@ -302,12 +286,12 @@
 	border-radius: 8px;
 	padding: 1.25rem;
 	box-shadow: 0 4px 24px rgba(18, 41, 61, 0.14);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 }
 
 .panel-busqueda-nombre label {
 	font-size: 0.85rem;
-	color: var(--color-accent);
+	color: var(--texto-azul);
 	font-weight: 500;
 	display: block;
 	margin-bottom: 0.25rem;
@@ -327,7 +311,7 @@
 }
 
 .entrega-status-summary strong {
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	font-size: 1rem;
 }
 
@@ -343,11 +327,11 @@
 .input-buscar-nombre {
 	width: 100%;
 	padding: 0.65rem 0.85rem;
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: var(--color-var(--texto));
-	font-family: var(--font);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	box-sizing: border-box;
 	transition: border-color 0.2s;
@@ -355,7 +339,7 @@
 
 .input-buscar-nombre:focus {
 	outline: none;
-	border-color: var(--color-accent);
+	border-color: var(--borde-fuerte);
 }
 
 .input-buscar-nombre::placeholder {
@@ -365,7 +349,7 @@
 .tabla-pacientes-container {
 	flex: 1;
 	overflow-y: auto;
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 }
 
@@ -378,12 +362,12 @@
 }
 
 .tabla-pacientes-container::-webkit-scrollbar-thumb {
-	background: var(--color-primary);
+	background: var(--azul);
 	border-radius: 4px;
 }
 
 .tabla-pacientes-container::-webkit-scrollbar-thumb:hover {
-	background: var(--color-accent);
+	background: var(--azul);
 }
 
 .tabla-pacientes-entrega {
@@ -402,26 +386,26 @@
 	padding: 0.75rem 0.65rem;
 	text-align: left;
 	font-weight: 500;
-	color: var(--color-light);
+	color: var(--texto-azul);
 	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.6px;
-	border-bottom: 2px solid var(--color-border-strong);
+	border-bottom: 2px solid var(--borde-fuerte);
 }
 
 .tabla-pacientes-entrega tbody tr {
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--borde);
 	transition: all 0.2s;
 	cursor: pointer;
 }
 
 .tabla-pacientes-entrega tbody tr:hover {
-	background: var(--color-surface-hover);
+	background: var(--superficie-hover);
 }
 
 .tabla-pacientes-entrega tbody tr.selected {
 	background: var(--superficie-hover);
-	border-left: 3px solid var(--color-accent);
+	border-left: 3px solid var(--borde-fuerte);
 }
 
 .tabla-pacientes-entrega tbody tr.row-adeudo {
@@ -434,13 +418,13 @@
 
 .tabla-pacientes-entrega td {
 	padding: 0.75rem 0.65rem;
-	color: var(--color-text-sub);
+	color: var(--texto-tenue);
 	font-size: 0.875rem;
 }
 
 .tabla-pacientes-entrega td strong {
 	display: block;
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	font-size: 0.88rem;
 	font-weight: 600;
 }
@@ -448,7 +432,7 @@
 .paciente-meta-entrega {
 	display: block;
 	margin-top: 0.18rem;
-	color: var(--color-text-muted);
+	color: var(--texto-suave);
 	font-size: 0.76rem;
 }
 
@@ -469,12 +453,12 @@
 
 .info-registros {
 	padding: 0.65rem 0.85rem;
-	background: var(--color-surface);
+	background: var(--superficie);
 	border-radius: 6px;
 	font-size: 0.8rem;
-	color: var(--color-text-muted);
+	color: var(--texto-suave);
 	text-align: center;
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 }
 
 .panel-detalles-entrega {
@@ -485,7 +469,7 @@
 	border-radius: 8px;
 	padding: 1.25rem;
 	box-shadow: 0 4px 24px rgba(18, 41, 61, 0.14);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 }
 
 .entrega-selected-header {
@@ -496,14 +480,14 @@
 	padding: 0.9rem 1rem;
 	border-radius: 8px;
 	background: var(--superficie-activa);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 }
 
 .entrega-selected-header h2 {
 	margin: 0;
 	font-size: 1.05rem;
 	font-weight: 600;
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 }
@@ -511,7 +495,7 @@
 .entrega-selected-header p {
 	margin: 0.35rem 0 0;
 	font-size: 0.84rem;
-	color: var(--color-text-sub);
+	color: var(--texto-tenue);
 }
 
 .badge-listo-entrega {
@@ -537,7 +521,7 @@
 	padding: 0.75rem;
 	border-radius: 8px;
 	background: var(--superficie-2);
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 }
 
 .entrega-action-bar .badge-saldo {
@@ -592,7 +576,7 @@
 
 .observaciones-entrega-section label {
 	font-size: 0.85rem;
-	color: var(--color-accent);
+	color: var(--texto-azul);
 	font-weight: 500;
 }
 
@@ -600,11 +584,11 @@
 	width: 100%;
 	padding: 0.75rem 0.85rem;
 	padding-right: 3rem;
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 6px;
-	color: var(--color-var(--texto));
-	font-family: var(--font);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.875rem;
 	resize: vertical;
 	min-height: 80px;
@@ -614,7 +598,7 @@
 
 .textarea-observaciones-entrega:focus {
 	outline: none;
-	border-color: var(--color-accent);
+	border-color: var(--borde-fuerte);
 }
 
 .textarea-observaciones-entrega::placeholder {
@@ -625,13 +609,13 @@
 	position: absolute;
 	bottom: 0.5rem;
 	right: 0.5rem;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+	background: linear-gradient(135deg, var(--azul) 0%, var(--azul) 100%);
 	border: none;
 	border-radius: 6px;
 	padding: 0.35rem 0.5rem;
 	cursor: pointer;
 	font-size: 1rem;
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	transition: all 0.2s;
 	line-height: 1;
 }
@@ -649,8 +633,8 @@
 }
 
 .historial-impresiones {
-	background: var(--color-surface);
-	border: 1px solid var(--color-border);
+	background: var(--superficie);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 	padding: 0.85rem 1rem;
 }
@@ -659,19 +643,19 @@
 	margin: 0 0 0.5rem 0;
 	font-size: 0.9rem;
 	font-weight: 500;
-	color: var(--color-accent);
+	color: var(--texto-azul);
 }
 
 .texto-descargado {
 	margin: 0;
 	font-size: 0.82rem;
-	color: var(--color-text-muted);
+	color: var(--texto-suave);
 }
 
 .tabla-estudios-container {
 	flex: 1;
 	overflow-y: auto;
-	border: 1px solid var(--color-border);
+	border: 1px solid var(--borde);
 	border-radius: 8px;
 }
 
@@ -684,12 +668,12 @@
 }
 
 .tabla-estudios-container::-webkit-scrollbar-thumb {
-	background: var(--color-primary);
+	background: var(--azul);
 	border-radius: 4px;
 }
 
 .tabla-estudios-container::-webkit-scrollbar-thumb:hover {
-	background: var(--color-accent);
+	background: var(--azul);
 }
 
 .tabla-estudios-entrega {
@@ -708,32 +692,32 @@
 	padding: 0.75rem 0.65rem;
 	text-align: left;
 	font-weight: 500;
-	color: var(--color-light);
+	color: var(--texto-azul);
 	font-size: 0.8rem;
 	text-transform: uppercase;
 	letter-spacing: 0.6px;
-	border-bottom: 2px solid var(--color-border-strong);
+	border-bottom: 2px solid var(--borde-fuerte);
 }
 
 .tabla-estudios-entrega tbody tr {
-	border-bottom: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--borde);
 	transition: background 0.2s;
 }
 
 .tabla-estudios-entrega tbody tr:hover {
-	background: var(--color-surface-hover);
+	background: var(--superficie-hover);
 }
 
 .tabla-estudios-entrega td {
 	padding: 0.75rem 0.65rem;
-	color: var(--color-text-sub);
+	color: var(--texto-tenue);
 	font-size: 0.875rem;
 }
 
 .no-data {
 	text-align: center;
 	padding: 3rem !important;
-	color: var(--color-text-muted);
+	color: var(--texto-suave);
 	font-style: italic;
 }
 
@@ -743,15 +727,15 @@
 }
 
 .icono-estado-estudio.estado-captura {
-	color: var(--color-text-muted);
+	color: var(--texto-suave);
 }
 
 .icono-estado-estudio.estado-guardado {
-	color: var(--color-accent);
+	color: var(--texto-azul);
 }
 
 .icono-estado-estudio.estado-validado {
-	color: var(--color-light);
+	color: var(--texto-azul);
 }
 
 .icono-estado-img {
@@ -771,19 +755,19 @@
 
 .badge-estado-estudio.estado-captura {
 	background: var(--superficie-activa);
-	color: var(--color-text-muted);
-	border: 1px solid var(--color-border);
+	color: var(--texto-suave);
+	border: 1px solid var(--borde);
 }
 
 .badge-estado-estudio.estado-guardado {
 	background: var(--superficie-hover);
-	color: var(--color-accent);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
 .badge-estado-estudio.estado-validado {
 	background: var(--superficie-hover);
-	color: var(--color-light);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
@@ -808,7 +792,7 @@
 
 .badge-tipo-resultado.laboratorio {
 	background: var(--superficie-hover);
-	color: var(--color-accent);
+	color: var(--texto-azul);
 }
 
 .badge-tipo-resultado.radiologia {
@@ -838,7 +822,7 @@
 
 .estado-solicitud-guardado {
 	background: var(--superficie-hover);
-	color: var(--color-accent);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
@@ -878,7 +862,7 @@
 
 .badge-saldo.pagado {
 	background: var(--superficie-activa);
-	color: var(--color-light);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
@@ -895,27 +879,27 @@
 	font-size: 0.75rem;
 	font-weight: 500;
 	background: var(--superficie-activa);
-	color: var(--color-light);
+	color: var(--texto-azul);
 	border: 1px solid var(--borde-fuerte);
 }
 
 .btn-entregar {
 	padding: 0.35rem 0.85rem;
-	background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+	background: linear-gradient(135deg, var(--azul) 0%, var(--azul) 100%);
 	border: none;
 	border-radius: 20px;
 	cursor: pointer;
-	font-family: var(--font);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.78rem;
 	font-weight: 500;
-	color: var(--color-var(--texto));
+	color: var(--texto);
 	transition: all 0.2s;
 }
 
 .btn-entregar:hover {
 	transform: translateY(-1px);
 	box-shadow: 0 3px 10px rgba(83, 185, 219, 0.35);
-	background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-light) 100%);
+	background: linear-gradient(135deg, var(--azul) 0%, var(--azul) 100%);
 }
 
 .btn-entregar-todos {
@@ -924,7 +908,7 @@
 	border: 1px solid rgba(76, 175, 80, 0.42);
 	border-radius: 6px;
 	color: var(--texto);
-	font-family: var(--font);
+	font-family: 'Codec Pro', sans-serif;
 	font-size: 0.85rem;
 	font-weight: 600;
 	cursor: pointer;
