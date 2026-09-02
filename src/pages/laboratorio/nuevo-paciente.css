@@ -41,6 +41,12 @@
 .summary-column {
   position: sticky;
   top: 1rem;
+  /* Una columna pegajosa mas alta que la pantalla queda anclada arriba con el
+     fondo cortado, y no hay manera de llegar a el: el scroll de la pagina no
+     la mueve. Ahi vivia el boton de guardar. Se le pone su propio limite de
+     alto para que desplace por dentro cuando no cabe. */
+  max-height: calc(100vh - 60px - 2.5rem);
+  overflow-y: auto;
 }
 
 .source-banner {
@@ -1001,22 +1007,30 @@
 		height: calc(100vh - 60px - 2.5rem);
 	}
 
-	.patient-column {
+	/* En escritorio la pagina no desplaza -page-main corta el desbordamiento y
+	   el grid tiene altura fija-, asi que cada columna tiene que desplazar por
+	   dentro. La de paciente ya lo hacia; la del resumen no, y por eso el boton
+	   de guardar quedaba fuera de la pantalla sin manera de alcanzarlo. */
+	.patient-column,
+	.summary-column {
 		max-height: 100%;
 		overflow-y: auto;
 		padding-right: 0.35rem;
 	}
 
-	.patient-column::-webkit-scrollbar {
+	.patient-column::-webkit-scrollbar,
+	.summary-column::-webkit-scrollbar {
 		width: 6px;
 	}
 
-	.patient-column::-webkit-scrollbar-track {
+	.patient-column::-webkit-scrollbar-track,
+	.summary-column::-webkit-scrollbar-track {
 		background: var(--superficie-hover);
 		border-radius: 999px;
 	}
 
-	.patient-column::-webkit-scrollbar-thumb {
+	.patient-column::-webkit-scrollbar-thumb,
+	.summary-column::-webkit-scrollbar-thumb {
 		background: var(--superficie-activa);
 		border-radius: 999px;
 	}
