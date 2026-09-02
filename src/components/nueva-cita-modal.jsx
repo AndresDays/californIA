@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
+import { buscarPorNombre, idPorNombre } from '../utils/catalogo-por-nombre';
 import { useAuth } from '../context/auth-context';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
@@ -29,6 +30,10 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   });
 
   const [clientes, setClientes] = useState([]);
+  // Empresa, cliente y tipo de estudio se capturan como texto: agendar por
+  // telefono no puede depender de recorrer tres listas encadenadas. Al guardar
+  // se busca la coincidencia en el catalogo para conservar el id; lo que no
+  // coincide se queda como lo escribio recepcion.
   const [clienteSeleccionado, setClienteSeleccionado] = useState('');
 
   const [empresas, setEmpresas] = useState([]);
@@ -66,18 +71,13 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     }));
   }, [isOpen, fechaInicial, horaInicial]);
 
-  useEffect(() => {
-    setTipoEstudioSeleccionado('');
-    setClienteSeleccionado('');
-    setBuscarEstudio('');
-    setEstudiosSeleccionados([]);
-    setShowBusquedaEstudios(false);
-  }, [empresaSeleccionada]);
-
   // Los tipos dependen de la empresa y del convenio del cliente, así que se
   // vuelven a resolver cuando cambia cualquiera de los dos.
   useEffect(() => {
-    if (empresaSeleccionada) cargarTiposEstudio(parseInt(empresaSeleccionada, 10));
+    // Los tipos se piden solo si lo escrito casa con una empresa del catalogo;
+    // con un texto libre no hay a que catalogo ir y el campo funciona igual.
+    const empresa = buscarPorNombre(empresas, empresaSeleccionada);
+    if (empresa) cargarTiposEstudio(empresa.id_empresa);
     else setTiposEstudio([]);
   }, [empresaSeleccionada, empresas, reglasConvenio]);
 
@@ -85,20 +85,21 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   // qué modalidades tiene pactadas con cada empresa.
   useEffect(() => {
     let cancelado = false;
-    const nombreCliente = clientes.find(
-      (cli) => String(cli.id_cliente) === String(clienteSeleccionado),
-    )?.nombre;
+    // El campo es texto libre: el tarifario y las reglas solo se pueden pedir
+    // cuando lo escrito casa con un cliente del catalogo. Un convenio tecleado
+    // que no existe deja la cita sin precios, que es lo correcto.
+    const cliente = buscarPorNombre(clientes, clienteSeleccionado);
 
-    if (!clienteSeleccionado || !nombreCliente) {
+    if (!cliente) {
       setPreciosCliente(null);
       setReglasConvenio([]);
       return undefined;
     }
 
-    cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)).then((precios) => {
+    cargarPreciosCliente(supabase, clienteParaPrecios(cliente.nombre)).then((precios) => {
       if (!cancelado) setPreciosCliente(precios);
     });
-    cargarReglasConvenio(supabase, clienteSeleccionado).then((reglas) => {
+    cargarReglasConvenio(supabase, cliente.id_cliente).then((reglas) => {
       if (!cancelado) setReglasConvenio(reglas);
     });
 
@@ -231,8 +232,9 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       return;
     }
 
-    const clienteObj = clientes.find(c => String(c.id_cliente) === String(clienteSeleccionado));
-    const nombreCliente = clienteObj?.nombre || '';
+    // El campo ya trae el nombre escrito; si coincide con el catalogo se usa
+    // el nombre canonico para buscar el precio pactado.
+    const nombreCliente = buscarPorNombre(clientes, clienteSeleccionado)?.nombre || clienteSeleccionado || '';
 
     const precio = await obtenerPrecioEstudio(estudio, nombreCliente);
 
@@ -313,14 +315,19 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
         id_sucursal: Number(empleadoData.id_sucursal),
         // Un select vacio tiene que viajar como null: Number('') da NaN y el
         // insert lo rechaza.
-        id_cliente: clienteSeleccionado ? Number(clienteSeleccionado) : null,
-        id_empresa: empresaSeleccionada ? Number(empresaSeleccionada) : null,
-        id_tipo_estudio: tipoEstudioSeleccionado ? Number(tipoEstudioSeleccionado) : null,
+        // Lo tecleado se casa con el catalogo para conservar la relacion; si no
+        // coincide, la cita se guarda sin el id en lugar de rechazarse.
+        id_cliente: idPorNombre(clientes, clienteSeleccionado, 'id_cliente'),
+        id_empresa: idPorNombre(empresas, empresaSeleccionada, 'id_empresa'),
+        id_tipo_estudio: idPorNombre(tiposEstudio, tipoEstudioSeleccionado, 'id_tipo_estudio'),
 
         nombre_paciente: formData.nombreCompleto.trim() || null,
         telefono_paciente: formData.telefono.trim() || null,
 
-        tipo_estudio: estudiosTexto || null,
+        // La columna de texto es lo unico que queda de lo que pidio el paciente
+        // cuando el estudio no esta en el catalogo, asi que se conserva lo
+        // escrito si no se agrego ninguno de la lista.
+        tipo_estudio: estudiosTexto || tipoEstudioSeleccionado.trim() || null,
         fecha_estudio: fechaHora,
         estado: 'pendiente',
         monto
@@ -354,16 +361,15 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
 
   if (!isOpen) return null;
 
-  const empresaActual = empresas.find(
-    (emp) => String(emp.id_empresa) === String(empresaSeleccionada),
-  );
-  const tipoEstudioActual = tiposEstudio.find(
-    (tipo) => String(tipo.id_tipo_estudio) === String(tipoEstudioSeleccionado),
-  );
+  // Los campos son texto: lo escrito se casa con el catalogo para acotar la
+  // busqueda del estudio. Lo que no coincide simplemente no acota nada, y la
+  // busqueda sigue funcionando sobre todo el catalogo.
+  const empresaActual = buscarPorNombre(empresas, empresaSeleccionada);
+  const tipoEstudioActual = buscarPorNombre(tiposEstudio, tipoEstudioSeleccionado);
   const filtrosCatalogo = {
     estudios,
     busqueda: buscarEstudio,
-    empresaId: empresaSeleccionada,
+    empresaId: empresaActual?.id_empresa ?? '',
     empresaNombre: empresaActual?.nombre || '',
     tipoNombre: tipoEstudioActual?.nombre || '',
     reglasConvenio,
@@ -409,42 +415,38 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
               className="form-input-cita" disabled={loading} maxLength="10" inputMode="numeric" />
           </div>
 
+          {/* Tres campos de texto en lugar de tres listas encadenadas. La lista
+              de sugerencias sigue ahi para quien quiera elegir, pero ya no hay
+              que pasar por empresa para llegar al cliente ni por el cliente
+              para llegar al tipo: agendar por telefono es escribir. */}
           <div className="form-group-cita">
             <label className="form-label-cita">Empresa</label>
-            <select value={empresaSeleccionada} onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-              className="form-select-cita" disabled={loading}>
-              <option value="">Seleccione una empresa</option>
-              {empresas.map(emp => <option key={emp.id_empresa} value={emp.id_empresa}>{emp.nombre}</option>)}
-            </select>
+            <input type="text" list="cita-empresas" value={empresaSeleccionada}
+              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+              className="form-input-cita" disabled={loading} placeholder="CDC, CDI..." />
+            <datalist id="cita-empresas">
+              {empresas.map(emp => <option key={emp.id_empresa} value={emp.nombre} />)}
+            </datalist>
           </div>
 
           <div className="form-group-cita">
             <label className="form-label-cita">Cliente</label>
-            <select value={clienteSeleccionado} onChange={(e) => {
-              setClienteSeleccionado(e.target.value);
-              // El convenio del cliente cambia los tipos ofrecidos, así que el
-              // que estaba elegido puede dejar de existir.
-              setTipoEstudioSeleccionado('');
-              setBuscarEstudio('');
-              setEstudiosSeleccionados([]);
-              setShowBusquedaEstudios(false);
-            }} className="form-select-cita" disabled={loading || !empresaSeleccionada}>
-              <option value="">
-                {empresaSeleccionada ? 'Selecciona un Cliente' : 'Primero selecciona una Empresa'}
-              </option>
-              {clientes.map(cli => <option key={cli.id_cliente} value={cli.id_cliente}>{cli.nombre}</option>)}
-            </select>
+            <input type="text" list="cita-clientes" value={clienteSeleccionado}
+              onChange={(e) => setClienteSeleccionado(e.target.value)}
+              className="form-input-cita" disabled={loading} placeholder="Particular, convenio..." />
+            <datalist id="cita-clientes">
+              {clientes.map(cli => <option key={cli.id_cliente} value={cli.nombre} />)}
+            </datalist>
           </div>
 
           <div className="form-group-cita">
             <label className="form-label-cita">Tipo Estudio</label>
-            <select value={tipoEstudioSeleccionado} onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
-              className="form-select-cita" disabled={loading || !clienteSeleccionado}>
-              <option value="">
-                {clienteSeleccionado ? 'Selecciona Tipo de Estudio' : 'Primero selecciona un Cliente'}
-              </option>
-              {tiposEstudio.map(t => <option key={t.id_tipo_estudio} value={t.id_tipo_estudio}>{t.nombre}</option>)}
-            </select>
+            <input type="text" list="cita-tipos" value={tipoEstudioSeleccionado}
+              onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
+              className="form-input-cita" disabled={loading} placeholder="Laboratorio, tomografía..." />
+            <datalist id="cita-tipos">
+              {tiposEstudio.map(t => <option key={t.id_tipo_estudio} value={t.nombre} />)}
+            </datalist>
           </div>
 
           <div className="form-group-cita">
@@ -455,17 +457,15 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
                 type="text"
                 value={buscarEstudio}
                 onChange={(e) => {
-                  if (clienteSeleccionado) {
-                    setBuscarEstudio(e.target.value);
-                    filtrarEstudios(e.target.value);
-                  }
+                  setBuscarEstudio(e.target.value);
+                  filtrarEstudios(e.target.value);
                 }}
                 className="form-input-cita"
-                placeholder={clienteSeleccionado ? 'Buscar estudio para agregar...' : 'Selecciona un cliente primero'}
-                disabled={loading || !clienteSeleccionado}
+                placeholder="Buscar estudio para agregar..."
+                disabled={loading}
               />
 
-              {showBusquedaEstudios && buscarEstudio.length >= 2 && clienteSeleccionado && (
+              {showBusquedaEstudios && buscarEstudio.length >= 2 && (
                 <div className="search-results-estudios-modal">
                   {estudiosFiltrados.slice(0, 10).map(est => (
                     <div key={est.id} className="search-result-item-modal" onClick={() => agregarEstudio(est)}>
