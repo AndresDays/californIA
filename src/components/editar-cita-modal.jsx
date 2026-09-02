@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase-client';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './nueva-cita-modal.css';
 import editarIcono from '../assets/editarIcono.png';
+import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 
@@ -51,7 +52,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
       try {
         const [clientesData, empresasData, catalogoData] = await Promise.all([
-          cargarClientes(),
+          cargarClientes(cita.id_cliente),
           cargarEmpresas(),
           cargarEstudiosCatalogo(),
         ]);
@@ -125,11 +126,13 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     recalcularPreciosSeleccionados(clienteNombre);
   }, [clienteSeleccionado]);
 
-  const cargarClientes = async () => {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('id_cliente, nombre')
-      .order('nombre');
+  // La cita que se edita puede ser de un convenio dado de baja: ese sigue en la
+  // lista aunque ya no se ofrezca, porque si no el select se queda en blanco y
+  // guardar la cita le borraria el cliente sin que nadie lo pidiera.
+  const cargarClientes = async (idClienteActual) => {
+    const { data, error } = await consultarClientesSeleccionables({
+      incluirId: idClienteActual,
+    });
 
     if (error) {
       console.error('Error cargar clientes:', error);
