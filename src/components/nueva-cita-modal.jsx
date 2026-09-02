@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { buscarPorNombre, idPorNombre } from '../utils/catalogo-por-nombre';
+import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { useAuth } from '../context/auth-context';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
@@ -109,10 +110,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   }, [clienteSeleccionado, clientes]);
 
   const cargarClientes = async () => {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('id_cliente, nombre')
-      .order('nombre');
+    // Una cita nueva sólo se agenda para un convenio vigente.
+    const { data, error } = await consultarClientesSeleccionables();
     if (!error) setClientes(data || []);
   };
 

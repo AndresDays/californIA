@@ -38,6 +38,7 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
+import { consultarClientesSeleccionables } from "../../utils/clientes-seleccionables";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
@@ -1022,10 +1023,8 @@ const NuevoPaciente = () => {
 
 	const cargarClientes = async () => {
 		try {
-			const { data, error } = await supabase
-				.from("clientes")
-				.select("id_cliente, nombre")
-				.order("nombre");
+			// Los convenios dados de baja no se ofrecen para una orden nueva.
+			const { data, error } = await consultarClientesSeleccionables();
 
 			if (error) throw error;
 			setClientes(data || []);
