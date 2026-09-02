@@ -98,21 +98,29 @@ const abrirModal = () =>
 describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 	// La cita se agendaba solo con el catálogo de laboratorio, así que buscar
 	// "TAC" con tomografía elegida devolvía tacrolimus y no el estudio de imagen.
-	test("con tomografia elegida aparece el estudio de imagen y no el de laboratorio", async () => {
+	// Los tres campos son de texto: se escriben los nombres, no se eligen ids.
+	const escribir = (etiqueta, valor) =>
+		fireEvent.change(document.querySelector(`input[list="${etiqueta}"]`), {
+			target: { value: valor },
+		});
+
+	test("con tomografia escrita aparece el estudio de imagen y no el de laboratorio", async () => {
 		abrirModal();
-
-		const selects = await screen.findAllByRole("combobox");
-		const [selectEmpresa, selectCliente, selectTipo] = selects;
-
-		fireEvent.change(selectEmpresa, { target: { value: "2" } });
-		await waitFor(() => expect(selectCliente).not.toBeDisabled());
-
-		fireEvent.change(selectCliente, { target: { value: "7" } });
 		await waitFor(() =>
-			expect(screen.getByRole("option", { name: "TOMOGRAFIA" })).toBeInTheDocument(),
+			expect(document.querySelector('input[list="cita-empresas"]')).not.toBeNull(),
 		);
 
-		fireEvent.change(selectTipo, { target: { value: "4" } });
+		escribir("cita-empresas", "CENTRO DE DIAGNOSTICO POR IMAGEN PVR");
+		escribir("cita-clientes", "Particular");
+		await waitFor(() =>
+			expect(
+				[...document.querySelectorAll("#cita-tipos option")].some(
+					(opcion) => opcion.value === "TOMOGRAFIA",
+				),
+			).toBe(true),
+		);
+
+		escribir("cita-tipos", "TOMOGRAFIA");
 		fireEvent.change(screen.getByPlaceholderText("Buscar estudio para agregar..."), {
 			target: { value: "TAC" },
 		});
@@ -121,16 +129,23 @@ describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 		expect(screen.queryByText(/TACROLIMUS/)).not.toBeInTheDocument();
 	});
 
-	// Los tipos ofrecidos dependen del convenio del cliente, no solo de la
-	// empresa: sin cliente elegido no hay con qué resolverlos.
-	test("el tipo de estudio no se puede elegir antes que el cliente", async () => {
+	// Antes habia que pasar por empresa para llegar al cliente y por el cliente
+	// para llegar al tipo. Agendar por telefono no aguanta esa cascada: los tres
+	// campos se escriben en el orden que sea, y la busqueda de estudios ya no
+	// espera a que haya un cliente.
+	test("se puede escribir el tipo de estudio sin haber puesto empresa ni cliente", async () => {
 		abrirModal();
+		await waitFor(() =>
+			expect(document.querySelector('input[list="cita-tipos"]')).not.toBeNull(),
+		);
 
-		const selects = await screen.findAllByRole("combobox");
-		expect(selects[2]).toBeDisabled();
-		expect(
-			screen.getByRole("option", { name: "Primero selecciona un Cliente" }),
-		).toBeInTheDocument();
+		const campoTipo = document.querySelector('input[list="cita-tipos"]');
+		expect(campoTipo).not.toBeDisabled();
+		fireEvent.change(campoTipo, { target: { value: "ULTRASONIDO" } });
+		expect(campoTipo.value).toBe("ULTRASONIDO");
+
+		const busqueda = screen.getByPlaceholderText("Buscar estudio para agregar...");
+		expect(busqueda).not.toBeDisabled();
 	});
 });
 
@@ -170,6 +185,50 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 		const fila = await guardar();
 
 		expect(fila.fecha_estudio).toBe("2026-08-27T10:00:00-06:00");
+	});
+
+	test("lo escrito se convierte en el id del catalogo cuando coincide", async () => {
+		abrirModal();
+		await waitFor(() =>
+			expect(document.querySelector('input[list="cita-empresas"]')).not.toBeNull(),
+		);
+
+		const escribir = (lista, valor) =>
+			fireEvent.change(document.querySelector(`input[list="${lista}"]`), {
+				target: { value: valor },
+			});
+
+		// Se teclea en minusculas y sin el nombre completo, como en una llamada.
+		escribir("cita-empresas", "centro de diagnostico por imagen pvr");
+		escribir("cita-clientes", "particular");
+
+		const fila = await guardar();
+
+		expect(fila.id_empresa).toBe(2);
+		expect(fila.id_cliente).toBe(7);
+	});
+
+	// Un convenio que no esta en el catalogo no puede bloquear el agendado: la
+	// cita se guarda sin el id en lugar de rechazarse.
+	test("un cliente que no esta en el catalogo no impide agendar", async () => {
+		abrirModal();
+		await waitFor(() =>
+			expect(document.querySelector('input[list="cita-clientes"]')).not.toBeNull(),
+		);
+
+		fireEvent.change(document.querySelector('input[list="cita-clientes"]'), {
+			target: { value: "Seguros del Norte" },
+		});
+		fireEvent.change(document.querySelector('input[list="cita-tipos"]'), {
+			target: { value: "Ultrasonido de abdomen" },
+		});
+
+		const fila = await guardar();
+
+		expect(fila.id_cliente).toBeNull();
+		// Lo que pidio el paciente se conserva en la columna de texto, que es lo
+		// unico que queda cuando el estudio no esta en el catalogo.
+		expect(fila.tipo_estudio).toBe("Ultrasonido de abdomen");
 	});
 
 	test("un telefono a medias si se rechaza, porque despues no se puede llamar", async () => {
