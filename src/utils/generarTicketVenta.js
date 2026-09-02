@@ -22,15 +22,28 @@ export const resolverRfcTicketEmpresa = (empresa) => {
 
 export const resolverEmpresaTicketReimpresion = (empresa) => empresa || 'CDC';
 
-// Cada empresa se identifica con su propio correo, y CDI no lleva la razón
-// social de California en el encabezado: ahí el único nombre es el de quien
-// registra la orden.
+// El encabezado del ticket lleva el nombre de la empresa que cobra el estudio,
+// no el de la persona a cuyo nombre está dado de alta el negocio: quien recibe
+// el comprobante reconoce la clínica, y un nombre propio en el lugar de la
+// razón social se lee como un cobro de un particular.
+//
+// Cada empresa se identifica además con su propio correo, porque CDI factura
+// aparte y las dudas de sus estudios no llegan al buzón del laboratorio.
+//
+// Una empresa que no case con ninguna de las dos -veterinaria, por ejemplo, que
+// cobra por CDC- cae del lado de California, que es donde estaba antes.
 export const resolverEncabezadoEmpresaTicket = (empresa) => {
 	const operativa = resolverEmpresaOperativaCatalogo(empresa);
 	if (operativa === 'CDI') {
-		return { razonSocial: '', correo: 'cdi.rx2020@outlook.com' };
+		return {
+			razonSocial: 'Centro de Diagnóstico por Imagen PVR',
+			correo: 'cdi.rx2020@outlook.com',
+		};
 	}
-	return { razonSocial: 'Paulina Diaz Cortes', correo: 'labcalifornia01@gmail.com' };
+	return {
+		razonSocial: 'Central Diagnóstica California',
+		correo: 'labcalifornia01@gmail.com',
+	};
 };
 
 const generarCodigo = (len = 6) => Math.random().toString(36).substring(2, 2 + len);
@@ -177,12 +190,16 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(7);
+	// El de laboratorio traía la razón social y el correo escritos a mano, así
+	// que el cambio de nombre sólo habría llegado al ticket de imagen. Los dos
+	// formatos leen ya el mismo encabezado.
+	const encabezadoEmpresa = resolverEncabezadoEmpresaTicket(empresa);
 	const lineasEncabezado = [
-		'Paulina Diaz Cortes',
+		...(encabezadoEmpresa.razonSocial ? [encabezadoEmpresa.razonSocial] : []),
 		'Dirección: Av. Francisco Villa 880, C.P. 48328, Colonia',
 		'Gaviotas, Puerto Vallarta, Jalisco, México.',
 		...(rfcEmpresa ? [`RFC: ${rfcEmpresa}`] : []),
-		'Correo: labcalifornia01@gmail.com',
+		`Correo: ${encabezadoEmpresa.correo}`,
 	];
 	lineasEncabezado.forEach((l) => {
 		pdf.text(l, W / 2, y, { align: 'center' });
