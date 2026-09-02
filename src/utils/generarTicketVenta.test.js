@@ -91,7 +91,7 @@ describe('generarTicketVenta', () => {
 		});
 
 		const textos = mockDoc.text.mock.calls.map((llamada) => llamada[0]);
-		expect(textos).toContain('Paulina Diaz Cortes');
+		expect(textos).toContain('Central Diagnóstica California');
 		expect(textos.join(' ')).not.toMatch(/RFC:/);
 		expect(mockDoc.output).toHaveBeenCalled();
 	});
@@ -328,20 +328,33 @@ describe('ticket de imagen', () => {
 });
 
 describe('resolverEncabezadoEmpresaTicket', () => {
-	// CDI factura aparte: su correo es propio y en el encabezado no va la razón
-	// social de California, sólo aparece quien registra la orden.
-	test.each(['CDI', 'Centro Diagnóstico por Imagen'])('%s usa su propio correo y sin razón social', (empresa) => {
+	// El encabezado lleva el nombre de la clínica que cobra, no el de la persona
+	// titular del negocio. CDI factura aparte, así que además usa su correo.
+	test.each(['CDI', 'Centro Diagnóstico por Imagen'])('%s se identifica como CDI', (empresa) => {
 		expect(resolverEncabezadoEmpresaTicket(empresa)).toEqual({
-			razonSocial: '',
+			razonSocial: 'Centro de Diagnóstico por Imagen PVR',
 			correo: 'cdi.rx2020@outlook.com',
 		});
 	});
 
-	test.each(['CDC', 'Central Diagnostica California', ''])('%s conserva el encabezado de California', (empresa) => {
-		expect(resolverEncabezadoEmpresaTicket(empresa)).toEqual({
-			razonSocial: 'Paulina Diaz Cortes',
-			correo: 'labcalifornia01@gmail.com',
-		});
+	// Veterinaria no case con ninguna de las dos y cobra por CDC: cae del lado
+	// de California, igual que una empresa vacía.
+	test.each(['CDC', 'Central Diagnostica California', 'Veterinaria PVR', ''])(
+		'%s se identifica como California',
+		(empresa) => {
+			expect(resolverEncabezadoEmpresaTicket(empresa)).toEqual({
+				razonSocial: 'Central Diagnóstica California',
+				correo: 'labcalifornia01@gmail.com',
+			});
+		},
+	);
+
+	// El nombre de la titular estuvo años en el encabezado de los dos formatos:
+	// que no vuelva a colarse por ninguno.
+	test('ningún encabezado lleva ya el nombre de la titular', () => {
+		for (const empresa of ['CDC', 'CDI', 'Veterinaria PVR', '']) {
+			expect(resolverEncabezadoEmpresaTicket(empresa).razonSocial).not.toMatch(/Paulina/i);
+		}
 	});
 });
 
@@ -357,22 +370,57 @@ describe('encabezado del ticket de imagen', () => {
 
 	beforeEach(() => jest.clearAllMocks());
 
-	test('el de CDI lleva su correo y no la razón social', async () => {
+	test('el de CDI se anuncia como CDI y lleva su correo', async () => {
 		await generarTicketsVenta({ tickets: [{ ...ticketBase, empresa: 'CDI' }] });
 		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
 
-		expect(textos).toEqual(expect.arrayContaining(['Correo: cdi.rx2020@outlook.com']));
-		expect(textos).not.toEqual(expect.arrayContaining(['Paulina Diaz Cortes']));
+		expect(textos).toEqual(
+			expect.arrayContaining([
+				'Centro de Diagnóstico por Imagen PVR',
+				'Correo: cdi.rx2020@outlook.com',
+			]),
+		);
+		expect(textos.join(' ')).not.toMatch(/Paulina/i);
 		expect(textos).toEqual(expect.arrayContaining(['Registra: AYLIN SANTANA']));
 	});
 
-	test('el de CDC conserva el encabezado de California', async () => {
+	test('el de CDC se anuncia como California', async () => {
 		await generarTicketsVenta({ tickets: [{ ...ticketBase, empresa: 'CDC', folio: 'B0001' }] });
 		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
 
 		expect(textos).toEqual(
-			expect.arrayContaining(['Paulina Diaz Cortes', 'Correo: labcalifornia01@gmail.com']),
+			expect.arrayContaining([
+				'Central Diagnóstica California',
+				'Correo: labcalifornia01@gmail.com',
+			]),
 		);
+		expect(textos.join(' ')).not.toMatch(/Paulina/i);
+	});
+});
+
+// El de laboratorio es el que traía el nombre escrito a mano: si el encabezado
+// se hubiera cambiado sólo en el resolutor, este formato habría seguido igual.
+describe('encabezado del ticket de laboratorio', () => {
+	beforeEach(() => jest.clearAllMocks());
+
+	test('lleva la razón social de California y no el nombre de la titular', async () => {
+		await generarTicketVenta({
+			folio: 'C0007',
+			fecha: new Date('2026-09-02T12:41:00'),
+			paciente: 'De La Torre Flores Jennifer Xitlali',
+			empresa: 'Central Diagnostica California',
+			telefono: '3221220777',
+			estudios: [{ descripcion: 'BIOMETRIA HEMATICA COMPLETA (BHC)', precio: 165 }],
+		});
+		const textos = mockDoc.text.mock.calls.map(([texto]) => texto);
+
+		expect(textos).toEqual(
+			expect.arrayContaining([
+				'Central Diagnóstica California',
+				'Correo: labcalifornia01@gmail.com',
+			]),
+		);
+		expect(textos.join(' ')).not.toMatch(/Paulina/i);
 	});
 });
 
