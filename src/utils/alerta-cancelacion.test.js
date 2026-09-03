@@ -1,29 +1,52 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { resolve } from "path";
 
-const rutaMigracion = resolve(
-	process.cwd(),
-	"supabase/migrations/20260903120000_alerta_cancelacion_solicitud.sql",
-);
+const directorioMigraciones = resolve(process.cwd(), "supabase/migrations");
 const rutaFuncion = resolve(
 	process.cwd(),
 	"supabase/functions/alertas-correo/index.ts",
 );
 
-const migracion = existsSync(rutaMigracion) ? readFileSync(rutaMigracion, "utf8") : "";
 const funcion = existsSync(rutaFuncion) ? readFileSync(rutaFuncion, "utf8") : "";
 
-// El cuerpo de la función que resuelve a quién se le avisa, aislado del resto
-// de la migración: comprobar los roles contra el archivo entero daría por bueno
-// un rol que apareciera en cualquier otro lugar.
-const cuerpoDestinatarios =
-	/create or replace function public\.destinatarios_alerta_direccion[\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(
-		migracion,
-	)?.[1] || "";
+// Una función de la base se puede redefinir en una migración posterior, y de
+// hecho `avisar_solicitud_cancelada` ya se redefinió una vez. Lo que vale es la
+// última definición, así que las pruebas se leen contra esa y no contra el
+// archivo donde nació: si mañana se vuelve a redefinir, se comprueba la nueva
+// sin tener que acordarse de cambiar aquí la ruta.
+const ultimaDefinicion = (nombreFuncion) => {
+	const patron = new RegExp(
+		`create or replace function public\\.${nombreFuncion}[\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$;`,
+	);
+	let ultimo = { archivo: "", cuerpo: "", texto: "" };
+	for (const archivo of readdirSync(directorioMigraciones).sort()) {
+		if (!archivo.endsWith(".sql")) continue;
+		const texto = readFileSync(resolve(directorioMigraciones, archivo), "utf8");
+		const encontrado = patron.exec(texto);
+		if (encontrado) ultimo = { archivo, cuerpo: encontrado[1], texto };
+	}
+	return ultimo;
+};
+
+const disparador = ultimaDefinicion("avisar_solicitud_cancelada");
+const destinatarios = ultimaDefinicion("destinatarios_alerta_direccion");
+
+const cuerpoDisparador = disparador.cuerpo;
+const cuerpoDestinatarios = destinatarios.cuerpo;
+
+// Todas las migraciones juntas: el `create trigger` y la tabla se crean una
+// sola vez y no tienen por qué estar en la misma migración que la última
+// definición de la función.
+const migracionTabla = readdirSync(directorioMigraciones)
+	.sort()
+	.filter((archivo) => archivo.endsWith(".sql"))
+	.map((archivo) => readFileSync(resolve(directorioMigraciones, archivo), "utf8"))
+	.join("\n");
 
 describe("aviso de solicitud cancelada", () => {
-	test("existen la migración y la función de borde", () => {
-		expect(existsSync(rutaMigracion)).toBe(true);
+	test("existen el disparador y la función de borde", () => {
+		expect(disparador.archivo).not.toBe("");
+		expect(destinatarios.archivo).not.toBe("");
 		expect(existsSync(rutaFuncion)).toBe(true);
 	});
 
@@ -31,9 +54,9 @@ describe("aviso de solicitud cancelada", () => {
 	// hecha desde cualquier otro lugar, o con el navegador a punto de perder la
 	// red, sigue avisando.
 	test("el disparador vive en ventas y sólo actúa al pasar a cancelado", () => {
-		expect(migracion).toContain("after update on public.ventas");
-		expect(migracion).toContain("new.estado is distinct from old.estado");
-		expect(migracion).toContain("lower(coalesce(new.estado, '')) = 'cancelado'");
+		expect(migracionTabla).toContain("after update on public.ventas");
+		expect(migracionTabla).toContain("new.estado is distinct from old.estado");
+		expect(migracionTabla).toContain("lower(coalesce(new.estado, '')) = 'cancelado'");
 	});
 
 	// `radiologo` es el Radiólogo - Director; el radiólogo de a pie se guarda
@@ -55,37 +78,50 @@ describe("aviso de solicitud cancelada", () => {
 	});
 
 	test("sólo se avisa a personal activo", () => {
-		expect(migracion).toContain("coalesce(e.activo, true) = true");
+		expect(cuerpoDestinatarios).toContain("coalesce(e.activo, true) = true");
 	});
 
 	// Un renglón por persona: si fuera uno solo para el grupo, que
 	// administración lo marcara leído apagaría el aviso de dirección, porque
 	// `notificaciones.read_at` es una sola columna compartida.
 	test("cada destinatario recibe su propia notificación", () => {
-		expect(migracion).toContain("usuario_destino");
-		expect(migracion).toContain("v_destinatario.auth_uuid");
-		expect(migracion).toContain("'usuario'");
+		expect(cuerpoDisparador).toContain("usuario_destino");
+		expect(cuerpoDisparador).toContain("v_destinatario.auth_uuid");
+		expect(cuerpoDisparador).toContain("'usuario'");
+	});
+
+	// La campana distingue por aquí cuál aviso abre el detalle de la orden
+	// cancelada. Con `venta` a secas se confundiría con los avisos de captura y
+	// de venta nueva, que también lo usan.
+	test("el aviso se marca como cancelación para que la campana lo reconozca", () => {
+		expect(cuerpoDisparador).toContain("'venta_cancelada'");
 	});
 
 	test("quien cancela no se avisa a sí mismo", () => {
-		expect(migracion).toContain("continue when v_actor is not null");
+		expect(cuerpoDisparador).toContain("continue when v_actor is not null");
 	});
 
 	// El motivo lo teclea una persona: si no se escapa, un `<` suelto rompe el
 	// cuerpo del correo.
 	test("el motivo se escapa antes de entrar al HTML", () => {
-		expect(migracion).toMatch(/replace\(replace\(v_motivo, '&', '&amp;'\), '<', '&lt;'\)/);
+		expect(cuerpoDisparador).toMatch(
+			/replace\(replace\(v_motivo, '&', '&amp;'\), '<', '&lt;'\)/,
+		);
 	});
 
 	// La tabla lleva correos del personal y sólo la toca la función de borde con
 	// la llave de servicio: con RLS encendida y sin políticas, nadie más entra.
 	test("la bandeja de correo queda cerrada a la aplicación", () => {
-		expect(migracion).toContain("alter table public.notificaciones_correo enable row level security");
-		expect(migracion).not.toContain("create policy notificaciones_correo");
+		expect(migracionTabla).toContain(
+			"alter table public.notificaciones_correo enable row level security",
+		);
+		expect(migracionTabla).not.toContain("create policy notificaciones_correo");
 	});
 
-	test("el aviso lleva al folio cancelado", () => {
-		expect(migracion).toContain("'/editar-solicitud'");
+	// Respaldo por si un aviso llegara sin id de venta: el clic sigue llevando a
+	// alguna parte en vez de no hacer nada.
+	test("el aviso conserva una ruta de respaldo", () => {
+		expect(cuerpoDisparador).toContain("'/editar-solicitud'");
 	});
 });
 

@@ -75,6 +75,22 @@ export const notificacionEsParaEmpleado = (
 	return (CANALES_ROLES[canalDestino] || []).includes(rolEmpleado);
 };
 
+// Los avisos de solicitud cancelada abren su detalle en un modal en vez de
+// navegar: Editar solicitud sólo lista órdenes activas, así que llevar ahí un
+// aviso de cancelación dejaba a quien lo abría mirando una lista sin la orden
+// que venía a ver.
+//
+// Devuelve el id de la venta, o null si el aviso no es de ese tipo. El id puede
+// venir en `id_venta` o en `entidad_id`: el disparador llena los dos, pero un
+// aviso escrito a mano podría traer sólo uno.
+export const ENTIDAD_VENTA_CANCELADA = "venta_cancelada";
+
+export const idVentaCanceladaDeAviso = (notificacion = {}) => {
+	if (notificacion?.entidad_tipo !== ENTIDAD_VENTA_CANCELADA) return null;
+	const id = Number(notificacion.id_venta ?? notificacion.entidad_id);
+	return Number.isSafeInteger(id) && id > 0 ? id : null;
+};
+
 export const crearPayloadNotificacion = ({
 	titulo,
 	mensaje,
