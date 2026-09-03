@@ -13,6 +13,7 @@ import {
 } from "../../utils/pago-tarjeta";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
+import { clientesParaFiltro } from "../../utils/clientes-seleccionables";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import {
@@ -99,12 +100,21 @@ const ReporteVentas = () => {
 	const { data: catalogos } = useCatalogosReporte();
 	const sucursales = catalogos?.sucursales ?? [];
 	const vendedores = catalogos?.vendedores ?? [];
-	const clientes   = catalogos?.clientes   ?? [];
+	const clientesActivos = catalogos?.clientes ?? [];
 	const doctores   = catalogos?.doctores   ?? [];
 	const areas      = catalogos?.areas      ?? [];
 	const empresas   = catalogos?.empresas   ?? [];
 
 	const errorReporte = errorQuery?.message ?? "";
+
+	// El filtro ofrece los convenios vigentes, más cualquiera que aparezca en las
+	// ventas del rango aunque esté dado de baja. Sin eso, las ventas de un
+	// convenio dado de baja se verían en la tabla pero no se podrían filtrar,
+	// que es justo lo que se quiso evitar cuando se decidió no borrarlos.
+	const clientes = useMemo(
+		() => clientesParaFiltro(clientesActivos, ventas),
+		[clientesActivos, ventas],
+	);
 
 	// Las ventas guardadas antes de que el reporte trajera la relación con
 	// doctores sólo tienen el id, así que se resuelve con el catálogo.

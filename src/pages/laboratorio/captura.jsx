@@ -14,6 +14,7 @@ import { cargarAnalitosDeEstudios } from "../../utils/analitos-de-estudios";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
 import { cargarRadiologiaParaCaptura, useCaptura, useCatalogosCaptura } from "../../hooks/use-captura";
+import { clientesParaFiltro } from "../../utils/clientes-seleccionables";
 import {
 	CAPTURA_FILTROS_ESTADO,
 	aplicarEstadoRadiologiaACaptura,
@@ -93,7 +94,14 @@ const Captura = () => {
 		[ventasDelPeriodo, empleadoData?.rol],
 	);
 	const { data: catalogosData } = useCatalogosCaptura();
-	const clientes = catalogosData?.clientes ?? [];
+	const clientesActivos = catalogosData?.clientes ?? [];
+	// El filtro ofrece los convenios vigentes, más cualquiera que aparezca en las
+	// órdenes del periodo aunque esté dado de baja: si no, una orden de un
+	// convenio de baja se vería en la lista pero no se podría filtrar.
+	const clientes = useMemo(
+		() => clientesParaFiltro(clientesActivos, ventas),
+		[clientesActivos, ventas],
+	);
 	const areas = catalogosData?.areas ?? [];
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
