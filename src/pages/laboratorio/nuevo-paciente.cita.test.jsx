@@ -108,6 +108,7 @@ jest.mock("../../lib/supabase-client", () => {
 });
 
 import NuevoPaciente from "./nuevo-paciente";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 
 beforeEach(() => {
 	sessionStorage.clear();
@@ -118,7 +119,7 @@ beforeEach(() => {
 
 const abrir = async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 };
 

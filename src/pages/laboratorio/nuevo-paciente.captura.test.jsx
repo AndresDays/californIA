@@ -96,12 +96,13 @@ jest.mock("../../lib/supabase-client", () => {
 });
 
 import NuevoPaciente from "./nuevo-paciente";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 
 beforeEach(() => sessionStorage.clear());
 
 test("seleccionar un paciente limpia empresa, cliente y el cobro de la orden anterior", async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	// captura previa: empresa, cliente y forma de pago
@@ -147,7 +148,7 @@ test("seleccionar un paciente limpia empresa, cliente y el cobro de la orden ant
 });
 
 test("al remontar la pantalla el borrador restaura la captura", async () => {
-	const { unmount } = render(<NuevoPaciente />);
+	const { unmount } = render(conQueryClient(<NuevoPaciente />));
 	await act(async () => {});
 
 	const selectEmpresa = screen.getByDisplayValue("Selecciona una Empresa");
@@ -170,7 +171,7 @@ test("al remontar la pantalla el borrador restaura la captura", async () => {
 	unmount();
 
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	const empresa2 = document.querySelectorAll(".form-group-inline select")[0];
@@ -185,7 +186,7 @@ test("al remontar la pantalla el borrador restaura la captura", async () => {
 
 test("seleccionar un paciente limpia tipo de estudio, doctor y los estudios agregados", async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	// empresa → cliente → tipo de estudio
@@ -244,7 +245,7 @@ test("seleccionar un paciente limpia tipo de estudio, doctor y los estudios agre
 
 test("una orden con laboratorio e imagen ofrece cobrar por serie", async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	await act(async () => {
@@ -280,7 +281,7 @@ test("una orden con laboratorio e imagen ofrece cobrar por serie", async () => {
 
 test("un cliente de porcentaje aplica su descuento solo", async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	await act(async () => {
@@ -308,7 +309,7 @@ test("un cliente de porcentaje aplica su descuento solo", async () => {
 
 test("el botón de limpiar deja la captura lista para una orden nueva", async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	await act(async () => {

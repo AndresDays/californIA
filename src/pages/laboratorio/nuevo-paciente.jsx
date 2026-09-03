@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
@@ -6,6 +7,7 @@ import SearchAutocomplete from "../../components/search-autocomplete.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
+import { invalidarConsultasDeVentas } from "../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	borrarCampoPersistente,
@@ -172,6 +174,7 @@ const esEstudioRadiologia = (estudio = {}) => {
 };
 
 const NuevoPaciente = () => {
+	const queryClient = useQueryClient();
 	const { user, signOut } = useAuth();
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navigate = useNavigate();
@@ -876,6 +879,10 @@ const NuevoPaciente = () => {
 			for (const parte of partesOrden) {
 				ventasRegistradas.push(await registrarVentaDeParte(parte));
 			}
+
+			// La venta ya está en la base: se le avisa al caché para que el reporte
+			// de ventas, captura y los tableros la tengan sin recargar la página.
+			invalidarConsultasDeVentas(queryClient);
 
 			const folio = ventasRegistradas.map((registro) => registro.folio).join(" · ");
 			if (idCitaPrecargada) {
