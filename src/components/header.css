@@ -234,6 +234,20 @@
 	background: var(--azul-claro);
 }
 
+/* Los avisos de dirección -una solicitud cancelada, por ejemplo- llevan el
+   naranja de la plataforma, que es el color reservado para lo que tiene que
+   saltar a la vista. El punto se pinta por el tipo del aviso, no por su canal:
+   estos van dirigidos a una persona y su canal no dice nada del asunto. */
+.notification-dot.advertencia {
+	background: var(--naranja);
+	box-shadow: 0 0 0 4px rgba(173, 78, 11, 0.14);
+}
+
+.notification-dot.error {
+	background: var(--peligro);
+	box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.14);
+}
+
 .notification-item-body {
 	display: flex;
 	flex-direction: column;

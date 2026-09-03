@@ -206,7 +206,9 @@ const NotificationBell = ({ user, navigate }) => {
 									key={notificacion.id}
 									className={`notification-item${notificacion.read_at ? "" : " unread"}`}
 									onClick={() => abrirNotificacion(notificacion)}>
-									<span className={`notification-dot ${notificacion.canal_destino}`} />
+									<span
+											className={`notification-dot ${notificacion.canal_destino} ${notificacion.tipo || ""}`}
+										/>
 									<span className="notification-item-body">
 										<strong>{notificacion.titulo}</strong>
 										<small>{notificacion.mensaje}</small>
