@@ -69,10 +69,22 @@ describe('ModalNotificacion — Interacciones', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  test('clic en el overlay llama a onClose', () => {
+  test('el aviso no tapa la pantalla ni bloquea lo que hay detras', () => {
     const onClose = jest.fn();
-    render(<ModalNotificacion {...defaultProps} onClose={onClose} />);
-    fireEvent.click(document.querySelector('.modal-notificacion-overlay'));
+    render(
+      <div>
+        <button type="button" onClick={onClose}>Detras del aviso</button>
+        <ModalNotificacion {...defaultProps} onClose={jest.fn()} />
+      </div>,
+    );
+
+    // El aviso llevaba un velo fijo de pantalla completa que, al pasar la
+    // plataforma a tema claro, quedo en blanco opaco: tapaba todo y se comia
+    // los clics durante los tres segundos que dura. Un aviso de confirmacion
+    // no interrumpe el trabajo, asi que ese velo ya no existe.
+    expect(document.querySelector('.modal-notificacion-overlay')).toBeNull();
+
+    fireEvent.click(screen.getByText('Detras del aviso'));
     expect(onClose).toHaveBeenCalled();
   });
 });

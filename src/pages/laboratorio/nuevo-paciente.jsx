@@ -1834,7 +1834,7 @@ const NuevoPaciente = () => {
 											const detalles = formatearPacienteBusqueda(pac);
 											return (
 												<div style={{ width: '100%' }}>
-													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{pac.nombre}</div>
+													<div style={{ fontWeight: 600, color: 'var(--texto)', fontSize: '0.88rem' }}>{pac.nombre}</div>
 													{detalles.length > 0 && (
 														<div style={{ fontSize: '0.75rem', color: 'var(--texto-suave)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
 															{detalles.map((d) => <span key={d}>{d}</span>)}
@@ -1967,7 +1967,7 @@ const NuevoPaciente = () => {
 											const { nombre, detalles } = formatearDoctorBusqueda(doc);
 											return (
 												<div style={{ width: '100%' }}>
-													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{nombre}</div>
+													<div style={{ fontWeight: 600, color: 'var(--texto)', fontSize: '0.88rem' }}>{nombre}</div>
 													{detalles.length > 0 && (
 														<div style={{ fontSize: '0.75rem', color: 'var(--texto-suave)', marginTop: '2px' }}>
 															{detalles.join(' · ')}

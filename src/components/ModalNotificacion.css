@@ -1,23 +1,20 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
-.modal-notificacion-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--superficie-2);
-  backdrop-filter: blur(2px);
-  z-index: 10000;
-  animation: fadeInNotif 0.2s ease;
-}
+/* Aqui vivia `.modal-notificacion-overlay`: un div fijo de pantalla completa
+ * con fondo `--superficie-2`, que al pasar la plataforma a tema claro quedo en
+ * blanco opaco. Pintaba toda la pantalla de blanco y se comia los clics durante
+ * los tres segundos del aviso, asi que guardar una orden dejaba a quien cobra
+ * mirando una pantalla vacia sin poder seguir. Un aviso de confirmacion no
+ * necesita velo: se lee al margen, no interrumpe. */
 
 .modal-notificacion-container {
   position: fixed;
-  top: 20px;
+  /* Debajo del encabezado, que mide 60px: encima le tapaba el menu de perfil y
+     la campana, y esos si se usan mientras el aviso esta en pantalla. */
+  top: 74px;
   right: 20px;
   background: var(--superficie);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(18, 41, 61, 0.14);
   z-index: 10001;
@@ -29,15 +26,6 @@
   gap: 1rem;
   padding: 1.25rem 1.5rem;
   animation: slideInRight 0.3s ease;
-}
-
-@keyframes fadeInNotif {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 @keyframes slideInRight {
@@ -134,7 +122,7 @@
 
 @media (max-width: 768px) {
   .modal-notificacion-container {
-    top: 10px;
+    top: 70px;
     right: 10px;
     left: 10px;
     min-width: auto;
