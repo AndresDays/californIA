@@ -576,3 +576,70 @@
   filter: brightness(0) saturate(100%) invert(70%) sepia(35%) saturate(580%) hue-rotate(157deg) brightness(95%) contrast(89%);
   margin-bottom: 7px;
 }
+
+/* ── Elegir cómo se captura ──────────────────────────────────────────────
+ * Agendar por teléfono es teclear con el paciente esperando en la línea, así
+ * que la opción de un renglón va arriba de todo y no escondida en un menú.
+ */
+.cita-modo {
+	display: flex;
+	gap: 0.35rem;
+	background: var(--superficie-3);
+	border: 1px solid var(--borde);
+	border-radius: 999px;
+	padding: 0.25rem;
+	margin-bottom: 1rem;
+}
+
+.cita-modo-opcion {
+	flex: 1;
+	border: none;
+	background: transparent;
+	color: var(--texto-suave);
+	font-family: inherit;
+	font-size: 0.85rem;
+	font-weight: 600;
+	padding: 0.45rem 0.75rem;
+	border-radius: 999px;
+	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cita-modo-opcion:hover:not(:disabled) {
+	color: var(--texto);
+}
+
+.cita-modo-opcion.activa {
+	background: var(--azul);
+	color: var(--texto-sobre-azul);
+}
+
+.cita-modo-opcion:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+/* El renglón es el campo principal de su modo: se ve más grande que el resto
+   para que quede claro que ahí va todo. */
+.cita-renglon-input {
+	font-size: 1rem;
+}
+
+.cita-renglon-ayuda {
+	margin: 0.4rem 0 0;
+	font-size: 0.78rem;
+	line-height: 1.4;
+	color: var(--texto-tenue);
+}
+
+/* Lo que se entendió, a la vista antes de guardar: es la única forma de notar
+   que el nombre se partió donde no debía. */
+.cita-renglon-resumen {
+	margin: 0.5rem 0 0;
+	padding: 0.5rem 0.7rem;
+	background: var(--superficie-hover);
+	border-left: 3px solid var(--azul);
+	border-radius: var(--radio-chico);
+	font-size: 0.82rem;
+	color: var(--texto);
+}
