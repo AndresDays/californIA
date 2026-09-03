@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
 import cancelarBtn from "../../../assets/cancelarBtn.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
@@ -13,6 +14,8 @@ import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
+import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
+import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import {
 	generarTicketVenta,
@@ -46,6 +49,7 @@ import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
 const EditarSolicitud = () => {
+	const queryClient = useQueryClient();
 	const { user } = useAuth();
 
 	const [empleadoData, setEmpleadoData] = useState(null);
@@ -194,12 +198,15 @@ const EditarSolicitud = () => {
 		}
 	};
 
-	const cargarClientes = async () => {
+	// Los convenios dados de baja no se ofrecen, salvo el de la orden que se
+	// esta editando: si ese faltara de la lista el select se quedaria en blanco
+	// y al guardar la orden perderia su cliente, que es justo lo que no se
+	// quiere de una orden ya cobrada.
+	const cargarClientes = async (idClienteActual) => {
 		try {
-			const { data, error } = await supabase
-				.from("clientes")
-				.select("id_cliente, nombre")
-				.order("nombre");
+			const { data, error } = await consultarClientesSeleccionables({
+				incluirId: idClienteActual,
+			});
 			if (!error) setClientes(data || []);
 		} catch (err) {
 			console.error("Error al cargar clientes:", err);
@@ -277,6 +284,15 @@ const EditarSolicitud = () => {
 		setPago("");
 		cargarAuditoriaOrden(orden.id_venta);
 		cargarHistorialPagosOrden(orden.id_venta);
+		// Solo se vuelve a pedir la lista cuando el convenio de la orden no esta
+		// en ella, que es el caso de uno dado de baja: lo normal es no gastar la
+		// consulta.
+		if (
+			orden.id_cliente != null &&
+			!clientes.some((c) => String(c.id_cliente) === String(orden.id_cliente))
+		) {
+			await cargarClientes(orden.id_cliente);
+		}
 		setClienteSeleccionado(orden.id_cliente?.toString() || "");
 		setIvaPercent(orden.iva ? (orden.iva / orden.subtotal) * 100 : 0);
 		setDescuentoPercent(
@@ -499,6 +515,9 @@ const EditarSolicitud = () => {
 				));
 			}
 			if (errorEstudios) throw errorEstudios;
+			// Editar cambia importes y estudios: lo que lee ventas se refresca solo,
+			// sin obligar a recargar la pagina.
+			invalidarConsultasDeVentas(queryClient);
 			mostrarNotificacion("Orden actualizada exitosamente", "exito");
 			await cargarAuditoriaOrden(ordenSeleccionada.id_venta);
 			await cargarHistorialPagosOrden(ordenSeleccionada.id_venta);
@@ -580,6 +599,8 @@ const EditarSolicitud = () => {
 					detalle: detalle || null,
 				},
 			});
+			// Una orden cancelada sale del reporte y de captura: mismo motivo.
+			invalidarConsultasDeVentas(queryClient);
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
 			setModalCancelacionAbierto(false);
 			setOrdenSeleccionada(null);

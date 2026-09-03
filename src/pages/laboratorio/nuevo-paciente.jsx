@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import PageLayout from "../../components/page-layout.jsx";
@@ -6,6 +7,7 @@ import SearchAutocomplete from "../../components/search-autocomplete.jsx";
 import { useAuth } from "../../context/auth-context";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { supabase } from "../../lib/supabase-client";
+import { invalidarConsultasDeVentas } from "../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	borrarCampoPersistente,
@@ -38,6 +40,7 @@ import {
 	formatearDoctorBusqueda,
 	formatearPacienteBusqueda,
 } from "../../utils/nuevo-paciente-busqueda";
+import { consultarClientesSeleccionables } from "../../utils/clientes-seleccionables";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
@@ -171,6 +174,7 @@ const esEstudioRadiologia = (estudio = {}) => {
 };
 
 const NuevoPaciente = () => {
+	const queryClient = useQueryClient();
 	const { user, signOut } = useAuth();
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navigate = useNavigate();
@@ -876,6 +880,10 @@ const NuevoPaciente = () => {
 				ventasRegistradas.push(await registrarVentaDeParte(parte));
 			}
 
+			// La venta ya está en la base: se le avisa al caché para que el reporte
+			// de ventas, captura y los tableros la tengan sin recargar la página.
+			invalidarConsultasDeVentas(queryClient);
+
 			const folio = ventasRegistradas.map((registro) => registro.folio).join(" · ");
 			if (idCitaPrecargada) {
 				const { error: errorCita } = await supabase
@@ -1022,10 +1030,8 @@ const NuevoPaciente = () => {
 
 	const cargarClientes = async () => {
 		try {
-			const { data, error } = await supabase
-				.from("clientes")
-				.select("id_cliente, nombre")
-				.order("nombre");
+			// Los convenios dados de baja no se ofrecen para una orden nueva.
+			const { data, error } = await consultarClientesSeleccionables();
 
 			if (error) throw error;
 			setClientes(data || []);
@@ -1835,7 +1841,7 @@ const NuevoPaciente = () => {
 											const detalles = formatearPacienteBusqueda(pac);
 											return (
 												<div style={{ width: '100%' }}>
-													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{pac.nombre}</div>
+													<div style={{ fontWeight: 600, color: 'var(--texto)', fontSize: '0.88rem' }}>{pac.nombre}</div>
 													{detalles.length > 0 && (
 														<div style={{ fontSize: '0.75rem', color: 'var(--texto-suave)', marginTop: '2px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
 															{detalles.map((d) => <span key={d}>{d}</span>)}
@@ -1968,7 +1974,7 @@ const NuevoPaciente = () => {
 											const { nombre, detalles } = formatearDoctorBusqueda(doc);
 											return (
 												<div style={{ width: '100%' }}>
-													<div style={{ fontWeight: 600, color: 'white', fontSize: '0.88rem' }}>{nombre}</div>
+													<div style={{ fontWeight: 600, color: 'var(--texto)', fontSize: '0.88rem' }}>{nombre}</div>
 													{detalles.length > 0 && (
 														<div style={{ fontSize: '0.75rem', color: 'var(--texto-suave)', marginTop: '2px' }}>
 															{detalles.join(' · ')}

@@ -60,3 +60,48 @@ describe("notificaciones helpers", () => {
 		});
 	});
 });
+
+// El aviso de una solicitud cancelada se escribe una vez por persona, con su
+// auth_uuid en `usuario_destino`. Es lo que hace que el `read_at` -que en la
+// tabla es una sola columna compartida- termine siendo de cada quien: que
+// administración lo marque leído no le apaga la campana a dirección.
+describe("aviso de solicitud cancelada en la campana", () => {
+	const AVISO = {
+		titulo: "Solicitud cancelada · B0009",
+		tipo: "advertencia",
+		canal_destino: "usuario",
+		rol_destino: null,
+		usuario_destino: "uuid-direccion",
+	};
+
+	test("le llega a la persona a la que va dirigido", () => {
+		expect(
+			notificacionEsParaEmpleado(
+				AVISO,
+				{ rol: "radiologo", auth_uuid: "uuid-direccion" },
+				{ id: "uuid-direccion" },
+			),
+		).toBe(true);
+	});
+
+	test("no le llega a nadie mas, ni siquiera del mismo rol", () => {
+		expect(
+			notificacionEsParaEmpleado(
+				AVISO,
+				{ rol: "admin", auth_uuid: "uuid-admin" },
+				{ id: "uuid-admin" },
+			),
+		).toBe(false);
+	});
+
+	// Recepcion cancela la orden, pero el aviso no es para ella.
+	test("no le llega a quien no es destinatario", () => {
+		expect(
+			notificacionEsParaEmpleado(
+				AVISO,
+				{ rol: "recepcionista", auth_uuid: "uuid-recepcion" },
+				{ id: "uuid-recepcion" },
+			),
+		).toBe(false);
+	});
+});

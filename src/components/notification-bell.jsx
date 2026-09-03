@@ -3,7 +3,11 @@ import { createPortal } from "react-dom";
 import notiIcon from "../assets/notificaciones.png";
 import { supabase } from "../lib/supabase-client";
 import { useSessionStore } from "../store/session-store";
-import { notificacionEsParaEmpleado } from "../utils/notificaciones";
+import {
+	idVentaCanceladaDeAviso,
+	notificacionEsParaEmpleado,
+} from "../utils/notificaciones";
+import ModalDetalleCancelacion from "./modal-detalle-cancelacion";
 
 const formatearTiempo = (fecha) => {
 	if (!fecha) return "";
@@ -24,6 +28,7 @@ const NotificationBell = ({ user, navigate }) => {
 	const [notificaciones, setNotificaciones] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+	const [cancelacionAbierta, setCancelacionAbierta] = useState(null);
 	const empleadoData = useSessionStore((state) => state.empleadoData);
 	const wrapperRef = useRef(null);
 	const menuRef = useRef(null);
@@ -153,6 +158,16 @@ const NotificationBell = ({ user, navigate }) => {
 	const abrirNotificacion = async (notificacion) => {
 		await marcarLeida(notificacion);
 		setOpen(false);
+
+		// Un aviso de cancelación abre el detalle de la orden aquí mismo. Si
+		// llegara sin id de venta no hay detalle que abrir, así que se cae a la
+		// ruta del aviso antes que dejar el clic sin hacer nada.
+		const idCancelada = idVentaCanceladaDeAviso(notificacion);
+		if (idCancelada) {
+			setCancelacionAbierta(idCancelada);
+			return;
+		}
+
 		if (notificacion.action_path) navigate(notificacion.action_path);
 	};
 
@@ -206,7 +221,9 @@ const NotificationBell = ({ user, navigate }) => {
 									key={notificacion.id}
 									className={`notification-item${notificacion.read_at ? "" : " unread"}`}
 									onClick={() => abrirNotificacion(notificacion)}>
-									<span className={`notification-dot ${notificacion.canal_destino}`} />
+									<span
+											className={`notification-dot ${notificacion.canal_destino} ${notificacion.tipo || ""}`}
+										/>
 									<span className="notification-item-body">
 										<strong>{notificacion.titulo}</strong>
 										<small>{notificacion.mensaje}</small>
@@ -218,6 +235,12 @@ const NotificationBell = ({ user, navigate }) => {
 				</div>,
 				document.body,
 			)}
+
+			<ModalDetalleCancelacion
+				idVenta={cancelacionAbierta}
+				isOpen={Boolean(cancelacionAbierta)}
+				onClose={() => setCancelacionAbierta(null)}
+			/>
 		</div>
 	);
 };

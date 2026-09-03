@@ -10,6 +10,7 @@ import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
+import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
 	construirEstudioCatalogoUnificado,
 	filtrarEstudiosCatalogo,
@@ -126,10 +127,8 @@ const Cotizacion = () => {
 
 	const cargarClientes = async () => {
 		try {
-			const { data, error } = await supabase
-				.from("clientes")
-				.select("id_cliente, nombre")
-				.order("nombre");
+			// Cotizar es trabajo nuevo: los convenios dados de baja no van.
+			const { data, error } = await consultarClientesSeleccionables();
 			if (error) throw error;
 			setClientes(data || []);
 		} catch (error) {

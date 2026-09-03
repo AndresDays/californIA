@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
+import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { aplicarEstadoRadiologiaACaptura } from '../utils/captura-row-status';
 import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
@@ -122,7 +123,9 @@ export const useCatalogosCaptura = () =>
 		queryKey: ['catalogos-captura'],
 		queryFn: async () => {
 			const [clientesResp, areasResp] = await Promise.all([
-				supabase.from('clientes').select('id_cliente, nombre').order('nombre'),
+				// Igual que en reporte de ventas: el filtro ofrece los vigentes y la
+				// pantalla repone los dados de baja que sigan en lo cargado.
+				consultarClientesSeleccionables(),
 				supabase.from('areas').select('id_area, nombre').order('nombre'),
 			]);
 			return {

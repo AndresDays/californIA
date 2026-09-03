@@ -1,0 +1,254 @@
+/* Detalle de una solicitud cancelada.
+ *
+ * Este sí es un modal de verdad -se abre a propósito, se lee y se cierra-, así
+ * que lleva velo oscuro por encima de la pantalla. No confundir con el aviso de
+ * "guardado correctamente", que es un mensaje al margen y no debe tapar nada.
+ */
+
+.cancelacion-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(18, 41, 61, 0.45);
+	backdrop-filter: blur(2px);
+	z-index: 10020;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1.5rem;
+	animation: cancelacionAparece 0.15s ease;
+}
+
+.cancelacion-card {
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: var(--radio);
+	box-shadow: var(--sombra-alta);
+	width: min(680px, 100%);
+	/* El detalle puede traer veinte estudios: la tarjeta se queda dentro de la
+	   pantalla y desplaza por dentro en vez de crecer fuera de ella. */
+	max-height: min(85vh, 900px);
+	display: flex;
+	flex-direction: column;
+	animation: cancelacionSube 0.18s ease;
+}
+
+@keyframes cancelacionAparece {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes cancelacionSube {
+	from { opacity: 0; transform: translateY(8px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.cancelacion-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.15rem 1.35rem;
+	border-bottom: 1px solid var(--borde);
+}
+
+.cancelacion-header h2 {
+	margin: 0.35rem 0 0;
+	font-size: 1.05rem;
+	color: var(--texto);
+}
+
+/* El naranja del proyecto: reservado para lo que tiene que saltar a la vista, y
+   una cancelación lo es. */
+.cancelacion-etiqueta {
+	display: inline-block;
+	background: var(--naranja-palido);
+	color: var(--naranja);
+	border: 1px solid var(--naranja);
+	border-radius: 999px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	padding: 0.15rem 0.6rem;
+}
+
+.cancelacion-cerrar {
+	background: transparent;
+	border: none;
+	color: var(--texto-suave);
+	font-size: 1.1rem;
+	cursor: pointer;
+	border-radius: var(--radio-chico);
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cancelacion-cerrar:hover {
+	background: var(--superficie-hover);
+	color: var(--texto);
+}
+
+.cancelacion-body {
+	padding: 1.1rem 1.35rem 1.35rem;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+}
+
+.cancelacion-bloque h3 {
+	margin: 0 0 0.6rem;
+	font-size: 0.78rem;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--texto-tenue);
+}
+
+.cancelacion-bloque dl {
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 0.65rem 1.25rem;
+}
+
+.cancelacion-bloque dl div {
+	min-width: 0;
+}
+
+.cancelacion-bloque dt {
+	font-size: 0.75rem;
+	color: var(--texto-tenue);
+	margin-bottom: 0.1rem;
+}
+
+.cancelacion-bloque dd {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--texto);
+	overflow-wrap: anywhere;
+}
+
+/* El motivo es el dato por el que se abre este modal: va destacado. */
+.cancelacion-bloque-motivo {
+	background: var(--naranja-palido);
+	border: 1px solid var(--borde);
+	border-left: 3px solid var(--naranja);
+	border-radius: var(--radio-chico);
+	padding: 0.85rem 1rem;
+}
+
+.cancelacion-nota {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--texto);
+	background: var(--superficie-3);
+	border: 1px solid var(--borde);
+	border-radius: var(--radio-chico);
+	padding: 0.6rem 0.85rem;
+}
+
+.cancelacion-nota-dinero {
+	background: var(--peligro-palido);
+	border-color: var(--peligro);
+	color: var(--peligro);
+	font-weight: 600;
+}
+
+.cancelacion-aviso {
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--texto-suave);
+}
+
+.cancelacion-tabla-envoltura {
+	overflow-x: auto;
+	border: 1px solid var(--borde);
+	border-radius: var(--radio-chico);
+}
+
+.cancelacion-tabla {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.85rem;
+}
+
+.cancelacion-tabla th {
+	background: var(--superficie-3);
+	color: var(--texto-suave);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	text-align: left;
+	padding: 0.55rem 0.75rem;
+	border-bottom: 1px solid var(--borde);
+	white-space: nowrap;
+}
+
+.cancelacion-tabla td {
+	padding: 0.55rem 0.75rem;
+	color: var(--texto);
+	border-bottom: 1px solid var(--borde);
+}
+
+.cancelacion-tabla tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.cancelacion-derecha {
+	text-align: right;
+}
+
+.cancelacion-totales {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 0.75rem;
+	background: var(--superficie-3);
+	border: 1px solid var(--borde);
+	border-radius: var(--radio-chico);
+	padding: 0.85rem 1rem;
+}
+
+.cancelacion-totales div {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
+.cancelacion-totales span {
+	font-size: 0.72rem;
+	color: var(--texto-tenue);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.cancelacion-totales strong {
+	font-size: 0.95rem;
+	color: var(--texto);
+}
+
+.cancelacion-observaciones {
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--texto);
+	white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+	.cancelacion-overlay {
+		padding: 0;
+		align-items: stretch;
+	}
+
+	.cancelacion-card {
+		max-height: 100vh;
+		border-radius: 0;
+		border: none;
+	}
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase-client';
+import { consultarClientesSeleccionables } from '../../../utils/clientes-seleccionables';
 import './modal-agregar-precio.css';
 
 const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) => {
@@ -34,13 +35,11 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
 
   const cargarEmpresas = async () => {
     try {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('id_cliente, nombre')
-        .order('nombre');
+      // Un precio nuevo se pacta con un convenio vigente, no con uno de baja.
+      const { data, error } = await consultarClientesSeleccionables();
 
       if (error) throw error;
-      
+
       setEmpresas(data || []);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
