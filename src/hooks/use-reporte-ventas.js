@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
+import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { esErrorColumnaSchemaCache } from '../utils/supabase-errors';
 import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
@@ -151,7 +152,10 @@ export const useCatalogosReporte = () =>
       const [sucursalesR, vendedoresR, clientesR, doctoresR, areasR, empresasR] = await Promise.all([
         supabase.from('sucursales').select('id_sucursal, nombre').order('nombre'),
         supabase.from('empleados').select('id_empleado, nombre').order('nombre'),
-        supabase.from('clientes').select('id_cliente, nombre').order('nombre'),
+        // Solo los convenios vigentes: los dados de baja llenaban el filtro de
+        // nombres que ya no seleccionan nada. Los que sigan apareciendo en las
+        // ventas cargadas los repone `clientesParaFiltro` en la pantalla.
+        consultarClientesSeleccionables(),
         supabase.from('doctores').select('*').order('nombre'),
         supabase.from('areas').select('id_area, nombre').order('nombre'),
         supabase.from('empresas').select('id_empresa, nombre').order('nombre'),

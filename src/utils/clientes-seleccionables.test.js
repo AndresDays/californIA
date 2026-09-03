@@ -27,7 +27,10 @@ jest.mock("../lib/supabase-client", () => {
 	};
 });
 
-import { consultarClientesSeleccionables } from "./clientes-seleccionables";
+import {
+	clientesParaFiltro,
+	consultarClientesSeleccionables,
+} from "./clientes-seleccionables";
 
 const ACTIVOS = [{ id_cliente: 3, nombre: "IMSS" }];
 const TODOS = [...ACTIVOS, { id_cliente: 9, nombre: "RCU" }];
@@ -110,5 +113,61 @@ describe("consultarClientesSeleccionables", () => {
 		expect(error).toBe(fallo);
 		expect(data).toEqual([]);
 		expect(mockLlamadas).toHaveLength(1);
+	});
+});
+
+// El filtro de un reporte no es un selector de captura: ahí no basta con
+// esconder los convenios dados de baja, porque entonces sus ventas se verían en
+// la tabla y no habría manera de filtrarlas -que es justo lo que se quiso evitar
+// al no borrarlos-.
+describe("clientesParaFiltro", () => {
+	const ACTIVO = { id_cliente: 3, nombre: "IMSS" };
+	const DE_BAJA = { id_cliente: 9, nombre: "RCU" };
+
+	test("sin ventas ofrece sólo los activos", () => {
+		expect(clientesParaFiltro([ACTIVO], [])).toEqual([ACTIVO]);
+	});
+
+	test("repone el convenio dado de baja que aparece en las ventas", () => {
+		const lista = clientesParaFiltro([ACTIVO], [
+			{ id_cliente: 9, clientes: DE_BAJA },
+		]);
+		expect(lista).toHaveLength(2);
+		expect(lista.map((c) => c.nombre)).toEqual(["IMSS", "RCU"]);
+	});
+
+	test("no duplica al que ya venía activo", () => {
+		const lista = clientesParaFiltro([ACTIVO], [
+			{ id_cliente: 3, clientes: ACTIVO },
+			{ id_cliente: 3, clientes: ACTIVO },
+		]);
+		expect(lista).toHaveLength(1);
+	});
+
+	// Una venta de mostrador no trae convenio: no agrega nada al filtro.
+	test("las ventas sin cliente no ensucian la lista", () => {
+		expect(
+			clientesParaFiltro([ACTIVO], [{ id_cliente: null, clientes: null }, {}]),
+		).toEqual([ACTIVO]);
+	});
+
+	// Sin nombre no hay texto para la opción: meterla dejaría un renglón vacío.
+	test("un cliente sin nombre se omite", () => {
+		expect(
+			clientesParaFiltro([ACTIVO], [{ id_cliente: 9, clientes: { id_cliente: 9 } }]),
+		).toEqual([ACTIVO]);
+	});
+
+	test("la lista queda ordenada por nombre", () => {
+		const lista = clientesParaFiltro(
+			[{ id_cliente: 1, nombre: "Zeta" }, { id_cliente: 2, nombre: "Beta" }],
+			[{ id_cliente: 9, clientes: { id_cliente: 9, nombre: "Alfa" } }],
+		);
+		expect(lista.map((c) => c.nombre)).toEqual(["Alfa", "Beta", "Zeta"]);
+	});
+
+	test("no truena con argumentos vacíos", () => {
+		expect(clientesParaFiltro()).toEqual([]);
+		expect(clientesParaFiltro(undefined, undefined)).toEqual([]);
 	});
 });
