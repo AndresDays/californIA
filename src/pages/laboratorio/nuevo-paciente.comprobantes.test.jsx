@@ -98,6 +98,7 @@ jest.mock("../../lib/supabase-client", () => {
 });
 
 import NuevoPaciente from "./nuevo-paciente";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 import { prepararComprobantesVenta } from "../../utils/imprimir-comprobantes-venta";
 
 const CLAVE = "california:borrador:nuevo-paciente:comprobantes";
@@ -127,7 +128,7 @@ describe("los comprobantes sobreviven a que el navegador descarte la pantalla", 
 		prepararComprobantesVenta.mockResolvedValue({ comprobantes: COMPROBANTES, error: "" });
 
 		await act(async () => {
-			render(<NuevoPaciente />);
+			render(conQueryClient(<NuevoPaciente />));
 		});
 
 		expect(prepararComprobantesVenta).toHaveBeenCalledWith(datos);
@@ -140,7 +141,7 @@ describe("los comprobantes sobreviven a que el navegador descarte la pantalla", 
 
 	test("sin venta pendiente no se arma ningun comprobante", async () => {
 		await act(async () => {
-			render(<NuevoPaciente />);
+			render(conQueryClient(<NuevoPaciente />));
 		});
 
 		expect(prepararComprobantesVenta).not.toHaveBeenCalled();
@@ -157,7 +158,7 @@ describe("los comprobantes sobreviven a que el navegador descarte la pantalla", 
 		prepararComprobantesVenta.mockResolvedValue({ comprobantes: [], error: "" });
 
 		await act(async () => {
-			render(<NuevoPaciente />);
+			render(conQueryClient(<NuevoPaciente />));
 		});
 
 		await waitFor(() => expect(sessionStorage.getItem(CLAVE)).toBeNull());

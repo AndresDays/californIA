@@ -80,6 +80,7 @@ jest.mock("../../lib/supabase-client", () => {
 });
 
 import NuevoPaciente from "./nuevo-paciente";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
 
@@ -114,7 +115,7 @@ const buscarYAgregar = async (buscarEstudio) => {
 // todo lo que se prueba aquí.
 const capturarBiometria = async () => {
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	await act(async () => {
@@ -213,7 +214,7 @@ test("un borrador guardado sin cantidad se retoma como una pieza", async () => {
 	);
 
 	await act(async () => {
-		render(<NuevoPaciente />);
+		render(conQueryClient(<NuevoPaciente />));
 	});
 
 	expect(controlCantidad("BH")).toHaveTextContent("1");

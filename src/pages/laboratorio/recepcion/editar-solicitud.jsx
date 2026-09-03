@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
 import cancelarBtn from "../../../assets/cancelarBtn.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
@@ -14,6 +15,7 @@ import PageLayout from "../../../components/page-layout.jsx";
 import { useAuth } from "../../../context/auth-context";
 import { supabase } from "../../../lib/supabase-client";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
+import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import {
 	generarTicketVenta,
@@ -47,6 +49,7 @@ import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
 const EditarSolicitud = () => {
+	const queryClient = useQueryClient();
 	const { user } = useAuth();
 
 	const [empleadoData, setEmpleadoData] = useState(null);
@@ -512,6 +515,9 @@ const EditarSolicitud = () => {
 				));
 			}
 			if (errorEstudios) throw errorEstudios;
+			// Editar cambia importes y estudios: lo que lee ventas se refresca solo,
+			// sin obligar a recargar la pagina.
+			invalidarConsultasDeVentas(queryClient);
 			mostrarNotificacion("Orden actualizada exitosamente", "exito");
 			await cargarAuditoriaOrden(ordenSeleccionada.id_venta);
 			await cargarHistorialPagosOrden(ordenSeleccionada.id_venta);
@@ -593,6 +599,8 @@ const EditarSolicitud = () => {
 					detalle: detalle || null,
 				},
 			});
+			// Una orden cancelada sale del reporte y de captura: mismo motivo.
+			invalidarConsultasDeVentas(queryClient);
 			mostrarNotificacion("Orden cancelada correctamente", "exito");
 			setModalCancelacionAbierto(false);
 			setOrdenSeleccionada(null);
