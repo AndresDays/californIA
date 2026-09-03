@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { buscarPorNombre, idPorNombre } from '../utils/catalogo-por-nombre';
+import { interpretarRenglonCita, resumirRenglonCita } from '../utils/cita-renglon';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { useAuth } from '../context/auth-context';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
@@ -19,6 +20,28 @@ import { cargarReglasConvenio } from '../utils/convenios-facturacion';
 import { cargarPreciosCliente, resolverClavesConPrecio } from '../utils/precios-cliente';
 
 const DEFAULT_PRECIO = 150;
+
+// La forma de capturar se recuerda entre citas: quien agenda por telefono lo
+// hace todo el dia y no tiene por que elegir el modo cada vez. Si el navegador
+// no deja leer -modo privado, permisos-, se arranca en el formulario completo,
+// que es lo que habia antes.
+const PREFERENCIA_RENGLON = 'california:cita:modo-renglon';
+
+const leerPreferenciaRenglon = () => {
+  try {
+    return localStorage.getItem(PREFERENCIA_RENGLON) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const guardarPreferenciaRenglon = (activo) => {
+  try {
+    localStorage.setItem(PREFERENCIA_RENGLON, activo ? '1' : '0');
+  } catch {
+    // Que no se pueda recordar la preferencia no impide agendar.
+  }
+};
 
 const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInicial }) => {
   const { empleadoData } = useAuth();
@@ -53,6 +76,12 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   // se ofrecen y su tarifario acota la búsqueda.
   const [reglasConvenio, setReglasConvenio] = useState([]);
   const [preciosCliente, setPreciosCliente] = useState(null);
+
+  // Un solo renglon para toda la cita: nombre, telefono y estudio escritos de
+  // corrido. El formulario completo sigue ahi para quien necesite empresa,
+  // convenio o elegir estudios del catalogo con su precio.
+  const [modoRenglon, setModoRenglon] = useState(leerPreferenciaRenglon);
+  const [renglon, setRenglon] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -260,7 +289,11 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     if (!empleadoData?.id_sucursal) return setError('El usuario no tiene una sucursal asignada. Solicite la asignación a un administrador.'), false;
     // El telefono se revisa solo si se capturo: vacio esta bien, a medias no,
     // porque despues no se puede llamar ni mandar el recordatorio.
-    if (formData.telefono.trim() && !esTelefono10Digitos(formData.telefono)) {
+    // En el modo de un renglon el telefono no se teclea en su campo: lo saca el
+    // interpretador, que solo devuelve diez digitos o nada. Revisar aqui lo que
+    // quedo escrito en el formulario completo rechazaria la cita por un dato
+    // que no se va a guardar.
+    if (!modoRenglon && formData.telefono.trim() && !esTelefono10Digitos(formData.telefono)) {
       return setError('El teléfono debe tener 10 dígitos numéricos'), false;
     }
     return true;
@@ -283,6 +316,24 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     return `${fecha}T${hora}:00-06:00`;
   };
 
+  // Lo que se va a guardar, venga del renglon o del formulario. Tenerlo en un
+  // solo lugar evita que los dos modos se separen y guarden cosas distintas.
+  const datosDeLaCita = () => {
+    if (!modoRenglon) {
+      return {
+        nombre: formData.nombreCompleto.trim(),
+        telefono: formData.telefono.trim(),
+        estudios: estudiosSeleccionados.map((e) => e.descripcion).join(', '),
+        monto: calcularTotal(),
+      };
+    }
+    const { nombre, telefono, estudios } = interpretarRenglonCita(renglon);
+    // El renglon no lleva precio: el estudio se escribe a mano y puede no estar
+    // en el catalogo. Se cotiza al pasar la cita a estudio, que es donde se
+    // conoce el convenio.
+    return { nombre, telefono, estudios, monto: 0 };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validarFormulario()) return;
@@ -294,20 +345,22 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       // El paciente se busca por telefono, asi que sin telefono no hay a quien
       // enlazar: consultar con la cadena vacia engancharia la cita al primer
       // registro que tenga el telefono en blanco.
+      const cita = datosDeLaCita();
+
       let idPaciente = null;
-      if (formData.telefono.trim()) {
+      if (cita.telefono) {
         const { data: pacienteExistente } = await supabase
           .from('pacientes')
           .select('id_paciente')
-          .eq('telefono', formData.telefono.trim())
+          .eq('telefono', cita.telefono)
           .maybeSingle();
         idPaciente = pacienteExistente?.id_paciente ?? null;
       }
 
       const fechaHora = fechaHoraDeLaCita();
 
-      const estudiosTexto = estudiosSeleccionados.map(e => e.descripcion).join(', ');
-      const monto = calcularTotal();
+      const estudiosTexto = cita.estudios;
+      const monto = cita.monto;
 
       const payload = {
         id_paciente: idPaciente,
@@ -320,8 +373,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
         id_empresa: idPorNombre(empresas, empresaSeleccionada, 'id_empresa'),
         id_tipo_estudio: idPorNombre(tiposEstudio, tipoEstudioSeleccionado, 'id_tipo_estudio'),
 
-        nombre_paciente: formData.nombreCompleto.trim() || null,
-        telefono_paciente: formData.telefono.trim() || null,
+        nombre_paciente: cita.nombre || null,
+        telefono_paciente: cita.telefono || null,
 
         // La columna de texto es lo unico que queda de lo que pidio el paciente
         // cuando el estudio no esta en el catalogo, asi que se conserva lo
@@ -344,6 +397,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       onCitaCreada?.(nuevaCita);
 
       setFormData({ nombreCompleto: '', telefono: '', fecha: '', hora: '' });
+      setRenglon('');
       setClienteSeleccionado('');
       setEmpresaSeleccionada('');
       setTipoEstudioSeleccionado('');
@@ -395,6 +449,27 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
         </div>
 
         <form onSubmit={handleSubmit} className="cita-form">
+          {/* Agendar por telefono es teclear con el paciente en la linea: un
+              renglon en vez de seis campos. El formulario completo sigue a un
+              clic para cuando haga falta empresa, convenio o el precio del
+              catalogo. La eleccion se recuerda. */}
+          <div className="cita-modo" role="group" aria-label="Forma de capturar la cita">
+            <button
+              type="button"
+              className={`cita-modo-opcion${modoRenglon ? ' activa' : ''}`}
+              onClick={() => { setModoRenglon(true); guardarPreferenciaRenglon(true); }}
+              disabled={loading}>
+              Un renglón
+            </button>
+            <button
+              type="button"
+              className={`cita-modo-opcion${modoRenglon ? '' : ' activa'}`}
+              onClick={() => { setModoRenglon(false); guardarPreferenciaRenglon(false); }}
+              disabled={loading}>
+              Formulario completo
+            </button>
+          </div>
+
           {error && (
             <div className="error-message">
               <span>⚠️</span>
@@ -402,15 +477,43 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
             </div>
           )}
 
+          {modoRenglon ? (
+            <div className="form-group-cita">
+              <label className="form-label-cita" htmlFor="cita-renglon">
+                Paciente y estudio
+              </label>
+              <input
+                id="cita-renglon"
+                type="text"
+                value={renglon}
+                onChange={(e) => setRenglon(e.target.value)}
+                className="form-input-cita cita-renglon-input"
+                placeholder="Laura Mendez Rios 4771234567, biometria hematica"
+                disabled={loading}
+                autoFocus
+              />
+              <p className="cita-renglon-ayuda">
+                Diez dígitos seguidos son el teléfono. Lo que va antes de la
+                primera coma, guion o diagonal es el nombre; lo de después, el
+                estudio.
+              </p>
+              {/* Lo que entendio el renglon, a la vista antes de guardar: es la
+                  unica forma de notar que el nombre se partio donde no debia. */}
+              {resumirRenglonCita(renglon) && (
+                <p className="cita-renglon-resumen">{resumirRenglonCita(renglon)}</p>
+              )}
+            </div>
+          ) : (
+          <>
           <div className="form-group-cita">
-            <label className="form-label-cita">Nombre Completo</label>
-            <input type="text" name="nombreCompleto" value={formData.nombreCompleto} onChange={handleChange}
+            <label className="form-label-cita" htmlFor="cita-nombre">Nombre Completo</label>
+            <input id="cita-nombre" type="text" name="nombreCompleto" value={formData.nombreCompleto} onChange={handleChange}
               className="form-input-cita" disabled={loading} />
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Teléfono</label>
-            <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
+            <label className="form-label-cita" htmlFor="cita-telefono">Teléfono</label>
+            <input id="cita-telefono" type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
               className="form-input-cita" disabled={loading} maxLength="10" inputMode="numeric" />
           </div>
 
@@ -419,8 +522,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
               que pasar por empresa para llegar al cliente ni por el cliente
               para llegar al tipo: agendar por telefono es escribir. */}
           <div className="form-group-cita">
-            <label className="form-label-cita">Empresa</label>
-            <input type="text" list="cita-empresas" value={empresaSeleccionada}
+            <label className="form-label-cita" htmlFor="cita-empresa">Empresa</label>
+            <input id="cita-empresa" type="text" list="cita-empresas" value={empresaSeleccionada}
               onChange={(e) => setEmpresaSeleccionada(e.target.value)}
               className="form-input-cita" disabled={loading} placeholder="CDC, CDI..." />
             <datalist id="cita-empresas">
@@ -429,8 +532,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Cliente</label>
-            <input type="text" list="cita-clientes" value={clienteSeleccionado}
+            <label className="form-label-cita" htmlFor="cita-cliente">Cliente</label>
+            <input id="cita-cliente" type="text" list="cita-clientes" value={clienteSeleccionado}
               onChange={(e) => setClienteSeleccionado(e.target.value)}
               className="form-input-cita" disabled={loading} placeholder="Particular, convenio..." />
             <datalist id="cita-clientes">
@@ -439,8 +542,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Tipo Estudio</label>
-            <input type="text" list="cita-tipos" value={tipoEstudioSeleccionado}
+            <label className="form-label-cita" htmlFor="cita-tipo">Tipo Estudio</label>
+            <input id="cita-tipo" type="text" list="cita-tipos" value={tipoEstudioSeleccionado}
               onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
               className="form-input-cita" disabled={loading} placeholder="Laboratorio, tomografía..." />
             <datalist id="cita-tipos">
@@ -449,10 +552,11 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           <div className="form-group-cita">
-            <label className="form-label-cita">Estudios</label>
+            <label className="form-label-cita" htmlFor="cita-buscar-estudio">Estudios</label>
 
             <div className="search-group-cita">
               <input
+                id="cita-buscar-estudio"
                 type="text"
                 value={buscarEstudio}
                 onChange={(e) => {
@@ -502,16 +606,22 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
             )}
           </div>
 
+          </>
+          )}
+
+          {/* La fecha y la hora quedan en los dos modos: son el hueco de la
+              agenda, y `citas.fecha_estudio` no admite nulo. Abierto desde el
+              calendario vienen ya puestas del hueco donde se hizo clic. */}
           <div className="form-row">
             <div className="form-group-cita">
-              <label className="form-label-cita">Fecha</label>
-              <input type="date" name="fecha" value={formData.fecha} onChange={handleChange}
+              <label className="form-label-cita" htmlFor="cita-fecha">Fecha</label>
+              <input id="cita-fecha" type="date" name="fecha" value={formData.fecha} onChange={handleChange}
                 className="form-input-cita" disabled={loading} />
             </div>
 
             <div className="form-group-cita">
-              <label className="form-label-cita">Hora</label>
-              <input type="time" name="hora" value={formData.hora} onChange={handleChange}
+              <label className="form-label-cita" htmlFor="cita-hora">Hora</label>
+              <input id="cita-hora" type="time" name="hora" value={formData.hora} onChange={handleChange}
                 className="form-input-cita" disabled={loading} />
             </div>
           </div>
