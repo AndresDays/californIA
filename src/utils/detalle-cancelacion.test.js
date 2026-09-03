@@ -265,11 +265,65 @@ describe("idVentaCanceladaDeAviso", () => {
 	// `venta` a secas lo usan los avisos de captura y de venta nueva: esos
 	// siguen navegando a su ruta, no abren el detalle de una cancelación.
 	test.each(["venta", "estudio_venta", "estudio_radiologia", null, undefined])(
-		"la entidad %s no abre el detalle de cancelación",
+		"la entidad %s, sin título de cancelación, no abre el detalle",
 		(entidad) => {
-			expect(idVentaCanceladaDeAviso({ entidad_tipo: entidad, id_venta: 44 })).toBeNull();
+			expect(
+				idVentaCanceladaDeAviso({
+					entidad_tipo: entidad,
+					titulo: "Resultados capturados · B0009",
+					id_venta: 44,
+				}),
+			).toBeNull();
 		},
 	);
+
+	// Los avisos emitidos antes de que existiera la entidad se guardaron como
+	// `venta`, y son los que la gente tiene a la vista en la campana. Se
+	// reconocen por el título, que lo escribe el disparador. Sin este respaldo
+	// esos avisos -y todos los de una base donde aún no se aplicó la migración-
+	// seguirían llevando a Editar solicitud, que es donde la orden cancelada no
+	// aparece.
+	test("un aviso viejo, guardado como venta, se reconoce por el título", () => {
+		expect(
+			idVentaCanceladaDeAviso({
+				entidad_tipo: "venta",
+				titulo: "Solicitud cancelada · B0009",
+				id_venta: 44,
+			}),
+		).toBe(44);
+	});
+
+	test.each([
+		["sin entidad", undefined],
+		["con entidad nula", null],
+	])("el título basta %s", (_caso, entidad) => {
+		expect(
+			idVentaCanceladaDeAviso({
+				entidad_tipo: entidad,
+				titulo: "Solicitud cancelada · B0009",
+				entidad_id: 7,
+			}),
+		).toBe(7);
+	});
+
+	// El título se compara sin acentos ni mayúsculas: no depende de cómo lo
+	// escriba una versión futura del disparador.
+	test("el título se reconoce sin importar acentos ni mayúsculas", () => {
+		expect(
+			idVentaCanceladaDeAviso({
+				titulo: "  SOLICITUD CANCELÁDA · B0009",
+				id_venta: 44,
+			}),
+		).toBe(44);
+	});
+
+	// Un aviso de cancelación sin venta a la que apuntar no tiene detalle que
+	// abrir: mejor que siga navegando a que el clic no haga nada.
+	test("sin venta a la que apuntar no abre el detalle aunque el título coincida", () => {
+		expect(
+			idVentaCanceladaDeAviso({ titulo: "Solicitud cancelada · B0009" }),
+		).toBeNull();
+	});
 
 	test("un aviso de cancelación sin id no abre nada", () => {
 		expect(

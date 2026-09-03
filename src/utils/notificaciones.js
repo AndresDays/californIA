@@ -85,8 +85,28 @@ export const notificacionEsParaEmpleado = (
 // aviso escrito a mano podría traer sólo uno.
 export const ENTIDAD_VENTA_CANCELADA = "venta_cancelada";
 
+// Los avisos emitidos antes de que existiera esa entidad se guardaron como
+// `venta`, igual que los de captura y venta nueva, así que por el tipo no se
+// distinguen. Se reconocen por el título, que lo escribe el disparador y
+// siempre empieza igual. Esto también hace que la campana funcione en una base
+// donde todavía no se aplicó la migración que cambia la entidad: sin este
+// respaldo, el aviso seguiría llevando a Editar solicitud hasta correrla.
+const TITULO_CANCELACION = "solicitud cancelada";
+
+const esTituloDeCancelacion = (titulo) =>
+	String(titulo || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase()
+		.startsWith(TITULO_CANCELACION);
+
 export const idVentaCanceladaDeAviso = (notificacion = {}) => {
-	if (notificacion?.entidad_tipo !== ENTIDAD_VENTA_CANCELADA) return null;
+	const esCancelacion =
+		notificacion?.entidad_tipo === ENTIDAD_VENTA_CANCELADA ||
+		esTituloDeCancelacion(notificacion?.titulo);
+	if (!esCancelacion) return null;
+
 	const id = Number(notificacion.id_venta ?? notificacion.entidad_id);
 	return Number.isSafeInteger(id) && id > 0 ? id : null;
 };
