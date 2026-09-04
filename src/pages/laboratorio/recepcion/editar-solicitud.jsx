@@ -837,6 +837,11 @@ const EditarSolicitud = () => {
 	const imprimirTicketOrden = async (orden, e) => {
 		e.stopPropagation();
 		if (!orden) return;
+		// La pestaña se abre aquí, con el clic, y hasta después se le manda el
+		// PDF: armarlo lleva sus consultas, y para cuando terminaban el navegador
+		// ya no reconocía el clic, bloqueaba la pestaña y el ticket terminaba
+		// descargándose en lugar de abrirse para imprimir.
+		const ventanaTicket = window.open("", "_blank");
 		try {
 			let nombreDoctor = "";
 			if (orden.id_doctor) {
@@ -896,9 +901,13 @@ const EditarSolicitud = () => {
 				cambio: 0,
 				formaPago: orden.forma_pago || "efectivo",
 				vendedor,
+				ventana: ventanaTicket,
 			});
-			await imprimirEtiquetasOrden(orden);
+			// Las etiquetas no salen de aquí: tienen su propio botón, y sacarlas
+			// junto con el ticket obligaba a abrir una segunda pestaña que el
+			// navegador bloqueaba, así que también terminaban descargadas.
 		} catch (err) {
+			ventanaTicket?.close?.();
 			console.error("Error al generar ticket:", err);
 			mostrarNotificacion("Error al generar el ticket", "error");
 		}

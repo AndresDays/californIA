@@ -1099,6 +1099,49 @@
 	color: var(--naranja);
 }
 
+/* ── El corte del período ────────────────────────────────────────────────
+ * Mismos renglones que el corte de caja. Va arriba de los filtros porque es lo
+ * primero que se mira al cerrar el turno.
+ */
+.rv-corte {
+	margin-bottom: 0.85rem;
+}
+
+/* Efectivo, Bancos, Por cobrar: encabezados dentro de la tarjeta. Sin ellos los
+   nueve renglones se leen como una lista plana y no se ve qué suma con qué. */
+.rv-corte-grupo {
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--texto-tenue);
+	padding: 0.75rem 0 0.15rem;
+}
+
+.rv-corte-grupo:first-of-type {
+	padding-top: 0.5rem;
+}
+
+/* El renglón que se firma en caja: separado del resto y en azul de marca. */
+.rv-summary-row.rv-corte-gran-total {
+	border-top: 2px solid var(--borde-fuerte);
+	margin-top: 0.5rem;
+	padding-top: 0.8rem;
+}
+
+.rv-summary-row.rv-corte-gran-total strong {
+	color: var(--texto-azul);
+	font-size: 1.1rem;
+	font-weight: 700;
+}
+
+.rv-corte-nota {
+	margin: 0.7rem 0 0;
+	font-size: 0.75rem;
+	line-height: 1.4;
+	color: var(--texto-tenue);
+}
+
 .rv-collapse-btn {
 	display: flex;
 	align-items: center;
