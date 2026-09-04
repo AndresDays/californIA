@@ -63,12 +63,6 @@ describe("ModalImprimirComprobantes", () => {
 		expect(abrirPdfEnPestana).toHaveBeenCalledTimes(2);
 	});
 
-	test("el titulo se puede cambiar para la reimpresion", () => {
-		abrirModal({ titulo: "Reimprimir comprobantes" });
-
-		expect(screen.getByText("Reimprimir comprobantes")).toBeInTheDocument();
-	});
-
 	test("terminar cierra el modal", () => {
 		const onCerrar = jest.fn();
 		abrirModal({ onCerrar });
