@@ -5,13 +5,20 @@ import "./modal-imprimir-comprobantes.css";
 // dejaba pasar nada más la primera: salía el ticket y las etiquetas se perdían
 // sin decir nada. Aquí se abren desde el clic de quien cobra, que es lo que el
 // navegador sí permite, y de paso se puede reimprimir sin volver a capturar.
-const ModalImprimirComprobantes = ({ comprobantes = [], folio, onCerrar }) => {
+// El título se puede cambiar porque el modal también sirve para reimprimir una
+// orden ya registrada, no sólo para la venta recién guardada.
+const ModalImprimirComprobantes = ({
+	comprobantes = [],
+	folio,
+	titulo = "Venta registrada",
+	onCerrar,
+}) => {
 	if (comprobantes.length === 0) return null;
 
 	return (
 		<div className="imp-overlay" role="dialog" aria-modal="true" aria-label="Imprimir comprobantes">
 			<div className="imp-modal">
-				<h2 className="imp-titulo">Venta registrada</h2>
+				<h2 className="imp-titulo">{titulo}</h2>
 				<p className="imp-folio">Folio: {folio}</p>
 				<p className="imp-ayuda">Imprime lo que necesites; puedes repetir la impresión.</p>
 

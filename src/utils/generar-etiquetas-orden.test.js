@@ -15,7 +15,10 @@ jest.mock('jsbarcode', () => jest.fn());
 jest.mock('./abrir-pdf-en-pestana', () => ({ abrirPdfEnPestana: jest.fn() }));
 
 import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
-import { generarEtiquetasOrden } from './generar-etiquetas-orden';
+import {
+	crearDocumentoEtiquetasOrden,
+	generarEtiquetasOrden,
+} from './generar-etiquetas-orden';
 
 const laboratorio = {
 	folio: 'C0001',
@@ -81,4 +84,29 @@ test('sin etiquetas que generar cierra la pestaña y avisa', () => {
 	expect(resultado.generado).toBe(false);
 	expect(ventana.close).toHaveBeenCalled();
 	expect(abrirPdfEnPestana).not.toHaveBeenCalled();
+});
+
+// La reimpresión desde editar orden arma el documento y lo abre después, desde
+// el clic: si aquí se abriera solo, el navegador ya no reconocería el clic,
+// bloquearía la pestaña y el PDF terminaría descargado en lugar de impreso.
+test('el documento se arma sin abrir ninguna pestaña', () => {
+	const documento = crearDocumentoEtiquetasOrden({ folio: 'C0001', laboratorio, imagen });
+
+	expect(documento).toMatchObject({
+		url: 'blob:etiquetas',
+		titulo: 'Etiqueta C0001',
+		laboratorio: true,
+		imagen: true,
+	});
+	expect(abrirPdfEnPestana).not.toHaveBeenCalled();
+});
+
+test('sin etiquetas que generar no hay documento que imprimir', () => {
+	expect(
+		crearDocumentoEtiquetasOrden({
+			folio: 'C0002',
+			laboratorio: { ...laboratorio, estudios: [] },
+			imagen: { ...imagen, estudios: [] },
+		}),
+	).toBeNull();
 });

@@ -18,10 +18,14 @@ import { consultarClientesSeleccionables } from "../../../utils/clientes-selecci
 import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import {
-	generarTicketVenta,
+	crearDocumentoTicketsVenta,
 	resolverEmpresaTicketReimpresion,
 } from "../../../utils/generarTicketVenta";
-import { generarEtiquetasOrden } from "../../../utils/generar-etiquetas-orden";
+import {
+	crearDocumentoEtiquetasOrden,
+	generarEtiquetasOrden,
+} from "../../../utils/generar-etiquetas-orden";
+import ModalImprimirComprobantes from "../../../components/modal-imprimir-comprobantes";
 import { esEstudioImagenCaptura } from "../../../utils/captura-row-status";
 import {
 	EVENTOS_SOLICITUD,
@@ -91,6 +95,9 @@ const EditarSolicitud = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	// Los comprobantes de la orden que se está reimprimiendo, a la espera de que
+	// se abran desde el clic de quien imprime.
+	const [comprobantesOrden, setComprobantesOrden] = useState(null);
 	const [historialPagos, setHistorialPagos] = useState([]);
 	const [timelineAuditoria, setTimelineAuditoria] = useState([]);
 	const [modalMuestrasPendientesOpen, setModalMuestrasPendientesOpen] =
@@ -738,6 +745,84 @@ const EditarSolicitud = () => {
 		return roles[rol] || rol;
 	};
 
+	// La edad va en el ticket y en la etiqueta; sin fecha de nacimiento se deja
+	// en blanco en lugar del "N/A" que se muestra en la tabla.
+	const edadDePaciente = (paciente) =>
+		paciente?.fecha_nacimiento ? calcularEdad(paciente.fecha_nacimiento) : "";
+
+	// Los datos de las etiquetas se arman aparte para que el ticket también
+	// pueda prepararlas sin repetir las consultas al catálogo.
+	const construirDatosEtiquetasOrden = async (orden) => {
+		const paciente = orden.pacientes;
+		const edadStr = edadDePaciente(paciente);
+		const clavesEstudios = (orden.estudios_venta || [])
+			.map(({ clave_estudio }) => clave_estudio)
+			.filter(Boolean);
+		if (!clavesEstudios.length) return null;
+
+		const [catalogoLaboratorioResponse, catalogoImagenResponse, doctorResponse] = await Promise.all([
+			supabase
+				.from("estudios_lab_catalogo")
+				.select("clave, tipo_muestra, recipiente")
+				.in("clave", clavesEstudios),
+			supabase
+				.from("estudios_imagen_catalogo")
+				.select("clave")
+				.in("clave", clavesEstudios),
+			orden.id_doctor
+				? supabase.from("doctores").select("nombre").eq("id_doctor", orden.id_doctor).maybeSingle()
+				: Promise.resolve({ data: null, error: null }),
+		]);
+		if (catalogoLaboratorioResponse.error) throw catalogoLaboratorioResponse.error;
+		if (catalogoImagenResponse.error) throw catalogoImagenResponse.error;
+		if (doctorResponse.error) throw doctorResponse.error;
+		const catalogoPorClave = new Map(
+			(catalogoLaboratorioResponse.data || []).map((estudio) => [estudio.clave, estudio]),
+		);
+		const clavesImagen = new Set(
+			(catalogoImagenResponse.data || []).map((estudio) => estudio.clave),
+		);
+		const estudiosEtiquetas = (orden.estudios_venta || []).map((estudio) => {
+			const estudioCatalogo = catalogoPorClave.get(estudio.clave_estudio);
+			return {
+				...estudio,
+				clave: estudio.clave_estudio,
+				descripcion: estudio.descripcion_estudio,
+				// El catálogo confirma la imagen, pero si no la encuentra —o no se
+				// pudo consultar— la clave y el área también la delatan: sin esto
+				// la orden se etiquetaba como laboratorio y no salía nada.
+				modulo:
+					clavesImagen.has(estudio.clave_estudio) ||
+					esEstudioImagenCaptura({
+						clave_estudio: estudio.clave_estudio,
+						descripcion_estudio: estudio.descripcion_estudio,
+						area: estudio.area,
+					})
+						? "imagen"
+						: "laboratorio",
+				...estudioCatalogo,
+			};
+		});
+
+		return {
+			folio: orden.folio,
+			laboratorio: {
+				folio: orden.folio,
+				paciente: paciente?.nombre,
+				sexo: paciente?.sexo,
+				edad: edadStr,
+				estudios: estudiosEtiquetas,
+			},
+			imagen: {
+				folio: orden.folio,
+				fecha: orden.fecha_venta,
+				paciente: paciente?.nombre,
+				doctor: doctorResponse.data?.nombre || "",
+				estudios: estudiosEtiquetas,
+			},
+		};
+	};
+
 	const imprimirEtiquetasOrden = async (orden, e) => {
 		e?.stopPropagation();
 		if (!orden) return;
@@ -745,84 +830,15 @@ const EditarSolicitud = () => {
 		// y la etiqueta de imagen nunca llegaba a verse.
 		const ventanaEtiquetas = window.open("", "_blank");
 		try {
-			const paciente = orden.pacientes;
-			const hoy = new Date();
-			const nac = paciente?.fecha_nacimiento ? new Date(paciente.fecha_nacimiento) : null;
-			let edadStr = "";
-			if (nac) {
-				let edad = hoy.getFullYear() - nac.getFullYear();
-				const mes = hoy.getMonth() - nac.getMonth();
-				if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
-				edadStr = `${edad} años`;
-			}
-			const clavesEstudios = (orden.estudios_venta || [])
-				.map(({ clave_estudio }) => clave_estudio)
-				.filter(Boolean);
-			if (!clavesEstudios.length) {
+			const datosEtiquetas = await construirDatosEtiquetasOrden(orden);
+			if (!datosEtiquetas) {
 				ventanaEtiquetas?.close?.();
 				mostrarNotificacion("La orden no tiene estudios para etiquetar", "error");
 				return;
 			}
-			const [catalogoLaboratorioResponse, catalogoImagenResponse, doctorResponse] = await Promise.all([
-				supabase
-					.from("estudios_lab_catalogo")
-					.select("clave, tipo_muestra, recipiente")
-					.in("clave", clavesEstudios),
-				supabase
-					.from("estudios_imagen_catalogo")
-					.select("clave")
-					.in("clave", clavesEstudios),
-				orden.id_doctor
-					? supabase.from("doctores").select("nombre").eq("id_doctor", orden.id_doctor).maybeSingle()
-					: Promise.resolve({ data: null, error: null }),
-			]);
-			if (catalogoLaboratorioResponse.error) throw catalogoLaboratorioResponse.error;
-			if (catalogoImagenResponse.error) throw catalogoImagenResponse.error;
-			if (doctorResponse.error) throw doctorResponse.error;
-			const catalogoPorClave = new Map(
-				(catalogoLaboratorioResponse.data || []).map((estudio) => [estudio.clave, estudio]),
-			);
-			const clavesImagen = new Set(
-				(catalogoImagenResponse.data || []).map((estudio) => estudio.clave),
-			);
-			const estudiosEtiquetas = (orden.estudios_venta || []).map((estudio) => {
-				const estudioCatalogo = catalogoPorClave.get(estudio.clave_estudio);
-				return {
-					...estudio,
-					clave: estudio.clave_estudio,
-					descripcion: estudio.descripcion_estudio,
-					// El catálogo confirma la imagen, pero si no la encuentra —o no se
-					// pudo consultar— la clave y el área también la delatan: sin esto
-					// la orden se etiquetaba como laboratorio y no salía nada.
-					modulo:
-						clavesImagen.has(estudio.clave_estudio) ||
-						esEstudioImagenCaptura({
-							clave_estudio: estudio.clave_estudio,
-							descripcion_estudio: estudio.descripcion_estudio,
-							area: estudio.area,
-						})
-							? "imagen"
-							: "laboratorio",
-					...estudioCatalogo,
-				};
-			});
 			const { generado } = generarEtiquetasOrden({
-				folio: orden.folio,
+				...datosEtiquetas,
 				ventana: ventanaEtiquetas,
-				laboratorio: {
-					folio: orden.folio,
-					paciente: paciente?.nombre,
-					sexo: paciente?.sexo,
-					edad: edadStr,
-					estudios: estudiosEtiquetas,
-				},
-				imagen: {
-					folio: orden.folio,
-					fecha: orden.fecha_venta,
-					paciente: paciente?.nombre,
-					doctor: doctorResponse.data?.nombre || "",
-					estudios: estudiosEtiquetas,
-				},
 			});
 			if (!generado) {
 				mostrarNotificacion("No hay estudios con etiquetas configuradas", "error");
@@ -834,6 +850,10 @@ const EditarSolicitud = () => {
 		}
 	};
 
+	// El ticket y las etiquetas se preparan aquí y se abren desde el clic del
+	// modal. Abrirlos directo no funciona en la reimpresión: para cuando el PDF
+	// está armado el navegador ya no reconoce el clic, bloquea la pestaña y el
+	// comprobante terminaba descargándose en lugar de mandarse a imprimir.
 	const imprimirTicketOrden = async (orden, e) => {
 		e.stopPropagation();
 		if (!orden) return;
@@ -851,17 +871,7 @@ const EditarSolicitud = () => {
 				orden.empresas?.nombre,
 			);
 			const paciente = orden.pacientes;
-			const hoy = new Date();
-			const nac = paciente?.fecha_nacimiento
-				? new Date(paciente.fecha_nacimiento)
-				: null;
-			let edadStr = "";
-			if (nac) {
-				let edad = hoy.getFullYear() - nac.getFullYear();
-				const mes = hoy.getMonth() - nac.getMonth();
-				if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
-				edadStr = `${edad} años`;
-			}
+			const edadStr = edadDePaciente(paciente);
 			const totalNum = parseFloat(orden.total) || 0;
 			const pagoNum = parseFloat(orden.pago_recibido) || 0;
 			// La reimpresión resuelve el convenio contra el catálogo ya cargado:
@@ -871,33 +881,66 @@ const EditarSolicitud = () => {
 				clientes.find(
 					(cliente) => String(cliente.id_cliente) === String(orden.id_cliente),
 				)?.nombre || "Particular";
-			await generarTicketVenta({
-				folio: orden.folio,
-				fecha: new Date(orden.fecha_venta),
-				paciente: paciente?.nombre || "N/A",
-				edad: edadStr,
-				doctor: nombreDoctor,
-				cliente: nombreCliente,
-				empresa: nombreEmpresaOperativa,
-				telefono: paciente?.telefono || "",
-				email: paciente?.email || "",
-				estudios: (orden.estudios_venta || []).map((ev) => ({
-					descripcion: ev.descripcion_estudio,
-					precio: parseFloat(ev.precio) || 0,
-					diasProceso: ev.dias_proceso || 1,
-				})),
-				subtotal: parseFloat(orden.subtotal) || 0,
-				descuento: parseFloat(orden.descuento) || 0,
-				total: totalNum,
-				abono1: pagoNum,
-				abono2: 0,
-				adeudo: Math.max(totalNum - pagoNum, 0),
-				pagoRecibido: pagoNum,
-				cambio: 0,
-				formaPago: orden.forma_pago || "efectivo",
-				vendedor,
+			const documentoTicket = await crearDocumentoTicketsVenta({
+				tickets: [
+					{
+						folio: orden.folio,
+						fecha: new Date(orden.fecha_venta),
+						paciente: paciente?.nombre || "N/A",
+						edad: edadStr,
+						doctor: nombreDoctor,
+						cliente: nombreCliente,
+						empresa: nombreEmpresaOperativa,
+						telefono: paciente?.telefono || "",
+						email: paciente?.email || "",
+						estudios: (orden.estudios_venta || []).map((ev) => ({
+							descripcion: ev.descripcion_estudio,
+							precio: parseFloat(ev.precio) || 0,
+							diasProceso: ev.dias_proceso || 1,
+						})),
+						subtotal: parseFloat(orden.subtotal) || 0,
+						descuento: parseFloat(orden.descuento) || 0,
+						total: totalNum,
+						abono1: pagoNum,
+						abono2: 0,
+						adeudo: Math.max(totalNum - pagoNum, 0),
+						pagoRecibido: pagoNum,
+						cambio: 0,
+						formaPago: orden.forma_pago || "efectivo",
+						vendedor,
+					},
+				],
 			});
-			await imprimirEtiquetasOrden(orden);
+
+			const datosEtiquetas = await construirDatosEtiquetasOrden(orden);
+			const documentoEtiquetas = datosEtiquetas
+				? crearDocumentoEtiquetasOrden(datosEtiquetas)
+				: null;
+
+			const comprobantes = [];
+			if (documentoTicket) {
+				comprobantes.push({ id: "ticket", etiqueta: "Imprimir ticket", ...documentoTicket });
+			}
+			if (documentoEtiquetas) {
+				comprobantes.push({
+					id: "etiquetas",
+					etiqueta: "Imprimir etiquetas",
+					...documentoEtiquetas,
+				});
+			}
+			if (comprobantes.length === 0) {
+				mostrarNotificacion("La orden no tiene nada que imprimir", "error");
+				return;
+			}
+			// Que falten las etiquetas no detiene el ticket, pero se avisa: antes
+			// se abrían solas y su ausencia se notaba hasta el laboratorio.
+			if (!documentoEtiquetas) {
+				mostrarNotificacion(
+					"La orden no tiene estudios con etiquetas configuradas",
+					"advertencia",
+				);
+			}
+			setComprobantesOrden({ folio: orden.folio, comprobantes });
 		} catch (err) {
 			console.error("Error al generar ticket:", err);
 			mostrarNotificacion("Error al generar el ticket", "error");
@@ -1446,6 +1489,14 @@ const EditarSolicitud = () => {
 					mensaje={notificacion.mensaje}
 					tipo={notificacion.tipo}
 				/>
+				{comprobantesOrden && (
+					<ModalImprimirComprobantes
+						folio={comprobantesOrden.folio}
+						comprobantes={comprobantesOrden.comprobantes}
+						titulo="Reimprimir comprobantes"
+						onCerrar={() => setComprobantesOrden(null)}
+					/>
+				)}
 				<ModalMuestrasPendientes
 					isOpen={modalMuestrasPendientesOpen}
 					estudios={estudiosSeleccionados}
