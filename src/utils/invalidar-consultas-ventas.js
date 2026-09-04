@@ -18,6 +18,11 @@
 const CONSULTAS_QUE_LEEN_VENTAS = [
 	// Reportes y listados de ventas
 	["reporte-ventas"],
+	// El corte del período va en consultas aparte, y la clave no comparte raíz
+	// con la de arriba: React Query compara elemento por elemento, así que
+	// "reporte-ventas" no alcanza a "reporte-ventas-canceladas".
+	["reporte-ventas-canceladas"],
+	["reporte-ventas-pagos-cancelados"],
 	["reporte-administrativo"],
 	["ventas"],
 	// Trabajo que nace de la venta

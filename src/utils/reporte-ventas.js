@@ -1,3 +1,5 @@
+import { clasificarFormaPago } from "./pagos-ventas";
+
 const COLORES_TOP = ["#53B9DB", "#49B2D4", "#106DA0", "#1a7ab8", "#0d5580"];
 export const SIN_SUCURSAL_REPORTE = "__sin_sucursal";
 
@@ -179,6 +181,61 @@ export const obtenerIdSucursalVenta = (venta) =>
 
 export const calcularSaldoVentaReporte = (venta) =>
 	Math.max(numero(venta?.total) - numero(venta?.pago_recibido), 0);
+
+// El corte del período, con los mismos renglones que el corte de caja: cuánto
+// entró por cada forma de pago, cuánto queda por cobrar y cuántos movimientos
+// hubo. Es lo que se revisa al cerrar el día, y hasta ahora había que sacarlo
+// de la tabla a mano.
+//
+// Los importes salen de `pago_recibido`, no de `total`: lo que interesa aquí es
+// el dinero que efectivamente entró y por qué vía. Lo que falta de cada orden
+// -su saldo- es lo que va en "por cobrar", sin importar la forma de pago con la
+// que se abrió.
+//
+// `cupones` y `cortesias` van en cero porque el sistema no tiene esos conceptos;
+// se dejan a la vista para que el corte se lea igual que el de caja y para que
+// el día que existan tengan su lugar.
+export const calcularResumenCorteVentas = ({
+	ventas = [],
+	canceladas = [],
+	pagosCancelados = 0,
+} = {}) => {
+	const porForma = { efectivo: 0, tarjeta_debito: 0, tarjeta_credito: 0, transferencia: 0, otro: 0 };
+
+	let porCobrar = 0;
+	for (const venta of ventas) {
+		porForma[clasificarFormaPago(venta.forma_pago)] += numero(venta.pago_recibido);
+		porCobrar += calcularSaldoVentaReporte(venta);
+	}
+
+	const totalBancos =
+		porForma.tarjeta_debito + porForma.tarjeta_credito + porForma.transferencia;
+	const cobrado = porForma.efectivo + totalBancos + porForma.otro;
+
+	return {
+		efectivo: porForma.efectivo,
+		// Sin vales de caja ni retiros en el reporte, lo neto a entregar es lo
+		// mismo que entró en efectivo. El renglón se conserva porque es el que se
+		// firma en caja.
+		efectivoNeto: porForma.efectivo,
+		tarjetaDebito: porForma.tarjeta_debito,
+		tarjetaCredito: porForma.tarjeta_credito,
+		transferencias: porForma.transferencia,
+		otrasFormas: porForma.otro,
+		totalBancos,
+		credito: porCobrar,
+		totalPorCobrar: porCobrar,
+		cobrado,
+		granTotal: cobrado + porCobrar,
+		movimientos: {
+			ordenes: ventas.length,
+			ordenesCanceladas: canceladas.length,
+			pagosCancelados,
+			cupones: 0,
+			cortesias: 0,
+		},
+	};
+};
 
 export const calcularMetricasVentas = (ventas = []) => {
 	const totalVentas = ventas.reduce((total, venta) => total + numero(venta.total), 0);

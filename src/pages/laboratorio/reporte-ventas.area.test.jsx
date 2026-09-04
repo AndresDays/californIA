@@ -61,6 +61,10 @@ const mockVentas = [
 ];
 
 jest.mock("../../hooks/use-reporte-ventas", () => ({
+	// El corte del periodo cuenta las canceladas y los pagos cancelados
+	// aparte; estas pruebas no los ejercitan, asi que van vacios.
+	useVentasCanceladas: () => ({ data: [] }),
+	usePagosCancelados: () => ({ data: 0 }),
 	useReporteVentas: () => ({
 		data: mockVentas,
 		isLoading: false,

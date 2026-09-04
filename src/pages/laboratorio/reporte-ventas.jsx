@@ -12,7 +12,12 @@ import {
 	normalizarUltimos4,
 } from "../../utils/pago-tarjeta";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
-import { useCatalogosReporte, useReporteVentas } from "../../hooks/use-reporte-ventas";
+import {
+	useCatalogosReporte,
+	usePagosCancelados,
+	useReporteVentas,
+	useVentasCanceladas,
+} from "../../hooks/use-reporte-ventas";
 import { clientesParaFiltro } from "../../utils/clientes-seleccionables";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
@@ -21,6 +26,7 @@ import {
 	agruparVentasPorDia,
 	agruparVentasPorVendedor,
 	calcularMetricasVentas,
+	calcularResumenCorteVentas,
 	calcularSaldoVentaReporte,
 	filtrarVentasReporte,
 	formatoMonedaReporte,
@@ -97,6 +103,8 @@ const ReporteVentas = () => {
 		refetch: refrescarVentas,
 	} = useReporteVentas({ fechaInicial, fechaFinal });
 
+	const { data: ventasCanceladas = [] } = useVentasCanceladas({ fechaInicial, fechaFinal });
+	const { data: pagosCancelados = 0 } = usePagosCancelados({ fechaInicial, fechaFinal });
 	const { data: catalogos } = useCatalogosReporte();
 	const sucursales = catalogos?.sucursales ?? [];
 	const vendedores = catalogos?.vendedores ?? [];
@@ -203,6 +211,48 @@ const ReporteVentas = () => {
 	const metricas = useMemo(
 		() => calcularMetricasVentas(ventasDelArea),
 		[ventasDelArea],
+	);
+
+	// Las canceladas pasan por los mismos filtros que el resto del reporte: si
+	// se cuentan todas las del rango, el número no cuadraría con lo que se está
+	// viendo cuando hay una sucursal o un convenio elegido.
+	const canceladasFiltradas = useMemo(
+		() =>
+			filtrarVentasReporte(ventasCanceladas, {
+				sucursal: sucursalSeleccionada,
+				vendedor: vendedorSeleccionado,
+				formaPago: formaPagoSeleccionada,
+				area: areaSeleccionada,
+				cliente: empresaSeleccionada,
+				doctor: doctorSeleccionado,
+				estudio: buscarEstudio,
+				empresaFactura: empresaFacturaSeleccionada,
+				serie: serieSeleccionada,
+				nombreEmpresaVenta,
+			}),
+		[
+			ventasCanceladas,
+			sucursalSeleccionada,
+			vendedorSeleccionado,
+			formaPagoSeleccionada,
+			areaSeleccionada,
+			empresaSeleccionada,
+			doctorSeleccionado,
+			buscarEstudio,
+			empresaFacturaSeleccionada,
+			serieSeleccionada,
+			empresaPorId,
+		],
+	);
+
+	const corte = useMemo(
+		() =>
+			calcularResumenCorteVentas({
+				ventas: ventasDelArea,
+				canceladas: canceladasFiltradas,
+				pagosCancelados,
+			}),
+		[ventasDelArea, canceladasFiltradas, pagosCancelados],
 	);
 	const ventasPorDia = useMemo(
 		() => agruparVentasPorDia(ventasDelArea),
@@ -587,14 +637,125 @@ const ReporteVentas = () => {
 						</div>
 					</div>
 
+					{/* El corte del período, con los mismos renglones que el corte de
+					    caja: cuánto entró por cada vía, cuánto falta por cobrar y
+					    cuántos movimientos hubo. Sigue todos los filtros de abajo. */}
+					<div className="rv-metrics rv-corte">
+						<div className="rv-summary-card">
+							<div className="rv-summary-title">Resumen de pago</div>
+
+							<div className="rv-corte-grupo">Efectivo</div>
+							<div className="rv-summary-row">
+								<span>Efectivo</span>
+								<strong className="rv-metric-value">
+									{formatoMonedaReporte(corte.efectivo)}
+								</strong>
+							</div>
+							<div className="rv-summary-row total">
+								<span>Efectivo neto a entregar</span>
+								<strong>{formatoMonedaReporte(corte.efectivoNeto)}</strong>
+							</div>
+
+							<div className="rv-corte-grupo">Bancos</div>
+							<div className="rv-summary-row">
+								<span>Tarjeta de débito</span>
+								<strong className="rv-metric-value">
+									{formatoMonedaReporte(corte.tarjetaDebito)}
+								</strong>
+							</div>
+							<div className="rv-summary-row">
+								<span>Tarjeta de crédito</span>
+								<strong className="rv-metric-value">
+									{formatoMonedaReporte(corte.tarjetaCredito)}
+								</strong>
+							</div>
+							{/* Los dos renglones de abajo sólo aparecen cuando hay algo que
+							    mostrar: en la mayoría de los días no se usan y en cero sólo
+							    alargan el corte. */}
+							{corte.transferencias > 0 && (
+								<div className="rv-summary-row">
+									<span>Transferencias</span>
+									<strong className="rv-metric-value">
+										{formatoMonedaReporte(corte.transferencias)}
+									</strong>
+								</div>
+							)}
+							{corte.otrasFormas > 0 && (
+								<div className="rv-summary-row">
+									<span>Otras formas</span>
+									<strong className="rv-metric-value">
+										{formatoMonedaReporte(corte.otrasFormas)}
+									</strong>
+								</div>
+							)}
+							<div className="rv-summary-row total">
+								<span>Total bancos</span>
+								<strong>{formatoMonedaReporte(corte.totalBancos)}</strong>
+							</div>
+
+							<div className="rv-corte-grupo">Por cobrar</div>
+							<div className="rv-summary-row">
+								<span>Crédito</span>
+								<strong className="rv-metric-value alerta">
+									{formatoMonedaReporte(corte.credito)}
+								</strong>
+							</div>
+							<div className="rv-summary-row total">
+								<span>Total por cobrar</span>
+								<strong>{formatoMonedaReporte(corte.totalPorCobrar)}</strong>
+							</div>
+
+							<div className="rv-summary-row total rv-corte-gran-total">
+								<span>Gran total del corte</span>
+								<strong>{formatoMonedaReporte(corte.granTotal)}</strong>
+							</div>
+						</div>
+
+						<div className="rv-summary-card">
+							<div className="rv-summary-title">Resumen de movimientos</div>
+							<div className="rv-summary-row">
+								<span>Órdenes</span>
+								<strong className="rv-metric-value">{corte.movimientos.ordenes}</strong>
+							</div>
+							<div className="rv-summary-row">
+								<span>Órdenes canceladas</span>
+								<strong className="rv-metric-value">
+									{corte.movimientos.ordenesCanceladas}
+								</strong>
+							</div>
+							<div className="rv-summary-row">
+								<span>Pagos cancelados</span>
+								<strong className="rv-metric-value">
+									{corte.movimientos.pagosCancelados}
+								</strong>
+							</div>
+							<div className="rv-summary-row">
+								<span>Cupones</span>
+								<strong className="rv-metric-value">{corte.movimientos.cupones}</strong>
+							</div>
+							<div className="rv-summary-row">
+								<span>Cortesías</span>
+								<strong className="rv-metric-value">{corte.movimientos.cortesias}</strong>
+							</div>
+							{/* Que no se lea como un dato medido: el sistema no maneja
+							    cupones ni cortesías, y el renglón está para que el corte se
+							    lea igual que el de caja. */}
+							<p className="rv-corte-nota">
+								Cupones y cortesías no se manejan en el sistema: siempre van en
+								cero.
+							</p>
+						</div>
+					</div>
+
 					<div className="rv-filters">
 						<div className="rv-filter-title">Filtros de reporte</div>
 						<div className="rv-filter-row">
 							<div className="rv-filter-group">
-								<label>Fecha inicial</label>
+								<label htmlFor="rv-fecha-inicial">Fecha inicial</label>
 								<div className="rv-input-mock">
 									<img src={calendarioIcono} alt="" className="rv-cal-icon" />
 									<input
+										id="rv-fecha-inicial"
 										type="date"
 										value={fechaInicial}
 										onChange={(e) => setFechaInicial(e.target.value)}
@@ -603,10 +764,11 @@ const ReporteVentas = () => {
 								</div>
 							</div>
 							<div className="rv-filter-group">
-								<label>Fecha final</label>
+								<label htmlFor="rv-fecha-final">Fecha final</label>
 								<div className="rv-input-mock">
 									<img src={calendarioIcono} alt="" className="rv-cal-icon" />
 									<input
+										id="rv-fecha-final"
 										type="date"
 										value={fechaFinal}
 										onChange={(e) => setFechaFinal(e.target.value)}
@@ -616,8 +778,9 @@ const ReporteVentas = () => {
 							</div>
 							<div className="rv-divider-v"></div>
 							<div className="rv-filter-group">
-								<label>Sucursal</label>
+								<label htmlFor="rv-sucursal">Sucursal</label>
 								<select
+									id="rv-sucursal"
 									value={sucursalSeleccionada}
 									onChange={(e) => setSucursalSeleccionada(e.target.value)}
 									className="rv-select">
@@ -635,8 +798,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Vendedor</label>
+								<label htmlFor="rv-vendedor">Vendedor</label>
 								<select
+									id="rv-vendedor"
 									value={vendedorSeleccionado}
 									onChange={(e) => setVendedorSeleccionado(e.target.value)}
 									className="rv-select">
@@ -649,8 +813,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Forma de pago</label>
+								<label htmlFor="rv-forma-pago">Forma de pago</label>
 								<select
+									id="rv-forma-pago"
 									value={formaPagoSeleccionada}
 									onChange={(e) => setFormaPagoSeleccionada(e.target.value)}
 									className="rv-select">
@@ -661,8 +826,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Área</label>
+								<label htmlFor="rv-area">Área</label>
 								<select
+									id="rv-area"
 									value={areaSeleccionada}
 									onChange={(e) => setAreaSeleccionada(e.target.value)}
 									className="rv-select">
@@ -675,8 +841,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Cliente</label>
+								<label htmlFor="rv-cliente">Cliente</label>
 								<select
+									id="rv-cliente"
 									value={empresaSeleccionada}
 									onChange={(e) => setEmpresaSeleccionada(e.target.value)}
 									className="rv-select">
@@ -689,8 +856,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Doctor</label>
+								<label htmlFor="rv-doctor">Doctor</label>
 								<select
+									id="rv-doctor"
 									value={doctorSeleccionado}
 									onChange={(e) => setDoctorSeleccionado(e.target.value)}
 									className="rv-select">
@@ -706,8 +874,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Empresa</label>
+								<label htmlFor="rv-empresa">Empresa</label>
 								<select
+									id="rv-empresa"
 									value={empresaFacturaSeleccionada}
 									onChange={(e) => setEmpresaFacturaSeleccionada(e.target.value)}
 									className="rv-select">
@@ -717,8 +886,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Serie</label>
+								<label htmlFor="rv-serie">Serie</label>
 								<select
+									id="rv-serie"
 									value={serieSeleccionada}
 									onChange={(e) => setSerieSeleccionada(e.target.value)}
 									className="rv-select">
@@ -731,8 +901,9 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label>Estudio</label>
+								<label htmlFor="rv-estudio">Estudio</label>
 								<input
+									id="rv-estudio"
 									type="text"
 									placeholder="Buscar..."
 									value={buscarEstudio}
