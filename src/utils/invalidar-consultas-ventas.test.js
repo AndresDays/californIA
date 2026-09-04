@@ -27,7 +27,11 @@ describe("invalidarConsultasDeVentas", () => {
 	});
 
 	// Todo lo que nace de una venta se queda igual de viejo que el reporte.
+	// El corte del período vive en claves propias: una venta nueva y una
+	// cancelación lo cambian igual que al reporte.
 	test.each([
+		"reporte-ventas-canceladas",
+		"reporte-ventas-pagos-cancelados",
 		"reporte-administrativo",
 		"ventas",
 		"captura",

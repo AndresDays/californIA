@@ -106,6 +106,31 @@ export const cargarHistorialPagosVenta = async (supabase, idVenta) => {
 	return data || [];
 };
 
+// A qué renglón del corte va cada forma de pago.
+//
+// La forma se guarda como texto libre y ha cambiado de escritura con los años:
+// hay "tarjeta", "tarjeta_debito", "Tarjeta Crédito" con acento y sin él. La
+// clasificación se hace en un solo lugar para que el corte de caja y el reporte
+// de ventas no acaben sumando distinto lo mismo.
+//
+// Una tarjeta que no dice si es de crédito cuenta como débito, que es la lectura
+// prudente: es la forma más común en mostrador y el total de bancos no cambia
+// de cualquier manera.
+export const clasificarFormaPago = (formaPago = "") => {
+	const forma = String(formaPago || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase();
+
+	if (!forma) return "otro";
+	if (forma.includes("efectivo")) return "efectivo";
+	if (forma.includes("transfer")) return "transferencia";
+	if (forma.includes("credito")) return "tarjeta_credito";
+	if (forma.includes("tarjeta")) return "tarjeta_debito";
+	return "otro";
+};
+
 export const movimientoSumaCaja = (movimiento = {}) => {
 	const monto = numero(movimiento.monto);
 	if (

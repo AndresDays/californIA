@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase-client';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
-import { esErrorColumnaSchemaCache } from '../utils/supabase-errors';
+import { esErrorColumnaSchemaCache, esErrorTablaInexistente } from '../utils/supabase-errors';
 import { crearRangoFechaMexico } from '../utils/fecha-mexico';
 
 const SELECT_BASE = `
@@ -98,13 +98,13 @@ const completarEmpresasDeVentas = async (ventas = []) => {
 export const completarDatosDelDetalle = async (ventas = []) =>
   completarEmpresasDeVentas(await completarDatosDePacientes(ventas));
 
-const fetchVentasConFallback = async ({ fechaInicial, fechaFinal }) => {
+const fetchVentasConFallback = async ({ fechaInicial, fechaFinal, estado = 'activo' }) => {
 	const rango = crearRangoFechaMexico(fechaInicial, fechaFinal);
 	const crearQuery = (select) =>
     supabase
       .from('ventas')
       .select(select)
-      .eq('estado', 'activo')
+      .eq('estado', estado)
 		.gte('fecha_venta', rango.inicio)
 		.lt('fecha_venta', rango.fin)
       .order('fecha_venta', { ascending: false });
@@ -140,6 +140,46 @@ export const useReporteVentas = ({ fechaInicial, fechaFinal }) =>
   useQuery({
     queryKey: ['reporte-ventas', fechaInicial, fechaFinal],
     queryFn: () => fetchVentasConFallback({ fechaInicial, fechaFinal }),
+    enabled: !!(fechaInicial && fechaFinal),
+    staleTime: 1000 * 60 * 3,
+  });
+
+// Las canceladas van en su propia consulta y no mezcladas con las activas: el
+// reporte entero -tabla, gráficas, totales, descargas- cuenta ventas activas, y
+// meterlas en la misma lista inflaría todo. Aquí sólo se cuentan, y como traen
+// la misma forma pasan por los mismos filtros de la pantalla, así que el número
+// respeta la sucursal, el cliente y lo demás que esté puesto.
+export const useVentasCanceladas = ({ fechaInicial, fechaFinal }) =>
+  useQuery({
+    queryKey: ['reporte-ventas-canceladas', fechaInicial, fechaFinal],
+    queryFn: () => fetchVentasConFallback({ fechaInicial, fechaFinal, estado: 'cancelado' }),
+    enabled: !!(fechaInicial && fechaFinal),
+    staleTime: 1000 * 60 * 3,
+  });
+
+// Pagos cancelados: los movimientos de cancelación del período. La tabla es
+// posterior al resto del sistema, así que si todavía no existe se devuelve cero
+// en lugar de romper el reporte entero por un renglón del resumen.
+export const usePagosCancelados = ({ fechaInicial, fechaFinal }) =>
+  useQuery({
+    queryKey: ['reporte-ventas-pagos-cancelados', fechaInicial, fechaFinal],
+    queryFn: async () => {
+      const rango = crearRangoFechaMexico(fechaInicial, fechaFinal);
+      const { count, error } = await supabase
+        .from('movimientos_pago_venta')
+        .select('id', { count: 'exact', head: true })
+        .eq('tipo_movimiento', 'cancelacion')
+        .gte('created_at', rango.inicio)
+        .lt('created_at', rango.fin);
+
+      if (error) {
+        if (!esErrorTablaInexistente(error, 'movimientos_pago_venta')) {
+          console.warn('No se pudieron contar los pagos cancelados:', error);
+        }
+        return 0;
+      }
+      return count ?? 0;
+    },
     enabled: !!(fechaInicial && fechaFinal),
     staleTime: 1000 * 60 * 3,
   });
