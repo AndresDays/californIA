@@ -28,6 +28,24 @@ const DEFAULT_PRECIO = 150;
 // que es lo que habia antes.
 const PREFERENCIA_RENGLON = 'california:cita:modo-renglon';
 
+// Mientras se guarda, el formulario entero queda deshabilitado. Si la petición
+// nunca contesta -la red de la clínica se cae a media captura- el modal se
+// quedaba muerto para siempre: los campos no dejaban escribir y no había más
+// salida que recargar. Con un tope, el guardado falla, avisa y devuelve el
+// formulario.
+const ESPERA_MAXIMA_GUARDADO_MS = 20000;
+
+const conLimiteDeEspera = (promesa) =>
+  Promise.race([
+    Promise.resolve(promesa),
+    new Promise((_, rechazar) =>
+      setTimeout(
+        () => rechazar(new Error('La petición tardó demasiado')),
+        ESPERA_MAXIMA_GUARDADO_MS,
+      ),
+    ),
+  ]);
+
 const leerPreferenciaRenglon = () => {
   try {
     return localStorage.getItem(PREFERENCIA_RENGLON) === '1';
@@ -350,11 +368,13 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
 
       let idPaciente = null;
       if (cita.telefono) {
-        const { data: pacienteExistente } = await supabase
-          .from('pacientes')
-          .select('id_paciente')
-          .eq('telefono', cita.telefono)
-          .maybeSingle();
+        const { data: pacienteExistente } = await conLimiteDeEspera(
+          supabase
+            .from('pacientes')
+            .select('id_paciente')
+            .eq('telefono', cita.telefono)
+            .maybeSingle(),
+        );
         idPaciente = pacienteExistente?.id_paciente ?? null;
       }
 
@@ -386,11 +406,9 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
         monto
       };
 
-      const { data: nuevaCita, error: errorCita } = await supabase
-        .from('citas')
-        .insert([payload])
-        .select()
-        .single();
+      const { data: nuevaCita, error: errorCita } = await conLimiteDeEspera(
+        supabase.from('citas').insert([payload]).select().single(),
+      );
 
       if (errorCita) throw errorCita;
 
