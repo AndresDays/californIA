@@ -28,8 +28,11 @@ const SEPARADORES = /[,/]|\s-\s|\s—\s/;
 
 // Diez dígitos que pueden venir con espacios, guiones o paréntesis entre ellos,
 // como los dicta la gente por teléfono. Se exige que no estén pegados a más
-// dígitos para no partir un número más largo por la mitad.
-const TELEFONO = /(?<!\d)\(?(?:\d[\s().-]*){9}\d(?!\d)/;
+// dígitos para no partir un número más largo por la mitad; ese "no viene otro
+// dígito antes" se resuelve con un grupo y no con un lookbehind, que Safari
+// anterior a la 16.4 -el de varios iPad de recepción- ni siquiera puede leer:
+// el archivo entero tronaba al cargarse y el campo del renglón quedaba muerto.
+const TELEFONO = /(^|\D)(\(?(?:\d[\s().-]*){9}\d)(?!\d)/;
 
 const limpiar = (valor) => String(valor ?? "").replace(/\s+/g, " ").trim();
 
@@ -42,11 +45,19 @@ export const interpretarRenglonCita = (texto = "") => {
 	if (!original) return { nombre: "", telefono: "", estudios: "" };
 
 	const encontrado = TELEFONO.exec(original);
-	const telefono = encontrado ? encontrado[0].replace(/\D/g, "") : "";
+	// El primer grupo es lo que va justo antes del número y no forma parte de
+	// él: el teléfono es el segundo, y ahí empieza el recorte.
+	const inicioTelefono = encontrado ? encontrado.index + encontrado[1].length : -1;
+	const textoTelefono = encontrado ? encontrado[2] : "";
+	const telefono = textoTelefono.replace(/\D/g, "");
 	// El teléfono se saca del renglón antes de partirlo: si no, un número dicho
 	// entre el nombre y el estudio se quedaría pegado a uno de los dos.
 	const sinTelefono = encontrado
-		? limpiar(original.slice(0, encontrado.index) + " " + original.slice(encontrado.index + encontrado[0].length))
+		? limpiar(
+				original.slice(0, inicioTelefono) +
+					" " +
+					original.slice(inicioTelefono + textoTelefono.length),
+			)
 		: original;
 
 	const corte = sinTelefono.search(SEPARADORES);

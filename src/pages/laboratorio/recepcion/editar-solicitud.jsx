@@ -17,6 +17,7 @@ import { supabase } from "../../../lib/supabase-client";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
+import { calcularEdadPaciente } from "../../../utils/edad-paciente";
 import {
 	generarTicketVenta,
 	resolverEmpresaTicketReimpresion,
@@ -856,17 +857,7 @@ const EditarSolicitud = () => {
 				orden.empresas?.nombre,
 			);
 			const paciente = orden.pacientes;
-			const hoy = new Date();
-			const nac = paciente?.fecha_nacimiento
-				? new Date(paciente.fecha_nacimiento)
-				: null;
-			let edadStr = "";
-			if (nac) {
-				let edad = hoy.getFullYear() - nac.getFullYear();
-				const mes = hoy.getMonth() - nac.getMonth();
-				if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
-				edadStr = `${edad} años`;
-			}
+			const edadStr = calcularEdadPaciente(paciente?.fecha_nacimiento);
 			const totalNum = parseFloat(orden.total) || 0;
 			const pagoNum = parseFloat(orden.pago_recibido) || 0;
 			// La reimpresión resuelve el convenio contra el catálogo ya cargado:
@@ -880,6 +871,7 @@ const EditarSolicitud = () => {
 				folio: orden.folio,
 				fecha: new Date(orden.fecha_venta),
 				paciente: paciente?.nombre || "N/A",
+				fechaNacimiento: paciente?.fecha_nacimiento || "",
 				edad: edadStr,
 				doctor: nombreDoctor,
 				cliente: nombreCliente,

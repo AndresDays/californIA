@@ -4,6 +4,11 @@ import QRCode from 'qrcode';
 import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
 import { resolverEmpresaOperativaCatalogo } from './cita-nuevo-paciente';
 import { crearUrlPortalResultados } from './portal-resultados';
+import {
+	calcularEdadPaciente,
+	formatearFechaNacimiento,
+	telefonoUtilizable,
+} from './edad-paciente';
 import { describirPagoTarjeta, esPagoConTarjeta } from './pago-tarjeta';
 
 const RFC_POR_EMPRESA = {
@@ -144,6 +149,7 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 		folio,
 		fecha,
 		paciente,
+		fechaNacimiento,
 		edad,
 		doctor,
 		cliente,
@@ -173,7 +179,19 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 	} catch (error) {
 		console.warn(`Ticket sin RFC (${empresa || 'sin empresa'}):`, error.message);
 	}
-	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
+	// Un teléfono que no sirve para nada -de puros ceros, o incompleto- no va
+	// en el ticket ni en la liga del portal: con él la descarga de resultados
+	// falla y el paciente cree que el dato es bueno.
+	const telefonoTicket = telefonoUtilizable(telefono);
+	// La edad se calcula de la fecha de nacimiento cuando la orden no la trae:
+	// muchos pacientes están dados de alta con fecha y sin edad, y el ticket
+	// salía sin ninguna de las dos.
+	const edadTicket = edad || calcularEdadPaciente(fechaNacimiento);
+	const nacimientoTicket = formatearFechaNacimiento(fechaNacimiento);
+	const urlPortalResultados = crearUrlPortalResultados({
+		folio,
+		telefono: telefonoTicket,
+	});
 
 	const W = 80;
 	const mg = 5;
@@ -243,7 +261,11 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(8);
-	if (edad) { pdf.text(`Edad: ${edad}`, W / 2, y, { align: 'center' }); y += 4; }
+	if (nacimientoTicket) {
+		pdf.text(`Nacimiento: ${nacimientoTicket}`, W / 2, y, { align: 'center' });
+		y += 4;
+	}
+	if (edadTicket) { pdf.text(`Edad: ${edadTicket}`, W / 2, y, { align: 'center' }); y += 4; }
 	if (doctor) {
 		y = escribirCentradoAjustado(pdf, `Doctor: ${doctor.toUpperCase()}`, y, {
 			ancho: W - mg * 2,
@@ -268,8 +290,14 @@ const dibujarTicketEnPdf = async (pdf, datosTicket) => {
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(10);
-	pdf.text(`Email: ${email || ''}`, W / 2, y, { align: 'center' }); y += 5;
-	pdf.text(`Telefono: ${telefono || ''}`, W / 2, y, { align: 'center' }); y += 5.5;
+	// Los dos renglones son del paciente, no de la empresa -la del encabezado
+	// ya trae su correo-. Un renglón sin dato no se imprime: "Email:" solo
+	// hacía ver el ticket incompleto.
+	if (email) { pdf.text(`Email: ${email}`, W / 2, y, { align: 'center' }); y += 5; }
+	if (telefonoTicket) {
+		pdf.text(`Telefono: ${telefonoTicket}`, W / 2, y, { align: 'center' });
+		y += 5.5;
+	}
 
 	try {
 		const barcodeImg = generarBarcode(folio);
@@ -416,7 +444,11 @@ const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
 	} catch (error) {
 		console.warn(`Ticket sin RFC (${empresa || 'sin empresa'}):`, error.message);
 	}
-	const urlPortalResultados = crearUrlPortalResultados({ folio, telefono });
+	const telefonoTicket = telefonoUtilizable(telefono);
+	const urlPortalResultados = crearUrlPortalResultados({
+		folio,
+		telefono: telefonoTicket,
+	});
 
 	const W = 80;
 	const mg = 5;
@@ -458,9 +490,8 @@ const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
 	const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha || new Date();
 	const fechaStr = fechaObj.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 	const horaStr = fechaObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
-	const fechaNacimientoStr = fechaNacimiento
-		? new Date(fechaNacimiento).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
-		: '';
+	const fechaNacimientoStr = formatearFechaNacimiento(fechaNacimiento);
+	const edadTicket = edad || calcularEdadPaciente(fechaNacimiento);
 
 	pdf.setFont('helvetica', 'normal');
 	pdf.setFontSize(8.5);
@@ -478,12 +509,12 @@ const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
 	renglon('No. orden', folio);
 	renglon('Paciente', (paciente || '').toUpperCase());
 	renglon('Fecha nacimiento', fechaNacimientoStr);
-	renglon('Teléfono', telefono);
+	renglon('Teléfono', telefonoTicket);
 	renglon('Cliente', cliente);
 	renglon('Sucursal', sucursal);
 	renglon('Registra', (vendedor || '').toUpperCase());
 	renglon('Forma de pago', (formaPago || 'efectivo').replace(/_/g, ' ').toUpperCase());
-	renglon('Edad', edad);
+	renglon('Edad', edadTicket);
 
 	y += 1;
 	separador();
