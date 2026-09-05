@@ -522,14 +522,13 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
                 value={renglon}
                 onChange={(e) => setRenglon(e.target.value)}
                 className="form-input-cita cita-renglon-input"
-                placeholder="Laura Mendez Rios 4771234567, biometria hematica"
                 disabled={loading}
                 autoFocus
               />
               <p className="cita-renglon-ayuda">
-                Diez dígitos seguidos son el teléfono. Lo que va antes de la
-                primera coma, guion o diagonal es el nombre; lo de después, el
-                estudio.
+                Ejemplo: Laura Mendez Rios 4771234567, biometria hematica. Diez
+                dígitos seguidos son el teléfono. Lo que va antes de la primera
+                coma, guion o diagonal es el nombre; lo de después, el estudio.
               </p>
               {/* Lo que entendio el renglon, a la vista antes de guardar: es la
                   unica forma de notar que el nombre se partio donde no debia. */}
