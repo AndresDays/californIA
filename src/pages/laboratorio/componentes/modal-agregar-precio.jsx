@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase-client';
 import { consultarClientesSeleccionables } from '../../../utils/clientes-seleccionables';
 import './modal-agregar-precio.css';
+import { useNavegacionLista } from '../../../hooks/use-navegacion-lista';
 
 const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) => {
   const [buscarEstudio, setBuscarEstudio] = useState('');
@@ -129,6 +130,20 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
     onClose();
   };
 
+  // Flechas y Enter sobre los resultados; el hook va antes de la salida
+  // temprana porque no puede quedar detrás de un return condicional.
+  const listaEstudiosAbierta = Boolean(showBusqueda && estudiosEncontrados.length > 0);
+  const {
+		manejarTeclas: teclasEstudios,
+		contenedorRef: refEstudios,
+		propsOpcion: opcionEstudio,
+	} = useNavegacionLista({
+    cantidad: estudiosEncontrados.length,
+    activo: listaEstudiosAbierta,
+    onSeleccionar: (indice) => seleccionarEstudio(estudiosEncontrados[indice]),
+    onCerrar: () => setShowBusqueda(false),
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -156,18 +171,22 @@ const ModalAgregarPrecio = ({ isOpen, onClose, onSave, precioEditar = null }) =>
                     buscarEstudios(e.target.value);
                   }
                 }}
+                onKeyDown={teclasEstudios}
+                role="combobox"
+                aria-expanded={listaEstudiosAbierta}
+                aria-autocomplete="list"
                 placeholder="Buscar Estudio..."
                 className="input-buscar-estudio"
                 disabled={isEditMode}
               />
               <button className="btn-search-precio">🔍</button>
 
-              {showBusqueda && estudiosEncontrados.length > 0 && (
-                <div className="search-results-precio">
-                  {estudiosEncontrados.map(estudio => (
+              {listaEstudiosAbierta && (
+                <div role="listbox" ref={refEstudios} className="search-results-precio">
+                  {estudiosEncontrados.map((estudio, indice) => (
                     <div
                       key={estudio.id}
-                      className="search-result-item-precio"
+                      {...opcionEstudio(indice, "search-result-item-precio")}
                       onClick={() => seleccionarEstudio(estudio)}
                     >
                       <strong>{estudio.clave}</strong> - {estudio.descripcion}

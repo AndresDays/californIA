@@ -16,6 +16,7 @@ import {
 	reiniciarSesionAnalitos,
 } from "./analitos-sesion";
 import "./analitos.css";
+import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
 
 const Analitos = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
@@ -282,6 +283,21 @@ const Analitos = () => {
 		);
 	};
 
+	// Flechas y Enter sobre los resultados, como en un select.
+	const listaEstudiosAbierta = Boolean(
+		showBusquedaEstudios && estudiosEncontrados.length > 0,
+	);
+	const {
+		manejarTeclas: teclasEstudios,
+		contenedorRef: refEstudios,
+		propsOpcion: opcionEstudio,
+	} = useNavegacionLista({
+		cantidad: estudiosEncontrados.length,
+		activo: listaEstudiosAbierta,
+		onSeleccionar: (indice) => seleccionarEstudio(estudiosEncontrados[indice]),
+		onCerrar: () => setShowBusquedaEstudios(false),
+	});
+
 	return (
 		<PageLayout
 			empleadoData={empleadoData}
@@ -304,14 +320,21 @@ const Analitos = () => {
 									setBuscarEstudio(e.target.value);
 									buscarEstudios(e.target.value);
 								}}
+								onKeyDown={teclasEstudios}
+								role="combobox"
+								aria-expanded={listaEstudiosAbierta}
+								aria-autocomplete="list"
 								className="input-buscar-estudio-analito"
 							/>
-							{showBusquedaEstudios && estudiosEncontrados.length > 0 && (
-								<div className="search-results-estudios">
-									{estudiosEncontrados.map((est) => (
+							{listaEstudiosAbierta && (
+								<div
+									role="listbox"
+									ref={refEstudios}
+									className="search-results-estudios">
+									{estudiosEncontrados.map((est, indice) => (
 										<div
 											key={est.id}
-											className="search-result-item-estudio"
+											{...opcionEstudio(indice, "search-result-item-estudio")}
 											onClick={() => seleccionarEstudio(est)}>
 											<strong>{est.clave}</strong> - {est.descripcion}
 										</div>

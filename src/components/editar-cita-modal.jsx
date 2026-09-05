@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase-client';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './nueva-cita-modal.css';
+import { useNavegacionLista } from '../hooks/use-navegacion-lista';
 import editarIcono from '../assets/editarIcono.png';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
@@ -350,13 +351,27 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     }
   };
 
-  if (!isOpen || !cita) return null;
-
   const estudiosFiltrados = estudiosCatalogo.filter(
     (e) =>
       e.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
       e.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
   );
+  const opcionesEstudio = estudiosFiltrados.slice(0, 10);
+  // Flechas y Enter sobre la lista de resultados. El hook va antes de la salida
+  // temprana: los hooks no pueden quedar detrás de un return condicional.
+  const listaEstudiosAbierta = Boolean(showBusquedaEstudios && buscarEstudio.length >= 2);
+  const {
+		manejarTeclas: teclasEstudios,
+		contenedorRef: refEstudios,
+		propsOpcion: opcionEstudio,
+	} = useNavegacionLista({
+    cantidad: opcionesEstudio.length,
+    activo: listaEstudiosAbierta,
+    onSeleccionar: (indice) => agregarEstudio(opcionesEstudio[indice]),
+    onCerrar: () => setShowBusquedaEstudios(false),
+  });
+
+  if (!isOpen || !cita) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -459,16 +474,20 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
                   setBuscarEstudio(e.target.value);
                   filtrarEstudios(e.target.value);
                 }}
+                onKeyDown={teclasEstudios}
+                role="combobox"
+                aria-expanded={listaEstudiosAbierta}
+                aria-autocomplete="list"
                 placeholder="Buscar estudio para agregar..."
                 disabled={loading}
               />
 
-              {showBusquedaEstudios && buscarEstudio.length >= 2 && (
-                <div className="search-results-estudios-modal">
-                  {estudiosFiltrados.slice(0, 10).map((est) => (
+              {listaEstudiosAbierta && (
+                <div role="listbox" ref={refEstudios} className="search-results-estudios-modal">
+                  {opcionesEstudio.map((est, indice) => (
                     <div
                       key={est.id}
-                      className="search-result-item-modal"
+                      {...opcionEstudio(indice, "search-result-item-modal")}
                       onClick={() => agregarEstudio(est)}
                     >
                       <strong>{est.clave}</strong> - {est.descripcion}

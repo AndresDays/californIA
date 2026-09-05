@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import empresaIcono from "../../../assets/empresaIcono.png";
 import enviarEmailBtn from "../../../assets/enviarEmailBtn.png";
 import enviarWppBtn from "../../../assets/enviarWppBtn.png";
@@ -9,6 +9,12 @@ import PageLayout from "../../../components/page-layout.jsx";
 import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
+import {
+	limpiarBorradorPersistente,
+	useCampoPersistente,
+} from "../../../hooks/use-campo-persistente";
+import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
+import ModalDetalleEstudio from "../componentes/modal-detalle-estudio";
 import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
@@ -27,28 +33,33 @@ import {
 } from "../../../utils/precios-cliente";
 import "./cotizacion.css";
 
+// El borrador de la cotización vive bajo este prefijo: así se limpia completo
+// al guardar, igual que en nuevo paciente.
+const BORRADOR = "cotizacion:";
+
 const Cotizacion = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 
-	const [nombrePaciente, setNombrePaciente] = useState("");
-	const [clienteSeleccionado, setClienteSeleccionado] = useState("");
-	const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
-	const [condicionesPaciente, setCondicionesPaciente] = useState("");
+	const [nombrePaciente, setNombrePaciente] = useCampoPersistente(`${BORRADOR}nombrePaciente`, "");
+	const [clienteSeleccionado, setClienteSeleccionado] = useCampoPersistente(`${BORRADOR}cliente`, "");
+	const [empresaSeleccionada, setEmpresaSeleccionada] = useCampoPersistente(`${BORRADOR}empresa`, "");
+	const [condicionesPaciente, setCondicionesPaciente] = useCampoPersistente(`${BORRADOR}condiciones`, "");
 	const [buscarCotizacion, setBuscarCotizacion] = useBusquedaPersistente("cotizacion:folio");
 	const [cotizaciones, setCotizaciones] = useState([]);
 	const [clientes, setClientes] = useState([]);
 	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [reglasConvenio, setReglasConvenio] = useState([]);
 	const [empresas, setEmpresas] = useState([]);
-	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState("");
+	const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useCampoPersistente(`${BORRADOR}tipoEstudio`, "");
 	const [tiposEstudio, setTiposEstudio] = useState([]);
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("cotizacion:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
-	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
+	const [estudiosSeleccionados, setEstudiosSeleccionados] = useCampoPersistente(`${BORRADOR}estudios`, []);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
+	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	const [total, setTotal] = useState(0);
-	const [descuento, setDescuento] = useState(0);
-	const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
+	const [descuento, setDescuento] = useCampoPersistente(`${BORRADOR}descuento`, 0);
+	const [descuentoPorcentaje, setDescuentoPorcentaje] = useCampoPersistente(`${BORRADOR}descuentoPorcentaje`, 0);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
@@ -66,7 +77,13 @@ const Cotizacion = () => {
 	// y a empresas, y ahi estaba el ciclo -al elegir cliente se cargan sus
 	// reglas, reglasConvenio cambiaba y el efecto volvia a correr borrando el
 	// cliente recien elegido, que se ponia y se quitaba solo-.
+	// La primera pasada no es un cambio de empresa sino el montaje: dejarla
+	// correr borraría el cliente y el tipo que se acaban de recuperar del
+	// borrador al volver de otra pestaña.
+	const empresaPrevia = useRef(empresaSeleccionada);
 	useEffect(() => {
+		if (empresaPrevia.current === empresaSeleccionada) return;
+		empresaPrevia.current = empresaSeleccionada;
 		setTipoEstudioSeleccionado("");
 		setClienteSeleccionado("");
 		setBuscarEstudio("");
@@ -389,6 +406,8 @@ const Cotizacion = () => {
 		setEstudiosSeleccionados([]);
 		setDescuento(0);
 		setDescuentoPorcentaje(0);
+		setEstudioDetalle(null);
+		limpiarBorradorPersistente(BORRADOR);
 	};
 
 	const handleVerCotizacion = async (cotizacion) => {
@@ -443,6 +462,20 @@ const Cotizacion = () => {
 	const estudiosFiltrados = mostrandoEstudiosSinPrecio
 		? estudiosSinFiltroPrecio
 		: estudiosConPrecio;
+
+	const opcionesEstudio = estudiosFiltrados.slice(0, 10);
+	const listaEstudiosAbierta =
+		showBusquedaEstudios && buscarEstudio.trim().length >= 2;
+	const {
+		manejarTeclas: teclasEstudios,
+		contenedorRef: refEstudios,
+		propsOpcion: opcionEstudio,
+	} = useNavegacionLista({
+		cantidad: opcionesEstudio.length,
+		activo: listaEstudiosAbierta,
+		onSeleccionar: (indice) => agregarEstudio(opcionesEstudio[indice]),
+		onCerrar: () => setShowBusquedaEstudios(false),
+	});
 
 	const cotizacionesFiltradas = cotizaciones.filter(
 		(cot) =>
@@ -645,6 +678,11 @@ const Cotizacion = () => {
 										setBuscarEstudio(e.target.value);
 										setShowBusquedaEstudios(e.target.value.trim().length >= 2);
 									}}
+									onKeyDown={teclasEstudios}
+									role="combobox"
+									aria-expanded={listaEstudiosAbierta}
+									aria-controls="cotizacion-resultados-estudios"
+									aria-autocomplete="list"
 									className="input-buscar-estudios-cot"
 								/>
 								{mostrandoEstudiosSinPrecio && (
@@ -653,16 +691,20 @@ const Cotizacion = () => {
 										se cotizan al precio por defecto.
 									</p>
 								)}
-								{showBusquedaEstudios && buscarEstudio.trim().length >= 2 && (
-									<div className="search-results-estudios-cot">
-										{estudiosFiltrados.length === 0 ? (
+								{listaEstudiosAbierta && (
+									<div
+										id="cotizacion-resultados-estudios"
+										role="listbox"
+										ref={refEstudios}
+										className="search-results-estudios-cot">
+										{opcionesEstudio.length === 0 ? (
 											<div className="search-result-item-cot sin-resultados-cot">
 												No se encontraron estudios para la selección actual
 											</div>
-										) : estudiosFiltrados.slice(0, 10).map((est) => (
+										) : opcionesEstudio.map((est, indice) => (
 											<div
 												key={est.id}
-												className="search-result-item-cot"
+												{...opcionEstudio(indice, "search-result-item-cot")}
 												onClick={() => agregarEstudio(est)}>
 												<strong>{est.clave}</strong> - {est.descripcion}
 											</div>
@@ -694,7 +736,15 @@ const Cotizacion = () => {
 											estudiosSeleccionados.map((estudio, index) => (
 												<tr key={index}>
 													<td>{estudio.clave}</td>
-													<td>{estudio.descripcion}</td>
+													<td>
+														<button
+															type="button"
+															className="btn-detalle-estudio-cot"
+															aria-label={`Ver detalle de ${estudio.descripcion}`}
+															onClick={() => setEstudioDetalle(estudio)}>
+															{estudio.descripcion}
+														</button>
+													</td>
 													<td>{estudio.tipo}</td>
 													<td>${estudio.precio.toFixed(2)}</td>
 													<td>{estudio.diasProceso}</td>
@@ -775,6 +825,11 @@ const Cotizacion = () => {
 						</div>
 					</div>
 				</div>
+
+				<ModalDetalleEstudio
+					estudio={estudioDetalle}
+					onClose={() => setEstudioDetalle(null)}
+				/>
 
 				<ModalNotificacion
 					isOpen={notificacion.isOpen}

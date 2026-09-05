@@ -619,3 +619,28 @@
 	font-size: 0.78rem;
 	color: var(--texto);
 }
+
+/* La descripción del estudio abre su detalle, igual que en nuevo paciente:
+   se lee como texto de la tabla y sólo al apuntarla se ve que es un enlace. */
+.btn-detalle-estudio-cot {
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	max-width: 100%;
+	overflow: hidden;
+	padding: 0;
+	text-align: left;
+	text-decoration: underline;
+	text-decoration-color: transparent;
+	text-overflow: ellipsis;
+	transition: color 0.2s, text-decoration-color 0.2s;
+	white-space: nowrap;
+}
+
+.btn-detalle-estudio-cot:hover,
+.btn-detalle-estudio-cot:focus-visible {
+	color: var(--texto-azul);
+	text-decoration-color: currentColor;
+}

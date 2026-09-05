@@ -146,6 +146,7 @@ import {
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
 import ModalMuestrasPendientes from "./componentes/modal-muestras-pendientes";
 import ModalDetalleEstudio from "./componentes/modal-detalle-estudio";
+import { useNavegacionLista } from "../../hooks/use-navegacion-lista";
 import "./nuevo-paciente.css";
 
 import cotizacionesBtn from "../../assets/cotizacionesBtn.png";
@@ -1808,6 +1809,22 @@ const NuevoPaciente = () => {
 		navigate("/login");
 	};
 
+	// La lista de estudios se navega con flechas y se elige con Enter, como un
+	// select: capturar sin soltar el teclado es lo normal en recepción.
+	const listaEstudiosAbierta = Boolean(
+		showBusquedaEstudios && buscarEstudio.length >= 2 && clienteSeleccionado,
+	);
+	const {
+		manejarTeclas: teclasEstudios,
+		contenedorRef: refEstudios,
+		propsOpcion: opcionEstudio,
+	} = useNavegacionLista({
+		cantidad: estudiosFiltrados.length,
+		activo: listaEstudiosAbierta,
+		onSeleccionar: (indice) => agregarEstudio(estudiosFiltrados[indice]),
+		onCerrar: () => setShowBusquedaEstudios(false),
+	});
+
 	return (
 		<PageLayout
 			empleadoData={empleadoData}
@@ -2169,19 +2186,24 @@ const NuevoPaciente = () => {
 												filtrarEstudios(e.target.value);
 											}
 										}}
+										onKeyDown={teclasEstudios}
+										role="combobox"
+										aria-expanded={listaEstudiosAbierta}
+										aria-autocomplete="list"
 										className="search-input-full"
 										disabled={!clienteSeleccionado}
 									/>
 
-									{showBusquedaEstudios &&
-										buscarEstudio.length >= 2 &&
-										clienteSeleccionado && (
-											<div className="search-results-estudios">
+									{listaEstudiosAbierta && (
+											<div
+												role="listbox"
+												ref={refEstudios}
+												className="search-results-estudios">
 												{estudiosFiltrados.length > 0 ? (
-													estudiosFiltrados.map((est) => (
+													estudiosFiltrados.map((est, indice) => (
 														<div
 															key={est.id}
-															className="search-result-item"
+															{...opcionEstudio(indice, "search-result-item")}
 															onClick={() => agregarEstudio(est)}>
 															<strong>{est.clave}</strong> - {est.descripcion}
 														</div>
