@@ -146,6 +146,7 @@ import {
 import ModalBuscarCotizacion from "./componentes/modal-buscar-cotizacion";
 import ModalMuestrasPendientes from "./componentes/modal-muestras-pendientes";
 import ModalDetalleEstudio from "./componentes/modal-detalle-estudio";
+import { calcularEdadPaciente } from "../../utils/edad-paciente";
 import { useNavegacionLista } from "../../hooks/use-navegacion-lista";
 import "./nuevo-paciente.css";
 
@@ -1290,7 +1291,12 @@ const NuevoPaciente = () => {
 		setNombreCompleto(paciente.nombre);
 		setTelefono(normalizarTelefono10(paciente.telefono || ""));
 		setCorreo(paciente.email || "");
-		setEdad(paciente.edad?.toString() || "");
+		// Muchos pacientes están dados de alta con fecha de nacimiento y sin edad:
+		// dejar el campo vacío hacía que el ticket saliera sin edad.
+		setEdad(
+			paciente.edad?.toString() ||
+				calcularEdadPaciente(paciente.fecha_nacimiento).replace(" años", ""),
+		);
 		setSexo(paciente.sexo || "");
 		setRfc(paciente.rfc || "");
 		setBuscarPaciente(paciente.nombre);

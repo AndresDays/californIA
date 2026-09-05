@@ -443,3 +443,80 @@ describe('ningún ticket lleva fecha de entrega por estudio', () => {
 		expect(textos.some((texto) => /^\d{2}-\d{2}-\d{2}$/.test(String(texto)))).toBe(false);
 	});
 });
+
+describe('datos del paciente en el ticket de laboratorio', () => {
+	const ticketLaboratorio = {
+		folio: 'C0100',
+		fecha: new Date('2026-09-05T10:00:00'),
+		paciente: 'Juan Perez',
+		empresa: 'CDC',
+		estudios: [{ descripcion: 'BIOMETRIA HEMATICA', precio: 165 }],
+	};
+	const textos = () => mockDoc.text.mock.calls.map(([texto]) => texto);
+
+	beforeEach(() => {
+		jest.clearAllMocks();
+		HTMLCanvasElement.prototype.toDataURL = jest.fn(() => 'barcode');
+		URL.createObjectURL = jest.fn(() => 'blob:ticket');
+		window.open = jest.fn();
+	});
+
+	test('imprime la fecha de nacimiento y saca la edad de ella', async () => {
+		// La edad depende del día en que se imprime: sin fijar el reloj la prueba
+		// se rompería sola en el siguiente cumpleaños.
+		jest.useFakeTimers().setSystemTime(new Date('2026-09-05T10:00:00'));
+		await generarTicketVenta({
+			...ticketLaboratorio,
+			fechaNacimiento: '1990-04-12',
+			telefono: '3221234567',
+		});
+
+		expect(textos()).toEqual(
+			expect.arrayContaining(['Nacimiento: 12/04/1990', 'Edad: 36 años']),
+		);
+		jest.useRealTimers();
+	});
+
+	test('respeta la edad que trae la orden', async () => {
+		await generarTicketVenta({
+			...ticketLaboratorio,
+			fechaNacimiento: '1990-04-12',
+			edad: '35 años',
+		});
+
+		expect(textos()).toContain('Edad: 35 años');
+	});
+
+	test('un teléfono de puros ceros no se imprime ni va en la liga del portal', async () => {
+		await generarTicketVenta({ ...ticketLaboratorio, telefono: '0000000000' });
+
+		const impresos = textos().join(' ');
+		expect(impresos).not.toMatch(/Telefono:/);
+		expect(impresos).not.toMatch(/telefono=0000000000/);
+	});
+
+	test('el correo que va bajo el folio es el del paciente', async () => {
+		await generarTicketVenta({
+			...ticketLaboratorio,
+			email: 'juan@correo.com',
+			telefono: '3221234567',
+		});
+
+		const impresos = textos();
+		// El de la empresa sigue en el encabezado, y el del paciente bajo el folio.
+		expect(impresos).toContain('Correo: labcalifornia01@gmail.com');
+		expect(impresos).toContain('Email: juan@correo.com');
+	});
+
+	test('sin correo no se imprime el renglón vacío', async () => {
+		await generarTicketVenta({ ...ticketLaboratorio, telefono: '3221234567' });
+
+		expect(textos().join(' ')).not.toMatch(/Email:/);
+	});
+
+	test('imprime al doctor de la orden', async () => {
+		await generarTicketVenta({ ...ticketLaboratorio, doctor: 'Dra. Lopez' });
+
+		expect(textos()).toContain('Doctor: DRA. LOPEZ');
+	});
+});
