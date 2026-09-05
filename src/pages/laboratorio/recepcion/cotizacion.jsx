@@ -193,7 +193,11 @@ const Cotizacion = () => {
 		try {
 			const { data: estudiosLab, error } = await supabase
 				.from("estudios_lab_catalogo")
-				.select("id, clave, descripcion, area, dias_proceso")
+				// El detalle del estudio se consulta desde la tabla de la
+				// cotización: sin estos campos el modal salía casi vacío.
+				.select(
+					"id, clave, descripcion, area, tipo_muestra, recipiente, metodo, tecnica, equipo, condiciones_paciente, etiquetas_extra, dias_proceso",
+				)
 				.order("clave");
 			if (error) throw error;
 
@@ -203,7 +207,7 @@ const Cotizacion = () => {
 			const { data: estudiosImagen, error: errorImagen } = await supabase
 				.from("estudios_imagen_catalogo")
 				.select(
-					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, requiere_contraste, requiere_interpretacion, dias_proceso",
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso, preparacion, duracion_minutos",
 				)
 				.eq("activo", true)
 				.order("clave");

@@ -586,10 +586,16 @@
 	white-space: nowrap;
 }
 
+.btn-detalle-estudio {
+	text-decoration-color: var(--borde-fuerte);
+	text-decoration-style: dotted;
+}
+
 .btn-detalle-estudio:hover,
 .btn-detalle-estudio:focus-visible {
 	color: var(--texto-azul);
 	text-decoration-color: currentColor;
+	text-decoration-style: solid;
 }
 
 /* Los botones de cantidad repiten el trazo del botón de borrar para que la
