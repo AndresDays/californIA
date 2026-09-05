@@ -8,6 +8,7 @@ import { useAuth } from '../context/auth-context';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
+import { useNavegacionLista } from '../hooks/use-navegacion-lista';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 import {
@@ -412,8 +413,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     }
   };
 
-  if (!isOpen) return null;
-
   // Los campos son texto: lo escrito se casa con el catalogo para acotar la
   // busqueda del estudio. Lo que no coincide simplemente no acota nada, y la
   // busqueda sigue funcionando sobre todo el catalogo.
@@ -436,6 +435,23 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
   const estudiosFiltrados =
     estudiosConPrecio.length > 0 ? estudiosConPrecio : estudiosSinFiltroPrecio;
+  const opcionesEstudio = estudiosFiltrados.slice(0, 10);
+  // La lista de resultados se recorre con las flechas y se elige con Enter,
+  // igual que un select; el hook va antes de la salida temprana porque los
+  // hooks no pueden quedar detrás de un return condicional.
+  const listaEstudiosAbierta = Boolean(showBusquedaEstudios && buscarEstudio.length >= 2);
+  const {
+		manejarTeclas: teclasEstudios,
+		contenedorRef: refEstudios,
+		propsOpcion: opcionEstudio,
+	} = useNavegacionLista({
+    cantidad: opcionesEstudio.length,
+    activo: listaEstudiosAbierta,
+    onSeleccionar: (indice) => agregarEstudio(opcionesEstudio[indice]),
+    onCerrar: () => setShowBusquedaEstudios(false),
+  });
+
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -563,15 +579,19 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
                   setBuscarEstudio(e.target.value);
                   filtrarEstudios(e.target.value);
                 }}
+                onKeyDown={teclasEstudios}
+                role="combobox"
+                aria-expanded={listaEstudiosAbierta}
+                aria-autocomplete="list"
                 className="form-input-cita"
                 placeholder="Buscar estudio para agregar..."
                 disabled={loading}
               />
 
-              {showBusquedaEstudios && buscarEstudio.length >= 2 && (
-                <div className="search-results-estudios-modal">
-                  {estudiosFiltrados.slice(0, 10).map(est => (
-                    <div key={est.id} className="search-result-item-modal" onClick={() => agregarEstudio(est)}>
+              {listaEstudiosAbierta && (
+                <div role="listbox" ref={refEstudios} className="search-results-estudios-modal">
+                  {opcionesEstudio.map((est, indice) => (
+                    <div key={est.id} {...opcionEstudio(indice, "search-result-item-modal")} onClick={() => agregarEstudio(est)}>
                       <strong>{est.clave}</strong> - {est.descripcion}
                     </div>
                   ))}

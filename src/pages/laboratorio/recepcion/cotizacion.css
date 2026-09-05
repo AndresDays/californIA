@@ -511,8 +511,9 @@
 
 .botones-cotizacion {
 	display: flex;
-	gap: 0.75rem;
-	padding-top: 0.75rem;
+	gap: 0.5rem;
+	justify-content: flex-end;
+	padding-top: 0.6rem;
 	border-top: 1px solid var(--borde);
 	flex-wrap: wrap;
 }
@@ -587,28 +588,44 @@
 	}
 
 	.botones-cotizacion {
-		flex-direction: column;
+		justify-content: center;
 	}
 }
 
+/* Los tres botones cierran la pantalla: a 55px de alto competían con los
+   totales, que es lo que se revisa antes de guardar. Quedan como fichas
+   chicas del mismo tamaño, alineadas a la derecha igual que el pie de las
+   demás tablas. */
 .btn-img-cot {
-	background: transparent;
-	border: none;
-	padding: 0;
-	cursor: pointer;
-	display: flex;
 	align-items: center;
-	transition: transform 0.2s, opacity 0.2s;
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: 10px;
+	cursor: pointer;
+	display: inline-flex;
 	flex-shrink: 0;
+	justify-content: center;
+	padding: 0.3rem 0.5rem;
+	transition: background 0.2s, border-color 0.2s, transform 0.2s;
 }
 
 .btn-img-cot:hover {
-	transform: translateY(-2px);
-	opacity: 0.85;
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
+	transform: translateY(-1px);
+}
+
+.btn-img-cot:active {
+	transform: translateY(0);
+}
+
+.btn-img-cot:focus-visible {
+	outline: 2px solid var(--azul);
+	outline-offset: 2px;
 }
 
 .icono-btn-cot {
-	height: 55px;
+	height: 32px;
 	width: auto;
 	object-fit: contain;
 	display: block;
@@ -618,4 +635,35 @@
 	margin: 0.25rem 0 0 0;
 	font-size: 0.78rem;
 	color: var(--texto);
+}
+
+/* La descripción del estudio abre su detalle, igual que en nuevo paciente:
+   se lee como texto de la tabla y sólo al apuntarla se ve que es un enlace. */
+.btn-detalle-estudio-cot {
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	max-width: 100%;
+	overflow: hidden;
+	padding: 0;
+	text-align: left;
+	text-decoration: underline;
+	text-decoration-color: transparent;
+	text-overflow: ellipsis;
+	transition: color 0.2s, text-decoration-color 0.2s;
+	white-space: nowrap;
+}
+
+.btn-detalle-estudio-cot {
+	text-decoration-color: var(--borde-fuerte);
+	text-decoration-style: dotted;
+}
+
+.btn-detalle-estudio-cot:hover,
+.btn-detalle-estudio-cot:focus-visible {
+	color: var(--texto-azul);
+	text-decoration-color: currentColor;
+	text-decoration-style: solid;
 }

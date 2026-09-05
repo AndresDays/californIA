@@ -137,3 +137,12 @@ h1, h2, h3 {
 	color: var(--texto-tenue);
 	font-weight: 600;
 }
+
+/* ── Opción resaltada con el teclado en las listas de resultados ──────────
+   Las listas de los buscadores se navegan con flechas: la opción marcada
+   necesita verse tan clara como la que está bajo el mouse. */
+.resultado-activo {
+	background: var(--superficie-activa) !important;
+	outline: 2px solid var(--azul);
+	outline-offset: -2px;
+}
