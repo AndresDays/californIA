@@ -72,8 +72,20 @@ import {
 	esPagoConTarjeta,
 	normalizarCodigoAprobacion,
 	normalizarUltimos4,
-	validarPagoTarjeta,
 } from "../../utils/pago-tarjeta";
+import {
+	FORMAS_PAGO,
+	construirDesglosePagos,
+	crearPagoAdicional,
+	describirDesglosePagos,
+	repartirDesglosePorMonto,
+	resolverDatosTarjetaVenta,
+	resolverFormaPagoVenta,
+	restantePorPagar,
+	serializarDesglosePagos,
+	totalDesglosePagos,
+	validarDesglosePagos,
+} from "../../utils/pagos-mixtos";
 
 const CLAVE_BORRADOR = "california:nuevo-paciente:borrador";
 // Los comprobantes de la venta recién guardada. Al ir a imprimir uno, el
@@ -254,6 +266,12 @@ const NuevoPaciente = () => {
 	const [formaPago, setFormaPago] = useCampoPersistente(`${BORRADOR}formaPago`, "efectivo");
 	const [tarjetaUltimos4, setTarjetaUltimos4] = useCampoPersistente(`${BORRADOR}tarjetaUltimos4`, "");
 	const [codigoAprobacion, setCodigoAprobacion] = useCampoPersistente(`${BORRADOR}codigoAprobacion`, "");
+	// Formas de pago extra cuando el cobro se reparte (mil con tarjeta y el
+	// resto en efectivo, por ejemplo). Vacío es el caso normal de una sola.
+	const [pagosAdicionales, setPagosAdicionales] = useCampoPersistente(
+		`${BORRADOR}pagosAdicionales`,
+		[],
+	);
 	const [agregarASalaEspera, setAgregarASalaEspera] = useCampoPersistente(`${BORRADOR}agregarASalaEspera`, true);
 	const [destinoTurno, setDestinoTurno] = useCampoPersistente(`${BORRADOR}destinoTurno`, "");
 	const [destinoTurnoManual, setDestinoTurnoManual] = useCampoPersistente(`${BORRADOR}destinoTurnoManual`, false);
@@ -324,6 +342,37 @@ const NuevoPaciente = () => {
 	);
 	const ordenMixta = esOrdenMixta(partesOrden);
 
+	// El cobro completo: el pago principal más las formas de pago extra.
+	const desglosePagos = useMemo(
+		() =>
+			construirDesglosePagos(
+				{ formaPago, monto: pagoRecibido, tarjetaUltimos4, codigoAprobacion },
+				pagosAdicionales,
+			),
+		[formaPago, pagoRecibido, tarjetaUltimos4, codigoAprobacion, pagosAdicionales],
+	);
+	const totalPagado = totalDesglosePagos(desglosePagos);
+	const restantePago = restantePorPagar(granTotal, desglosePagos);
+	// Repartir el cobro entre varias formas sólo aplica a una orden de una sola
+	// serie: la mixta ya se reparte por folio y mezclar los dos repartos daría
+	// un cobro imposible de conciliar.
+	const puedeAgregarFormaPago =
+		!ordenMixta && granTotal > 0 && totalPagado > 0 && restantePago > 0.009;
+
+	const actualizarPagoAdicional = (indice, cambios) =>
+		setPagosAdicionales(
+			pagosAdicionales.map((pago, i) => (i === indice ? { ...pago, ...cambios } : pago)),
+		);
+
+	const eliminarPagoAdicional = (indice) =>
+		setPagosAdicionales(pagosAdicionales.filter((_, i) => i !== indice));
+
+	const agregarPagoAdicional = () =>
+		setPagosAdicionales([
+			...pagosAdicionales,
+			crearPagoAdicional(Number(restantePago.toFixed(2))),
+		]);
+
 	// La tabla de estudios pinta cantidad e importe por renglón: se calculan una
 	// sola vez por cambio de estudios y no en cada render.
 	const renglonesEstudios = useMemo(
@@ -348,7 +397,7 @@ const NuevoPaciente = () => {
 
 	useEffect(() => {
 		calcularTotales();
-	}, [estudiosSeleccionados, descuentoPercent, pagoRecibido]);
+	}, [estudiosSeleccionados, descuentoPercent, pagoRecibido, pagosAdicionales]);
 
 	// El cobro de una orden mixta arranca prorrateado a proporción del total de
 	// cada serie; queda editable para cuando el paciente sólo paga una parte.
@@ -539,22 +588,15 @@ const NuevoPaciente = () => {
 			}
 		}
 
-		const pagoTarjeta = validarPagoTarjeta({
-			formaPago,
-			ultimos4: tarjetaUltimos4,
-			codigoAprobacion,
-		});
-		if (normalizarPagoRecibido(pagoRecibido) > 0 && !pagoTarjeta.valido) {
+		const pagoTarjeta = validarDesglosePagos(desglosePagos);
+		if (!pagoTarjeta.valido) {
 			globalThis.mostrarNotificacion(pagoTarjeta.mensaje, "advertencia");
 			return;
 		}
 		try {
-			const pagoNormalizado = normalizarPagoRecibido(pagoRecibido);
-			const datosTarjetaVenta = construirDatosTarjeta({
-				formaPago,
-				ultimos4: tarjetaUltimos4,
-				codigoAprobacion,
-			});
+			const pagoNormalizado = totalPagado;
+			const formaPagoVenta = resolverFormaPagoVenta(desglosePagos, formaPago);
+			const datosTarjetaVenta = resolverDatosTarjetaVenta(desglosePagos);
 			const pagoAplicado = calcularPagoAplicadoVenta(granTotal, pagoNormalizado);
 			const cambioVenta = Math.max(pagoNormalizado - granTotal, 0);
 			let idPaciente = pacienteSeleccionado?.id_paciente;
@@ -630,6 +672,9 @@ const NuevoPaciente = () => {
 					parte.total,
 				);
 				const cambioParte = parte.serie === partesOrden[0].serie ? cambioVenta : 0;
+				// Con varias formas de pago, a cada folio le toca el pedazo del
+				// cobro que alcanza a cubrir su importe.
+				const desgloseParte = repartirDesglosePorMonto(desglosePagos, pagoParte);
 
 				const ventaPayload = agregarSucursalEmpleadoPayload(
 					{
@@ -646,8 +691,10 @@ const NuevoPaciente = () => {
 						iva: 0,
 						descuento: parte.descuento,
 						total: parte.total,
-						forma_pago: formaPago,
+						forma_pago: resolverFormaPagoVenta(desgloseParte, formaPagoVenta),
 						...datosTarjetaVenta,
+						pagos_desglose:
+							desgloseParte.length > 1 ? serializarDesglosePagos(desgloseParte) : null,
 						pago_recibido: pagoParte,
 						cambio: cambioParte,
 						observaciones: observaciones,
@@ -675,6 +722,7 @@ const NuevoPaciente = () => {
 							"id_cita",
 							"tarjeta_ultimos4",
 							"codigo_aprobacion",
+							"pagos_desglose",
 							"folio_grupo",
 						].includes(columna)
 					) {
@@ -688,15 +736,17 @@ const NuevoPaciente = () => {
 
 				if (errorVenta) throw errorVenta;
 
-				if (pagoParte > 0) {
+				// Un movimiento por forma de pago: el corte de caja suma por forma y
+				// un solo renglón "mixto" dejaría el efectivo sin cuadrar.
+				for (const pago of desgloseParte) {
 					await registrarMovimientoPagoVenta(supabase, {
 						id_venta: venta.id_venta,
 						folio: folioParte,
 						tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.PAGO_INICIAL,
-						monto: pagoParte,
-						forma_pago: formaPago,
-						ultimos4: tarjetaUltimos4,
-						codigoAprobacion,
+						monto: pago.monto,
+						forma_pago: pago.formaPago,
+						ultimos4: pago.tarjetaUltimos4,
+						codigoAprobacion: pago.codigoAprobacion,
 						motivo: "Pago inicial de solicitud",
 						id_sucursal: sucursalEmpleado.id_sucursal,
 						sucursal: sucursalEmpleado.sucursal,
@@ -730,7 +780,8 @@ const NuevoPaciente = () => {
 					empleado,
 					user,
 					detalles: {
-						forma_pago: formaPago,
+						forma_pago: resolverFormaPagoVenta(desgloseParte, formaPagoVenta),
+						pagos_desglose: serializarDesglosePagos(desgloseParte),
 						...datosTarjetaVenta,
 						total: parte.total,
 						pago_recibido: pagoParte,
@@ -931,7 +982,9 @@ const NuevoPaciente = () => {
 				empresas.find((emp) => resolverEmpresaOperativaCatalogo(emp.nombre) === empresa)
 					?.nombre || empresaActual.nombre;
 
-			const ticketsOrden = ventasRegistradas.map((registro) => ({
+			const ticketsOrden = ventasRegistradas.map((registro) => {
+				const desgloseTicket = repartirDesglosePorMonto(desglosePagos, registro.pago);
+				return {
 				tipo:
 					registro.parte.serie === SERIE_LABORATORIO
 						? TIPO_TICKET_LABORATORIO
@@ -961,12 +1014,18 @@ const NuevoPaciente = () => {
 				pagoRecibido: registro.pago,
 				adeudo: Math.max(registro.parte.total - registro.pago, 0),
 				cambio: registro.parte.serie === partesOrden[0].serie ? cambioVenta : 0,
-				formaPago,
+				// Con varias formas el ticket las imprime desglosadas, que es lo que
+				// el paciente necesita ver del cobro.
+				formaPago:
+					desgloseTicket.length > 1
+						? describirDesglosePagos(desgloseTicket)
+						: desgloseTicket[0]?.formaPago || formaPago,
 				tarjetaUltimos4: datosTarjetaVenta.tarjeta_ultimos4 || "",
 				codigoAprobacion: datosTarjetaVenta.codigo_aprobacion || "",
 				observaciones,
 				vendedor: empleadoData?.nombre || getPrimerNombre(),
-			}));
+				};
+			});
 
 			const registroLaboratorio = ventasRegistradas.find(
 				(registro) => registro.parte.serie === SERIE_LABORATORIO,
@@ -1279,6 +1338,7 @@ const NuevoPaciente = () => {
 		setFormaPago("efectivo");
 		setTarjetaUltimos4("");
 		setCodigoAprobacion("");
+		setPagosAdicionales([]);
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
@@ -1535,7 +1595,7 @@ const NuevoPaciente = () => {
 		setDescuento(desc);
 		setGranTotal(gran);
 
-		const camb = normalizarPagoRecibido(pagoRecibido) - gran;
+		const camb = totalPagado - gran;
 		setCambio(camb > 0 ? camb : 0);
 	};
 
@@ -1728,6 +1788,7 @@ const NuevoPaciente = () => {
 		setFormaPago("efectivo");
 		setTarjetaUltimos4("");
 		setCodigoAprobacion("");
+		setPagosAdicionales([]);
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
@@ -1798,7 +1859,7 @@ const NuevoPaciente = () => {
 		estudiosFiltrados.length,
 	]);
 
-	const resumenPago = obtenerResumenPagoNuevoPaciente(granTotal, pagoRecibido);
+	const resumenPago = obtenerResumenPagoNuevoPaciente(granTotal, totalPagado);
 	const limpiarPacienteSeleccionado = () => {
 		setPacienteSeleccionado(null);
 		setBuscarPaciente("");
@@ -2464,6 +2525,134 @@ const NuevoPaciente = () => {
 										/>
 									</div>
 								</div>
+
+								{/* El cobro se puede repartir entre varias formas de pago: se
+								    captura el primer monto y, si falta para el total, aparece
+								    el botón para completar con otra forma. */}
+								{pagosAdicionales.length > 0 && (
+									<div className="pagos-adicionales">
+										{pagosAdicionales.map((pago, indice) => (
+											<div key={indice} className="pago-adicional">
+												<div className="pago-adicional-encabezado">
+													<span>Pago {indice + 2}</span>
+													<button
+														type="button"
+														className="btn-quitar-pago"
+														onClick={() => eliminarPagoAdicional(indice)}>
+														Quitar
+													</button>
+												</div>
+
+												<div className="pago-grid">
+													<div className="pago-item">
+														<label htmlFor={`forma-pago-${indice}`}>Forma Pago</label>
+														<select
+															id={`forma-pago-${indice}`}
+															value={pago.formaPago}
+															onChange={(e) =>
+																actualizarPagoAdicional(indice, {
+																	formaPago: e.target.value,
+																})
+															}
+															className="form-select">
+															{FORMAS_PAGO.map((forma) => (
+																<option key={forma.valor} value={forma.valor}>
+																	{forma.etiqueta}
+																</option>
+															))}
+														</select>
+													</div>
+
+													<div className="pago-item">
+														<label htmlFor={`monto-pago-${indice}`}>Monto</label>
+														<input
+															id={`monto-pago-${indice}`}
+															type="number"
+															min="0"
+															step="0.01"
+															value={pago.monto}
+															onChange={(e) =>
+																actualizarPagoAdicional(indice, {
+																	monto:
+																		e.target.value === ""
+																			? ""
+																			: parseFloat(e.target.value) || 0,
+																})
+															}
+															className="form-input-small"
+															placeholder="0.00"
+														/>
+													</div>
+												</div>
+
+												{esPagoConTarjeta(pago.formaPago) && (
+													<div className="pago-grid pago-grid-tarjeta">
+														<div className="pago-item">
+															<label htmlFor={`ultimos4-${indice}`}>
+																Últimos 4 dígitos
+															</label>
+															<input
+																id={`ultimos4-${indice}`}
+																type="text"
+																inputMode="numeric"
+																maxLength={4}
+																value={pago.tarjetaUltimos4}
+																onChange={(e) =>
+																	actualizarPagoAdicional(indice, {
+																		tarjetaUltimos4: normalizarUltimos4(e.target.value),
+																	})
+																}
+																className="form-input-small"
+																placeholder="1234"
+															/>
+														</div>
+
+														<div className="pago-item">
+															<label htmlFor={`aprobacion-${indice}`}>
+																Código de aprobación
+															</label>
+															<input
+																id={`aprobacion-${indice}`}
+																type="text"
+																maxLength={12}
+																value={pago.codigoAprobacion}
+																onChange={(e) =>
+																	actualizarPagoAdicional(indice, {
+																		codigoAprobacion: normalizarCodigoAprobacion(
+																			e.target.value,
+																		),
+																	})
+																}
+																className="form-input-small"
+																placeholder="Ej. A1B2C3"
+															/>
+														</div>
+													</div>
+												)}
+											</div>
+										))}
+									</div>
+								)}
+
+								{(pagosAdicionales.length > 0 || puedeAgregarFormaPago) && (
+									<div className="resumen-pagos">
+										<span>
+											Pagado ${totalPagado.toFixed(2)} de ${granTotal.toFixed(2)}
+										</span>
+										{restantePago > 0.009 && (
+											<strong>Falta ${restantePago.toFixed(2)}</strong>
+										)}
+									</div>
+								)}
+
+								{puedeAgregarFormaPago && (
+									<button
+										type="button"
+										className="btn-agregar-pago"
+										onClick={agregarPagoAdicional}>
+										+ Agregar otro método de pago (${restantePago.toFixed(2)})
+									</button>
+								)}
 
 								{ordenMixta && (
 									<div className="cobro-por-serie">

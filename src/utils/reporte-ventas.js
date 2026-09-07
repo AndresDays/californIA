@@ -1,4 +1,5 @@
 import { clasificarFormaPago } from "./pagos-ventas";
+import { leerDesglosePagos } from "./pagos-mixtos";
 
 const COLORES_TOP = ["#53B9DB", "#49B2D4", "#106DA0", "#1a7ab8", "#0d5580"];
 export const SIN_SUCURSAL_REPORTE = "__sin_sucursal";
@@ -204,7 +205,16 @@ export const calcularResumenCorteVentas = ({
 
 	let porCobrar = 0;
 	for (const venta of ventas) {
-		porForma[clasificarFormaPago(venta.forma_pago)] += numero(venta.pago_recibido);
+		// Una venta cobrada con dos formas trae el reparto en `pagos_desglose`:
+		// meterla completa en la forma "mixto" descuadraría efectivo y bancos.
+		const desglose = leerDesglosePagos(venta.pagos_desglose);
+		if (desglose.length > 0) {
+			for (const pago of desglose) {
+				porForma[clasificarFormaPago(pago.forma_pago)] += numero(pago.monto);
+			}
+		} else {
+			porForma[clasificarFormaPago(venta.forma_pago)] += numero(venta.pago_recibido);
+		}
 		porCobrar += calcularSaldoVentaReporte(venta);
 	}
 

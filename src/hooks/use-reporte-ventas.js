@@ -37,6 +37,14 @@ const SELECT_FULL = `
   estudios_venta ( id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, id_sucursal, sucursal )
 `;
 
+// El desglose de un cobro repartido entre varias formas de pago. Es la columna
+// más nueva, así que va en su propio intento: una base sin migrar no debe
+// tirar el reporte a la consulta mínima.
+const SELECT_FULL_PAGOS = SELECT_FULL.replace(
+  'forma_pago, pago_recibido,',
+  'forma_pago, pagos_desglose, pago_recibido,',
+);
+
 const puedeReintentarSinCita = (error) => {
   const msg = error?.message || '';
   return (
@@ -110,7 +118,13 @@ const fetchVentasConFallback = async ({ fechaInicial, fechaFinal, estado = 'acti
       .order('fecha_venta', { ascending: false });
 
   // Intento 1: query completo
-  let { data, error } = await crearQuery(SELECT_FULL);
+  let { data, error } = await crearQuery(SELECT_FULL_PAGOS);
+
+  // Intento 1b: sin el desglose de pagos
+  if (error && esErrorColumnaSchemaCache(error, 'pagos_desglose')) {
+    const r = await crearQuery(SELECT_FULL);
+    data = r.data; error = r.error;
+  }
 
   // Intento 2: sin relación citas
   if (error && puedeReintentarSinCita(error)) {
