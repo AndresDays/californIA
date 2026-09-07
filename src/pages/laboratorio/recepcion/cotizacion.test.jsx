@@ -112,6 +112,36 @@ describe('Cotizacion — Validaciones', () => {
   });
 });
 
+// Cotizacion — Envío por WhatsApp / correo
+describe('Cotizacion — Envío', () => {
+  let ventana;
+  let openSpy;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    ventana = { location: { href: '' }, close: jest.fn() };
+    openSpy = jest.spyOn(window, 'open').mockReturnValue(ventana);
+  });
+
+  afterEach(() => openSpy.mockRestore());
+
+  test.each([
+    ['WhatsApp'],
+    ['Correo'],
+  ])('el botón de %s valida antes de guardar y cierra la pestaña', async (alt) => {
+    await renderCotizacion();
+
+    await act(async () => {
+      fireEvent.click(screen.getByAltText(alt));
+    });
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    expect(screen.getByRole('alert')).toHaveTextContent(/Por favor/);
+    expect(ventana.close).toHaveBeenCalled();
+    expect(ventana.location.href).toBe('');
+  });
+});
+
 // Cotizacion — Interacción
 describe('Cotizacion — Interacción', () => {
   beforeEach(() => jest.clearAllMocks());
