@@ -2434,16 +2434,13 @@ const NuevoPaciente = () => {
 															</div>
 														</td>
 														<td>
-															{hayDescuentoPorRenglon ? (
-																<>
-																	<span className="precio-sin-descuento">${importe.toFixed(2)}</span>{" "}
-																	<strong className="precio-con-descuento">
-																		${importeConDescuento.toFixed(2)}
-																	</strong>
-																</>
-															) : (
-																`$${importe.toFixed(2)}`
-															)}
+															{/* La columna es angosta: con el descuento se muestra sólo el
+																precio que se va a cobrar, no el de lista tachado, que se
+																cortaba con puntos suspensivos. El encabezado dice el
+																porcentaje aplicado. */}
+															<span className={hayDescuentoPorRenglon ? "precio-con-descuento" : undefined}>
+																${(hayDescuentoPorRenglon ? importeConDescuento : importe).toFixed(2)}
+															</span>
 															{cantidad > 1 && (
 																<span className="precio-unitario">
 																	$
