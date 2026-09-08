@@ -649,6 +649,19 @@
 	color: var(--texto-suave);
 }
 
+/* Con un descuento de mostrador el renglón muestra el precio de lista tachado
+   y, a su lado, lo que se le va a cobrar al paciente. */
+.precio-sin-descuento {
+	text-decoration: line-through;
+	color: var(--texto-suave);
+	font-size: 0.8rem;
+}
+
+.precio-con-descuento {
+	color: #2e7d32;
+	font-weight: 700;
+}
+
 .btn-delete {
 	width: 32px;
 	height: 32px;
