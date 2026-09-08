@@ -120,6 +120,7 @@ import { crearNotificaciones } from "../../utils/notificaciones";
 import { obtenerResumenPagoNuevoPaciente } from "../../utils/nuevo-paciente-resumen";
 import {
 	CANTIDAD_MAXIMA_ESTUDIO,
+	aplicarDescuentoPorcentaje,
 	calcularTotalesNuevoPaciente,
 	expandirEstudiosPorCantidad,
 	normalizarCantidadEstudio,
@@ -384,19 +385,28 @@ const NuevoPaciente = () => {
 		]);
 
 	// La tabla de estudios pinta cantidad e importe por renglón: se calculan una
-	// sola vez por cambio de estudios y no en cada render.
+	// sola vez por cambio de estudios y no en cada render. Con un descuento de
+	// mostrador (los clientes 10%, 20% y 30%) el renglón muestra además lo que
+	// se le va a cobrar, para no obligar a sacar la cuenta desde el total.
 	const renglonesEstudios = useMemo(
 		() =>
 			estudiosSeleccionados.map((estudio) => {
 				const cantidad = normalizarCantidadEstudio(estudio.cantidad);
+				const importe = (Number(estudio.precio) || 0) * cantidad;
 				return {
 					estudio,
 					cantidad,
-					importe: (Number(estudio.precio) || 0) * cantidad,
+					importe,
+					importeConDescuento: aplicarDescuentoPorcentaje(importe, descuentoPercent),
+					precioUnitarioConDescuento: aplicarDescuentoPorcentaje(
+						Number(estudio.precio) || 0,
+						descuentoPercent,
+					),
 				};
 			}),
-		[estudiosSeleccionados],
+		[estudiosSeleccionados, descuentoPercent],
 	);
+	const hayDescuentoPorRenglon = Number(descuentoPercent) > 0;
 
 	// En el resumen cuentan las piezas, no los renglones: dos biometrías son dos
 	// estudios para quien cobra y para quien toma la muestra.
@@ -2370,12 +2380,22 @@ const NuevoPaciente = () => {
 												<th>Descripción</th>
 												<th>Cliente</th>
 												<th>Cantidad</th>
-												<th>Precio</th>
+												<th>
+													{hayDescuentoPorRenglon
+														? `Precio (−${Number(descuentoPercent)}%)`
+														: "Precio"}
+												</th>
 												<th>Borrar</th>
 											</tr>
 										</thead>
 										<tbody>
-											{renglonesEstudios.map(({ estudio: est, cantidad, importe }) => (
+											{renglonesEstudios.map(({
+												estudio: est,
+												cantidad,
+												importe,
+												importeConDescuento,
+												precioUnitarioConDescuento,
+											}) => (
 												<Fragment key={est.id}>
 													<tr>
 														<td>{est.clave}</td>
@@ -2414,10 +2434,24 @@ const NuevoPaciente = () => {
 															</div>
 														</td>
 														<td>
-															${importe.toFixed(2)}
+															{hayDescuentoPorRenglon ? (
+																<>
+																	<span className="precio-sin-descuento">${importe.toFixed(2)}</span>{" "}
+																	<strong className="precio-con-descuento">
+																		${importeConDescuento.toFixed(2)}
+																	</strong>
+																</>
+															) : (
+																`$${importe.toFixed(2)}`
+															)}
 															{cantidad > 1 && (
 																<span className="precio-unitario">
-																	${(Number(est.precio) || 0).toFixed(2)} c/u
+																	$
+																	{(hayDescuentoPorRenglon
+																		? precioUnitarioConDescuento
+																		: Number(est.precio) || 0
+																	).toFixed(2)}{" "}
+																	c/u
 																</span>
 															)}
 														</td>

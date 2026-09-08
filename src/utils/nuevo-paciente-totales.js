@@ -27,6 +27,17 @@ export const calcularTotalesNuevoPaciente = (
 	return { subtotal, descuento, total: subtotal - descuento };
 };
 
+// Lo que le queda a un renglón con el descuento de la orden aplicado. Es para
+// que la tabla muestre el precio que se va a cobrar; el total de la orden se
+// sigue calculando sobre el subtotal, así que la suma de los renglones puede
+// diferir en centavos por el redondeo de cada uno.
+export const aplicarDescuentoPorcentaje = (importe, descuentoPercent = 0) => {
+	const monto = Number(importe) || 0;
+	const porcentaje = Number(descuentoPercent) || 0;
+	if (porcentaje <= 0) return monto;
+	return monto - monto * (Math.min(porcentaje, 100) / 100);
+};
+
 // La venta se guarda con un renglón por unidad: estudios_venta no tiene columna
 // de cantidad, y cada unidad necesita su propia captura, su etiqueta y su
 // resultado. Así la suma de los renglones guardados sigue cuadrando con el
