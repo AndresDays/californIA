@@ -1059,6 +1059,13 @@
 	background: var(--azul-claro);
 }
 
+/* Mientras se registra la orden -y una vez registrada- el botón no acepta otro
+   clic: así no se duplica la venta. */
+.btn-guardar-img:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
 .btn-pagar-img:active,
 .btn-guardar-img:active {
 	transform: translateY(0);

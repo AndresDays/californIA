@@ -139,6 +139,11 @@ import {
 	normalizarPagoRecibido,
 } from "../../utils/venta-payment-status";
 import {
+	buscarVentaDuplicada,
+	inicioVentanaDuplicados,
+	mensajeVentaDuplicada,
+} from "../../utils/venta-duplicada";
+import {
 	esEmailValido,
 	esTelefono10Digitos,
 	normalizarPorcentaje,
@@ -266,6 +271,11 @@ const NuevoPaciente = () => {
 	const [formaPago, setFormaPago] = useCampoPersistente(`${BORRADOR}formaPago`, "efectivo");
 	const [tarjetaUltimos4, setTarjetaUltimos4] = useCampoPersistente(`${BORRADOR}tarjetaUltimos4`, "");
 	const [codigoAprobacion, setCodigoAprobacion] = useCampoPersistente(`${BORRADOR}codigoAprobacion`, "");
+	// Guardas contra registrar dos veces la misma orden.
+	const guardandoRef = useRef(false);
+	const duplicadoConfirmadoRef = useRef(false);
+	const [guardandoVenta, setGuardandoVenta] = useState(false);
+	const [folioRegistrado, setFolioRegistrado] = useState(null);
 	// Formas de pago extra cuando el cobro se reparte (mil con tarjeta y el
 	// resto en efectivo, por ejemplo). Vacío es el caso normal de una sola.
 	const [pagosAdicionales, setPagosAdicionales] = useCampoPersistente(
@@ -514,6 +524,29 @@ const NuevoPaciente = () => {
 		}
 	};
 
+	// Órdenes activas del paciente de los últimos minutos por el mismo importe:
+	// es lo que deja ver que la orden ya se había registrado.
+	const buscarVentaRecienteDelPaciente = async (idPaciente, total) => {
+		if (!idPaciente) return null;
+		try {
+			const { data, error } = await supabase
+				.from("ventas")
+				.select("id_venta, folio, total, estado, fecha_venta")
+				.eq("id_paciente", idPaciente)
+				.eq("estado", "activo")
+				.gte("fecha_venta", inicioVentanaDuplicados().toISOString())
+				.order("fecha_venta", { ascending: false })
+				.limit(10);
+			if (error) throw error;
+			return buscarVentaDuplicada({ ventas: data || [], total });
+		} catch (error) {
+			// El aviso es una ayuda, no un requisito: si la consulta falla se
+			// guarda igual, que es lo que espera quien está cobrando.
+			console.warn("No se pudo revisar si la orden estaba duplicada:", error);
+			return null;
+		}
+	};
+
 	const crearTurnoDesdeSolicitud = async ({
 		idPaciente,
 		idCita,
@@ -549,6 +582,19 @@ const NuevoPaciente = () => {
 	};
 
 	const guardarYPagar = async () => {
+		// Primer cerco contra la orden duplicada: mientras un guardado está en
+		// curso, el segundo clic no hace nada. Es un ref y no un estado porque
+		// tiene que valer ya, sin esperar al siguiente render.
+		if (guardandoRef.current) return;
+		// Segundo cerco: la captura que ya se registró no se vuelve a guardar.
+		// Para una orden nueva está el botón de limpiar.
+		if (folioRegistrado) {
+			globalThis.mostrarNotificacion(
+				`Esta captura ya se registró con el folio ${folioRegistrado}. Use "Limpiar y empezar de nuevo" para una orden nueva.`,
+				"advertencia",
+			);
+			return;
+		}
 		if (!nombreCompleto.trim()) {
 			globalThis.mostrarNotificacion("Por favor ingrese el nombre del paciente", "advertencia");
 			return;
@@ -593,6 +639,8 @@ const NuevoPaciente = () => {
 			globalThis.mostrarNotificacion(pagoTarjeta.mensaje, "advertencia");
 			return;
 		}
+		guardandoRef.current = true;
+		setGuardandoVenta(true);
 		try {
 			const pagoNormalizado = totalPagado;
 			const formaPagoVenta = resolverFormaPagoVenta(desglosePagos, formaPago);
@@ -620,6 +668,21 @@ const NuevoPaciente = () => {
 
 				if (errorPaciente) throw errorPaciente;
 				idPaciente = nuevoPaciente.id_paciente;
+			}
+
+			// Tercer cerco: la base ya trae una orden igual de este paciente de hace
+			// un momento. Se avisa una vez; si quien cobra insiste, es una orden
+			// nueva de verdad (un paciente puede volver el mismo día) y pasa.
+			if (!duplicadoConfirmadoRef.current) {
+				const duplicada = await buscarVentaRecienteDelPaciente(idPaciente, granTotal);
+				if (duplicada) {
+					duplicadoConfirmadoRef.current = true;
+					globalThis.mostrarNotificacion(
+						mensajeVentaDuplicada(duplicada),
+						"advertencia",
+					);
+					return;
+				}
 			}
 
 			const { data: empleado } = await supabase
@@ -1079,6 +1142,11 @@ const NuevoPaciente = () => {
 				impresion.error ? "advertencia" : undefined,
 			);
 
+			// La captura queda marcada como ya registrada: con el modal de
+			// comprobantes abierto el formulario sigue lleno, y guardar otra vez
+			// creaba la misma orden con el folio siguiente.
+			setFolioRegistrado(folio);
+
 			if (impresion.comprobantes.length === 0) {
 				limpiarFormulario();
 				navigate("/captura");
@@ -1086,6 +1154,9 @@ const NuevoPaciente = () => {
 		} catch (error) {
 			console.error("Error al guardar:", error);
 			globalThis.mostrarNotificacion("Error al guardar la venta: " + error.message, "error");
+		} finally {
+			guardandoRef.current = false;
+			setGuardandoVenta(false);
 		}
 	};
 
@@ -1339,6 +1410,8 @@ const NuevoPaciente = () => {
 		setTarjetaUltimos4("");
 		setCodigoAprobacion("");
 		setPagosAdicionales([]);
+		setFolioRegistrado(null);
+		duplicadoConfirmadoRef.current = false;
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
@@ -1789,6 +1862,8 @@ const NuevoPaciente = () => {
 		setTarjetaUltimos4("");
 		setCodigoAprobacion("");
 		setPagosAdicionales([]);
+		setFolioRegistrado(null);
+		duplicadoConfirmadoRef.current = false;
 		setAgregarASalaEspera(true);
 		setDestinoTurno("");
 		setDestinoTurnoManual(false);
@@ -2744,8 +2819,17 @@ const NuevoPaciente = () => {
 							</section>
 
 							<div className="action-buttons-final">
-								<button className="btn-guardar-img" onClick={guardarYPagar}>
-									<span className="btn-guardar-label">{resumenPago.accion}</span>
+								<button
+									className="btn-guardar-img"
+									onClick={guardarYPagar}
+									disabled={guardandoVenta || Boolean(folioRegistrado)}>
+									<span className="btn-guardar-label">
+										{guardandoVenta
+											? "Guardando..."
+											: folioRegistrado
+												? `Registrada (${folioRegistrado})`
+												: resumenPago.accion}
+									</span>
 								</button>
 								{/* Empezar de cero sin tener que salir y volver a entrar a la
 								    pantalla, ni ir borrando campo por campo. */}
