@@ -315,6 +315,15 @@
 	color: var(--texto);
 }
 
+/* Cuando lo único que cambia es el pago, la edición es un abono y el motivo
+   deja de ser obligatorio: se avisa para que quede claro qué se va a guardar. */
+.aviso-abono {
+	display: block;
+	margin-top: 0.35rem;
+	font-size: 0.78rem;
+	color: #2e7d32;
+}
+
 .folio-grupo {
 	display: flex;
 	flex-direction: column;

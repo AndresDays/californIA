@@ -882,6 +882,90 @@
 	text-align: right;
 }
 
+/* Un input dentro de un grid no se encoge por su cuenta: sin esto el campo del
+   código de aprobación se salía del recuadro del resumen. */
+.pago-item,
+.final-item {
+	min-width: 0;
+}
+
+.pago-item .form-select,
+.pago-item .form-input-small,
+.final-item .form-input-small,
+.final-item .total-input,
+.final-item .total-input-grand,
+.final-item .form-input-pago {
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+}
+
+.pago-grid-tarjeta .form-input-small {
+	text-align: left;
+	letter-spacing: 0.04em;
+}
+
+/* Formas de pago extra cuando el cobro se reparte entre varias. */
+.pagos-adicionales {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-top: 0.75rem;
+}
+
+.pago-adicional {
+	border: 1px dashed var(--borde);
+	border-radius: 8px;
+	padding: 0.7rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.pago-adicional-encabezado {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 0.8rem;
+	color: var(--texto-suave, var(--texto));
+}
+
+.btn-quitar-pago {
+	background: none;
+	border: none;
+	color: #c0392b;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.78rem;
+	cursor: pointer;
+	padding: 0;
+}
+
+.btn-agregar-pago {
+	width: 100%;
+	margin-top: 0.6rem;
+	padding: 0.55rem;
+	background: var(--superficie-2);
+	border: 1px dashed var(--borde-fuerte);
+	border-radius: 7px;
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.btn-agregar-pago:hover {
+	background: var(--superficie-hover);
+}
+
+.resumen-pagos {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-top: 0.6rem;
+	font-size: 0.85rem;
+	color: var(--texto);
+}
+
 .cambio-display {
 	background: rgba(102, 187, 106, 0.1);
 	border: 1px solid rgba(102, 187, 106, 0.24);
@@ -973,6 +1057,13 @@
 .btn-pagar-img:hover,
 .btn-guardar-img:hover {
 	background: var(--azul-claro);
+}
+
+/* Mientras se registra la orden -y una vez registrada- el botón no acepta otro
+   clic: así no se duplica la venta. */
+.btn-guardar-img:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
 }
 
 .btn-pagar-img:active,
