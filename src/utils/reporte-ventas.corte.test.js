@@ -115,3 +115,28 @@ describe("calcularResumenCorteVentas", () => {
 		expect(raro.granTotal).toBe(400);
 	});
 });
+
+// Un cobro repartido entre dos formas se guarda como "mixto" con su desglose:
+// el corte tiene que sumar cada parte en su renglón y no todo en "otras".
+describe("calcularResumenCorteVentas con pagos mixtos", () => {
+	const resumen = calcularResumenCorteVentas({
+		ventas: [
+			{
+				forma_pago: "mixto",
+				total: 1040,
+				pago_recibido: 1040,
+				pagos_desglose: [
+					{ forma_pago: "tarjeta_credito", monto: 1000 },
+					{ forma_pago: "efectivo", monto: 40 },
+				],
+			},
+		],
+	});
+
+	test("reparte el cobro entre efectivo y bancos", () => {
+		expect(resumen.efectivo).toBe(40);
+		expect(resumen.tarjetaCredito).toBe(1000);
+		expect(resumen.otrasFormas).toBe(0);
+		expect(resumen.cobrado).toBe(1040);
+	});
+});

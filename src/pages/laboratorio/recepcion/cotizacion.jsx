@@ -351,14 +351,15 @@ const Cotizacion = () => {
 		await generarPDFCotizacion(datosTicket);
 	};
 
-	const handleGuardarGenerar = async () => {
+	// Guarda la cotización actual y devuelve el registro creado (o null si falla).
+	const guardarCotizacion = async ({ abrirPDF = true } = {}) => {
 		if (!nombrePaciente.trim()) {
 			mostrarNotificacion("Por favor ingrese el nombre del paciente", "advertencia");
-			return;
+			return null;
 		}
 		if (estudiosSeleccionados.length === 0) {
 			mostrarNotificacion("Por favor agregue al menos un estudio", "advertencia");
-			return;
+			return null;
 		}
 		try {
 			const numeroCotizacion = await generarNumeroCotizacion();
@@ -385,20 +386,29 @@ const Cotizacion = () => {
 				.select()
 				.single();
 			if (error) throw error;
-			mostrarNotificacion("¡Cotización guardada exitosamente!", "exito");
-			await abrirPDFCotizacion({
+			const cotizacionGuardada = {
 				...data,
-				fecha_cotizacion: new Date().toISOString(),
-			});
+				fecha_cotizacion: data?.fecha_cotizacion || new Date().toISOString(),
+			};
+			mostrarNotificacion("¡Cotización guardada exitosamente!", "exito");
+			if (abrirPDF) {
+				await abrirPDFCotizacion(cotizacionGuardada);
+			}
 			await cargarCotizaciones();
 			limpiarFormulario();
+			return cotizacionGuardada;
 		} catch (error) {
 			console.error("Error al guardar cotización:", error);
 			mostrarNotificacion(
 				"Error al guardar la cotización: " + error.message,
 				"error",
 			);
+			return null;
 		}
+	};
+
+	const handleGuardarGenerar = async () => {
+		await guardarCotizacion();
 	};
 
 	const limpiarFormulario = () => {
@@ -418,16 +428,58 @@ const Cotizacion = () => {
 		await abrirPDFCotizacion(cotizacion);
 	};
 
+	const construirMensajeCotizacion = (cotizacion) => {
+		const estudios =
+			typeof cotizacion.estudios === "string"
+				? JSON.parse(cotizacion.estudios)
+				: cotizacion.estudios || [];
+		const listado = estudios
+			.map((est) => `• ${est.descripcion} - $${Number(est.precio || 0).toFixed(2)}`)
+			.join("\n");
+		return [
+			`Cotización ${cotizacion.numero_cotizacion}`,
+			`Paciente: ${cotizacion.nombre_paciente}`,
+			listado ? `\nEstudios:\n${listado}` : "",
+			`\nTotal: $${Number(cotizacion.total || 0).toFixed(2)}`,
+		]
+			.filter(Boolean)
+			.join("\n");
+	};
+
+	const enlaceWhatsAppCotizacion = (cotizacion) =>
+		`https://wa.me/?text=${encodeURIComponent(construirMensajeCotizacion(cotizacion))}`;
+
+	const enlaceCorreoCotizacion = (cotizacion) =>
+		`mailto:?subject=${encodeURIComponent(
+			`Cotización ${cotizacion.numero_cotizacion}`,
+		)}&body=${encodeURIComponent(construirMensajeCotizacion(cotizacion))}`;
+
 	const handleEnviarWhatsAppCotizacion = (cotizacion) => {
-		const mensaje = `Cotización ${cotizacion.numero_cotizacion}\nPaciente: ${cotizacion.nombre_paciente}\nTotal: $${cotizacion.total}`;
-		window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, "_blank");
+		window.open(enlaceWhatsAppCotizacion(cotizacion), "_blank");
 	};
 
 	const handleEnviarCorreoCotizacion = (cotizacion) => {
-		mostrarNotificacion(
-			`Función de envío por correo en desarrollo para: ${cotizacion.nombre_paciente}`,
-			"info",
-		);
+		window.open(enlaceCorreoCotizacion(cotizacion), "_blank");
+	};
+
+	// Guarda la cotización en segundo plano y abre WhatsApp / correo con el mensaje.
+	const guardarYEnviar = async (canal) => {
+		// La ventana se abre antes del await para que el navegador no la bloquee.
+		const ventana = window.open("", "_blank");
+		const cotizacion = await guardarCotizacion({ abrirPDF: false });
+		if (!cotizacion) {
+			ventana?.close();
+			return;
+		}
+		const url =
+			canal === "whatsapp"
+				? enlaceWhatsAppCotizacion(cotizacion)
+				: enlaceCorreoCotizacion(cotizacion);
+		if (ventana) {
+			ventana.location.href = url;
+		} else {
+			window.open(url, "_blank");
+		}
 	};
 
 	const empresaActual = empresas.find(
@@ -810,9 +862,8 @@ const Cotizacion = () => {
 							<div className="botones-cotizacion">
 								<button
 									className="btn-img-cot"
-									onClick={() =>
-										mostrarNotificacion("Primero debe guardar la cotización", "info")
-									}>
+									title="Guardar y enviar por WhatsApp"
+									onClick={() => guardarYEnviar("whatsapp")}>
 									<img src={enviarWppBtn} alt="WhatsApp" className="icono-btn-cot" />
 								</button>
 								<button className="btn-img-cot" onClick={handleGuardarGenerar}>
@@ -820,9 +871,8 @@ const Cotizacion = () => {
 								</button>
 								<button
 									className="btn-img-cot"
-									onClick={() =>
-										mostrarNotificacion("Primero debe guardar la cotización", "info")
-									}>
+									title="Guardar y enviar por correo"
+									onClick={() => guardarYEnviar("correo")}>
 									<img src={enviarEmailBtn} alt="Correo" className="icono-btn-cot" />
 								</button>
 							</div>

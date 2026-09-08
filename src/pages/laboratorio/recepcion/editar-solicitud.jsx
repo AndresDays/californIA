@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
 import cancelarBtn from "../../../assets/cancelarBtn.png";
@@ -46,6 +46,7 @@ import {
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
 import { normalizarFolio } from "../../../utils/folios";
+import { esSoloAbono, resolverMotivoEdicion } from "../../../utils/edicion-solicitud";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
@@ -59,6 +60,8 @@ const EditarSolicitud = () => {
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
 	const [motivoModificacion, setMotivoModificacion] = useState("");
+	const guardandoRef = useRef(false);
+	const [guardandoOrden, setGuardandoOrden] = useState(false);
 	const [modalCancelacionAbierto, setModalCancelacionAbierto] = useState(false);
 	const [folio, setFolio] = useState("");
 	const [clientes, setClientes] = useState([]);
@@ -130,6 +133,17 @@ const EditarSolicitud = () => {
 		cargarClientes();
 		cargarEstudiosDisponibles();
 	}, []);
+
+	// Cuando lo único que cambió es el pago, la edición es un abono y no se pide
+	// motivo: el motivo lo pone el sistema.
+	const edicionEsSoloAbono = esSoloAbono({
+		orden: ordenSeleccionada,
+		estudios: estudiosSeleccionados,
+		clienteSeleccionado,
+		idDoctor: medicoSeleccionado?.id_doctor,
+		granTotal,
+		pagoNuevo: pago,
+	});
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
@@ -412,16 +426,24 @@ const EditarSolicitud = () => {
 		setAdeudo(adeudoCalc > 0 ? adeudoCalc : 0);
 	};
 
-	const guardarYImprimir = async () => {
+	const guardarOrden = async () => {
+		// Un doble clic no debe registrar el abono dos veces.
+		if (guardandoRef.current) return;
 		if (!ordenSeleccionada) {
 			mostrarNotificacion("Seleccione una orden primero", "advertencia");
 			return;
 		}
-		if (!motivoModificacion.trim()) {
+		const pagoNuevoCapturado = parseFloat(pago) || 0;
+		// Un abono no cambia nada de la orden: el motivo se pone solo.
+		const soloAbono = edicionEsSoloAbono;
+		const motivoEdicion = resolverMotivoEdicion({
+			motivo: motivoModificacion,
+			soloAbono,
+		});
+		if (!motivoEdicion) {
 			mostrarNotificacion("Ingrese el motivo de modificación", "advertencia");
 			return;
 		}
-		const pagoNuevoCapturado = parseFloat(pago) || 0;
 		const validacionTarjeta = validarPagoTarjeta({
 			formaPago,
 			ultimos4: tarjetaUltimos4,
@@ -431,6 +453,8 @@ const EditarSolicitud = () => {
 			mostrarNotificacion(validacionTarjeta.mensaje, "advertencia");
 			return;
 		}
+		guardandoRef.current = true;
+		setGuardandoOrden(true);
 		try {
 			const totalPagado = abono + (parseFloat(pago) || 0);
 			const pagoNuevo = parseFloat(pago) || 0;
@@ -451,7 +475,7 @@ const EditarSolicitud = () => {
 					forma_pago: formaPago,
 					...(pagoNuevo > 0 ? datosTarjeta : {}),
 					pago_recibido: totalPagado,
-					observaciones: motivoModificacion,
+					observaciones: motivoEdicion,
 					updated_at: new Date().toISOString(),
 				})
 				.eq("id_venta", ordenSeleccionada.id_venta);
@@ -465,7 +489,7 @@ const EditarSolicitud = () => {
 					forma_pago: formaPago,
 					ultimos4: tarjetaUltimos4,
 					codigoAprobacion,
-					motivo: motivoModificacion,
+					motivo: motivoEdicion,
 					empleado: empleadoData,
 					user,
 				});
@@ -478,7 +502,7 @@ const EditarSolicitud = () => {
 				empleado: empleadoData,
 				user,
 				detalles: {
-					motivo: motivoModificacion,
+					motivo: motivoEdicion,
 					total_anterior: ordenSeleccionada.total,
 					pago_anterior: ordenSeleccionada.pago_recibido,
 					total_nuevo: granTotal,
@@ -519,14 +543,23 @@ const EditarSolicitud = () => {
 			// Editar cambia importes y estudios: lo que lee ventas se refresca solo,
 			// sin obligar a recargar la pagina.
 			invalidarConsultasDeVentas(queryClient);
-			mostrarNotificacion("Orden actualizada exitosamente", "exito");
+			mostrarNotificacion(
+				soloAbono
+					? `Abono de $${pagoNuevo.toFixed(2)} registrado. La solicitud fue actualizada`
+					: "La solicitud fue actualizada",
+				"exito",
+			);
 			await cargarAuditoriaOrden(ordenSeleccionada.id_venta);
 			await cargarHistorialPagosOrden(ordenSeleccionada.id_venta);
 			await cargarOrdenes();
-			setTimeout(() => window.print(), 800);
+			setMotivoModificacion("");
+			setPago("");
 		} catch (err) {
 			console.error("Error al guardar:", err);
 			mostrarNotificacion("Error al guardar la orden", "error");
+		} finally {
+			guardandoRef.current = false;
+			setGuardandoOrden(false);
 		}
 	};
 
@@ -1024,12 +1057,21 @@ const EditarSolicitud = () => {
 						<div className="seccion-superior">
 							<div className="motivo-modificacion">
 								<textarea
-									placeholder="Motivo de Modificación de la Orden"
+									placeholder={
+										edicionEsSoloAbono
+											? "Abono: no hace falta motivo (opcional)"
+											: "Motivo de Modificación de la Orden"
+									}
 									value={motivoModificacion}
 									onChange={(e) => setMotivoModificacion(e.target.value)}
 									className="textarea-motivo"
 									rows="2"
 								/>
+								{edicionEsSoloAbono && (
+									<span className="aviso-abono">
+										Se registrará como abono a la solicitud.
+									</span>
+								)}
 							</div>
 							<div className="folio-grupo">
 								<label>Folio:</label>
@@ -1351,11 +1393,14 @@ const EditarSolicitud = () => {
 							</button>
 							{/* Era un PNG del diseño anterior, con su propio azul quemado
 							    dentro de la imagen: sobre el tema claro desentonaba y no
-							    podía seguir ningún color. Ahora es un botón de verdad. */}
+							    podía seguir ningún color. Ahora es un botón de verdad.
+							    Guardar sólo guarda: el ticket se reimprime desde la lista
+							    de órdenes cuando hace falta. */}
 							<button
 								type="button"
 								className="btn-guardar-imprimir"
-								onClick={guardarYImprimir}>
+								onClick={guardarOrden}
+								disabled={guardandoOrden}>
 								<svg
 									className="btn-guardar-imprimir-icono"
 									viewBox="0 0 24 24"
@@ -1365,11 +1410,15 @@ const EditarSolicitud = () => {
 									strokeLinecap="round"
 									strokeLinejoin="round"
 									aria-hidden="true">
-									<path d="M6 9V3h12v6" />
-									<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-									<rect x="6" y="14" width="12" height="8" rx="1" />
+									<path d="M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+									<path d="M8 3v6h7" />
+									<path d="M8 14h8" />
 								</svg>
-								Guardar e imprimir
+								{guardandoOrden
+									? "Guardando..."
+									: edicionEsSoloAbono
+										? "Registrar abono"
+										: "Guardar cambios"}
 							</button>
 						</div>
 
