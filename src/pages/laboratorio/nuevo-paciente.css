@@ -551,6 +551,14 @@
 	overflow: visible;
 }
 
+/* El precio lleva su propio ancho: con el encabezado "Precio (−30%)" la
+   columna se apretaba y el importe salía cortado con puntos suspensivos. */
+.estudios-table th:nth-child(5),
+.estudios-table td:nth-child(5) {
+	width: 120px;
+	white-space: normal;
+}
+
 .estudios-table tbody tr {
 	border-bottom: 1px solid var(--borde);
 	transition: background 0.2s;
@@ -647,6 +655,13 @@
 	display: block;
 	font-size: 0.72rem;
 	color: var(--texto-suave);
+}
+
+/* Con un descuento de mostrador el renglón muestra directamente lo que se le va
+   a cobrar al paciente; qué descuento se aplicó lo dice el encabezado. */
+.precio-con-descuento {
+	color: #2e7d32;
+	font-weight: 700;
 }
 
 .btn-delete {
