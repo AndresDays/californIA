@@ -9,14 +9,16 @@ const numero = (valor) => {
 const redondear = (valor) => Math.round(numero(valor) * 100) / 100;
 
 // Una orden se parte en tantas ventas como series le tocan (A, B, C), porque
-// cada una factura por su empresa y lleva su propio folio. Cada parte trae sus
+// cada una factura por su empresa y lleva su propio folio. En las sucursales
+// con serie propia -Ixtapa, Mascota- no se parte: todo va en su serie. Cada parte trae sus
 // totales para que el cobro y el ticket cuadren por separado.
 export const dividirOrdenPorSerie = ({
 	estudios = [],
 	reglasConvenio = [],
 	descuentoPercent = 0,
+	sucursal = null,
 } = {}) =>
-	agruparEstudiosPorSerie(estudios, reglasConvenio).map((grupo) => {
+	agruparEstudiosPorSerie(estudios, reglasConvenio, sucursal).map((grupo) => {
 		const { subtotal, descuento, total } = calcularTotalesNuevoPaciente(
 			grupo.estudios,
 			descuentoPercent,

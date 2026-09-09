@@ -10,6 +10,7 @@ import {
 	resolverEmpresaFacturaEstudio,
 	resolverSerieFolio,
 	separarFolio,
+	serieFolioDeSucursal,
 } from "./folios";
 
 const usg = { modulo: "imagen", modalidad: "ultrasonido", clave: "US-RENAL", empresa_operativa: "CDI" };
@@ -244,5 +245,53 @@ describe("laboratorio y veterinaria fuera del convenio", () => {
 	test("el laboratorio no se acota por convenio", () => {
 		expect(convenioCubreEstudio(laboratorio, ANAMAYA)).toBe(true);
 		expect(resolverSerieFolio(laboratorio, ANAMAYA)).toBe("C");
+	});
+});
+
+// Ixtapa y Mascota cobran todo en una caja: su orden sale con un folio de la
+// sucursal en vez de partirse en las series por empresa.
+describe("series de las sucursales foraneas", () => {
+	const estudioImagen = { modulo: "imagen", modalidad: "tomografia", empresa_operativa: "CDI" };
+	const estudioLab = { modulo: "laboratorio" };
+
+	test("la sucursal se reconoce por id y por nombre", () => {
+		expect(serieFolioDeSucursal({ id_sucursal: 2 })).toBe("D");
+		expect(serieFolioDeSucursal({ id_sucursal: 3 })).toBe("E");
+		expect(serieFolioDeSucursal({ sucursal: "Ixtapa" })).toBe("D");
+		expect(serieFolioDeSucursal("MASCOTA")).toBe("E");
+		expect(serieFolioDeSucursal(3)).toBe("E");
+	});
+
+	test("la sucursal principal no tiene serie propia", () => {
+		expect(serieFolioDeSucursal({ id_sucursal: 1, sucursal: "PRINCIPAL" })).toBe("");
+		expect(serieFolioDeSucursal(null)).toBe("");
+		expect(serieFolioDeSucursal({})).toBe("");
+	});
+
+	test("la serie de la sucursal manda sobre la empresa y el laboratorio", () => {
+		expect(resolverSerieFolio(estudioImagen, [], { id_sucursal: 2 })).toBe("D");
+		expect(resolverSerieFolio(estudioLab, [], { id_sucursal: 2 })).toBe("D");
+		expect(resolverSerieFolio(estudioLab, [], { id_sucursal: 3 })).toBe("E");
+	});
+
+	test("sin sucursal foranea se sigue resolviendo por empresa", () => {
+		expect(resolverSerieFolio(estudioImagen, [], { id_sucursal: 1 })).toBe("A");
+		expect(resolverSerieFolio(estudioLab, [])).toBe("C");
+	});
+
+	test("la orden de Ixtapa no se parte: un solo folio D", () => {
+		const grupos = agruparEstudiosPorSerie([estudioImagen, estudioLab], [], {
+			id_sucursal: 2,
+		});
+
+		expect(grupos).toHaveLength(1);
+		expect(grupos[0].serie).toBe("D");
+		expect(grupos[0].empresa).toBe("CDC");
+		expect(grupos[0].estudios).toHaveLength(2);
+	});
+
+	test("el folio de la sucursal se arma y se lee como los demas", () => {
+		expect(construirFolio("D", 1)).toBe("D0001");
+		expect(separarFolio("E0012")).toMatchObject({ serie: "E", empresa: "CDC", consecutivo: 12 });
 	});
 });

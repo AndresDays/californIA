@@ -5,10 +5,61 @@
 //   A → CDI, imagen (convenios ISSSTE, SSA, Medisim)
 //   B → CDC, imagen (convenios IMSS y Odile/Anamaya, y la resonancia particular)
 //   C → CDC, laboratorio (todos los análisis)
+//
+// Las sucursales foráneas llevan su propia serie corrida, sin partir la orden
+// por empresa: en Ixtapa y Mascota se cobra todo en la misma caja y el folio
+// tiene que decir de dónde salió la orden.
+//
+//   D → Ixtapa
+//   E → Mascota
 export const SERIES_FOLIO = {
 	A: { empresa: "CDI", tipo: "imagen" },
 	B: { empresa: "CDC", tipo: "imagen" },
 	C: { empresa: "CDC", tipo: "laboratorio" },
+	D: { empresa: "CDC", tipo: "sucursal", sucursal: "IXTAPA" },
+	E: { empresa: "CDC", tipo: "sucursal", sucursal: "MASCOTA" },
+};
+
+// La sucursal se identifica por id y por nombre: el id es lo que trae la venta,
+// y el nombre salva a los empleados cuyo registro sólo guarda el texto.
+const SERIES_POR_SUCURSAL = [
+	{ serie: "D", id_sucursal: 2, nombre: "IXTAPA" },
+	{ serie: "E", id_sucursal: 3, nombre: "MASCOTA" },
+];
+
+const limpiarNombreSucursal = (valor = "") =>
+	String(valor ?? "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.replace(/\s+/g, " ")
+		.toUpperCase();
+
+// La serie de la sucursal donde se captura la orden, si esa sucursal tiene una.
+// Acepta el objeto de la sucursal o del empleado, un id o el nombre suelto.
+export const serieFolioDeSucursal = (sucursal) => {
+	if (sucursal === null || sucursal === undefined || sucursal === "") return "";
+
+	const esObjeto = typeof sucursal === "object";
+	const id = esObjeto
+		? (sucursal.id_sucursal ?? sucursal.sucursales?.id_sucursal ?? null)
+		: Number.isFinite(Number(sucursal))
+			? Number(sucursal)
+			: null;
+	const nombre = limpiarNombreSucursal(
+		esObjeto
+			? sucursal.sucursal || sucursal.nombre || sucursal.sucursales?.nombre || ""
+			: typeof sucursal === "string"
+				? sucursal
+				: "",
+	);
+
+	const encontrada = SERIES_POR_SUCURSAL.find(
+		(serie) =>
+			(id !== null && Number(id) === serie.id_sucursal) ||
+			(Boolean(nombre) && nombre === serie.nombre),
+	);
+	return encontrada?.serie || "";
 };
 
 export const SERIE_LABORATORIO = "C";
@@ -95,7 +146,11 @@ export const convenioCubreEstudio = (estudio = {}, reglasConvenio = []) => {
 	return Boolean(reglaConvenioParaEstudio(estudio, reglas));
 };
 
-export const resolverSerieFolio = (estudio = {}, reglasConvenio = []) => {
+// La serie de la sucursal manda sobre la de la empresa: la orden de Ixtapa es
+// D0001 completa, no se parte en A, B y C.
+export const resolverSerieFolio = (estudio = {}, reglasConvenio = [], sucursal = null) => {
+	const serieSucursal = serieFolioDeSucursal(sucursal);
+	if (serieSucursal) return serieSucursal;
 	if (esEstudioDeLaboratorio(estudio)) return SERIE_LABORATORIO;
 	const empresa = resolverEmpresaFacturaEstudio(estudio, reglasConvenio);
 	return SERIE_IMAGEN_POR_EMPRESA[empresa] || SERIE_POR_DEFECTO;
@@ -106,10 +161,10 @@ export const empresaDeSerie = (serie = "") =>
 
 // Los estudios de una orden se reparten en las series que les tocan; cada una
 // lleva su folio.
-export const agruparEstudiosPorSerie = (estudios = [], reglasConvenio = []) => {
+export const agruparEstudiosPorSerie = (estudios = [], reglasConvenio = [], sucursal = null) => {
 	const grupos = new Map();
 	estudios.forEach((estudio) => {
-		const serie = resolverSerieFolio(estudio, reglasConvenio);
+		const serie = resolverSerieFolio(estudio, reglasConvenio, sucursal);
 		if (!grupos.has(serie)) grupos.set(serie, []);
 		grupos.get(serie).push(estudio);
 	});
