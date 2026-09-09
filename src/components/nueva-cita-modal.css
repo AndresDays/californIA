@@ -643,3 +643,29 @@
 	font-size: 0.82rem;
 	color: var(--texto);
 }
+
+/* Tipo de contacto y contacto en un solo renglón: el tipo es un dato corto y
+   pedirle un renglón propio alargaba el formulario sin decir más. */
+.cita-contacto-grupo {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.cita-contacto-grupo .form-input-cita {
+	flex: 1;
+	min-width: 0;
+}
+
+.cita-contacto-tipo {
+	flex: 0 0 auto;
+	width: 120px;
+}
+
+/* Quién apuntó la cita: informativo, así que va en gris y pequeño para no
+   competir con los campos que sí se capturan. */
+.cita-autor {
+	margin: 4px 0 0;
+	font-size: 0.8rem;
+	color: #6b7280;
+}

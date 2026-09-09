@@ -7,25 +7,13 @@ jest.mock("@tanstack/react-query", () => ({
 	useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }));
 jest.mock("../context/auth-context", () => ({
-	useAuth: () => ({ empleadoData: { id_sucursal: 1 } }),
+	useAuth: () => ({ empleadoData: { id_sucursal: 1, id_empleado: 3, nombre: "Ana Ruiz" } }),
 }));
 
 const CLIENTES = [{ id_cliente: 7, nombre: "Particular" }];
-const EMPRESAS = [
-	{ id_empresa: 1, nombre: "CENTRAL DIAGNOSTICA CALIFORNIA" },
-	{ id_empresa: 2, nombre: "CENTRO DE DIAGNOSTICO POR IMAGEN PVR" },
-];
 const TIPOS = [
-	{
-		id_empresa: 2,
-		id_tipo_estudio: 4,
-		tipos_estudio: { id_tipo_estudio: 4, nombre: "TOMOGRAFIA" },
-	},
-	{
-		id_empresa: 1,
-		id_tipo_estudio: 9,
-		tipos_estudio: { id_tipo_estudio: 9, nombre: "LABORATORIO" },
-	},
+	{ id_tipo_estudio: 4, nombre: "TOMOGRAFIA" },
+	{ id_tipo_estudio: 9, nombre: "LABORATORIO" },
 ];
 const ESTUDIOS_LAB = [
 	{ id: 11, clave: "TRAC", descripcion: "TACROLIMUS", area: "Quimica" },
@@ -47,8 +35,7 @@ const ESTUDIOS_IMAGEN = [
 const respuestaDeTabla = (tabla) => {
 	const datos = {
 		clientes: CLIENTES,
-		empresas: EMPRESAS,
-		empresa_tipos_estudio: TIPOS,
+		tipos_estudio: TIPOS,
 		estudios_lab_catalogo: ESTUDIOS_LAB,
 		estudios_imagen_catalogo: ESTUDIOS_IMAGEN,
 		precios_estudios: [],
@@ -107,10 +94,9 @@ describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 	test("con tomografia escrita aparece el estudio de imagen y no el de laboratorio", async () => {
 		abrirModal();
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-empresas"]')).not.toBeNull(),
+			expect(document.querySelector('input[list="cita-tipos"]')).not.toBeNull(),
 		);
 
-		escribir("cita-empresas", "CENTRO DE DIAGNOSTICO POR IMAGEN PVR");
 		escribir("cita-clientes", "Particular");
 		await waitFor(() =>
 			expect(
@@ -130,10 +116,10 @@ describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 	});
 
 	// Antes habia que pasar por empresa para llegar al cliente y por el cliente
-	// para llegar al tipo. Agendar por telefono no aguanta esa cascada: los tres
+	// para llegar al tipo. Agendar por telefono no aguanta esa cascada: los dos
 	// campos se escriben en el orden que sea, y la busqueda de estudios ya no
 	// espera a que haya un cliente.
-	test("se puede escribir el tipo de estudio sin haber puesto empresa ni cliente", async () => {
+	test("se puede escribir el tipo de estudio sin haber puesto cliente", async () => {
 		abrirModal();
 		await waitFor(() =>
 			expect(document.querySelector('input[list="cita-tipos"]')).not.toBeNull(),
@@ -170,8 +156,8 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 
 		expect(fila.nombre_paciente).toBeNull();
 		expect(fila.telefono_paciente).toBeNull();
+		expect(fila.correo_paciente).toBeNull();
 		expect(fila.id_cliente).toBeNull();
-		expect(fila.id_empresa).toBeNull();
 		expect(fila.id_tipo_estudio).toBeNull();
 		expect(fila.id_paciente).toBeNull();
 	});
@@ -190,7 +176,7 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 	test("lo escrito se convierte en el id del catalogo cuando coincide", async () => {
 		abrirModal();
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-empresas"]')).not.toBeNull(),
+			expect(document.querySelector('input[list="cita-clientes"]')).not.toBeNull(),
 		);
 
 		const escribir = (lista, valor) =>
@@ -199,13 +185,13 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 			});
 
 		// Se teclea en minusculas y sin el nombre completo, como en una llamada.
-		escribir("cita-empresas", "centro de diagnostico por imagen pvr");
 		escribir("cita-clientes", "particular");
+		escribir("cita-tipos", "tomografia");
 
 		const fila = await guardar();
 
-		expect(fila.id_empresa).toBe(2);
 		expect(fila.id_cliente).toBe(7);
+		expect(fila.id_tipo_estudio).toBe(4);
 	});
 
 	// Un convenio que no esta en el catalogo no puede bloquear el agendado: la
@@ -235,12 +221,81 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 		abrirModal();
 		await screen.findAllByRole("combobox");
 
-		fireEvent.change(document.querySelector('input[name="telefono"]'), {
+		fireEvent.change(document.querySelector('input[name="contacto"]'), {
 			target: { value: "123" },
 		});
 		fireEvent.click(screen.getByRole("button", { name: /Crear Cita/i }));
 
 		expect(await screen.findByText(/10 d[ií]gitos/i)).toBeInTheDocument();
 		expect(insertsDeCitas).toHaveLength(0);
+	});
+
+	// Hay quien no deja telefono sino correo: antes ese dato no tenia donde ir.
+	test("con contacto de correo el dato viaja en su columna", async () => {
+		abrirModal();
+		await screen.findAllByRole("combobox");
+
+		fireEvent.change(screen.getByLabelText("Tipo de contacto"), {
+			target: { value: "correo" },
+		});
+		fireEvent.change(document.querySelector('input[name="contacto"]'), {
+			target: { value: "laura@correo.com" },
+		});
+
+		const fila = await guardar();
+
+		expect(fila.correo_paciente).toBe("laura@correo.com");
+		expect(fila.telefono_paciente).toBeNull();
+	});
+
+	test("un correo mal escrito se rechaza", async () => {
+		abrirModal();
+		await screen.findAllByRole("combobox");
+
+		fireEvent.change(screen.getByLabelText("Tipo de contacto"), {
+			target: { value: "correo" },
+		});
+		fireEvent.change(document.querySelector('input[name="contacto"]'), {
+			target: { value: "laura@" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /Crear Cita/i }));
+
+		expect(await screen.findByText(/correo no tiene un formato/i)).toBeInTheDocument();
+		expect(insertsDeCitas).toHaveLength(0);
+	});
+
+	// La columna del calendario ya dijo de que es la cita: teclearlo otra vez
+	// sobra, y una cita sin tipo no cae en su columna al recargar la agenda.
+	test("el tipo de estudio se preselecciona con la columna donde se abrio", async () => {
+		render(
+			<NuevaCitaModal
+				isOpen
+				onClose={jest.fn()}
+				fechaInicial="2026-08-27"
+				horaInicial="10:00"
+				tipoEstudioInicial="Laboratorio"
+			/>,
+		);
+
+		await waitFor(() =>
+			expect(document.querySelector('input[list="cita-tipos"]').value).toBe("LABORATORIO"),
+		);
+
+		const fila = await guardar();
+
+		expect(fila.id_tipo_estudio).toBe(9);
+	});
+
+	// Cuando algo no cuadra en la agenda hay que saber a quien preguntarle.
+	test("la cita guarda y muestra quien la creo", async () => {
+		abrirModal();
+		await screen.findAllByRole("combobox");
+
+		expect(screen.getByText(/Creada por: Ana Ruiz/)).toBeInTheDocument();
+
+		const fila = await guardar();
+
+		expect(fila.id_empleado_creador).toBe(3);
+		expect(fila.creado_por_nombre).toBe("Ana Ruiz");
 	});
 });
