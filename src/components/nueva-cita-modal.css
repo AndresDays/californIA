@@ -188,34 +188,37 @@
   padding: 0.5rem;
 }
 
+/* Los mismos resultados que en nuevo paciente: la lista iba sobre el azul de
+   la marca, con el texto encima, y se leía como otro control del modal en vez
+   de como el desplegable de la búsqueda. Va sobre la superficie, con su borde
+   y su sombra, igual que allá. */
 .search-results-estudios-modal {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  max-height: 250px;
+  background: var(--superficie);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  max-height: 300px;
   overflow-y: auto;
-  background: var(--azul);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 0 0 12px 12px;
-  margin-top: -12px;
-  padding-top: 12px;
   z-index: 100;
-  box-shadow: 0 8px 20px rgba(18, 41, 61, 0.14);
+  box-shadow: 0 18px 42px rgba(18, 41, 61, 0.14);
 }
 
 .search-result-item-modal {
-  padding: 0.75rem 1rem;
+  padding: 0.72rem 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   color: var(--texto);
   font-size: 0.9rem;
   border-bottom: 1px solid var(--borde);
+  transition: background 0.2s;
 }
 
 .search-result-item-modal:hover {
   background: var(--superficie-hover);
-  color: var(--texto);
 }
 
 .search-result-item-modal:last-child {
@@ -223,15 +226,34 @@
 }
 
 .search-result-item-modal strong {
-  color: var(--texto-azul);
+  color: var(--texto);
   font-weight: 700;
 }
 
+/* La lista se recorre con las flechas: el renglón elegido con el teclado tiene
+   que verse igual que el que está bajo el ratón, o no se sabe dónde se va. */
+.search-result-item-modal[aria-selected="true"] {
+  background: var(--superficie-hover);
+}
+
 .search-no-results-modal {
-  padding: 1rem;
-  text-align: center;
+  padding: 0.8rem 0.9rem;
   color: var(--texto);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
+}
+
+.search-results-estudios-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-results-estudios-modal::-webkit-scrollbar-track {
+  background: var(--superficie-2);
+  border-radius: 3px;
+}
+
+.search-results-estudios-modal::-webkit-scrollbar-thumb {
+  background: var(--superficie-activa);
+  border-radius: 3px;
 }
 
 .estudio-seleccionado-info {
