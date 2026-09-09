@@ -150,6 +150,18 @@
   background: var(--superficie-2);
 }
 
+/* Campos de datos del paciente: solo lectura, se llenan al buscar/seleccionar
+   un paciente. No se pueden enfocar, editar ni borrar desde la interfaz. */
+.form-input-solo-lectura,
+.form-input-solo-lectura:focus {
+  pointer-events: none;
+  cursor: default;
+  opacity: 1;
+  background: var(--superficie);
+  color: var(--texto);
+  -webkit-text-fill-color: var(--texto);
+}
+
 .form-input::placeholder,
 .form-textarea::placeholder {
   color: var(--texto);
