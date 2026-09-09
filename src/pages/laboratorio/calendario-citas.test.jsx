@@ -25,7 +25,11 @@ jest.mock("../../hooks/use-citas", () => ({
 }));
 
 jest.mock("../../components/nueva-cita-modal", () => (props) =>
-	props.isOpen ? <div data-testid="nueva-cita-modal">{`${props.fechaInicial} ${props.horaInicial}`}</div> : null,
+	props.isOpen ? (
+		<div data-testid="nueva-cita-modal">
+			{`${props.fechaInicial} ${props.horaInicial} ${props.tipoEstudioInicial ?? ""}`}
+		</div>
+	) : null,
 );
 
 const citas = [
@@ -179,4 +183,16 @@ test("sin busqueda no se anuncia ninguna cita", () => {
 	render(<CalendarioCitas />);
 
 	expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+// El hueco donde se hizo clic ya dice de que es la cita: el modal no tiene por
+// que volver a preguntar el tipo de estudio.
+test("el hueco vacio abre la cita con el tipo de estudio de su columna", () => {
+	render(<CalendarioCitas />);
+
+	fireEvent.click(
+		screen.getByRole("button", { name: /Crear cita de Lab .* a las 10:00/i }),
+	);
+
+	expect(screen.getByTestId("nueva-cita-modal")).toHaveTextContent("10:00 Laboratorio");
 });
