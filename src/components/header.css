@@ -273,6 +273,12 @@
 	overflow: hidden;
 }
 
+/* El motivo de una cancelación no cabe en dos líneas: es la razón por la que
+   se manda el aviso, así que estos se leen enteros en la campana. */
+.notification-item-body.amplia small {
+	-webkit-line-clamp: 4;
+}
+
 .notification-item time {
 	color: var(--texto-azul);
 	font-size: 0.68rem;

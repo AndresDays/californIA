@@ -224,7 +224,11 @@ const NotificationBell = ({ user, navigate }) => {
 									<span
 											className={`notification-dot ${notificacion.canal_destino} ${notificacion.tipo || ""}`}
 										/>
-									<span className="notification-item-body">
+									{/* El aviso de cancelación lleva el motivo dentro del
+									    mensaje, y con dos líneas se cortaba justo donde dice
+									    por qué se canceló. */}
+									<span
+										className={`notification-item-body${notificacion.entidad_tipo === "venta_cancelada" ? " amplia" : ""}`}>
 										<strong>{notificacion.titulo}</strong>
 										<small>{notificacion.mensaje}</small>
 									</span>
