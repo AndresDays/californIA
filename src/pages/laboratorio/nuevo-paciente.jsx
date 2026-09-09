@@ -344,8 +344,11 @@ const NuevoPaciente = () => {
 				estudios: estudiosSeleccionados,
 				reglasConvenio,
 				descuentoPercent,
+				// Ixtapa y Mascota llevan su propia serie corrida: la orden entera
+				// sale con un folio de la sucursal, no partida por empresa.
+				sucursal: empleadoData,
 			}),
-		[estudiosSeleccionados, reglasConvenio, descuentoPercent],
+		[estudiosSeleccionados, reglasConvenio, descuentoPercent, empleadoData],
 	);
 	const ordenMixta = esOrdenMixta(partesOrden);
 

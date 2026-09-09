@@ -265,12 +265,15 @@ export const calcularMetricasVentas = (ventas = []) => {
 };
 
 // El folio dice a qué empresa se factura la orden sin abrirla: A es la imagen de
-// CDI, B la de CDC y C el laboratorio de CDC. Los folios anteriores al cambio
+// CDI, B la de CDC y C el laboratorio de CDC. D y E son las series de Ixtapa y
+// Mascota, que cobran todo por CDC en una sola caja. Los folios anteriores al cambio
 // son de puros dígitos y no tienen serie.
 export const SERIES_FOLIO = [
 	{ id: "A", nombre: "A — Imagen CDI", empresa: "CDI" },
 	{ id: "B", nombre: "B — Imagen CDC", empresa: "CDC" },
 	{ id: "C", nombre: "C — Laboratorio CDC", empresa: "CDC" },
+	{ id: "D", nombre: "D — Ixtapa", empresa: "CDC" },
+	{ id: "E", nombre: "E — Mascota", empresa: "CDC" },
 ];
 
 export const serieDeFolio = (folio = "") => {
