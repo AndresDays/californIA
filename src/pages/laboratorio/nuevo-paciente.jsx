@@ -301,10 +301,6 @@ const NuevoPaciente = () => {
 	const cerrarNotificacion = () =>
 		setNotificacion((prev) => ({ ...prev, isOpen: false }));
 
-	const handleTelefonoChange = (valor) => {
-		setTelefono(normalizarTelefono10(valor));
-	};
-
 	const handleDescuentoPercentChange = (valor) => {
 		setDescuentoPercent(normalizarPorcentaje(valor));
 	};
@@ -2058,9 +2054,10 @@ const NuevoPaciente = () => {
 									<input
 										type="text"
 										value={nombreCompleto}
-										onChange={(e) => setNombreCompleto(e.target.value)}
-										className="form-input"
-										placeholder="Nombre completo del paciente"
+										readOnly
+										tabIndex={-1}
+										className="form-input form-input-solo-lectura"
+										placeholder="Selecciona un paciente"
 									/>
 								</div>
 
@@ -2070,8 +2067,9 @@ const NuevoPaciente = () => {
 										<input
 											type="number"
 											value={edad}
-											onChange={(e) => setEdad(e.target.value)}
-											className="form-input"
+											readOnly
+											tabIndex={-1}
+											className="form-input form-input-solo-lectura"
 											placeholder="Edad"
 										/>
 									</div>
@@ -2080,8 +2078,10 @@ const NuevoPaciente = () => {
 										<label>Sexo</label>
 										<select
 											value={sexo}
-											onChange={(e) => setSexo(e.target.value)}
-											className="form-select">
+											onChange={() => {}}
+											disabled
+											tabIndex={-1}
+											className="form-select form-input-solo-lectura">
 											<option value="">Seleccionar</option>
 											<option value="masculino">Masculino</option>
 											<option value="femenino">Femenino</option>
@@ -2096,8 +2096,9 @@ const NuevoPaciente = () => {
 									<input
 										type="tel"
 										value={telefono}
-										onChange={(e) => handleTelefonoChange(e.target.value)}
-										className="form-input"
+										readOnly
+										tabIndex={-1}
+										className="form-input form-input-solo-lectura"
 										maxLength="10"
 										inputMode="numeric"
 										placeholder="Número de teléfono"
@@ -2109,8 +2110,9 @@ const NuevoPaciente = () => {
 									<input
 										type="email"
 										value={correo}
-										onChange={(e) => setCorreo(e.target.value)}
-										className="form-input"
+										readOnly
+										tabIndex={-1}
+										className="form-input form-input-solo-lectura"
 										placeholder="correo@ejemplo.com"
 									/>
 								</div>
@@ -2120,8 +2122,9 @@ const NuevoPaciente = () => {
 									<input
 										type="text"
 										value={rfc}
-										onChange={(e) => setRfc(e.target.value.toUpperCase())}
-										className="form-input"
+										readOnly
+										tabIndex={-1}
+										className="form-input form-input-solo-lectura"
 										placeholder="RFC (opcional)"
 										maxLength="13"
 									/>

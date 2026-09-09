@@ -1013,6 +1013,29 @@
 	margin-top: 0.9rem;
 }
 
+.rv-modal-acciones {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 1.1rem;
+}
+
+.rv-btn-cancelar-orden {
+	padding: 0.55rem 1.1rem;
+	border: 1px solid var(--rojo, #c0392b);
+	border-radius: 7px;
+	background: transparent;
+	color: var(--rojo, #c0392b);
+	font-family: inherit;
+	font-size: 0.88rem;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.rv-btn-cancelar-orden:hover {
+	background: var(--rojo, #c0392b);
+	color: #fff;
+}
+
 .rv-btn-cobrar {
 	padding: 0.55rem 1.1rem;
 	border: none;
