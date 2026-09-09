@@ -145,6 +145,7 @@
 .form-input-cita,
 .form-select-cita {
   width: 100%;
+  box-sizing: border-box;
   padding: 0.875rem 1rem;
   background: var(--superficie-activa);
   border: 1px solid var(--borde);
@@ -152,6 +153,12 @@
   color: var(--texto);
   font-size: 1rem;
   font-family: 'Codec Pro', sans-serif;
+  /* Codec Pro tiene los ascendentes altos y el `line-height: normal` del
+     navegador le deja menos caja de la que ocupa: la barra de la "t" y los
+     acentos se cortaban por arriba. Con una altura de línea propia -y una
+     altura mínima que la respete- la letra cabe entera. */
+  line-height: 1.5;
+  min-height: 3.25rem;
   transition: all 0.3s ease;
 }
 
@@ -538,6 +545,7 @@
 .estudio-readonly,
 .precio-readonly {
   padding: 0.875rem 1rem;
+  line-height: 1.5;
   background: var(--superficie-hover);
   border: 1px solid var(--borde);
   border-radius: 12px;
