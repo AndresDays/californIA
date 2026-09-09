@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../assets/calendarioIcono.png";
 import metricasIcono from "../../assets/metricasIcono.png";
 import PageLayout from "../../components/page-layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
+import ModalMotivoCancelacion from "../../components/modal-motivo-cancelacion";
 import { useAuth } from "../../context/auth-context";
 import { supabase } from "../../lib/supabase-client";
 import { registrarAbonoVenta } from "../../utils/abono-venta";
+import { cancelarVenta } from "../../utils/cancelacion-venta";
+import { invalidarConsultasDeVentas } from "../../utils/invalidar-consultas-ventas";
 import {
 	esPagoConTarjeta,
 	normalizarCodigoAprobacion,
@@ -92,9 +96,11 @@ const ReporteVentas = () => {
 	const [ultimos4Abono, setUltimos4Abono] = useState("");
 	const [codigoAprobacionAbono, setCodigoAprobacionAbono] = useState("");
 	const [cobrandoAdeudo, setCobrandoAdeudo] = useState(false);
+	const [modalCancelacionAbierto, setModalCancelacionAbierto] = useState(false);
 	const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const { user } = useAuth();
+	const queryClient = useQueryClient();
 
 	const {
 		data: ventas = [],
@@ -550,6 +556,33 @@ const ReporteVentas = () => {
 			mostrarNotificacion(error.message || "No se pudo registrar el cobro", "advertencia");
 		} finally {
 			setCobrandoAdeudo(false);
+		}
+	};
+
+	// Cancelar desde el reporte hace lo mismo que el botón de cancelar de editar
+	// solicitud: mismo motivo, misma devolución a caja y misma auditoría.
+	const cancelarOrdenDetalle = async ({ motivo, categoria, detalle } = {}) => {
+		if (!ventaDetalle) return;
+		try {
+			await cancelarVenta(supabase, {
+				venta: ventaDetalle,
+				folio: ventaDetalle.folio,
+				motivo,
+				categoria,
+				detalle,
+				formaPago: formaPagoAbono,
+				empleado: empleadoData,
+				user,
+			});
+			invalidarConsultasDeVentas(queryClient);
+			mostrarNotificacion("Orden cancelada correctamente");
+			setModalCancelacionAbierto(false);
+			setVentaDetalle(null);
+			await refrescarVentas();
+		} catch (error) {
+			console.error("Error al cancelar la orden:", error);
+			mostrarNotificacion(error.message || "No se pudo cancelar la orden", "error");
+			throw error;
 		}
 	};
 
@@ -1212,10 +1245,29 @@ const ReporteVentas = () => {
 								</table>
 							)}
 						</div>
+
+						{ventaDetalle.estado !== "cancelado" && (
+							<div className="rv-modal-acciones">
+								<button
+									type="button"
+									className="rv-btn-cancelar-orden"
+									onClick={() => setModalCancelacionAbierto(true)}>
+									Cancelar orden
+								</button>
+							</div>
+						)}
 						</div>
 					</div>
 				</div>
 			)}
+
+			<ModalMotivoCancelacion
+				isOpen={modalCancelacionAbierto}
+				onClose={() => setModalCancelacionAbierto(false)}
+				onConfirmar={cancelarOrdenDetalle}
+				folio={ventaDetalle?.folio || ""}
+				paciente={ventaDetalle?.pacientes?.nombre || ""}
+			/>
 
 			<ModalNotificacion
 				isOpen={notificacion.isOpen}

@@ -50,14 +50,19 @@ jest.mock("../../lib/supabase-client", () => ({ supabase: {} }));
 jest.mock("../../utils/abono-venta", () => ({
 	registrarAbonoVenta: jest.fn(() => Promise.resolve({ pagoRecibido: 1000, adeudo: 0 })),
 }));
+jest.mock("../../utils/cancelacion-venta", () => ({
+	cancelarVenta: jest.fn(() => Promise.resolve({ motivo: "Solicitud duplicada" })),
+}));
 
 import { registrarAbonoVenta } from "../../utils/abono-venta";
+import { cancelarVenta } from "../../utils/cancelacion-venta";
 import ReporteVentas from "./reporte-ventas";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 
 // El folio y el paciente también salen en la tabla, así que las aserciones se
 // hacen dentro del modal.
 const abrirDetalle = () => {
-	render(<ReporteVentas />);
+	render(conQueryClient(<ReporteVentas />));
 	fireEvent.click(screen.getByTitle("Ver detalle del folio"));
 	return within(document.querySelector(".rv-modal"));
 };
@@ -147,5 +152,25 @@ describe("ReporteVentas: cobrar el adeudo desde el detalle", () => {
 
 		expect(modal.queryByRole("button", { name: /liquidar todo/i })).toBeNull();
 		expect(modal.getByRole("button", { name: /registrar cobro/i })).toBeInTheDocument();
+	});
+
+	test("cancelar la orden pide el motivo y cancela el folio abierto", async () => {
+		const modal = abrirDetalle();
+
+		fireEvent.click(modal.getByRole("button", { name: /cancelar orden/i }));
+
+		fireEvent.change(screen.getByLabelText("Motivo de cancelación"), {
+			target: { value: "Solicitud duplicada" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Cancelar solicitud" }));
+		});
+
+		expect(cancelarVenta).toHaveBeenCalledTimes(1);
+		expect(cancelarVenta.mock.calls[0][1]).toMatchObject({
+			motivo: "Solicitud duplicada",
+		});
+		// Cancelado el folio, el detalle se cierra.
+		expect(document.querySelector(".rv-modal")).toBeNull();
 	});
 });

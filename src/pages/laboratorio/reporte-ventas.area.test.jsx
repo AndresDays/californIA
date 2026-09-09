@@ -86,6 +86,7 @@ jest.mock("../../utils/abono-venta", () => ({
 
 import { exportarExcel } from "../../utils/exportar-tabla";
 import ReporteVentas from "./reporte-ventas";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 
 // El total del período es la primera tarjeta de métricas; el mismo importe sale
 // en la columna Precio de la tabla, así que se lee de la tarjeta y no por texto.
@@ -115,7 +116,7 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 	beforeEach(() => jest.clearAllMocks());
 
 	test("arranca en Todas las áreas y no pierde ninguna venta", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		expect(screen.getByLabelText("Grupo de área")).toHaveValue("");
 		expect(totalDelPeriodo()).toBe("$1,500.00");
@@ -124,7 +125,7 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 	});
 
 	test("al elegir un grupo recorta métricas, tabla y estudios más vendidos", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		elegirGrupo("laboratorio");
 
@@ -141,7 +142,7 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 	// La pantalla abre en el resumen y la tabla, que es lo que se consulta a
 	// diario; la grafica y los rankings quedan detras de su control.
 	test("la grafica y los rankings arrancan plegados y se abren con un clic", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		expect(document.querySelector(".rv-chart-body")).toBeNull();
 		expect(document.querySelectorAll(".rv-side-card")).toHaveLength(0);
@@ -154,7 +155,7 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 	});
 
 	test("un grupo sin ventas deja el reporte vacío", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		elegirGrupo("resonancias_veterinaria");
 
@@ -167,7 +168,7 @@ describe("ReporteVentas: descarga de Excel", () => {
 	beforeEach(() => jest.clearAllMocks());
 
 	test("con Todas las áreas exporta las mismas ventas que se ven", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		fireEvent.click(screen.getByText("Excel"));
 
@@ -179,7 +180,7 @@ describe("ReporteVentas: descarga de Excel", () => {
 	});
 
 	test("con un grupo elegido exporta sólo ese grupo", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		elegirGrupo("laboratorio");
 		fireEvent.click(screen.getByText("Excel"));
@@ -190,7 +191,7 @@ describe("ReporteVentas: descarga de Excel", () => {
 	});
 
 	test("avisa en vez de quedarse callado cuando no hay filas que exportar", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		elegirGrupo("resonancias_veterinaria");
 		fireEvent.click(screen.getByText("Excel"));
@@ -206,7 +207,7 @@ describe("ReporteVentas: descarga de Excel", () => {
 		exportarExcel.mockImplementationOnce(() => {
 			throw new Error("No se pudo escribir el archivo");
 		});
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		fireEvent.click(screen.getByText("Excel"));
 

@@ -78,6 +78,7 @@ jest.mock("../../hooks/use-reporte-ventas", () => ({
 }));
 
 import ReporteVentas from "./reporte-ventas";
+import { conQueryClient } from "../../../__mocks__/con-query-client";
 
 // El valor del renglón cuyo texto empieza con la etiqueta dada, dentro de las
 // tarjetas del corte.
@@ -94,7 +95,7 @@ describe("ReporteVentas: el corte del período", () => {
 	beforeEach(() => jest.clearAllMocks());
 
 	test("separa el efectivo de los bancos", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		expect(renglon("Efectivo")).toBe("$700.00");
 		expect(renglon("Efectivo neto a entregar")).toBe("$700.00");
@@ -104,7 +105,7 @@ describe("ReporteVentas: el corte del período", () => {
 	});
 
 	test("muestra lo que falta por cobrar y el gran total", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		expect(renglon("Crédito")).toBe("$100.00");
 		expect(renglon("Total por cobrar")).toBe("$100.00");
@@ -112,7 +113,7 @@ describe("ReporteVentas: el corte del período", () => {
 	});
 
 	test("cuenta órdenes, canceladas y pagos cancelados", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		expect(renglon("Órdenes")).toBe("4");
 		expect(renglon("Órdenes canceladas")).toBe("2");
@@ -122,7 +123,7 @@ describe("ReporteVentas: el corte del período", () => {
 	// Van a la vista para que el corte se lea igual que el de caja, pero con el
 	// aviso de que no son un dato medido.
 	test("cupones y cortesías salen en cero y avisan que no se manejan", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		expect(renglon("Cupones")).toBe("0");
 		expect(renglon("Cortesías")).toBe("0");
@@ -134,7 +135,7 @@ describe("ReporteVentas: el corte del período", () => {
 	// Si el corte no siguiera los filtros, el número no cuadraría con la tabla
 	// que se está viendo. Las canceladas tienen que respetarlos igual.
 	test("el corte sigue el filtro de sucursal, también en las canceladas", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		fireEvent.change(screen.getByLabelText("Sucursal"), { target: { value: "2" } });
 
@@ -147,7 +148,7 @@ describe("ReporteVentas: el corte del período", () => {
 	// Las canceladas no pueden colarse a la tabla ni a los totales de ventas:
 	// van en consulta aparte justo para eso.
 	test("las canceladas no entran a la tabla ni inflan las ventas", () => {
-		render(<ReporteVentas />);
+		render(conQueryClient(<ReporteVentas />));
 
 		const folios = [...document.querySelectorAll(".rv-table tbody tr")].map(
 			(fila) => fila.querySelector("td").textContent,

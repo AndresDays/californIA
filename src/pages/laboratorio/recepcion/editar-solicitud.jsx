@@ -45,6 +45,7 @@ import {
 	esErrorColumnaSchemaCache,
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
+import { cancelarVenta } from "../../../utils/cancelacion-venta";
 import { normalizarFolio } from "../../../utils/folios";
 import { esSoloAbono, resolverMotivoEdicion } from "../../../utils/edicion-solicitud";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
@@ -576,62 +577,20 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Seleccione una orden primero", "advertencia");
 			return;
 		}
-		const motivoCancelacion = (motivo || "").trim();
-		if (!motivoCancelacion) {
+		if (!(motivo || "").trim()) {
 			mostrarNotificacion("Ingrese el motivo de la cancelación", "advertencia");
 			return;
 		}
 		try {
-			const canceladaEn = new Date().toISOString();
-			const cambiosVenta = {
-				estado: "cancelado",
-				updated_at: canceladaEn,
-				motivo_cancelacion: motivoCancelacion,
-				cancelada_en: canceladaEn,
-			};
-			let { error } = await supabase
-				.from("ventas")
-				.update(cambiosVenta)
-				.eq("id_venta", ordenSeleccionada.id_venta);
-			// Si la base aún no tiene la migración del motivo, la cancelación no
-			// puede quedarse atorada: se guarda el estado y el motivo se conserva
-			// en la auditoría.
-			if (
-				error &&
-				(esErrorColumnaSchemaCache(error, "motivo_cancelacion") ||
-					esErrorColumnaSchemaCache(error, "cancelada_en"))
-			) {
-				({ error } = await supabase
-					.from("ventas")
-					.update({ estado: "cancelado", updated_at: canceladaEn })
-					.eq("id_venta", ordenSeleccionada.id_venta));
-			}
-			if (error) throw error;
-			const pagoActual = parseFloat(ordenSeleccionada.pago_recibido) || 0;
-			if (pagoActual > 0) {
-				await registrarMovimientoPagoVenta(supabase, {
-					id_venta: ordenSeleccionada.id_venta,
-					folio,
-					tipo_movimiento: TIPOS_MOVIMIENTO_PAGO.CANCELACION,
-					monto: pagoActual,
-					forma_pago: ordenSeleccionada.forma_pago || formaPago,
-					motivo: motivoCancelacion,
-					empleado: empleadoData,
-					user,
-				});
-			}
-			await registrarEventoSolicitud(supabase, {
-				id_venta: ordenSeleccionada.id_venta,
+			await cancelarVenta(supabase, {
+				venta: ordenSeleccionada,
 				folio,
-				evento: EVENTOS_SOLICITUD.CANCELADA,
-				descripcion: `Solicitud cancelada. Motivo: ${motivoCancelacion}`,
+				motivo,
+				categoria,
+				detalle,
+				formaPago,
 				empleado: empleadoData,
 				user,
-				detalles: {
-					motivo: motivoCancelacion,
-					categoria: categoria || null,
-					detalle: detalle || null,
-				},
 			});
 			// Una orden cancelada sale del reporte y de captura: mismo motivo.
 			invalidarConsultasDeVentas(queryClient);
