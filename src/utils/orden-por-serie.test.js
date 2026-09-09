@@ -113,3 +113,20 @@ describe("agruparPartesPorEmpresa", () => {
 		expect(cdi.total).toBe(700);
 	});
 });
+
+// En Ixtapa y Mascota se cobra todo en una caja: la orden no se parte, aunque
+// traiga imagen y laboratorio.
+test("la orden de una sucursal con serie propia no se divide", () => {
+	const partes = dividirOrdenPorSerie({
+		estudios: [
+			{ modulo: "imagen", modalidad: "tomografia", empresa_operativa: "CDI", precio: 1000 },
+			{ modulo: "laboratorio", precio: 200 },
+		],
+		sucursal: { id_sucursal: 2, sucursal: "IXTAPA" },
+	});
+
+	expect(partes).toHaveLength(1);
+	expect(partes[0].serie).toBe("D");
+	expect(partes[0].total).toBe(1200);
+	expect(esOrdenMixta(partes)).toBe(false);
+});

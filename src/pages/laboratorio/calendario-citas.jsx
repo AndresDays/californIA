@@ -15,14 +15,17 @@ import EditarCitaModal from "../../components/editar-cita-modal";
 import { supabase } from "../../lib/supabase-client";
 import "./calendario-citas.css";
 
+// `tipoEstudio` es lo que se le pone a la cita nueva abierta desde esa columna:
+// el clic en el hueco ya dijo de qué es el estudio, así que el modal no vuelve
+// a preguntarlo. "Otros" no nombra ningún tipo y por eso no propone ninguno.
 const TIPOS_ESTUDIO_CALENDARIO = [
-	{ id: "lab", label: "Lab", aliases: ["lab", "laboratorio", "biometria", "quimica", "perfil", "glucosa"] },
-	{ id: "ultrasonido", label: "Ultrasonido", aliases: ["ultrasonido", "ultrasonidos", "usg", "eco", "ecocardiograma"] },
-	{ id: "rayos-x", label: "Rayos X", aliases: ["rayos x", "rayos-x", "rx", "radiografia", "radiografias"] },
-	{ id: "tac", label: "TAC", aliases: ["tac", "tomografia", "tomografias"] },
-	{ id: "resonancia", label: "Resonancia", aliases: ["resonancia", "resonancias", "rm", "irm"] },
-	{ id: "mastografia", label: "Mastografia", aliases: ["mastografia", "mastografias", "mamografia", "mamario"] },
-	{ id: "densitometria", label: "Densitometria", aliases: ["densitometria", "densitometria", "densi"] },
+	{ id: "lab", label: "Lab", tipoEstudio: "Laboratorio", aliases: ["lab", "laboratorio", "biometria", "quimica", "perfil", "glucosa"] },
+	{ id: "ultrasonido", tipoEstudio: "Ultrasonido", label: "Ultrasonido", aliases: ["ultrasonido", "ultrasonidos", "usg", "eco", "ecocardiograma"] },
+	{ id: "rayos-x", tipoEstudio: "Rayos X", label: "Rayos X", aliases: ["rayos x", "rayos-x", "rx", "radiografia", "radiografias"] },
+	{ id: "tac", tipoEstudio: "Tomografia", label: "TAC", aliases: ["tac", "tomografia", "tomografias"] },
+	{ id: "resonancia", tipoEstudio: "Resonancia", label: "Resonancia", aliases: ["resonancia", "resonancias", "rm", "irm"] },
+	{ id: "mastografia", tipoEstudio: "Mastografia", label: "Mastografia", aliases: ["mastografia", "mastografias", "mamografia", "mamario"] },
+	{ id: "densitometria", tipoEstudio: "Densitometria", label: "Densitometria", aliases: ["densitometria", "densitometria", "densi"] },
 	{ id: "otros", label: "Otros", aliases: [] },
 ];
 
@@ -150,7 +153,8 @@ const CalendarioCitas = () => {
 		return grupos;
 	}, [citas]);
 
-	const abrirNuevaCita = (horaInicial) => setHorarioNuevaCita({ fechaInicial: fechaSeleccionada, horaInicial });
+	const abrirNuevaCita = (horaInicial, tipoEstudioInicial = "") =>
+		setHorarioNuevaCita({ fechaInicial: fechaSeleccionada, horaInicial, tipoEstudioInicial });
 	const cancelarCita = async () => {
 		if (!citaActiva) return;
 		const { error: errorCancelacion } = await supabase.from("citas").update({ estado: "cancelada" }).eq("id_cita", citaActiva.id_cita);
@@ -265,7 +269,7 @@ const CalendarioCitas = () => {
 											return (
 												<div key={`${tipo.id}-${bloque.valor}`} className="cal-slot" role="cell">
 													{citasHora.length === 0 ? (
-														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor)} />
+														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													) : (
 														citasHora.map((cita) => (
 															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => setCitaActiva(cita)}>
@@ -291,7 +295,7 @@ const CalendarioCitas = () => {
 					)}
 				</section>
 			</main>
-			<NuevaCitaModal isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
+			<NuevaCitaModal isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} tipoEstudioInicial={horarioNuevaCita?.tipoEstudioInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
 			{citaActiva && <div className="modal-overlay" onClick={() => setCitaActiva(null)}><div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}><div className="modal-header-cita"><h2 className="modal-title-cita">Acciones de cita</h2><button className="modal-close-btn" onClick={() => setCitaActiva(null)}>✕</button></div><div className="cal-action-body">{confirmandoCancelacion ? <><p className="cal-cancel-question">¿Seguro que deseas cancelar esta cita?</p><div className="modal-footer-cita"><button type="button" className="btn-cancel-cita" onClick={() => setConfirmandoCancelacion(false)}>Volver</button><button type="button" className="btn-submit-cita" onClick={cancelarCita}>Confirmar cancelación</button></div></> : <div className="modal-footer-cita"><button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button><button type="button" className="btn-cancel-cita" onClick={() => setConfirmandoCancelacion(true)}>Cancelar cita</button><button type="button" className="btn-submit-cita" onClick={() => navigate(`/nuevo-paciente?citaId=${citaActiva.id_cita}`, { state: { citaId: citaActiva.id_cita } })}>Pasar a estudio</button></div>}</div></div></div>}
 			<EditarCitaModal isOpen={editandoCita} cita={citaActiva} onClose={() => setEditandoCita(false)} onCitaActualizada={() => { queryClient.invalidateQueries({ queryKey: ["citas"] }); setEditandoCita(false); setCitaActiva(null); }} />
 		</PageLayout>

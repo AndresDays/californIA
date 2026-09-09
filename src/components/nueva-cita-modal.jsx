@@ -5,7 +5,7 @@ import { buscarPorNombre, idPorNombre } from '../utils/catalogo-por-nombre';
 import { interpretarRenglonCita, resumirRenglonCita } from '../utils/cita-renglon';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { useAuth } from '../context/auth-context';
-import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
+import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 import { useNavegacionLista } from '../hooks/use-navegacion-lista';
@@ -16,7 +16,6 @@ import {
   construirPaqueteCatalogoUnificado,
   filtrarEstudiosCatalogo,
 } from '../utils/cita-nuevo-paciente';
-import { resolverTiposEstudioConvenio } from '../utils/tipos-estudio-convenio';
 import { cargarReglasConvenio } from '../utils/convenios-facturacion';
 import { cargarPreciosCliente, resolverClavesConPrecio } from '../utils/precios-cliente';
 
@@ -62,15 +61,26 @@ const guardarPreferenciaRenglon = (activo) => {
   }
 };
 
-const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInicial }) => {
+const NuevaCitaModal = ({
+  isOpen,
+  onClose,
+  onCitaCreada,
+  fechaInicial,
+  horaInicial,
+  tipoEstudioInicial,
+}) => {
   const { empleadoData } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     nombreCompleto: '',
-    telefono: '',
+    contacto: '',
     fecha: '',
     hora: ''
   });
+
+  // Quien llama deja un teléfono o un correo, no las dos cosas: un solo campo
+  // con el tipo al lado evita pedir un dato que el paciente no dio.
+  const [tipoContacto, setTipoContacto] = useState('telefono');
 
   const [clientes, setClientes] = useState([]);
   // Empresa, cliente y tipo de estudio se capturan como texto: agendar por
@@ -78,10 +88,6 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   // se busca la coincidencia en el catalogo para conservar el id; lo que no
   // coincide se queda como lo escribio recepcion.
   const [clienteSeleccionado, setClienteSeleccionado] = useState('');
-
-  const [empresas, setEmpresas] = useState([]);
-  const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
-
 
   const [tiposEstudio, setTiposEstudio] = useState([]);
   const [tipoEstudioSeleccionado, setTipoEstudioSeleccionado] = useState('');
@@ -97,8 +103,8 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   const [preciosCliente, setPreciosCliente] = useState(null);
 
   // Un solo renglon para toda la cita: nombre, telefono y estudio escritos de
-  // corrido. El formulario completo sigue ahi para quien necesite empresa,
-  // convenio o elegir estudios del catalogo con su precio.
+  // corrido. El formulario completo sigue ahi para quien necesite convenio,
+  // tipo de estudio o elegir estudios del catalogo con su precio.
   const [modoRenglon, setModoRenglon] = useState(leerPreferenciaRenglon);
   const [renglon, setRenglon] = useState('');
 
@@ -109,7 +115,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     if (!isOpen) return;
 
     cargarClientes();
-    cargarEmpresas();
+    cargarTiposEstudio();
     cargarEstudios();
 
     const ahora = new Date();
@@ -120,15 +126,16 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     }));
   }, [isOpen, fechaInicial, horaInicial]);
 
-  // Los tipos dependen de la empresa y del convenio del cliente, así que se
-  // vuelven a resolver cuando cambia cualquiera de los dos.
+  // La cita se abre desde una columna del calendario -laboratorio, tomografía,
+  // ultrasonido-, y ese clic ya dice de qué es: dejar el tipo en blanco obliga
+  // a teclear lo que se acaba de elegir. Si el catálogo tiene ese tipo se pone
+  // su nombre canónico; si no, se deja el texto de la columna.
   useEffect(() => {
-    // Los tipos se piden solo si lo escrito casa con una empresa del catalogo;
-    // con un texto libre no hay a que catalogo ir y el campo funciona igual.
-    const empresa = buscarPorNombre(empresas, empresaSeleccionada);
-    if (empresa) cargarTiposEstudio(empresa.id_empresa);
-    else setTiposEstudio([]);
-  }, [empresaSeleccionada, empresas, reglasConvenio]);
+    if (!isOpen || !tipoEstudioInicial) return;
+    setTipoEstudioSeleccionado(
+      buscarPorNombre(tiposEstudio, tipoEstudioInicial)?.nombre || tipoEstudioInicial,
+    );
+  }, [isOpen, tipoEstudioInicial, tiposEstudio]);
 
   // El tarifario del cliente acota la búsqueda y su matriz de convenio define
   // qué modalidades tiene pactadas con cada empresa.
@@ -163,39 +170,15 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     if (!error) setClientes(data || []);
   };
 
-  const cargarEmpresas = async () => {
+  const cargarTiposEstudio = async () => {
+    // Ya no se pasa por la empresa para llegar al tipo: se ofrece el catálogo
+    // completo, que es lo que la columna del calendario nombra.
     const { data, error } = await supabase
-      .from('empresas')
-      .select('id_empresa, nombre')
+      .from('tipos_estudio')
+      .select('id_tipo_estudio, nombre')
       .order('nombre');
-    if (!error) setEmpresas(data || []);
-  };
 
-  const cargarTiposEstudio = async (idEmpresa) => {
-    // Se traen los tipos de todas las empresas porque el convenio puede
-    // facturar por la elegida estudios que el catálogo tiene en la otra.
-    const { data, error } = await supabase
-      .from('empresa_tipos_estudio')
-      .select(`
-        id_empresa,
-        id_tipo_estudio,
-        tipos_estudio ( id_tipo_estudio, nombre )
-      `)
-      .order('tipos_estudio(nombre)');
-
-    if (error) {
-      setTiposEstudio([]);
-      return;
-    }
-
-    setTiposEstudio(
-      resolverTiposEstudioConvenio({
-        filas: data || [],
-        empresas,
-        idEmpresaSeleccionada: idEmpresa,
-        reglasConvenio,
-      }),
-    );
+    setTiposEstudio(error ? [] : data || []);
   };
 
   // La cita se agenda para cualquiera de los dos módulos, así que la búsqueda
@@ -263,7 +246,10 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'telefono' ? normalizarTelefono10(value) : value
+      [name]:
+        name === 'contacto' && tipoContacto === 'telefono'
+          ? normalizarTelefono10(value)
+          : value
     }));
     setError('');
   };
@@ -306,14 +292,20 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   // modal, y si tampoco la hay, hoy a la hora en curso.
   const validarFormulario = () => {
     if (!empleadoData?.id_sucursal) return setError('El usuario no tiene una sucursal asignada. Solicite la asignación a un administrador.'), false;
-    // El telefono se revisa solo si se capturo: vacio esta bien, a medias no,
+    // El contacto se revisa solo si se capturo: vacio esta bien, a medias no,
     // porque despues no se puede llamar ni mandar el recordatorio.
-    // En el modo de un renglon el telefono no se teclea en su campo: lo saca el
+    // En el modo de un renglon el contacto no se teclea en su campo: lo saca el
     // interpretador, que solo devuelve diez digitos o nada. Revisar aqui lo que
     // quedo escrito en el formulario completo rechazaria la cita por un dato
     // que no se va a guardar.
-    if (!modoRenglon && formData.telefono.trim() && !esTelefono10Digitos(formData.telefono)) {
-      return setError('El teléfono debe tener 10 dígitos numéricos'), false;
+    const contacto = formData.contacto.trim();
+    if (!modoRenglon && contacto) {
+      if (tipoContacto === 'telefono' && !esTelefono10Digitos(contacto)) {
+        return setError('El teléfono debe tener 10 dígitos numéricos'), false;
+      }
+      if (tipoContacto === 'correo' && !esEmailValido(contacto)) {
+        return setError('El correo no tiene un formato válido'), false;
+      }
     }
     return true;
   };
@@ -339,9 +331,11 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   // solo lugar evita que los dos modos se separen y guarden cosas distintas.
   const datosDeLaCita = () => {
     if (!modoRenglon) {
+      const contacto = formData.contacto.trim();
       return {
         nombre: formData.nombreCompleto.trim(),
-        telefono: formData.telefono.trim(),
+        telefono: tipoContacto === 'telefono' ? contacto : '',
+        correo: tipoContacto === 'correo' ? contacto : '',
         estudios: estudiosSeleccionados.map((e) => e.descripcion).join(', '),
         monto: calcularTotal(),
       };
@@ -350,7 +344,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
     // El renglon no lleva precio: el estudio se escribe a mano y puede no estar
     // en el catalogo. Se cotiza al pasar la cita a estudio, que es donde se
     // conoce el convenio.
-    return { nombre, telefono, estudios, monto: 0 };
+    return { nombre, telefono, correo: '', estudios, monto: 0 };
   };
 
   const handleSubmit = async (e) => {
@@ -391,11 +385,17 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
         // Lo tecleado se casa con el catalogo para conservar la relacion; si no
         // coincide, la cita se guarda sin el id en lugar de rechazarse.
         id_cliente: idPorNombre(clientes, clienteSeleccionado, 'id_cliente'),
-        id_empresa: idPorNombre(empresas, empresaSeleccionada, 'id_empresa'),
         id_tipo_estudio: idPorNombre(tiposEstudio, tipoEstudioSeleccionado, 'id_tipo_estudio'),
 
         nombre_paciente: cita.nombre || null,
         telefono_paciente: cita.telefono || null,
+        correo_paciente: cita.correo || null,
+
+        // Quién apuntó la cita: cuando algo no cuadra hay a quién preguntarle.
+        // El nombre se copia además del id porque el empleado puede darse de
+        // baja y la cita tiene que seguir diciendo quién la capturó.
+        id_empleado_creador: empleadoData?.id_empleado ?? null,
+        creado_por_nombre: empleadoData?.nombre || null,
 
         // La columna de texto es lo unico que queda de lo que pidio el paciente
         // cuando el estudio no esta en el catalogo, asi que se conserva lo
@@ -415,10 +415,9 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
       queryClient.invalidateQueries({ queryKey: ['citas'] });
       onCitaCreada?.(nuevaCita);
 
-      setFormData({ nombreCompleto: '', telefono: '', fecha: '', hora: '' });
+      setFormData({ nombreCompleto: '', contacto: '', fecha: '', hora: '' });
       setRenglon('');
       setClienteSeleccionado('');
-      setEmpresaSeleccionada('');
       setTipoEstudioSeleccionado('');
       setBuscarEstudio('');
       setEstudiosSeleccionados([]);
@@ -434,13 +433,10 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
   // Los campos son texto: lo escrito se casa con el catalogo para acotar la
   // busqueda del estudio. Lo que no coincide simplemente no acota nada, y la
   // busqueda sigue funcionando sobre todo el catalogo.
-  const empresaActual = buscarPorNombre(empresas, empresaSeleccionada);
   const tipoEstudioActual = buscarPorNombre(tiposEstudio, tipoEstudioSeleccionado);
   const filtrosCatalogo = {
     estudios,
     busqueda: buscarEstudio,
-    empresaId: empresaActual?.id_empresa ?? '',
-    empresaNombre: empresaActual?.nombre || '',
     tipoNombre: tipoEstudioActual?.nombre || '',
     reglasConvenio,
   };
@@ -485,7 +481,7 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
         <form onSubmit={handleSubmit} className="cita-form">
           {/* Agendar por telefono es teclear con el paciente en la linea: un
               renglon en vez de seis campos. El formulario completo sigue a un
-              clic para cuando haga falta empresa, convenio o el precio del
+              clic para cuando haga falta convenio o el precio del
               catalogo. La eleccion se recuerda. */}
           <div className="cita-modo" role="group" aria-label="Forma de capturar la cita">
             <button
@@ -544,26 +540,52 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
               className="form-input-cita" disabled={loading} />
           </div>
 
+          {/* Un contacto, no un teléfono: hay quien sólo deja correo, y antes
+              ese dato no tenía dónde ir. El tipo va al lado del campo para no
+              gastar un renglón más del formulario. */}
           <div className="form-group-cita">
-            <label className="form-label-cita" htmlFor="cita-telefono">Teléfono</label>
-            <input id="cita-telefono" type="tel" name="telefono" value={formData.telefono} onChange={handleChange}
-              className="form-input-cita" disabled={loading} maxLength="10" inputMode="numeric" />
+            <label className="form-label-cita" htmlFor="cita-contacto">Contacto</label>
+            <div className="cita-contacto-grupo">
+              <select
+                className="form-input-cita cita-contacto-tipo"
+                aria-label="Tipo de contacto"
+                value={tipoContacto}
+                onChange={(e) => {
+                  const tipo = e.target.value;
+                  setTipoContacto(tipo);
+                  // Lo capturado para el otro tipo no sirve aquí: un correo con
+                  // los dígitos recortados o un teléfono con arroba se guardaría
+                  // como contacto bueno.
+                  setFormData((prev) => ({ ...prev, contacto: '' }));
+                }}
+                disabled={loading}>
+                <option value="telefono">Teléfono</option>
+                <option value="correo">Correo</option>
+              </select>
+              <input
+                id="cita-contacto"
+                /* Texto y no `email`: con `type="email"` el navegador corta el
+                   envío con su propia burbuja y el aviso del formulario -el que
+                   dice qué falta- nunca aparece. La validación la hace el
+                   modal. */
+                type="text"
+                name="contacto"
+                value={formData.contacto}
+                onChange={handleChange}
+                className="form-input-cita"
+                disabled={loading}
+                maxLength={tipoContacto === 'correo' ? 120 : 10}
+                inputMode={tipoContacto === 'correo' ? 'email' : 'numeric'}
+                placeholder={tipoContacto === 'correo' ? 'paciente@correo.com' : '4771234567'}
+              />
+            </div>
           </div>
 
-          {/* Tres campos de texto en lugar de tres listas encadenadas. La lista
-              de sugerencias sigue ahi para quien quiera elegir, pero ya no hay
-              que pasar por empresa para llegar al cliente ni por el cliente
-              para llegar al tipo: agendar por telefono es escribir. */}
-          <div className="form-group-cita">
-            <label className="form-label-cita" htmlFor="cita-empresa">Empresa</label>
-            <input id="cita-empresa" type="text" list="cita-empresas" value={empresaSeleccionada}
-              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-              className="form-input-cita" disabled={loading} placeholder="CDC, CDI..." />
-            <datalist id="cita-empresas">
-              {empresas.map(emp => <option key={emp.id_empresa} value={emp.nombre} />)}
-            </datalist>
-          </div>
-
+          {/* Dos campos de texto en lugar de listas encadenadas. La lista de
+              sugerencias sigue ahi para quien quiera elegir, pero ya no hay que
+              pasar por el cliente para llegar al tipo: agendar por telefono es
+              escribir. La empresa se quito del formulario: no se preguntaba por
+              telefono y estorbaba entre el contacto y el estudio. */}
           <div className="form-group-cita">
             <label className="form-label-cita" htmlFor="cita-cliente">Cliente</label>
             <input id="cita-cliente" type="text" list="cita-clientes" value={clienteSeleccionado}
@@ -644,6 +666,12 @@ const NuevaCitaModal = ({ isOpen, onClose, onCitaCreada, fechaInicial, horaInici
           </div>
 
           </>
+          )}
+
+          {/* Quién está apuntando la cita, a la vista al capturarla y guardado
+              con ella: cuando algo no cuadra hay a quién preguntarle. */}
+          {(empleadoData?.nombre || '') && (
+            <p className="cita-autor">Creada por: {empleadoData.nombre}</p>
           )}
 
           {/* La fecha y la hora quedan en los dos modos: son el hueco de la
