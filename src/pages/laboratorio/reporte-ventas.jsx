@@ -1165,13 +1165,6 @@ const ReporteVentas = () => {
 								<div className="rv-cobro-acciones">
 									<button
 										type="button"
-										className="rv-btn-sm"
-										onClick={() => setMontoAbono(String(saldoVentaDetalle))}
-										disabled={cobrandoAdeudo}>
-										Liquidar todo
-									</button>
-									<button
-										type="button"
 										className="rv-btn-cobrar"
 										onClick={cobrarAdeudo}
 										disabled={cobrandoAdeudo}>

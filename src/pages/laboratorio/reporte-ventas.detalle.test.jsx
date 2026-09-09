@@ -142,12 +142,10 @@ describe("ReporteVentas: cobrar el adeudo desde el detalle", () => {
 		expect(modal.getByPlaceholderText("A1B2C3")).toBeInTheDocument();
 	});
 
-	test("el boton de liquidar deja el adeudo completo en el monto", () => {
+	test("no ofrece el boton de liquidar todo, solo el de registrar cobro", () => {
 		const modal = abrirDetalle();
 
-		fireEvent.change(modal.getByRole("spinbutton"), { target: { value: "50" } });
-		fireEvent.click(modal.getByRole("button", { name: /liquidar todo/i }));
-
-		expect(modal.getByRole("spinbutton")).toHaveValue(400);
+		expect(modal.queryByRole("button", { name: /liquidar todo/i })).toBeNull();
+		expect(modal.getByRole("button", { name: /registrar cobro/i })).toBeInTheDocument();
 	});
 });
