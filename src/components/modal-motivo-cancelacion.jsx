@@ -12,6 +12,16 @@ export const MOTIVOS_CANCELACION = [
 ];
 
 const MOTIVO_OTRO = "Otro";
+export const MOTIVO_PETICION_PACIENTE = "Cancelación a petición del paciente";
+
+// Estos dos motivos no dicen nada por sí solos: "Otro" no dice nada, y a
+// petición del paciente deja la pregunta de por qué la pidió, que es justo lo
+// que necesita saber quien recibe el aviso -si reagendó, si se fue con otro
+// laboratorio, si el precio-. Por eso ahí el detalle es obligatorio y viaja
+// pegado al motivo hasta la notificación.
+const MOTIVOS_CON_DETALLE_OBLIGATORIO = [MOTIVO_OTRO, MOTIVO_PETICION_PACIENTE];
+
+const LARGO_MINIMO_DETALLE = 5;
 
 const ModalMotivoCancelacion = ({
 	isOpen,
@@ -35,12 +45,15 @@ const ModalMotivoCancelacion = ({
 
 	if (!isOpen) return null;
 
-	const requiereDetalle = motivoSeleccionado === MOTIVO_OTRO;
+	const requiereDetalle = MOTIVOS_CON_DETALLE_OBLIGATORIO.includes(motivoSeleccionado);
+	// "Otro" se guarda sólo con lo escrito porque la categoría no aporta nada; en
+	// los demás el detalle se suma al motivo elegido.
+	const soloDetalle = motivoSeleccionado === MOTIVO_OTRO;
 
 	const construirMotivo = () => {
 		const texto = detalle.trim();
 		if (!motivoSeleccionado) return "";
-		if (requiereDetalle) return texto;
+		if (soloDetalle) return texto;
 		return texto ? `${motivoSeleccionado}: ${texto}` : motivoSeleccionado;
 	};
 
@@ -49,8 +62,8 @@ const ModalMotivoCancelacion = ({
 			setError("Selecciona el motivo de la cancelación");
 			return;
 		}
-		if (requiereDetalle && detalle.trim().length < 5) {
-			setError("Describe el motivo con al menos 5 caracteres");
+		if (requiereDetalle && detalle.trim().length < LARGO_MINIMO_DETALLE) {
+			setError(`Describe el motivo con al menos ${LARGO_MINIMO_DETALLE} caracteres`);
 			return;
 		}
 		setError("");
@@ -119,7 +132,8 @@ const ModalMotivoCancelacion = ({
 					<label className="modal-motivo-label" htmlFor="detalle-cancelacion">
 						{requiereDetalle ? (
 							<>
-								Descripción <span className="modal-motivo-requerido">*</span>
+								{soloDetalle ? "Descripción" : "Motivo del paciente"}{" "}
+								<span className="modal-motivo-requerido">*</span>
 							</>
 						) : (
 							"Comentario adicional (opcional)"
@@ -133,7 +147,11 @@ const ModalMotivoCancelacion = ({
 						maxLength={300}
 						value={detalle}
 						disabled={guardando}
-						placeholder="Ejemplo: el paciente reagendó para la próxima semana"
+						placeholder={
+							motivoSeleccionado === MOTIVO_PETICION_PACIENTE
+								? "¿Por qué la pidió? Ejemplo: reagendó para la próxima semana"
+								: "Ejemplo: el paciente reagendó para la próxima semana"
+						}
 						onChange={(e) => {
 							setDetalle(e.target.value);
 							setError("");
