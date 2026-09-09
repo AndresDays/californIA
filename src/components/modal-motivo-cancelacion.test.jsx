@@ -105,3 +105,44 @@ test("deja el modal usable si la cancelación falla", async () => {
 	);
 	console.error.mockRestore();
 });
+
+// A petición del paciente sin decir por qué la pidió no le sirve a nadie: quien
+// recibe el aviso necesita saber si reagendó, si se fue a otro lado o si fue el
+// precio.
+test("exige el motivo del paciente cuando se cancela a su petición", () => {
+	const onConfirmar = jest.fn();
+	abrirModal({ onConfirmar });
+
+	fireEvent.change(screen.getByLabelText(/motivo de cancelación/i), {
+		target: { value: "Cancelación a petición del paciente" },
+	});
+
+	expect(screen.getByText(/Motivo del paciente/i)).toBeInTheDocument();
+
+	fireEvent.click(screen.getByRole("button", { name: /cancelar solicitud/i }));
+
+	expect(onConfirmar).not.toHaveBeenCalled();
+	expect(screen.getByText(/al menos 5 caracteres/i)).toBeInTheDocument();
+});
+
+// El detalle viaja pegado al motivo: es lo que se guarda en la orden y lo que
+// el aviso de cancelación le muestra a dirección y administración.
+test("el motivo a petición del paciente lleva el detalle capturado", async () => {
+	const onConfirmar = jest.fn().mockResolvedValue(undefined);
+	abrirModal({ onConfirmar });
+
+	fireEvent.change(screen.getByLabelText(/motivo de cancelación/i), {
+		target: { value: "Cancelación a petición del paciente" },
+	});
+	fireEvent.change(screen.getByLabelText(/detalle de la cancelación/i), {
+		target: { value: "reagendó para la próxima semana" },
+	});
+	fireEvent.click(screen.getByRole("button", { name: /cancelar solicitud/i }));
+
+	await waitFor(() => expect(onConfirmar).toHaveBeenCalledTimes(1));
+	expect(onConfirmar).toHaveBeenCalledWith({
+		motivo: "Cancelación a petición del paciente: reagendó para la próxima semana",
+		categoria: "Cancelación a petición del paciente",
+		detalle: "reagendó para la próxima semana",
+	});
+});
