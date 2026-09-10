@@ -6,9 +6,9 @@
 // teléfono, y se manda por el medio que se elija.
 import { crearUrlVisorPaciente, normalizarTelefonoPortal } from "./portal-resultados";
 
-// Sin folio ni teléfono no hay liga pública que armar -un estudio capturado a
-// medias-, así que se comparte la de la pantalla, que al menos sirve entre
-// personal de la clínica.
+// Lo que se comparte es siempre el visor del paciente: la pantalla del
+// radiólogo pide sesión y a quien la recibe no le sirve. Sólo si no hay estudio
+// al que apuntar se manda la dirección actual.
 export const resolverUrlCompartirEstudio = ({
 	idEstudio,
 	folio = "",
@@ -16,9 +16,15 @@ export const resolverUrlCompartirEstudio = ({
 	origin,
 	urlActual = "",
 } = {}) => {
-	if (!idEstudio || !folio || !normalizarTelefonoPortal(telefono)) return urlActual;
+	if (!idEstudio) return urlActual;
 	return crearUrlVisorPaciente({ idEstudio, folio, telefono, ...(origin ? { origin } : {}) });
 };
+
+// El visor del paciente se autoriza con folio y teléfono: sin ellos la liga
+// abre pero no deja ver el estudio, y quien comparte tiene que enterarse antes
+// de mandarla.
+export const faltanDatosParaCompartir = ({ folio = "", telefono = "" } = {}) =>
+	!String(folio || "").trim() || !normalizarTelefonoPortal(telefono);
 
 export const crearTextoCompartirEstudio = ({ paciente = "", estudio = "", url = "" } = {}) => {
 	const de = paciente ? ` de ${paciente}` : "";
