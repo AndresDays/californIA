@@ -41,6 +41,9 @@ describe("sidebar shared menu", () => {
 			"Pacientes",
 			"Doctores",
 			"Usuarios",
+			// Los accesos de los convenios: sólo dirección y desarrollo los ven,
+			// pero el ítem vive aquí y el filtro por rol lo quita.
+			"Clientes",
 		]);
 
 		expect(labelsFor("configuracion")).toEqual([

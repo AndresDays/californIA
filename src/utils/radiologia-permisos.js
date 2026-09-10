@@ -41,7 +41,16 @@ export const esDoctorExterno = (rol) =>
 export const obtenerIdDoctorExterno = (empleado = {}) =>
 	empleado?.id_doctor ?? empleado?.doctor_id ?? empleado?.id_medico_externo ?? null;
 
+// El cliente de convenio ve radiología como el médico externo, pero acotado por
+// su convenio en vez de por su id de doctor: los estudios traen el convenio de
+// la orden con la que se capturaron.
+export const esClienteImagenRadiologia = (rol) =>
+	normalizarRolPermisos(rol) === "cliente_imagen";
+
 export const obtenerRestriccionDoctorExterno = (empleado = {}) => {
+	if (esClienteImagenRadiologia(empleado?.rol)) {
+		return { columna: "id_cliente", valor: empleado?.id_cliente ?? null };
+	}
 	if (!esDoctorExterno(empleado?.rol)) return null;
 	const idDoctor = obtenerIdDoctorExterno(empleado);
 	if (!idDoctor) return { columna: "id_doctor", valor: null };
@@ -49,6 +58,7 @@ export const obtenerRestriccionDoctorExterno = (empleado = {}) => {
 };
 
 export const puedeInterpretarRadiologia = (empleado = {}) =>
+	!esClienteImagenRadiologia(empleado?.rol) &&
 	ROLES_PUEDEN_INTERPRETAR.has(normalizarRolRadiologia(empleado?.rol)) ||
 	(esDoctorExterno(empleado?.rol) && empleado?.es_radiologo === true);
 
@@ -56,13 +66,17 @@ export const puedeEditarReporteRadiologia = (empleado = {}) =>
 	puedeInterpretarRadiologia(empleado);
 
 export const puedeVerReporteRadiologia = (empleado = {}) =>
-	puedeEditarReporteRadiologia(empleado) || esDoctorExterno(empleado?.rol);
+	puedeEditarReporteRadiologia(empleado) ||
+	esDoctorExterno(empleado?.rol) ||
+	esClienteImagenRadiologia(empleado?.rol);
 
 export const puedeSubirImagenRadiologia = (empleado = {}) =>
+	!esClienteImagenRadiologia(empleado?.rol) &&
 	ROLES_PUEDEN_SUBIR_IMAGEN.has(normalizarRolRadiologia(empleado?.rol));
 
 export const puedeAsignarRadiologia = (empleado = {}) =>
 	!esDoctorExterno(empleado?.rol) &&
+	!esClienteImagenRadiologia(empleado?.rol) &&
 	normalizarRolRadiologia(empleado?.rol) !== "radiologo_clinico" &&
 	ROLES_PUEDEN_INTERPRETAR.has(normalizarRolRadiologia(empleado?.rol));
 

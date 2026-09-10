@@ -32,6 +32,35 @@ const cargarDoctorExternoAuth = async (authId) => {
   return data;
 };
 
+// El convenio no está en `empleados` ni en `doctores`: su cuenta vive en
+// `clientes_accesos`, y de ahí sale su rol -imagen o laboratorio- y el
+// convenio al que pertenece, que es lo que acota todo lo que puede ver.
+const cargarAccesoClienteAuth = async (authId) => {
+  const { data, error } = await supabase
+    .from('clientes_accesos')
+    .select('id_cliente, modulo, usuario, activo, clientes ( id_cliente, nombre )')
+    .eq('auth_uuid', authId)
+    .eq('activo', true)
+    .maybeSingle();
+
+  // Una base sin la migración de accesos no puede dejar sin entrar a los
+  // empleados: se trata como que no hay acceso de cliente.
+  if (error?.code === '42P01' || error?.code === 'PGRST205') return null;
+  if (error) throw error;
+  // La fila tiene que traer convenio y módulo: sin eso no hay a qué pantalla
+  // mandarlo ni qué acotarle, y tratarla como acceso lo dejaría dentro sin ver
+  // nada.
+  if (!data?.id_cliente || !['imagen', 'laboratorio'].includes(data?.modulo)) return null;
+  return data;
+};
+
+const crearPerfilClienteConvenio = (acceso) => ({
+  nombre: acceso.clientes?.nombre || acceso.usuario || 'Convenio',
+  rol: acceso.modulo === 'imagen' ? 'cliente_imagen' : 'cliente_laboratorio',
+  id_cliente: acceso.id_cliente,
+  cliente_nombre: acceso.clientes?.nombre || '',
+});
+
 const crearPerfilDoctorExterno = (doctor) => ({
   nombre: doctor.nombre,
   rol: 'doctor_externo',
@@ -95,6 +124,12 @@ export const useSessionStore = create((set, get) => ({
       if (get().user?.id !== authId) return null;
 
       let empleadoData = data || null;
+
+      if (!empleadoData) {
+        const accesoCliente = await cargarAccesoClienteAuth(authId);
+        if (get().user?.id !== authId) return null;
+        if (accesoCliente) empleadoData = crearPerfilClienteConvenio(accesoCliente);
+      }
 
       if (!empleadoData) {
         const doctorExterno = await cargarDoctorExternoAuth(authId);

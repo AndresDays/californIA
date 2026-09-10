@@ -1,0 +1,213 @@
+.convenio-page {
+	padding: 1.5rem;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.convenio-header {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	align-items: flex-end;
+	justify-content: space-between;
+	margin-bottom: 1.2rem;
+}
+
+.convenio-header h1 {
+	margin: 0;
+	font-size: 1.3rem;
+	color: var(--texto);
+}
+
+.convenio-header p {
+	margin: 0.2rem 0 0;
+	color: var(--texto-azul);
+	font-weight: 700;
+}
+
+.convenio-filtros {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.7rem;
+}
+
+.convenio-filtros label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	font-size: 0.78rem;
+	color: var(--texto-suave);
+}
+
+.convenio-filtros input {
+	box-sizing: border-box;
+	padding: 0.6rem 0.9rem;
+	background: var(--superficie-activa);
+	border: 1px solid var(--borde);
+	border-radius: 999px;
+	color: var(--texto);
+	font-size: 0.9rem;
+	line-height: 1.5;
+	min-height: 2.8rem;
+}
+
+.convenio-busqueda input {
+	min-width: 220px;
+}
+
+.convenio-aviso {
+	padding: 1rem;
+	border: 1px solid var(--borde);
+	border-radius: 12px;
+	background: var(--superficie);
+	color: var(--texto-suave);
+	font-size: 0.9rem;
+	margin-bottom: 1rem;
+}
+
+.convenio-aviso.error {
+	color: var(--rojo, #c0392b);
+}
+
+/* La tabla se desplaza dentro de su caja: en un teléfono la página no se
+   mueve de lado. */
+.convenio-tabla-scroll {
+	overflow-x: auto;
+	border: 1px solid var(--borde);
+	border-radius: 12px;
+	background: var(--superficie);
+}
+
+.convenio-tabla {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.88rem;
+}
+
+.convenio-tabla th,
+.convenio-tabla td {
+	padding: 0.75rem 0.9rem;
+	text-align: left;
+	border-bottom: 1px solid var(--borde);
+	color: var(--texto);
+	white-space: nowrap;
+}
+
+.convenio-tabla th {
+	color: var(--texto-azul);
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+.convenio-tabla tr:last-child td {
+	border-bottom: none;
+}
+
+.convenio-acciones {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.convenio-acciones button {
+	border: 1px solid var(--borde);
+	background: var(--superficie);
+	color: var(--texto);
+	border-radius: 999px;
+	padding: 0.35rem 0.9rem;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.convenio-acciones button:hover {
+	background: var(--superficie-hover);
+}
+
+.convenio-acciones button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.convenio-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(9, 20, 30, 0.55);
+	z-index: 1200;
+}
+
+.convenio-detalle {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: min(760px, calc(100vw - 2rem));
+	max-height: 82vh;
+	overflow-y: auto;
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: 16px;
+	padding: 1.5rem;
+	z-index: 1201;
+	box-shadow: 0 24px 60px rgba(18, 41, 61, 0.22);
+}
+
+.convenio-detalle header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.convenio-detalle h2 {
+	margin: 0;
+	font-size: 1.05rem;
+	color: var(--texto);
+}
+
+.convenio-detalle header p {
+	margin: 0.2rem 0 0;
+	color: var(--texto-suave);
+	font-size: 0.88rem;
+}
+
+.convenio-detalle header button {
+	border: none;
+	background: transparent;
+	color: var(--texto-suave);
+	font-size: 1rem;
+	cursor: pointer;
+}
+
+.convenio-estudio {
+	border-top: 1px solid var(--borde);
+	padding-top: 1rem;
+	margin-top: 1rem;
+}
+
+.convenio-estudio h3 {
+	margin: 0 0 0.6rem;
+	font-size: 0.95rem;
+	color: var(--texto-azul);
+}
+
+.convenio-analito {
+	display: grid;
+	grid-template-columns: 2fr 1.2fr 1.2fr;
+	gap: 0.6rem;
+	padding: 0.4rem 0;
+	font-size: 0.85rem;
+	color: var(--texto);
+	border-bottom: 1px solid var(--borde);
+}
+
+.convenio-analito.encabezado {
+	color: var(--texto-suave);
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+}
+
+.convenio-analito:last-child {
+	border-bottom: none;
+}
