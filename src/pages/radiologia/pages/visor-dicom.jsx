@@ -70,11 +70,14 @@ import cineIcon from "../../../assets/cineIcono.png";
 import clipIcon from "../../../assets/clipIcon.png";
 import comentarioIcon from "../../../assets/comentarioIcono.png";
 import compartirIcon from "../../../assets/compartirIcono.png";
+import enviarEmailBtn from "../../../assets/enviarEmailBtn.png";
+import enviarWppBtn from "../../../assets/enviarWppBtn.png";
 import {
 	crearAsuntoCompartirEstudio,
 	crearEnlaceCorreoEstudio,
 	crearEnlaceWhatsappEstudio,
 	crearTextoCompartirEstudio,
+	faltanDatosParaCompartir,
 	resolverUrlCompartirEstudio,
 } from "../../../utils/compartir-estudio";
 import contrasteIcono from "../../../assets/contrasteIcono.png";
@@ -266,9 +269,9 @@ const ACTIONS = [
 // Por dónde se comparte. Copiar la liga se queda porque es lo que se usa para
 // pegarla en otro lado -un correo ya abierto, una nota- sin salir del visor.
 const COMPARTIR_ITEMS = [
-	{ id: "correo", label: "Correo", simbolo: "✉" },
-	{ id: "whatsapp", label: "WhatsApp", simbolo: "✆" },
-	{ id: "copiar", label: "Copiar liga", simbolo: "⧉" },
+	{ id: "correo", label: "Correo", icon: enviarEmailBtn },
+	{ id: "whatsapp", label: "WhatsApp", icon: enviarWppBtn },
+	{ id: "copiar", label: "Copiar liga", icon: compartirIcon },
 ];
 
 const FORMATOS = [
@@ -3067,16 +3070,21 @@ const VisorDicom = () => {
 	// Compartir abre un menú en vez de mandar de una: se elige correo o
 	// WhatsApp, que es como se le hace llegar al paciente o a quien lo pidió.
 	const [mostrarCompartir, setMostrarCompartir] = useState(false);
+	// El folio y el teléfono llegan en la navegación desde el listado, pero el
+	// visor también se abre por dirección -al recargar, o desde una liga-, y sin
+	// ellos no se puede armar la liga del paciente ni el QR del reporte. Se
+	// consultan cuando faltan.
+	const [datosEstudioConsultados, setDatosEstudioConsultados] = useState({});
 	const [compartirBarTop, setCompartirBarTop] = useState(112);
 
 	const pacienteInfo = {
-		nombre: estudioData?.nombrePaciente || "Sin paciente",
+		nombre: estudioData?.nombrePaciente || datosEstudioConsultados.nombre || "Sin paciente",
 		tipoEstudio: estudioData?.tipoEstudio || "—",
 		sucursal: estudioData?.sucursal || "—",
 		horaFecha: estudioData?.horaFecha || "—",
 		estado: estudioData?.estado || "—",
-		folio: estudioData?.folio || "",
-		telefono: estudioData?.telefonoPaciente || "",
+		folio: estudioData?.folio || datosEstudioConsultados.folio || "",
+		telefono: estudioData?.telefonoPaciente || datosEstudioConsultados.telefono || "",
 		doctor:
 			estudioData?.doctor ||
 			estudioData?.medico ||
@@ -3191,18 +3199,49 @@ const VisorDicom = () => {
 	}, [user, authEmpleadoData]);
 
 	useEffect(() => {
+		const id = estudioId || estudioData?.id;
+		if (!id) return undefined;
+		if (estudioData?.folio && estudioData?.telefonoPaciente) return undefined;
+
+		let cancelado = false;
+		supabase
+			.from("estudios_radiologia")
+			.select("id_estudio, ventas:id_venta ( folio ), pacientes:id_paciente ( nombre, telefono )")
+			.eq("id_estudio", id)
+			.maybeSingle()
+			.then(({ data, error }) => {
+				if (cancelado) return;
+				// Que no se pueda resolver no rompe el visor: sólo deja la liga sin
+				// los datos que la autorizan, y de eso se avisa al compartir.
+				if (error) {
+					console.warn("No se pudieron resolver folio y teléfono del estudio:", error);
+					return;
+				}
+				setDatosEstudioConsultados({
+					folio: data?.ventas?.folio || "",
+					telefono: data?.pacientes?.telefono || "",
+					nombre: data?.pacientes?.nombre || "",
+				});
+			});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [estudioId, estudioData?.id, estudioData?.folio, estudioData?.telefonoPaciente]);
+
+	useEffect(() => {
 		const generarQrReporte = async () => {
 			try {
 				const id = estudioId || estudioData?.id || "";
 				const qrData = id
 					? crearUrlVisorPaciente({
 							idEstudio: id,
-							folio: estudioData?.folio,
-							telefono: estudioData?.telefonoPaciente,
+							folio: pacienteInfo.folio,
+							telefono: pacienteInfo.telefono,
 						})
 					: crearUrlPortalResultados({
-							folio: estudioData?.folio,
-							telefono: estudioData?.telefonoPaciente,
+							folio: pacienteInfo.folio,
+							telefono: pacienteInfo.telefono,
 						});
 				const dataUrl = await QRCode.toDataURL(
 					qrData,
@@ -3222,7 +3261,7 @@ const VisorDicom = () => {
 		};
 
 		generarQrReporte();
-	}, [estudioData?.folio, estudioData?.id, estudioData?.telefonoPaciente, estudioId]);
+	}, [pacienteInfo.folio, pacienteInfo.telefono, estudioData?.id, estudioId]);
 
 	useEffect(() => {
 		if (!empleadoCargado) return undefined;
@@ -4368,6 +4407,7 @@ const VisorDicom = () => {
 		});
 
 	const compartirPorCorreo = () => {
+		avisarLigaIncompleta();
 		window.location.href = crearEnlaceCorreoEstudio({
 			email: estudioData?.emailPaciente || "",
 			asunto: crearAsuntoCompartirEstudio({
@@ -4378,7 +4418,18 @@ const VisorDicom = () => {
 		});
 	};
 
+	const avisarLigaIncompleta = () => {
+		if (!faltanDatosParaCompartir({ folio: pacienteInfo.folio, telefono: pacienteInfo.telefono })) {
+			return;
+		}
+		globalThis.mostrarNotificacion?.(
+			"El estudio no tiene folio o teléfono capturados: quien reciba la liga no podrá abrirla.",
+			"advertencia",
+		);
+	};
+
 	const compartirPorWhatsapp = () => {
+		avisarLigaIncompleta();
 		window.open(
 			crearEnlaceWhatsappEstudio({
 				telefono: pacienteInfo.telefono,
@@ -5048,7 +5099,7 @@ const VisorDicom = () => {
 							className="vd-mas-item"
 							onClick={() => handleCompartirItem(item.id)}
 							title={item.label}>
-							<span className="vd-mas-fallback">{item.simbolo}</span>
+							<img src={item.icon} alt={item.label} className="vd-mas-icon" />
 							<span>{item.label}</span>
 						</button>
 					))}

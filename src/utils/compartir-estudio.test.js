@@ -1,5 +1,6 @@
 import {
 	crearAsuntoCompartirEstudio,
+	faltanDatosParaCompartir,
 	crearEnlaceCorreoEstudio,
 	crearEnlaceWhatsappEstudio,
 	crearTextoCompartirEstudio,
@@ -20,14 +21,31 @@ describe("compartir un estudio de imagen", () => {
 		).toBe("https://app.california.mx/visor-paciente/12?folio=A0001&telefono=4771234567");
 	});
 
-	test("sin folio o sin telefono se comparte la pantalla actual", () => {
+	// Aunque falte folio o teléfono se manda la del visor del paciente: la de la
+	// pantalla del radiólogo pide sesión y nunca sirve fuera de la clínica.
+	test("sin folio o sin telefono se sigue compartiendo el visor del paciente", () => {
 		const urlActual = "https://app.california.mx/visor-dicom/12";
 		expect(
-			resolverUrlCompartirEstudio({ idEstudio: 12, folio: "", telefono: "4771234567", urlActual }),
-		).toBe(urlActual);
-		expect(
-			resolverUrlCompartirEstudio({ idEstudio: 12, folio: "A0001", telefono: "", urlActual }),
-		).toBe(urlActual);
+			resolverUrlCompartirEstudio({
+				idEstudio: 12,
+				folio: "",
+				telefono: "4771234567",
+				origin: "https://app.california.mx",
+				urlActual,
+			}),
+		).toBe("https://app.california.mx/visor-paciente/12?telefono=4771234567");
+	});
+
+	test("sin estudio al que apuntar se comparte la pantalla actual", () => {
+		const urlActual = "https://app.california.mx/visor-dicom";
+		expect(resolverUrlCompartirEstudio({ folio: "A0001", urlActual })).toBe(urlActual);
+	});
+
+	// Quien comparte tiene que enterarse: esa liga abre pero no autoriza.
+	test("se avisa cuando la liga no va a poder autorizarse", () => {
+		expect(faltanDatosParaCompartir({ folio: "A0001", telefono: "4771234567" })).toBe(false);
+		expect(faltanDatosParaCompartir({ folio: "", telefono: "4771234567" })).toBe(true);
+		expect(faltanDatosParaCompartir({ folio: "A0001", telefono: "" })).toBe(true);
 	});
 
 	test("el texto dice de quien es el estudio y de que", () => {

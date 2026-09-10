@@ -978,7 +978,12 @@ describe('VisorDicom — Compartir', () => {
     expect(abrir).toHaveBeenCalledTimes(1);
     const [url, destino] = abrir.mock.calls[0];
     expect(url.startsWith('https://wa.me/')).toBe(true);
-    expect(decodeURIComponent(url)).toContain('Estudio de imagen');
+    const mensaje = decodeURIComponent(url);
+    expect(mensaje).toContain('Estudio de imagen');
+    // La liga es la del visor del paciente, no la de la pantalla del radiólogo:
+    // esa pide sesión y a quien la recibe no le sirve.
+    expect(mensaje).toContain('/visor-paciente/');
+    expect(mensaje).not.toContain('/visor-dicom/');
     expect(destino).toBe('_blank');
 
     // Al elegir un medio el menú se cierra: ya se hizo lo que se abrió a hacer.
@@ -998,6 +1003,6 @@ describe('VisorDicom — Compartir', () => {
     fireEvent.click(screen.getByTitle('Copiar liga'));
 
     await waitFor(() => expect(escribir).toHaveBeenCalledTimes(1));
-    expect(typeof escribir.mock.calls[0][0]).toBe('string');
+    expect(escribir.mock.calls[0][0]).toContain('/visor-paciente/');
   });
 });
