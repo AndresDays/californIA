@@ -4394,7 +4394,6 @@ const VisorDicom = () => {
 			idEstudio: estudioId || estudioData?.id,
 			folio: pacienteInfo.folio,
 			telefono: pacienteInfo.telefono,
-			urlActual: window.location.href,
 		});
 
 	const textoCompartir = () =>
@@ -4405,6 +4404,13 @@ const VisorDicom = () => {
 		});
 
 	const compartirPorCorreo = () => {
+		if (!urlCompartir()) {
+			globalThis.mostrarNotificacion?.(
+				"No se pudo armar la liga del estudio para compartirlo.",
+				"error",
+			);
+			return;
+		}
 		avisarLigaIncompleta();
 		window.location.href = crearEnlaceCorreoEstudio({
 			email: estudioData?.emailPaciente || "",
@@ -4427,6 +4433,13 @@ const VisorDicom = () => {
 	};
 
 	const compartirPorWhatsapp = () => {
+		if (!urlCompartir()) {
+			globalThis.mostrarNotificacion?.(
+				"No se pudo armar la liga del estudio para compartirlo.",
+				"error",
+			);
+			return;
+		}
 		avisarLigaIncompleta();
 		window.open(
 			crearEnlaceWhatsappEstudio({

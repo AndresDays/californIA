@@ -6,18 +6,20 @@
 // teléfono, y se manda por el medio que se elija.
 import { crearUrlVisorPaciente, normalizarTelefonoPortal } from "./portal-resultados";
 
-// Lo que se comparte es siempre el visor del paciente: la pantalla del
-// radiólogo pide sesión y a quien la recibe no le sirve. Sólo si no hay estudio
-// al que apuntar se manda la dirección actual.
+// Lo que se comparte es siempre el visor del paciente. La dirección de la
+// pantalla del radiólogo -/visor-dicom/…- pide sesión: a quien la recibe le
+// aparece la pantalla de acceso, así que nunca se manda. Sin estudio al que
+// apuntar no se comparte nada y devuelve cadena vacía, que es lo que la
+// pantalla usa para avisar en vez de mandar una liga inútil.
 export const resolverUrlCompartirEstudio = ({
 	idEstudio,
 	folio = "",
 	telefono = "",
 	origin,
-	urlActual = "",
 } = {}) => {
-	if (!idEstudio) return urlActual;
-	return crearUrlVisorPaciente({ idEstudio, folio, telefono, ...(origin ? { origin } : {}) });
+	const id = String(idEstudio ?? "").trim();
+	if (!id) return "";
+	return crearUrlVisorPaciente({ idEstudio: id, folio, telefono, ...(origin ? { origin } : {}) });
 };
 
 // El visor del paciente se autoriza con folio y teléfono: sin ellos la liga
