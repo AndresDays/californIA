@@ -13,6 +13,7 @@ import ModalAsignar from '../componentes/ModalAsignar';
 import lupaIcono from '../../../assets/lupaIcono.png';
 import {
   esDoctorExterno,
+  esClienteImagenRadiologia,
   obtenerRestriccionDoctorExterno,
   puedeAsignarRadiologia,
 } from '../../../utils/radiologia-permisos';
@@ -128,6 +129,14 @@ const DashboardRadiologia = () => {
         }
 
         if (esDoctorExterno(authEmpleadoData?.rol)) {
+          setEmpleadoData(authEmpleadoData);
+          setEmpleadoCargado(true);
+          return;
+        }
+
+        // El cliente de convenio no tiene fila en `empleados`: su perfil ya
+        // viene resuelto de la sesión, con el convenio que acota lo que ve.
+        if (esClienteImagenRadiologia(authEmpleadoData?.rol)) {
           setEmpleadoData(authEmpleadoData);
           setEmpleadoCargado(true);
           return;

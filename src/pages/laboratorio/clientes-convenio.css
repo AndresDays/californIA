@@ -1,0 +1,154 @@
+.clientes-convenio-ayuda {
+	margin: 0 0 1rem;
+	color: var(--texto-suave);
+	font-size: 0.85rem;
+	line-height: 1.5;
+}
+
+.clientes-convenio-error {
+	margin: 0 0 1rem;
+	color: var(--rojo, #c0392b);
+	font-size: 0.9rem;
+}
+
+.acceso-celda {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+/* Sin acceso se lee en gris: la tabla se recorre buscando a quién le falta. */
+.acceso-estado {
+	color: var(--texto-suave);
+	font-size: 0.82rem;
+	word-break: break-all;
+}
+
+.acceso-estado.con-acceso {
+	color: var(--texto);
+	font-weight: 600;
+}
+
+.acceso-acciones {
+	display: flex;
+	gap: 0.4rem;
+}
+
+.acceso-boton {
+	border: 1px solid var(--borde);
+	background: var(--superficie);
+	color: var(--texto);
+	border-radius: 999px;
+	padding: 0.25rem 0.8rem;
+	font-size: 0.78rem;
+	cursor: pointer;
+}
+
+.acceso-boton:hover {
+	background: var(--superficie-hover);
+}
+
+.acceso-boton.peligro {
+	color: var(--rojo, #c0392b);
+}
+
+.acceso-cliente-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(9, 20, 30, 0.55);
+	z-index: 1200;
+}
+
+.acceso-cliente-modal {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: min(420px, calc(100vw - 2rem));
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: 16px;
+	padding: 1.5rem;
+	z-index: 1201;
+	box-shadow: 0 24px 60px rgba(18, 41, 61, 0.22);
+}
+
+.acceso-cliente-modal h2 {
+	margin: 0;
+	font-size: 1.1rem;
+	color: var(--texto);
+}
+
+.acceso-cliente-cliente {
+	margin: 0.2rem 0 0;
+	font-weight: 700;
+	color: var(--texto-azul);
+}
+
+.acceso-cliente-ayuda {
+	margin: 0.6rem 0 1.2rem;
+	font-size: 0.82rem;
+	line-height: 1.5;
+	color: var(--texto-suave);
+}
+
+.acceso-cliente-label {
+	display: block;
+	margin-bottom: 0.4rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--texto-azul);
+}
+
+.acceso-cliente-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.75rem 1rem;
+	margin-bottom: 1rem;
+	background: var(--superficie-activa);
+	border: 1px solid var(--borde);
+	border-radius: 30px;
+	color: var(--texto);
+	font-size: 0.95rem;
+	line-height: 1.5;
+	min-height: 3rem;
+}
+
+.acceso-cliente-error {
+	margin: 0 0 1rem;
+	color: var(--rojo, #c0392b);
+	font-size: 0.85rem;
+}
+
+.acceso-cliente-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.6rem;
+}
+
+.btn-acceso-cancelar,
+.btn-acceso-guardar {
+	border-radius: 999px;
+	padding: 0.6rem 1.2rem;
+	font-size: 0.88rem;
+	cursor: pointer;
+	border: 1px solid var(--borde);
+}
+
+.btn-acceso-cancelar {
+	background: var(--superficie);
+	color: var(--texto);
+}
+
+.btn-acceso-guardar {
+	background: var(--azul);
+	color: var(--texto-sobre-azul);
+	border-color: var(--azul);
+	font-weight: 600;
+}
+
+.btn-acceso-guardar:disabled,
+.btn-acceso-cancelar:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
