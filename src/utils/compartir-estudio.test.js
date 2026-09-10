@@ -24,21 +24,31 @@ describe("compartir un estudio de imagen", () => {
 	// Aunque falte folio o teléfono se manda la del visor del paciente: la de la
 	// pantalla del radiólogo pide sesión y nunca sirve fuera de la clínica.
 	test("sin folio o sin telefono se sigue compartiendo el visor del paciente", () => {
-		const urlActual = "https://app.california.mx/visor-dicom/12";
 		expect(
 			resolverUrlCompartirEstudio({
 				idEstudio: 12,
 				folio: "",
 				telefono: "4771234567",
 				origin: "https://app.california.mx",
-				urlActual,
 			}),
 		).toBe("https://app.california.mx/visor-paciente/12?telefono=4771234567");
 	});
 
-	test("sin estudio al que apuntar se comparte la pantalla actual", () => {
-		const urlActual = "https://app.california.mx/visor-dicom";
-		expect(resolverUrlCompartirEstudio({ folio: "A0001", urlActual })).toBe(urlActual);
+	// Nunca la pantalla del radiólogo: esa pide sesión.
+	test("la liga compartida jamas apunta al visor interno", () => {
+		const url = resolverUrlCompartirEstudio({
+			idEstudio: 12,
+			folio: "A0001",
+			telefono: "4771234567",
+			origin: "https://app.california.mx",
+		});
+		expect(url).not.toContain("/visor-dicom");
+		expect(url).toContain("/visor-paciente/");
+	});
+
+	test("sin estudio al que apuntar no hay nada que compartir", () => {
+		expect(resolverUrlCompartirEstudio({ folio: "A0001" })).toBe("");
+		expect(resolverUrlCompartirEstudio({ idEstudio: "  " })).toBe("");
 	});
 
 	// Quien comparte tiene que enterarse: esa liga abre pero no autoriza.
