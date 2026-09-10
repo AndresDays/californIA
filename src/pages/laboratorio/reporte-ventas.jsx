@@ -25,6 +25,7 @@ import {
 import { clientesParaFiltro } from "../../utils/clientes-seleccionables";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
+import { resolverRangoReporteVentas } from "../../utils/permisos-rol";
 import {
 	agruparEstudiosVendidos,
 	agruparVentasPorDia,
@@ -102,15 +103,29 @@ const ReporteVentas = () => {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
 
+	// Recepción cuadra su turno con este reporte: ve el día en curso y no puede
+	// moverse de ahí. El rango sale de una sola regla para que las consultas, la
+	// impresión y el archivo exportado no se puedan separar.
+	const {
+		fechaInicial: desde,
+		fechaFinal: hasta,
+		fijo: rangoFijo,
+	} = resolverRangoReporteVentas({
+		rol: empleadoData?.rol,
+		fechaInicial,
+		fechaFinal,
+		hoy: hoyMexico(),
+	});
+
 	const {
 		data: ventas = [],
 		isLoading: cargando,
 		error: errorQuery,
 		refetch: refrescarVentas,
-	} = useReporteVentas({ fechaInicial, fechaFinal });
+	} = useReporteVentas({ fechaInicial: desde, fechaFinal: hasta });
 
-	const { data: ventasCanceladas = [] } = useVentasCanceladas({ fechaInicial, fechaFinal });
-	const { data: pagosCancelados = 0 } = usePagosCancelados({ fechaInicial, fechaFinal });
+	const { data: ventasCanceladas = [] } = useVentasCanceladas({ fechaInicial: desde, fechaFinal: hasta });
+	const { data: pagosCancelados = 0 } = usePagosCancelados({ fechaInicial: desde, fechaFinal: hasta });
 	const { data: catalogos } = useCatalogosReporte();
 	const sucursales = catalogos?.sucursales ?? [];
 	const vendedores = catalogos?.vendedores ?? [];
@@ -304,7 +319,7 @@ const ReporteVentas = () => {
 	const grupoSalida =
 		GRUPOS_REPORTE_POR_AREA.find((grupo) => grupo.id === areaSalidaSeleccionada) ||
 		GRUPO_TODAS_LAS_AREAS;
-	const nombreArchivoSalida = `reporte-ventas-${fechaInicial}-${fechaFinal}-${grupoSalida.archivo}`;
+	const nombreArchivoSalida = `reporte-ventas-${desde}-${hasta}-${grupoSalida.archivo}`;
 
 	// La impresión sale con el formato del corte de caja: hoja apaisada, blanco y
 	// negro y tablas cuadriculadas. Antes se mandaba la pantalla tal cual, con su
@@ -324,8 +339,8 @@ const ReporteVentas = () => {
 
 		ventana.document.write(
 			construirDocumentoReporteVentas({
-				fechaInicial,
-				fechaFinal,
+				fechaInicial: desde,
+				fechaFinal: hasta,
 				usuario: empleadoData?.nombre || getPrimerNombre(),
 				columnas: COLUMNAS_TABLA_VENTAS,
 				filas: filasVentas(ventasDelArea),
@@ -375,7 +390,7 @@ const ReporteVentas = () => {
 		}
 		try {
 			exportarPDF(
-				`Reporte de Ventas ${fechaInicial} – ${fechaFinal} — ${grupoSalida.nombre}`,
+				`Reporte de Ventas ${desde} – ${hasta} — ${grupoSalida.nombre}`,
 				colsVentas,
 				filas,
 				nombreArchivoSalida,
@@ -782,6 +797,13 @@ const ReporteVentas = () => {
 
 					<div className="rv-filters">
 						<div className="rv-filter-title">Filtros de reporte</div>
+						{/* Con el rango fijo los campos de fecha quedan apagados: se dice
+						    por qué, para que no se lea como que la pantalla falla. */}
+						{rangoFijo && (
+							<p className="rv-filter-aviso">
+								Este reporte muestra sólo los movimientos de hoy.
+							</p>
+						)}
 						<div className="rv-filter-row">
 							<div className="rv-filter-group">
 								<label htmlFor="rv-fecha-inicial">Fecha inicial</label>
@@ -790,9 +812,10 @@ const ReporteVentas = () => {
 									<input
 										id="rv-fecha-inicial"
 										type="date"
-										value={fechaInicial}
+										value={desde}
 										onChange={(e) => setFechaInicial(e.target.value)}
 										className="rv-date-input"
+										disabled={rangoFijo}
 									/>
 								</div>
 							</div>
@@ -803,9 +826,10 @@ const ReporteVentas = () => {
 									<input
 										id="rv-fecha-final"
 										type="date"
-										value={fechaFinal}
+										value={hasta}
 										onChange={(e) => setFechaFinal(e.target.value)}
 										className="rv-date-input"
+										disabled={rangoFijo}
 									/>
 								</div>
 							</div>

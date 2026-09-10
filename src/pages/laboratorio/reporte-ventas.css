@@ -1196,3 +1196,11 @@
 	font-size: 0.7rem;
 	color: var(--texto-azul);
 }
+
+/* Recepción ve sólo el día en curso: los campos de fecha quedan apagados y el
+   aviso explica por qué, para que no se lea como que la pantalla falla. */
+.rv-filter-aviso {
+	margin: 0 0 0.75rem;
+	font-size: 0.82rem;
+	color: var(--texto-suave);
+}
