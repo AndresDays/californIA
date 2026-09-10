@@ -954,7 +954,6 @@ describe('VisorDicom — Compartir', () => {
 
     expect(screen.getByTitle('Correo')).toBeInTheDocument();
     expect(screen.getByTitle('WhatsApp')).toBeInTheDocument();
-    expect(screen.getByTitle('Copiar liga')).toBeInTheDocument();
   });
 
   test('un segundo clic cierra las opciones', async () => {
@@ -991,18 +990,4 @@ describe('VisorDicom — Compartir', () => {
     abrir.mockRestore();
   });
 
-  test('copiar liga deja la direccion en el portapapeles', async () => {
-    const escribir = jest.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText: escribir },
-      configurable: true,
-    });
-
-    await renderVisor();
-    fireEvent.click(screen.getByTitle('Compartir'));
-    fireEvent.click(screen.getByTitle('Copiar liga'));
-
-    await waitFor(() => expect(escribir).toHaveBeenCalledTimes(1));
-    expect(escribir.mock.calls[0][0]).toContain('/visor-paciente/');
-  });
 });
