@@ -1,0 +1,177 @@
+.obs-doctor-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(9, 20, 30, 0.55);
+	z-index: 1200;
+}
+
+.obs-doctor-modal {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: min(520px, calc(100vw - 2rem));
+	max-height: 85vh;
+	overflow-y: auto;
+	background: var(--superficie);
+	border: 1px solid var(--borde);
+	border-radius: 16px;
+	padding: 1.5rem;
+	z-index: 1201;
+	box-shadow: 0 24px 60px rgba(18, 41, 61, 0.22);
+}
+
+.obs-doctor-modal header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.obs-doctor-modal h2 {
+	margin: 0;
+	font-size: 1.05rem;
+	color: var(--texto);
+}
+
+.obs-doctor-modal header p {
+	margin: 0.2rem 0 0;
+	color: var(--texto-azul);
+	font-weight: 700;
+	font-size: 0.9rem;
+}
+
+.obs-doctor-modal header button {
+	border: none;
+	background: transparent;
+	color: var(--texto-suave);
+	font-size: 1rem;
+	cursor: pointer;
+}
+
+.obs-doctor-label {
+	display: block;
+	margin-bottom: 0.4rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--texto-azul);
+}
+
+.obs-doctor-textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.75rem 1rem;
+	background: var(--superficie-activa);
+	border: 1px solid var(--borde);
+	border-radius: 12px;
+	color: var(--texto);
+	font-size: 0.92rem;
+	line-height: 1.5;
+	font-family: inherit;
+	resize: vertical;
+}
+
+.obs-doctor-ayuda {
+	margin: 0.5rem 0 0;
+	font-size: 0.78rem;
+	color: var(--texto-suave);
+}
+
+.obs-doctor-error {
+	margin: 0.6rem 0 0;
+	color: var(--rojo, #c0392b);
+	font-size: 0.85rem;
+}
+
+.obs-doctor-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.6rem;
+	margin-top: 1rem;
+}
+
+.btn-obs-cerrar,
+.btn-obs-guardar {
+	border-radius: 999px;
+	padding: 0.6rem 1.2rem;
+	font-size: 0.88rem;
+	cursor: pointer;
+	border: 1px solid var(--borde);
+}
+
+.btn-obs-cerrar {
+	background: var(--superficie);
+	color: var(--texto);
+}
+
+.btn-obs-guardar {
+	background: var(--azul);
+	color: var(--texto-sobre-azul);
+	border-color: var(--azul);
+	font-weight: 600;
+}
+
+.btn-obs-guardar:disabled,
+.btn-obs-cerrar:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Lo anterior a la vista: casi siempre lo que se va a escribir ya está
+   anotado, y verlo evita repetir el mismo aviso. */
+.obs-doctor-historial {
+	margin-top: 1.4rem;
+	border-top: 1px solid var(--borde);
+	padding-top: 1rem;
+}
+
+.obs-doctor-historial h3 {
+	margin: 0 0 0.6rem;
+	font-size: 0.85rem;
+	color: var(--texto-azul);
+}
+
+.obs-doctor-vacio {
+	margin: 0;
+	color: var(--texto-suave);
+	font-size: 0.85rem;
+}
+
+.obs-doctor-item {
+	padding: 0.6rem 0;
+	border-bottom: 1px solid var(--borde);
+}
+
+.obs-doctor-item:last-child {
+	border-bottom: none;
+}
+
+.obs-doctor-item p {
+	margin: 0;
+	font-size: 0.88rem;
+	color: var(--texto);
+	line-height: 1.45;
+}
+
+.obs-doctor-item small {
+	color: var(--texto-suave);
+	font-size: 0.75rem;
+}
+
+/* El botón vive junto al buscador del doctor, con el mismo alto que los demás
+   de esa fila. */
+.btn-observacion-doctor {
+	margin-top: 0.6rem;
+	border: 1px solid var(--borde);
+	background: var(--superficie);
+	color: var(--texto);
+	border-radius: 999px;
+	padding: 0.45rem 1rem;
+	font-size: 0.82rem;
+	cursor: pointer;
+}
+
+.btn-observacion-doctor:hover {
+	background: var(--superficie-hover);
+}
