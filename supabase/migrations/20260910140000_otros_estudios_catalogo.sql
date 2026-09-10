@@ -77,10 +77,14 @@ as $$
 $$;
 
 -- ── El tipo de estudio ──────────────────────────────────────────────────────
+-- Si ya existe -está dado de alta como "OTROS ESTUDIOS"- no se crea otro: se
+-- reconoce con la misma comparación que el resto de la migración, así que da
+-- igual cómo se haya capitalizado o espaciado.
 insert into public.tipos_estudio (nombre)
-select 'Otros estudios'
+select 'OTROS ESTUDIOS'
 where not exists (
-	select 1 from public.tipos_estudio where lower(btrim(nombre)) = 'otros estudios'
+	select 1 from public.tipos_estudio
+	where pg_temp.llave_otros_estudios(nombre) = 'OTROS ESTUDIOS'
 );
 
 -- Se ofrece por las dos empresas: la lista trae servicios que factura cada una
@@ -89,7 +93,8 @@ where not exists (
 insert into public.empresa_tipos_estudio (id_empresa, id_tipo_estudio)
 select empresa.id_empresa, tipo.id_tipo_estudio
 from public.empresas empresa
-join public.tipos_estudio tipo on lower(btrim(tipo.nombre)) = 'otros estudios'
+join public.tipos_estudio tipo
+	on pg_temp.llave_otros_estudios(tipo.nombre) = 'OTROS ESTUDIOS'
 where upper(empresa.nombre) in (
 	'CENTRAL DIAGNOSTICA CALIFORNIA',
 	'CENTRO DE DIAGNOSTICO POR IMAGEN PVR'
@@ -186,6 +191,10 @@ begin
 	select count(*) into v_sin_clave from tmp_otros_estudios_precios where clave is null;
 
 	raise notice 'Otros estudios en el catalogo: %; precios de particular fijados: %', v_altas, v_precios;
+	raise notice 'Tipos de estudio llamados "otros estudios": % (debe ser 1)', (
+		select count(*) from public.tipos_estudio
+		where pg_temp.llave_otros_estudios(nombre) = 'OTROS ESTUDIOS'
+	);
 	if v_sin_clave > 0 then
 		raise notice 'Servicios sin clave resuelta: % (no se les fijo precio)', v_sin_clave;
 	end if;
