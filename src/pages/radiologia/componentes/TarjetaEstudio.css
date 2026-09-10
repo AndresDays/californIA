@@ -1,93 +1,111 @@
 @import url('https://fonts.cdnfonts.com/css/codec-pro');
 
+/* El estudio es un renglón, no un cuadro: la agenda del día son decenas y en
+   tarjetas grandes había que recorrer la pantalla para dar con uno. Sigue
+   siendo una tarjeta por dentro -misma clase y mismo clic-, sólo que puesta de
+   lado. */
 .tarjeta-estudio {
+  display: flex;
+  align-items: stretch;
   background: var(--superficie-activa);
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--borde);
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
   font-family: 'Codec Pro', sans-serif;
-  box-shadow: 0 4px 12px rgba(18, 41, 61, 0.1);
-  backdrop-filter: blur(10px);
 }
 
 .tarjeta-estudio:hover {
-  transform: translateY(-4px);
   border-color: var(--borde-fuerte);
-  box-shadow: 0 8px 24px rgba(18, 41, 61, 0.14);
+  background: var(--superficie-hover);
 }
 
+/* La franja de color con la modalidad: es lo que deja recorrer la lista de un
+   vistazo buscando las tomografías. */
 .tarjeta-estudio-header {
-  padding: 2rem 1.5rem;
-  text-align: center;
-  position: relative;
+  flex: 0 0 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
 }
 
 .tipo-estudio {
   margin: 0;
-  font-size: 3rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--texto);
-  letter-spacing: 2px;
-  text-shadow: 0 2px 8px rgba(18, 41, 61, 0.14);
+  letter-spacing: 1px;
 }
 
 .tarjeta-estudio-body {
-  padding: 1.5rem;
-  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+}
+
+/* El paciente manda y se lleva el espacio sobrante; lo demás ocupa lo suyo y
+   no se mueve de renglón a renglón, que es lo que hace la lista legible. */
+.tarjeta-estudio-paciente {
+  flex: 1;
+  min-width: 0;
 }
 
 .nombre-paciente {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--texto);
-  text-align: center;
-  min-height: 2.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .descripcion-estudio {
-  min-height: 2.2rem;
-  margin: 0 0 1rem 0;
-  color: var(--texto);
-  font-size: 0.86rem;
-  font-weight: 600;
-  line-height: 1.25;
-  text-align: center;
-  overflow-wrap: anywhere;
+  margin: 0.15rem 0 0;
+  color: var(--texto-suave, var(--texto));
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .info-estudio {
-  margin-bottom: 1rem;
-  text-align: center;
+  flex: 0 0 auto;
+  text-align: right;
 }
 
 .hora-fecha {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.95rem;
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--texto);
-  font-weight: 500;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .sucursal {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--texto);
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  color: var(--texto-suave, var(--texto));
+  white-space: nowrap;
 }
 
 .estado-badge {
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
+  flex: 0 0 auto;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
   text-align: center;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  margin-bottom: 1rem;
+  white-space: nowrap;
 }
 
 .estado-asignado {
@@ -115,9 +133,9 @@
 }
 
 .tarjeta-acciones {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -155,9 +173,9 @@
   background: transparent;
   border: none;
   color: var(--texto);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   cursor: pointer;
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.6rem;
   border-radius: 8px;
   transition: all 0.2s;
   line-height: 1;
@@ -168,12 +186,28 @@
   color: var(--texto);
 }
 
+/* En un teléfono el renglón no cabe de lado: el paciente se queda arriba y el
+   resto pasa debajo, sin que nada se salga de la pantalla. */
 @media (max-width: 768px) {
-  .tipo-estudio {
-    font-size: 2.5rem;
+  .tarjeta-estudio-header {
+    flex-basis: 3.5rem;
   }
 
-  .nombre-paciente {
-    font-size: 1rem;
+  .tarjeta-estudio-body {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .tarjeta-estudio-paciente {
+    flex: 1 0 100%;
+  }
+
+  .info-estudio {
+    text-align: left;
+  }
+
+  .tarjeta-acciones {
+    margin-left: auto;
   }
 }

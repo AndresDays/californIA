@@ -938,3 +938,56 @@ describe('VisorDicom — restauración de MPR', () => {
   });
 
 });
+
+// El botón de compartir abría el diálogo del sistema o copiaba la dirección de
+// la pantalla del radiólogo, que a quien la recibe no le sirve. Ahora ofrece
+// por dónde mandarlo.
+describe('VisorDicom — Compartir', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEmpleadoVisor = null;
+  });
+
+  test('el botón de compartir abre las opciones de envío', async () => {
+    await renderVisor();
+    fireEvent.click(screen.getByTitle('Compartir'));
+
+    expect(screen.getByTitle('Correo')).toBeInTheDocument();
+    expect(screen.getByTitle('WhatsApp')).toBeInTheDocument();
+  });
+
+  test('un segundo clic cierra las opciones', async () => {
+    await renderVisor();
+    const boton = screen.getByTitle('Compartir');
+
+    fireEvent.click(boton);
+    expect(screen.getByTitle('WhatsApp')).toBeInTheDocument();
+
+    fireEvent.click(boton);
+    expect(screen.queryByTitle('WhatsApp')).not.toBeInTheDocument();
+  });
+
+  test('WhatsApp se abre en otra pestaña con el mensaje del estudio', async () => {
+    const abrir = jest.spyOn(window, 'open').mockImplementation(() => null);
+    await renderVisor();
+
+    fireEvent.click(screen.getByTitle('Compartir'));
+    fireEvent.click(screen.getByTitle('WhatsApp'));
+
+    expect(abrir).toHaveBeenCalledTimes(1);
+    const [url, destino] = abrir.mock.calls[0];
+    expect(url.startsWith('https://wa.me/')).toBe(true);
+    const mensaje = decodeURIComponent(url);
+    expect(mensaje).toContain('Estudio de imagen');
+    // La liga es la del visor del paciente, no la de la pantalla del radiólogo:
+    // esa pide sesión y a quien la recibe no le sirve.
+    expect(mensaje).toContain('/visor-paciente/');
+    expect(mensaje).not.toContain('/visor-dicom/');
+    expect(destino).toBe('_blank');
+
+    // Al elegir un medio el menú se cierra: ya se hizo lo que se abrió a hacer.
+    expect(screen.queryByTitle('WhatsApp')).not.toBeInTheDocument();
+    abrir.mockRestore();
+  });
+
+});

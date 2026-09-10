@@ -71,6 +71,12 @@ export const sidebarItems = [
 			{ id: "pacientes", label: "Pacientes", icon: subIcon, path: "/pacientes" },
 			{ id: "doctores", label: "Doctores", icon: subIcon, path: "/doctores" },
 			{ id: "usuarios", label: "Usuarios", icon: subIcon, path: "/usuarios" },
+			{
+				id: "clientes-convenio",
+				label: "Clientes",
+				icon: subIcon,
+				path: "/clientes-convenio",
+			},
 		],
 	},
 	{

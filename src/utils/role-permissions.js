@@ -15,6 +15,11 @@ const ROLES_DOCTOR_EXTERNO = new Set([
 	"institucion_externa",
 ]);
 const ROL_RADIOLOGO_CLINICO = "radiologo_clinico";
+// Los clientes de convenio entran con cuenta propia: la de imagen ve
+// radiología, la de laboratorio su pantalla de resultados. Ninguna de las dos
+// es personal de la clínica, así que no ven menú ni ninguna otra pantalla.
+const ROL_CLIENTE_IMAGEN = "cliente_imagen";
+const ROL_CLIENTE_LABORATORIO = "cliente_laboratorio";
 const ROLES_VISITADORA = new Set(["visitadora", "visitador"]);
 // "Radiólogo - Director" se guarda como `radiologo`; ver normalizarRolUsuario
 // en usuarios-auth.js. Es quien autoriza los porcentajes de comisión.
@@ -46,6 +51,15 @@ export const esQuimico = (rol) => normalizarRolPermisos(rol) === "quimico";
 
 export const esDoctorExternoPermisos = (rol) =>
 	ROLES_DOCTOR_EXTERNO.has(normalizarRolPermisos(rol));
+
+export const esClienteImagen = (rol) =>
+	normalizarRolPermisos(rol) === ROL_CLIENTE_IMAGEN;
+
+export const esClienteLaboratorio = (rol) =>
+	normalizarRolPermisos(rol) === ROL_CLIENTE_LABORATORIO;
+
+export const esClienteConvenio = (rol) =>
+	esClienteImagen(rol) || esClienteLaboratorio(rol);
 
 export const esRadiologoClinicoPermisos = (rol) =>
 	normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO;
@@ -125,6 +139,24 @@ const TECNICO_RADIOLOGIA_MENU_BLOQUEADO = new Set([
 ]);
 
 export const puedeAccederRuta = (rol, pathname = "") => {
+	// Estas dos van antes que las reglas por rol: cada rama de abajo decide por
+	// su cuenta y una de ellas -química, por ejemplo- dejaría pasar lo que no
+	// tiene en su lista de bloqueos.
+	if (pathname === "/clientes-convenio") return puedeVerClientesConvenio(rol);
+	// La pantalla del convenio es del convenio: ningún empleado entra ahí.
+	if (pathname === "/resultados-convenio") return esClienteLaboratorio(rol);
+
+	// El convenio entra a lo suyo y a nada más: ni al dashboard ni al perfil,
+	// que son pantallas de la clínica.
+	if (esClienteImagen(rol)) {
+		return ["/radiologia", "/visor-dicom"].some(
+			(path) => pathname === path || pathname.startsWith(`${path}/`),
+		);
+	}
+	if (esClienteLaboratorio(rol)) {
+		return pathname === "/resultados-convenio";
+	}
+
 	if (esVisitadora(rol)) {
 		return VISITADORA_PATHS.some(
 			(path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -167,21 +199,46 @@ export const puedeAccederRuta = (rol, pathname = "") => {
 		return puedeVerModuloVisitadora(rol);
 	}
 
+
 	return true;
 };
 
 const sinModuloVisitadora = (items = []) => items.filter((item) => item.id !== "visitadora");
 
-export const filtrarMenuPorRol = (items = [], rol) => {
+// Los accesos de los convenios los da dirección: para los demás roles la
+// pantalla no está ni en el menú ni por URL.
+const ROLES_ADMIN_CLIENTES = new Set([
+	"admin",
+	"administrador",
+	"desarrollador",
+	"radiologo",
+	"radiologo_director",
+]);
+
+export const puedeVerClientesConvenio = (rol) =>
+	ROLES_ADMIN_CLIENTES.has(normalizarRolPermisos(rol));
+
+const sinClientesConvenio = (items = []) =>
+	items.map((item) =>
+		item.id === "administracion"
+			? {
+					...item,
+					submenu: item.submenu?.filter((subItem) => subItem.id !== "clientes-convenio"),
+				}
+			: item,
+	);
+
+const filtrarMenuPorRolBase = (items = [], rol) => {
 	// Para la visitadora el módulo no es una sección más: es su menú completo.
 	if (esVisitadora(rol)) return items.filter((item) => item.id === "visitadora");
 
+	if (esClienteConvenio(rol)) return [];
 	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) return [];
 	if (esDoctorExternoPermisos(rol)) {
 		return items.filter((item) => item.id === "inicio");
 	}
 	if (normalizarRolPermisos(rol) === ROL_TECNICO_RADIOLOGIA) {
-		return filtrarMenuPorRol(
+		return filtrarMenuPorRolBase(
 			items.filter((item) => !TECNICO_RADIOLOGIA_MENU_BLOQUEADO.has(item.id)),
 			"quimico",
 		);
@@ -246,12 +303,22 @@ export const filtrarMenuPorRol = (items = [], rol) => {
 	return puedeVerModuloVisitadora(rol) ? items : sinModuloVisitadora(items);
 };
 
+// Los accesos de los convenios se quitan del menú al final y para todos los
+// roles: cada rama arma su menú por su cuenta, y filtrarlo dentro de una sola
+// dejaba la pantalla a la vista en las demás.
+export const filtrarMenuPorRol = (items = [], rol) => {
+	const menu = filtrarMenuPorRolBase(items, rol);
+	return puedeVerClientesConvenio(rol) ? menu : sinClientesConvenio(menu);
+};
+
 // Dónde aterriza cada rol al iniciar sesión, y a dónde rebota cuando pide una
 // pantalla que no le toca. Vivía repartido entre auth-context y protected-route,
 // que lo decidían por su cuenta; la visitadora obliga a que sea una sola regla,
 // porque mandarla al dashboard -al que tampoco entra- la dejaría rebotando.
 export const rutaInicialPorRol = (rol) => {
 	if (esVisitadora(rol)) return "/visitadora/informe";
+	if (esClienteImagen(rol)) return "/radiologia";
+	if (esClienteLaboratorio(rol)) return "/resultados-convenio";
 	if (esDoctorExternoPermisos(rol) || esRadiologoClinicoPermisos(rol)) return "/radiologia";
 	return "/dashboard";
 };

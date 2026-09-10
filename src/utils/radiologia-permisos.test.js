@@ -66,3 +66,35 @@ describe("radiologia-permisos", () => {
 		expect(esDoctorAsignableRadiologia({ nombre: "Inactivo", activo: false })).toBe(false);
 	});
 });
+
+// El cliente de convenio ve radiología como el médico externo, pero acotado por
+// su convenio: los estudios traen el cliente de la orden con que se capturaron.
+describe("cliente de convenio en radiologia", () => {
+	const cliente = { rol: "cliente_imagen", id_cliente: 7 };
+
+	test("solo ve los estudios de su convenio", () => {
+		expect(obtenerRestriccionDoctorExterno(cliente)).toEqual({
+			columna: "id_cliente",
+			valor: 7,
+		});
+	});
+
+	// Sin convenio en la sesión no se ve nada: la restricción con valor nulo es
+	// lo que el dashboard usa para no listar ningún estudio.
+	test("sin convenio no ve ningun estudio", () => {
+		expect(obtenerRestriccionDoctorExterno({ rol: "cliente_imagen" })).toEqual({
+			columna: "id_cliente",
+			valor: null,
+		});
+	});
+
+	test("no interpreta, no asigna y no sube imagenes", () => {
+		expect(puedeInterpretarRadiologia(cliente)).toBe(false);
+		expect(puedeAsignarRadiologia(cliente)).toBe(false);
+		expect(puedeSubirImagenRadiologia(cliente)).toBe(false);
+	});
+
+	test("si puede leer el reporte del estudio", () => {
+		expect(puedeVerReporteRadiologia(cliente)).toBe(true);
+	});
+});

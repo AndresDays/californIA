@@ -10,10 +10,41 @@ const json = (body: unknown, corsHeaders: HeadersInit, status = 200) =>
 const clean = (value: unknown) =>
 	typeof value === "string" ? value.trim() : value || "";
 
+const normalizarRol = (rol: unknown) =>
+	String(rol || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_");
+
 const isAdminRole = (rol: unknown) =>
-	["admin", "administrador", "desarrollador"].includes(
-		String(rol || "").toLowerCase(),
-	);
+	["admin", "administrador", "desarrollador"].includes(normalizarRol(rol));
+
+// Los accesos de los clientes de convenio los da dirección, y el radiólogo
+// director se guarda con rol `radiologo`.
+const puedeGestionarAccesosCliente = (rol: unknown) =>
+	isAdminRole(rol) || ["radiologo", "radiologo_director"].includes(normalizarRol(rol));
+
+// El usuario del convenio se guarda sin acentos ni espacios y siempre da el
+// mismo correo interno: es la única forma de que lo que se dicta por teléfono
+// entre igual desde cualquier teclado.
+const DOMINIO_ACCESO_CLIENTE = "convenios.californiadiagnostica.mx";
+
+const normalizarUsuarioCliente = (usuario: unknown) =>
+	String(usuario ?? "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9._-]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+const ACCIONES_ACCESO_CLIENTE = [
+	"createClienteAcceso",
+	"updateClienteAcceso",
+	"deleteClienteAcceso",
+];
 
 const createAuthUser = async (
 	adminClient: ReturnType<typeof createClient>,
@@ -122,12 +153,131 @@ Deno.serve(async (req) => {
 
 	const body = await req.json();
 	const puedeGestionarDoctor = ["createDoctor", "updateDoctor"].includes(body.action);
+	const esAccesoCliente = ACCIONES_ACCESO_CLIENTE.includes(body.action);
 
-	if (
-		!empleadoAdmin?.activo ||
-		(!isAdminRole(empleadoAdmin.rol) && !puedeGestionarDoctor)
-	) {
+	if (!empleadoAdmin?.activo) {
 		return responder({ error: "No tienes permiso para administrar usuarios" }, 403);
+	}
+
+	if (esAccesoCliente) {
+		if (!puedeGestionarAccesosCliente(empleadoAdmin.rol)) {
+			return responder({ error: "No tienes permiso para administrar accesos de clientes" }, 403);
+		}
+	} else if (!isAdminRole(empleadoAdmin.rol) && !puedeGestionarDoctor) {
+		return responder({ error: "No tienes permiso para administrar usuarios" }, 403);
+	}
+
+	// ── Accesos de clientes de convenio ──────────────────────────────────────
+	// Un acceso por área: `imagen` entra a radiología y `laboratorio` a la
+	// pantalla de resultados del convenio. El rol viaja en el usuario de auth
+	// sólo como referencia; quien manda es la fila de `clientes_accesos`.
+	if (esAccesoCliente) {
+		const acceso = body.acceso || {};
+		const idCliente = Number(acceso.id_cliente);
+		const modulo = clean(acceso.modulo);
+		// El convenio entra con usuario, no con correo: el correo interno se arma
+		// del usuario y existe sólo porque el proveedor autentica correos. Se
+		// vuelve a derivar aquí y no se confía en el que mande la pantalla.
+		const usuario = normalizarUsuarioCliente(acceso.usuario);
+		const email = usuario ? `${usuario}@${DOMINIO_ACCESO_CLIENTE}` : "";
+		const password = clean(acceso.contrasena);
+
+		if (!Number.isInteger(idCliente) || idCliente <= 0) {
+			return responder({ error: "Falta el cliente" }, 400);
+		}
+		if (!["imagen", "laboratorio"].includes(String(modulo))) {
+			return responder({ error: "Modulo invalido" }, 400);
+		}
+
+		const { data: existente, error: existenteError } = await adminClient
+			.from("clientes_accesos")
+			.select("id, auth_uuid")
+			.eq("id_cliente", idCliente)
+			.eq("modulo", modulo)
+			.maybeSingle();
+		if (existenteError) return responder({ error: existenteError.message }, 500);
+
+		if (body.action === "deleteClienteAcceso") {
+			if (!existente) return responder({ ok: true });
+			const { error: borradoError } = await adminClient
+				.from("clientes_accesos")
+				.delete()
+				.eq("id", existente.id);
+			if (borradoError) return responder({ error: borradoError.message }, 400);
+			// El usuario de auth se borra después de la fila: si quedara la fila
+			// sin usuario, el acceso se vería activo y no dejaría entrar.
+			if (existente.auth_uuid) {
+				await adminClient.auth.admin.deleteUser(existente.auth_uuid);
+			}
+			return responder({ ok: true });
+		}
+
+		if (!usuario) return responder({ error: "El usuario es requerido" }, 400);
+
+		if (existente?.auth_uuid) {
+			const cambios: Record<string, unknown> = { email };
+			if (password) cambios.password = password;
+			const { error: authError } = await adminClient.auth.admin.updateUserById(
+				existente.auth_uuid,
+				cambios,
+			);
+			if (authError) return responder({ error: authError.message }, 400);
+
+			const { data: actualizado, error: filaError } = await adminClient
+				.from("clientes_accesos")
+				.update({
+					usuario,
+					email,
+					activo: acceso.activo !== false,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id", existente.id)
+				.select()
+				.single();
+			if (filaError) return responder({ error: filaError.message }, 400);
+			return responder({ acceso: actualizado });
+		}
+
+		if (!password) return responder({ error: "La contrasena es requerida" }, 400);
+
+		const { user: authUser, error: authError } = await createAuthUser(
+			adminClient,
+			{ ...acceso, usuario, email, contrasena: password },
+			modulo === "imagen" ? "cliente_imagen" : "cliente_laboratorio",
+		);
+		if (authError || !authUser) {
+			return responder({ error: authError || "No se pudo crear el usuario" }, 400);
+		}
+
+		const fila = {
+			id_cliente: idCliente,
+			modulo,
+			usuario,
+			email,
+			auth_uuid: authUser.id,
+			activo: acceso.activo !== false,
+			updated_at: new Date().toISOString(),
+		};
+
+		const { data: creado, error: creadoError } = existente
+			? await adminClient
+				.from("clientes_accesos")
+				.update(fila)
+				.eq("id", existente.id)
+				.select()
+				.single()
+			: await adminClient
+				.from("clientes_accesos")
+				.insert([fila])
+				.select()
+				.single();
+
+		if (creadoError) {
+			await adminClient.auth.admin.deleteUser(authUser.id);
+			return responder({ error: creadoError.message }, 400);
+		}
+
+		return responder({ user: authUser, acceso: creado });
 	}
 
 	if (body.action === "updatePassword" || body.action === "updateDoctorPassword") {

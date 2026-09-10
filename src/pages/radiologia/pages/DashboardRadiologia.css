@@ -137,10 +137,12 @@
   color: var(--texto);
 }
 
+/* Los estudios van en lista, uno por renglón: se recorren de arriba abajo en
+   vez de rastrear una rejilla de cuadros. */
 .grid-estudios {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   animation: fadeIn 0.5s ease;
 }
 
@@ -149,7 +151,6 @@
 }
 
 .sin-estudios {
-  grid-column: 1 / -1;
   text-align: center;
   padding: 4rem 2rem;
   color: var(--texto);

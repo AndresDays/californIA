@@ -41,17 +41,26 @@
 	gap: 0.6rem;
 	padding: 0.45rem 0.75rem;
 	flex-shrink: 0;
-	overflow: visible;
+	/* En pantallas angostas las últimas herramientas -compartir, formato- se
+	   quedaban fuera de vista sin forma de llegar a ellas. La barra se recorre
+	   de lado; los menús que abre son `position: fixed` y viven fuera de ella,
+	   así que no se recortan. */
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(73, 178, 212, 0.35) transparent;
+	overscroll-behavior-x: contain;
 	position: relative;
 	z-index: 200;
 }
 
 .vd-toolbar::-webkit-scrollbar {
-	height: 3px;
+	height: 4px;
 }
 
 .vd-toolbar::-webkit-scrollbar-thumb {
-	background: rgba(73, 178, 212, 0.2);
+	background: rgba(73, 178, 212, 0.35);
+	border-radius: 2px;
 }
 
 .vd-btn-back {

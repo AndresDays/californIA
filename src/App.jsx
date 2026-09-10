@@ -14,6 +14,8 @@ const Captura = lazy(() => import('./pages/laboratorio/captura'));
 const CalendarioCitas = lazy(() => import('./pages/laboratorio/calendario-citas'));
 const CierreCaja = lazy(() => import('./pages/laboratorio/cierre-caja'));
 const Clientes = lazy(() => import('./pages/laboratorio/clientes'));
+const ClientesConvenio = lazy(() => import('./pages/laboratorio/clientes-convenio'));
+const ResultadosConvenio = lazy(() => import('./pages/clientes/resultados-convenio'));
 const AdministrarAreas = lazy(() => import('./pages/laboratorio/configuracion/administrar-areas'));
 const AdministrarEquipos = lazy(() => import('./pages/laboratorio/configuracion/administrar-equipos'));
 const AdministrarMetodos = lazy(() => import('./pages/laboratorio/configuracion/administrar-metodos'));
@@ -96,6 +98,8 @@ function App() {
 							<Route path="/turnos" element={<P><Turnos /></P>} />
 							<Route path="/cierre-caja" element={<P><CierreCaja /></P>} />
 							<Route path="/clientes" element={<P><Clientes /></P>} />
+							<Route path="/clientes-convenio" element={<P><ClientesConvenio /></P>} />
+							<Route path="/resultados-convenio" element={<P><ResultadosConvenio /></P>} />
 							<Route path="/doctores" element={<P><Doctores /></P>} />
 							<Route path="/reporte-ventas" element={<P><ReporteVentas /></P>} />
 							<Route path="/cortes-dia" element={<P><CortesDia /></P>} />

@@ -25,6 +25,7 @@ const menu = [
 			{ id: "pacientes", path: "/pacientes" },
 			{ id: "doctores", path: "/doctores" },
 			{ id: "usuarios", path: "/usuarios" },
+			{ id: "clientes-convenio", path: "/clientes-convenio" },
 		],
 	},
 	{
@@ -360,5 +361,56 @@ describe("rutaInicialPorRol", () => {
 		]) {
 			expect(puedeAccederRuta(rol, rutaInicialPorRol(rol))).toBe(true);
 		}
+	});
+});
+
+// El convenio entra a lo suyo y a nada más: no es personal de la clínica.
+describe("clientes de convenio", () => {
+	test("cada acceso aterriza en su pantalla", () => {
+		expect(rutaInicialPorRol("cliente_imagen")).toBe("/radiologia");
+		expect(rutaInicialPorRol("cliente_laboratorio")).toBe("/resultados-convenio");
+	});
+
+	test("el acceso de imagen solo ve radiologia y el visor", () => {
+		expect(puedeAccederRuta("cliente_imagen", "/radiologia")).toBe(true);
+		expect(puedeAccederRuta("cliente_imagen", "/visor-dicom/12")).toBe(true);
+		expect(puedeAccederRuta("cliente_imagen", "/dashboard")).toBe(false);
+		expect(puedeAccederRuta("cliente_imagen", "/pacientes")).toBe(false);
+		expect(puedeAccederRuta("cliente_imagen", "/resultados-convenio")).toBe(false);
+	});
+
+	test("el acceso de laboratorio solo ve su pantalla de resultados", () => {
+		expect(puedeAccederRuta("cliente_laboratorio", "/resultados-convenio")).toBe(true);
+		expect(puedeAccederRuta("cliente_laboratorio", "/radiologia")).toBe(false);
+		expect(puedeAccederRuta("cliente_laboratorio", "/dashboard")).toBe(false);
+	});
+
+	test("ninguno de los dos ve menu", () => {
+		expect(filtrarMenuPorRol(menu, "cliente_imagen")).toEqual([]);
+		expect(filtrarMenuPorRol(menu, "cliente_laboratorio")).toEqual([]);
+	});
+
+	// La pantalla del convenio es del convenio: un empleado no entra ahí.
+	test("ningun empleado entra a la pantalla del convenio", () => {
+		expect(puedeAccederRuta("administrador", "/resultados-convenio")).toBe(false);
+		expect(puedeAccederRuta("recepcionista", "/resultados-convenio")).toBe(false);
+	});
+
+	test("los accesos los administra direccion y desarrollo", () => {
+		expect(puedeAccederRuta("administrador", "/clientes-convenio")).toBe(true);
+		expect(puedeAccederRuta("radiologo", "/clientes-convenio")).toBe(true);
+		expect(puedeAccederRuta("desarrollador", "/clientes-convenio")).toBe(true);
+		expect(puedeAccederRuta("quimico", "/clientes-convenio")).toBe(false);
+		expect(puedeAccederRuta("recepcionista", "/clientes-convenio")).toBe(false);
+	});
+
+	test("el menu de Administracion solo ofrece Clientes a quien puede entrar", () => {
+		const submenuDe = (rol) =>
+			filtrarMenuPorRol(menu, rol)
+				.find((item) => item.id === "administracion")
+				?.submenu?.map((subItem) => subItem.id) || [];
+
+		expect(submenuDe("administrador")).toContain("clientes-convenio");
+		expect(submenuDe("quimico")).not.toContain("clientes-convenio");
 	});
 });

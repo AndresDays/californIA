@@ -151,6 +151,7 @@ import {
 	normalizarTelefono10,
 } from "../../utils/form-validations";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
+import ModalObservacionDoctor from "../../components/modal-observacion-doctor";
 import {
 	actualizarDoctorConAuthentication,
 	crearDoctorConAuthentication,
@@ -235,6 +236,9 @@ const NuevoPaciente = () => {
 	const [doctorBusqueda, setDoctorBusqueda] = useCampoPersistente(`${BORRADOR}doctorBusqueda`, "");
 	const [doctoresEncontrados, setDoctoresEncontrados] = useState([]);
 	const [doctorSeleccionado, setDoctorSeleccionado] = useCampoPersistente(`${BORRADOR}doctorSeleccionado`, null);
+	// Lo que recepción se entera del médico mientras captura se anota aquí mismo:
+	// contarlo de palabra al salir del turno es como se venía perdiendo.
+	const [modalObservacionDoctorOpen, setModalObservacionDoctorOpen] = useState(false);
 	const [showBusquedaDoctores, setShowBusquedaDoctores] = useState(false);
 
 	const [observaciones, setObservaciones] = useCampoPersistente(`${BORRADOR}observaciones`, "");
@@ -2190,6 +2194,15 @@ const NuevoPaciente = () => {
 										</button>
 									</div>
 								)}
+
+								{doctorSeleccionado && (
+									<button
+										type="button"
+										className="btn-observacion-doctor"
+										onClick={() => setModalObservacionDoctorOpen(true)}>
+										Observaciones del doctor
+									</button>
+								)}
 							</section>
 
 							<section className="form-section">
@@ -2890,6 +2903,18 @@ const NuevoPaciente = () => {
 					isOpen={modalAgregarPacienteOpen}
 					onClose={() => setModalAgregarPacienteOpen(false)}
 					onGuardar={handleGuardarPacienteModal}
+				/>
+
+				<ModalObservacionDoctor
+					isOpen={modalObservacionDoctorOpen}
+					doctor={doctorSeleccionado}
+					empleado={empleadoData}
+					onClose={() => setModalObservacionDoctorOpen(false)}
+					onGuardada={() =>
+						globalThis.mostrarNotificacion?.(
+							"Observación guardada. Se avisó a visitadora y dirección.",
+						)
+					}
 				/>
 
 				<ModalAgregarDoctor
