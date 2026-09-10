@@ -70,6 +70,13 @@ import cineIcon from "../../../assets/cineIcono.png";
 import clipIcon from "../../../assets/clipIcon.png";
 import comentarioIcon from "../../../assets/comentarioIcono.png";
 import compartirIcon from "../../../assets/compartirIcono.png";
+import {
+	crearAsuntoCompartirEstudio,
+	crearEnlaceCorreoEstudio,
+	crearEnlaceWhatsappEstudio,
+	crearTextoCompartirEstudio,
+	resolverUrlCompartirEstudio,
+} from "../../../utils/compartir-estudio";
 import contrasteIcono from "../../../assets/contrasteIcono.png";
 import descargarIcon from "../../../assets/descargarIcono.png";
 import detallesIcon from "../../../assets/detallesIcono.png";
@@ -254,6 +261,14 @@ const ACTIONS = [
 	{ id: "informacion", icon: informacionIcon, label: "Info" },
 	{ id: "compartir", icon: compartirIcon, label: "Compartir" },
 	{ id: "formato", icon: formatoIcon, label: "Formato" },
+];
+
+// Por dónde se comparte. Copiar la liga se queda porque es lo que se usa para
+// pegarla en otro lado -un correo ya abierto, una nota- sin salir del visor.
+const COMPARTIR_ITEMS = [
+	{ id: "correo", label: "Correo", simbolo: "✉" },
+	{ id: "whatsapp", label: "WhatsApp", simbolo: "✆" },
+	{ id: "copiar", label: "Copiar liga", simbolo: "⧉" },
 ];
 
 const FORMATOS = [
@@ -3049,6 +3064,10 @@ const VisorDicom = () => {
 	const detalleButtonRef = useRef(null);
 	const sidePanelRef = useRef(null);
 	const [masBarTop, setMasBarTop] = useState(112);
+	// Compartir abre un menú en vez de mandar de una: se elige correo o
+	// WhatsApp, que es como se le hace llegar al paciente o a quien lo pidió.
+	const [mostrarCompartir, setMostrarCompartir] = useState(false);
+	const [compartirBarTop, setCompartirBarTop] = useState(112);
 
 	const pacienteInfo = {
 		nombre: estudioData?.nombrePaciente || "Sin paciente",
@@ -3738,6 +3757,7 @@ const VisorDicom = () => {
 			setMostrarMas(false);
 			setMostrarDetalle(false);
 			setMostrarReporte(false);
+			setMostrarCompartir(false);
 			return;
 		}
 		if (id === "reporte") {
@@ -3751,6 +3771,7 @@ const VisorDicom = () => {
 			setMostrarMas(false);
 			setMostrarDetalle(false);
 			setMostrarReporte(false);
+			setMostrarCompartir(false);
 			return;
 		}
 		if (id === "descargar") {
@@ -3766,7 +3787,17 @@ const VisorDicom = () => {
 			return;
 		}
 		if (id === "compartir") {
-			compartir();
+			setMostrarCompartir((abierto) => {
+				if (!abierto && toolbarRef.current) {
+					const r = toolbarRef.current.getBoundingClientRect();
+					setCompartirBarTop(r.bottom);
+				}
+				return !abierto;
+			});
+			setMostrarMas(false);
+			setMostrarFormatos(false);
+			setMostrarDetalle(false);
+			setMostrarReporte(false);
 			return;
 		}
 		if (id === "mas") {
@@ -3780,6 +3811,7 @@ const VisorDicom = () => {
 			setMostrarFormatos(false);
 			setMostrarDetalle(false);
 			setMostrarReporte(false);
+			setMostrarCompartir(false);
 			return;
 		}
 		if (id === "detalle") {
@@ -3787,6 +3819,7 @@ const VisorDicom = () => {
 			setMostrarFormatos(false);
 			setMostrarMas(false);
 			setMostrarReporte(false);
+			setMostrarCompartir(false);
 			return;
 		}
 	};
@@ -4316,16 +4349,61 @@ const VisorDicom = () => {
 		a.click();
 	};
 
-	const compartir = async () => {
-		if (navigator.share)
-			await navigator.share({
-				title: pacienteInfo.nombre,
-				url: window.location.href,
-			});
-		else {
-			navigator.clipboard.writeText(window.location.href);
-			globalThis.mostrarNotificacion("URL copiada");
+	// Lo que se comparte es el visor del paciente -se autoriza con folio y
+	// teléfono-, no la pantalla del radiólogo, que pide sesión y a quien la
+	// recibe no le sirve de nada.
+	const urlCompartir = () =>
+		resolverUrlCompartirEstudio({
+			idEstudio: estudioId || estudioData?.id,
+			folio: pacienteInfo.folio,
+			telefono: pacienteInfo.telefono,
+			urlActual: window.location.href,
+		});
+
+	const textoCompartir = () =>
+		crearTextoCompartirEstudio({
+			paciente: pacienteInfo.nombre,
+			estudio: pacienteInfo.tipoEstudio,
+			url: urlCompartir(),
+		});
+
+	const compartirPorCorreo = () => {
+		window.location.href = crearEnlaceCorreoEstudio({
+			email: estudioData?.emailPaciente || "",
+			asunto: crearAsuntoCompartirEstudio({
+				paciente: pacienteInfo.nombre,
+				folio: pacienteInfo.folio,
+			}),
+			texto: textoCompartir(),
+		});
+	};
+
+	const compartirPorWhatsapp = () => {
+		window.open(
+			crearEnlaceWhatsappEstudio({
+				telefono: pacienteInfo.telefono,
+				texto: textoCompartir(),
+			}),
+			"_blank",
+			"noopener,noreferrer",
+		);
+	};
+
+	const copiarLigaEstudio = async () => {
+		try {
+			await navigator.clipboard.writeText(urlCompartir());
+			globalThis.mostrarNotificacion?.("Liga copiada");
+		} catch (error) {
+			console.error("No se pudo copiar la liga del estudio:", error);
+			globalThis.mostrarNotificacion?.("No se pudo copiar la liga", "error");
 		}
+	};
+
+	const handleCompartirItem = (id) => {
+		setMostrarCompartir(false);
+		if (id === "correo") compartirPorCorreo();
+		if (id === "whatsapp") compartirPorWhatsapp();
+		if (id === "copiar") copiarLigaEstudio();
 	};
 
 	const abrirReporteEnPestana = ({ imprimir = false } = {}) => {
@@ -4881,7 +4959,7 @@ const VisorDicom = () => {
 						{accionesVista.map((a) => (
 							<button
 								key={a.id}
-								className={`vd-tool-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "formato" && mostrarFormatos ? "activo" : ""}`}
+								className={`vd-tool-btn ${a.id === "cine" && cineActivo ? "cine-on" : ""} ${a.id === "mas" && mostrarMas ? "activo" : ""} ${a.id === "formato" && mostrarFormatos ? "activo" : ""} ${a.id === "compartir" && mostrarCompartir ? "activo" : ""}`}
 								onClick={() => handleAction(a.id)}
 								title={a.label}>
 								{a.icon ? <img src={a.icon} alt="" /> : <span>⊞</span>}
@@ -4956,6 +5034,21 @@ const VisorDicom = () => {
 							) : (
 								<span className="vd-mas-fallback">{item.label[0]}</span>
 							)}
+							<span>{item.label}</span>
+						</button>
+					))}
+				</div>
+			)}
+
+			{mostrarCompartir && (
+				<div className="vd-mas-bar" style={{ top: compartirBarTop }}>
+					{COMPARTIR_ITEMS.map((item) => (
+						<button
+							key={item.id}
+							className="vd-mas-item"
+							onClick={() => handleCompartirItem(item.id)}
+							title={item.label}>
+							<span className="vd-mas-fallback">{item.simbolo}</span>
 							<span>{item.label}</span>
 						</button>
 					))}
