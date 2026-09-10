@@ -48,21 +48,28 @@ const TarjetaEstudio = ({
     if (onClick) onClick();
   };
 
+  // El estudio se lee en un renglón, no en un cuadro: la agenda del día son
+  // decenas y en tarjetas grandes había que recorrer la pantalla para
+  // encontrarlos. Sigue siendo una tarjeta por dentro -misma clase, mismas
+  // props, mismo clic- para que la fila del estudio pueda existir antes de que
+  // sus imágenes se carguen.
   return (
     <div className="tarjeta-estudio" onClick={handleCardClick}>
-      <div 
-        className="tarjeta-estudio-header" 
+      <div
+        className="tarjeta-estudio-header"
         style={{ background: `linear-gradient(135deg, ${getEstudioColor()} 0%, ${getEstudioColor()}dd 100%)` }}
       >
         <h3 className="tipo-estudio">{tipoEstudio || 'XX'}</h3>
       </div>
 
       <div className="tarjeta-estudio-body">
-        <h4 className="nombre-paciente">{nombrePaciente || 'Sin nombre'}</h4>
-        {descripcionEstudio && (
-          <p className="descripcion-estudio">{descripcionEstudio}</p>
-        )}
-        
+        <div className="tarjeta-estudio-paciente">
+          <h4 className="nombre-paciente">{nombrePaciente || 'Sin nombre'}</h4>
+          {descripcionEstudio && (
+            <p className="descripcion-estudio">{descripcionEstudio}</p>
+          )}
+        </div>
+
         <div className="info-estudio">
           <p className="hora-fecha">{horaFecha || '--:--'}</p>
           <p className="sucursal">{sucursal || 'Sin sucursal'}</p>
@@ -73,7 +80,7 @@ const TarjetaEstudio = ({
         </div>
 
         <div className="tarjeta-acciones">
-          <button 
+          <button
             className="btn-menu-estudio"
             onClick={(e) => {
               e.stopPropagation();
