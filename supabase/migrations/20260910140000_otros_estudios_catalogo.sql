@@ -87,9 +87,9 @@ where not exists (
 	where pg_temp.llave_otros_estudios(nombre) = 'OTROS ESTUDIOS'
 );
 
--- Se ofrece por las dos empresas: la lista trae servicios que factura cada una
--- -consultas y densitometría por California, biopsias y endoscopía por Imagen-
--- y quién factura cada orden lo decide después la matriz del convenio.
+-- Las empresas del tipo se tocan sólo si el tipo nace aquí. Si ya existía, ya
+-- está ligado a las empresas que le corresponden, y agregarle otra cambiaría lo
+-- que el selector le ofrece a recepción en una pantalla que hoy funciona.
 insert into public.empresa_tipos_estudio (id_empresa, id_tipo_estudio)
 select empresa.id_empresa, tipo.id_tipo_estudio
 from public.empresas empresa
@@ -99,6 +99,10 @@ where upper(empresa.nombre) in (
 	'CENTRAL DIAGNOSTICA CALIFORNIA',
 	'CENTRO DE DIAGNOSTICO POR IMAGEN PVR'
 )
+	and not exists (
+		select 1 from public.empresa_tipos_estudio et
+		where et.id_tipo_estudio = tipo.id_tipo_estudio
+	)
 on conflict (id_empresa, id_tipo_estudio) do nothing;
 
 -- ── Los estudios que faltan ─────────────────────────────────────────────────
