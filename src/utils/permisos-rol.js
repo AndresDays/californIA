@@ -25,3 +25,31 @@ export const filtrarVentasSoloLaboratorio = (ventas = [], rol = "") => {
 
 export const filtrarEstudiosSoloLaboratorio = (estudios = [], rol = "") =>
 	esRolSoloLaboratorio(rol) ? estudios.filter(esEstudioLaboratorio) : estudios;
+
+// Recepción consulta el reporte de ventas para cuadrar su turno, no para
+// revisar el histórico: ve el movimiento del día y nada más. El rango se
+// resuelve aquí -y no en la pantalla- porque de él dependen las consultas, la
+// impresión y el nombre del archivo exportado, y bastaba olvidar uno para que
+// se colara un periodo entero.
+const ROLES_REPORTE_SOLO_HOY = ["recepcionista", "recepcion", "recepción"];
+
+export const esRolReporteSoloHoy = (rol = "") =>
+	ROLES_REPORTE_SOLO_HOY.includes(
+		String(rol || "")
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.trim()
+			.toLowerCase(),
+	);
+
+export const resolverRangoReporteVentas = ({
+	rol = "",
+	fechaInicial = "",
+	fechaFinal = "",
+	hoy = "",
+} = {}) => {
+	if (esRolReporteSoloHoy(rol) && hoy) {
+		return { fechaInicial: hoy, fechaFinal: hoy, fijo: true };
+	}
+	return { fechaInicial, fechaFinal, fijo: false };
+};
