@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
 import { esEmailValido } from '../utils/form-validations'
+import { resolverCorreoDeAcceso } from '../utils/clientes-accesos'
 import './Login.css'
 
 let logoSrc
@@ -31,16 +32,27 @@ const Login = () => {
       return
     }
 
-    if (!esEmailValido(email)) {
+    // Los convenios entran con usuario y el personal con su correo: lo que no
+    // trae arroba se toma como usuario y se convierte al correo interno de la
+    // cuenta, que nadie teclea.
+    const correoAcceso = resolverCorreoDeAcceso(email)
+
+    if (email.includes('@') && !esEmailValido(email)) {
       setErrorMessage('Por favor, ingresa un correo válido')
       setLoading(false)
       return
     }
 
-    const { data, error } = await signIn(email, password)
-    
+    if (!correoAcceso) {
+      setErrorMessage('Por favor, ingresa tu correo o usuario')
+      setLoading(false)
+      return
+    }
+
+    const { data, error } = await signIn(correoAcceso, password)
+
     if (error) {
-      setErrorMessage('Correo o contraseña incorrectos')
+      setErrorMessage('Usuario o contraseña incorrectos')
       setLoading(false)
     } else {
       navigate(data?.redirectTo || '/dashboard')
@@ -66,11 +78,14 @@ const Login = () => {
         <form onSubmit={handleSubmit} className="login-form">
           <div className="login-input-group">
             <label htmlFor="email" className="login-label">
-              Correo Electrónico:
+              Correo o usuario:
             </label>
             <input
               id="email"
-              type="email"
+              type="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="login-input"

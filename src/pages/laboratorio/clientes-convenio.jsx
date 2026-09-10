@@ -13,8 +13,10 @@ import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	MODULOS_ACCESO_CLIENTE,
 	combinarClientesConAccesos,
+	correoDeUsuarioCliente,
 	eliminarAccesoCliente,
 	guardarAccesoCliente,
+	normalizarUsuarioCliente,
 	validarAccesoCliente,
 } from "../../utils/clientes-accesos";
 import { normalizarNombreDuplicado } from "../../utils/duplicados-registro";
@@ -36,7 +38,7 @@ const cargarClientesConAccesos = async () => {
 };
 
 const ModalAccesoCliente = ({ isOpen, cliente, modulo, acceso, onClose, onGuardar }) => {
-	const [email, setEmail] = useState("");
+	const [usuario, setUsuario] = useState("");
 	const [contrasena, setContrasena] = useState("");
 	const [error, setError] = useState("");
 	const [guardando, setGuardando] = useState(false);
@@ -44,7 +46,7 @@ const ModalAccesoCliente = ({ isOpen, cliente, modulo, acceso, onClose, onGuarda
 
 	useEffect(() => {
 		if (!isOpen) return;
-		setEmail(acceso?.email || "");
+		setUsuario(acceso?.usuario || "");
 		setContrasena("");
 		setError("");
 		setGuardando(false);
@@ -56,7 +58,7 @@ const ModalAccesoCliente = ({ isOpen, cliente, modulo, acceso, onClose, onGuarda
 		MODULOS_ACCESO_CLIENTE.find((item) => item.id === modulo)?.etiqueta || modulo;
 
 	const guardar = async () => {
-		const aviso = validarAccesoCliente({ email, contrasena, esNuevo });
+		const aviso = validarAccesoCliente({ usuario, contrasena, esNuevo });
 		if (aviso) {
 			setError(aviso);
 			return;
@@ -64,7 +66,7 @@ const ModalAccesoCliente = ({ isOpen, cliente, modulo, acceso, onClose, onGuarda
 		setError("");
 		setGuardando(true);
 		try {
-			await onGuardar({ email: email.trim(), contrasena });
+			await onGuardar({ usuario: normalizarUsuarioCliente(usuario), contrasena });
 		} catch (err) {
 			setError(err?.message || "No se pudo guardar el acceso");
 			setGuardando(false);
@@ -90,19 +92,32 @@ const ModalAccesoCliente = ({ isOpen, cliente, modulo, acceso, onClose, onGuarda
 				</p>
 
 				<label className="acceso-cliente-label" htmlFor="acceso-usuario">
-					Usuario (correo) <span aria-hidden="true">*</span>
+					Usuario <span aria-hidden="true">*</span>
 				</label>
 				<input
 					id="acceso-usuario"
 					type="text"
 					className="acceso-cliente-input"
-					value={email}
+					value={usuario}
 					disabled={guardando}
+					placeholder="medisim-lab"
+					autoCapitalize="none"
+					autoCorrect="off"
+					spellCheck={false}
 					onChange={(e) => {
-						setEmail(e.target.value);
+						setUsuario(e.target.value);
 						setError("");
 					}}
 				/>
+				{/* El usuario se guarda sin acentos ni espacios: se ve cómo va a
+				    quedar antes de guardarlo, que es lo que se le va a dictar al
+				    convenio por teléfono. */}
+				{normalizarUsuarioCliente(usuario) !== usuario.trim() &&
+					normalizarUsuarioCliente(usuario) !== "" && (
+						<p className="acceso-cliente-nota">
+							Se guardará como <strong>{normalizarUsuarioCliente(usuario)}</strong>
+						</p>
+					)}
 
 				<label className="acceso-cliente-label" htmlFor="acceso-contrasena">
 					Contraseña {esNuevo && <span aria-hidden="true">*</span>}
@@ -164,12 +179,14 @@ const ClientesConvenio = () => {
 		);
 	}, [clientes, buscar]);
 
-	const guardarAcceso = async ({ email, contrasena }) => {
+	const guardarAcceso = async ({ usuario, contrasena }) => {
 		await guardarAccesoCliente(supabase, {
 			id_cliente: accesoEditar.cliente.id_cliente,
 			modulo: accesoEditar.modulo,
-			usuario: email,
-			email,
+			usuario,
+			// El correo interno se arma del usuario y nadie lo teclea: existe sólo
+			// porque el proveedor de identidad autentica correos.
+			email: correoDeUsuarioCliente(usuario),
 			contrasena,
 			nombre: accesoEditar.cliente.nombre,
 		});
@@ -203,7 +220,7 @@ const ClientesConvenio = () => {
 					<td key={id}>
 						<div className="acceso-celda">
 							<span className={`acceso-estado${acceso ? " con-acceso" : ""}`}>
-								{acceso ? acceso.email : "Sin acceso"}
+								{acceso ? acceso.usuario : "Sin acceso"}
 							</span>
 							<div className="acceso-acciones">
 								<button

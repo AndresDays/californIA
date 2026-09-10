@@ -7,6 +7,34 @@
 // sólo vive el nombre de los módulos y quién administra las cuentas.
 import { normalizarRolPermisos } from "./role-permissions";
 
+// El convenio entra con usuario, no con correo: es una cuenta de la empresa
+// -"medisim-lab"- que se pasa por teléfono y que puede cambiar de manos sin
+// arrastrar el correo de nadie. Supabase sólo autentica correos, así que el
+// usuario se convierte siempre al mismo correo interno, que nadie teclea ni ve.
+export const DOMINIO_ACCESO_CLIENTE = "convenios.californiadiagnostica.mx";
+
+export const normalizarUsuarioCliente = (usuario = "") =>
+	String(usuario ?? "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9._-]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+export const correoDeUsuarioCliente = (usuario = "") => {
+	const limpio = normalizarUsuarioCliente(usuario);
+	return limpio ? `${limpio}@${DOMINIO_ACCESO_CLIENTE}` : "";
+};
+
+// Lo tecleado en el login: un correo se manda tal cual -es un empleado- y
+// cualquier otra cosa se toma como usuario de convenio.
+export const resolverCorreoDeAcceso = (loQueEscribio = "") => {
+	const texto = String(loQueEscribio ?? "").trim();
+	if (!texto) return "";
+	return texto.includes("@") ? texto : correoDeUsuarioCliente(texto);
+};
+
 export const MODULOS_ACCESO_CLIENTE = [
 	{ id: "imagen", etiqueta: "Imagen", rol: "cliente_imagen" },
 	{ id: "laboratorio", etiqueta: "Laboratorio", rol: "cliente_laboratorio" },
@@ -62,11 +90,16 @@ export const combinarClientesConAccesos = (clientes = [], accesos = []) => {
 	}));
 };
 
-export const validarAccesoCliente = ({ email = "", contrasena = "", esNuevo = true } = {}) => {
-	const correo = String(email || "").trim();
-	if (!correo) return "El usuario (correo) es obligatorio";
-	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-		return "El usuario debe ser un correo válido: es con lo que inicia sesión";
+export const LARGO_MINIMO_USUARIO_CLIENTE = 3;
+
+export const validarAccesoCliente = ({ usuario = "", contrasena = "", esNuevo = true } = {}) => {
+	const limpio = normalizarUsuarioCliente(usuario);
+	if (!limpio) return "El usuario es obligatorio";
+	if (limpio.length < LARGO_MINIMO_USUARIO_CLIENTE) {
+		return `El usuario debe tener al menos ${LARGO_MINIMO_USUARIO_CLIENTE} caracteres`;
+	}
+	if (String(usuario).includes("@")) {
+		return "El usuario no lleva arroba: escribe sólo el nombre de la cuenta";
 	}
 	// Al editar se puede dejar en blanco para conservar la que ya tenía.
 	if (esNuevo && String(contrasena || "").length < 8) {

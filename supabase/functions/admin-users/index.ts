@@ -26,6 +26,20 @@ const isAdminRole = (rol: unknown) =>
 const puedeGestionarAccesosCliente = (rol: unknown) =>
 	isAdminRole(rol) || ["radiologo", "radiologo_director"].includes(normalizarRol(rol));
 
+// El usuario del convenio se guarda sin acentos ni espacios y siempre da el
+// mismo correo interno: es la única forma de que lo que se dicta por teléfono
+// entre igual desde cualquier teclado.
+const DOMINIO_ACCESO_CLIENTE = "convenios.californiadiagnostica.mx";
+
+const normalizarUsuarioCliente = (usuario: unknown) =>
+	String(usuario ?? "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9._-]+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
 const ACCIONES_ACCESO_CLIENTE = [
 	"createClienteAcceso",
 	"updateClienteAcceso",
@@ -161,7 +175,11 @@ Deno.serve(async (req) => {
 		const acceso = body.acceso || {};
 		const idCliente = Number(acceso.id_cliente);
 		const modulo = clean(acceso.modulo);
-		const email = clean(acceso.email);
+		// El convenio entra con usuario, no con correo: el correo interno se arma
+		// del usuario y existe sólo porque el proveedor autentica correos. Se
+		// vuelve a derivar aquí y no se confía en el que mande la pantalla.
+		const usuario = normalizarUsuarioCliente(acceso.usuario);
+		const email = usuario ? `${usuario}@${DOMINIO_ACCESO_CLIENTE}` : "";
 		const password = clean(acceso.contrasena);
 
 		if (!Number.isInteger(idCliente) || idCliente <= 0) {
@@ -194,7 +212,7 @@ Deno.serve(async (req) => {
 			return responder({ ok: true });
 		}
 
-		if (!email) return responder({ error: "El usuario (correo) es requerido" }, 400);
+		if (!usuario) return responder({ error: "El usuario es requerido" }, 400);
 
 		if (existente?.auth_uuid) {
 			const cambios: Record<string, unknown> = { email };
@@ -208,7 +226,7 @@ Deno.serve(async (req) => {
 			const { data: actualizado, error: filaError } = await adminClient
 				.from("clientes_accesos")
 				.update({
-					usuario: clean(acceso.usuario) || email,
+					usuario,
 					email,
 					activo: acceso.activo !== false,
 					updated_at: new Date().toISOString(),
@@ -224,7 +242,7 @@ Deno.serve(async (req) => {
 
 		const { user: authUser, error: authError } = await createAuthUser(
 			adminClient,
-			{ ...acceso, contrasena: password },
+			{ ...acceso, usuario, email, contrasena: password },
 			modulo === "imagen" ? "cliente_imagen" : "cliente_laboratorio",
 		);
 		if (authError || !authUser) {
@@ -234,7 +252,7 @@ Deno.serve(async (req) => {
 		const fila = {
 			id_cliente: idCliente,
 			modulo,
-			usuario: clean(acceso.usuario) || email,
+			usuario,
 			email,
 			auth_uuid: authUser.id,
 			activo: acceso.activo !== false,
