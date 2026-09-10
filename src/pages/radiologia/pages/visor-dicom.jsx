@@ -266,12 +266,10 @@ const ACTIONS = [
 	{ id: "formato", icon: formatoIcon, label: "Formato" },
 ];
 
-// Por dónde se comparte. Copiar la liga se queda porque es lo que se usa para
-// pegarla en otro lado -un correo ya abierto, una nota- sin salir del visor.
+// Por dónde se comparte el estudio con el paciente o con quien lo pidió.
 const COMPARTIR_ITEMS = [
 	{ id: "correo", label: "Correo", icon: enviarEmailBtn },
 	{ id: "whatsapp", label: "WhatsApp", icon: enviarWppBtn },
-	{ id: "copiar", label: "Copiar liga", icon: compartirIcon },
 ];
 
 const FORMATOS = [
@@ -4440,21 +4438,10 @@ const VisorDicom = () => {
 		);
 	};
 
-	const copiarLigaEstudio = async () => {
-		try {
-			await navigator.clipboard.writeText(urlCompartir());
-			globalThis.mostrarNotificacion?.("Liga copiada");
-		} catch (error) {
-			console.error("No se pudo copiar la liga del estudio:", error);
-			globalThis.mostrarNotificacion?.("No se pudo copiar la liga", "error");
-		}
-	};
-
 	const handleCompartirItem = (id) => {
 		setMostrarCompartir(false);
 		if (id === "correo") compartirPorCorreo();
 		if (id === "whatsapp") compartirPorWhatsapp();
-		if (id === "copiar") copiarLigaEstudio();
 	};
 
 	const abrirReporteEnPestana = ({ imprimir = false } = {}) => {
