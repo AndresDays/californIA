@@ -5,6 +5,7 @@ import {
 	prorratearPago,
 	validarPagosPorSerie,
 } from "./orden-por-serie";
+import { repartirDesglosePorPartes } from "./pagos-mixtos";
 
 const estudio = (extra) => ({ cantidad: 1, modulo: "imagen", ...extra });
 const usg = estudio({ clave: "US-RENAL", modalidad: "ultrasonido", empresa_operativa: "CDI", precio: 700 });
@@ -129,4 +130,42 @@ test("la orden de una sucursal con serie propia no se divide", () => {
 	expect(partes[0].serie).toBe("D");
 	expect(partes[0].total).toBe(1200);
 	expect(esOrdenMixta(partes)).toBe(false);
+});
+
+// El cobro de una orden mixta pagada con varias formas: primero cuánto le toca
+// a cada folio, y dentro de cada folio qué parte de cada forma lo cubre. Las
+// dos cuentas tienen que cerrar contra lo que entregó el paciente.
+test("una orden mixta pagada con efectivo y tarjeta cuadra folio por folio", () => {
+	const partes = dividirOrdenPorSerie({
+		estudios: [
+			{ cantidad: 1, modulo: "imagen", modalidad: "tomografia", empresa_operativa: "CDI", precio: 1000 },
+			{ cantidad: 1, modulo: "laboratorio", modalidad: "laboratorio", precio: 500 },
+		],
+	});
+
+	expect(esOrdenMixta(partes)).toBe(true);
+
+	const desglose = [
+		{ formaPago: "efectivo", monto: 1200 },
+		{ formaPago: "tarjeta", monto: 300 },
+	];
+	const pagosPorSerie = prorratearPago(partes, 1500);
+
+	const reparto = repartirDesglosePorPartes(
+		desglose,
+		partes.map((parte) => ({ clave: parte.serie, monto: pagosPorSerie[parte.serie] })),
+	);
+
+	// Cada folio queda cubierto por su total...
+	partes.forEach((parte, indice) => {
+		const cobrado = reparto[indice].desglose.reduce((suma, pago) => suma + pago.monto, 0);
+		expect(Number(cobrado.toFixed(2))).toBe(parte.total);
+	});
+
+	// ...y de cada forma de pago no se cobra más de lo que entró.
+	const porForma = reparto
+		.flatMap((parte) => parte.desglose)
+		.reduce((suma, pago) => ({ ...suma, [pago.formaPago]: (suma[pago.formaPago] || 0) + pago.monto }), {});
+	expect(porForma.efectivo).toBe(1200);
+	expect(porForma.tarjeta).toBe(300);
 });

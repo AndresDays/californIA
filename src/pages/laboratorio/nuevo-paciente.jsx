@@ -78,7 +78,7 @@ import {
 	construirDesglosePagos,
 	crearPagoAdicional,
 	describirDesglosePagos,
-	repartirDesglosePorMonto,
+	repartirDesglosePorPartes,
 	resolverDatosTarjetaVenta,
 	resolverFormaPagoVenta,
 	restantePorPagar,
@@ -367,11 +367,11 @@ const NuevoPaciente = () => {
 	);
 	const totalPagado = totalDesglosePagos(desglosePagos);
 	const restantePago = restantePorPagar(granTotal, desglosePagos);
-	// Repartir el cobro entre varias formas sólo aplica a una orden de una sola
-	// serie: la mixta ya se reparte por folio y mezclar los dos repartos daría
-	// un cobro imposible de conciliar.
-	const puedeAgregarFormaPago =
-		!ordenMixta && granTotal > 0 && totalPagado > 0 && restantePago > 0.009;
+	// El paciente paga como paga -parte en efectivo, parte con tarjeta-, tenga su
+	// orden uno o tres folios. Los dos repartos conviven: primero cuánto le toca
+	// a cada folio, y dentro de cada folio qué parte de cada forma de pago lo
+	// cubre, consumiendo el cobro para que ninguna forma se cobre dos veces.
+	const puedeAgregarFormaPago = granTotal > 0 && totalPagado > 0 && restantePago > 0.009;
 
 	const actualizarPagoAdicional = (indice, cambios) =>
 		setPagosAdicionales(
@@ -430,9 +430,12 @@ const NuevoPaciente = () => {
 			return;
 		}
 		setPagosPorSerie(
-			prorratearPago(partesOrden, calcularPagoAplicadoVenta(granTotal, normalizarPagoRecibido(pagoRecibido))),
+			prorratearPago(partesOrden, calcularPagoAplicadoVenta(granTotal, totalPagado)),
 		);
-	}, [ordenMixta, granTotal, pagoRecibido, estudiosSeleccionados, descuentoPercent]);
+		// `totalPagado` incluye las formas de pago extra: si sólo se mirara el pago
+		// principal, al agregar la tarjeta los folios seguirían prorrateados contra
+		// el efectivo y el cobro quedaría corto.
+	}, [ordenMixta, granTotal, totalPagado, estudiosSeleccionados, descuentoPercent]);
 
 	useEffect(() => {
 		sessionStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ clienteSeleccionado, empresaSeleccionada, tipoEstudioSeleccionado, estudiosSeleccionados }));
@@ -723,6 +726,22 @@ const NuevoPaciente = () => {
 						{},
 					)
 				: { [partesOrden[0].serie]: pagoAplicado };
+			// Qué parte de cada forma de pago cubre cada folio. Se calcula de una vez
+			// para toda la orden porque el reparto consume el cobro: lo que se llevó
+			// un folio ya no lo puede volver a cobrar el siguiente.
+			const desglosePorParte = Object.fromEntries(
+				repartirDesglosePorPartes(
+					desglosePagos,
+					partesOrden.map((parte) => ({
+						clave: parte.serie,
+						monto: Math.min(
+							normalizarPagoRecibido(pagosPorParte[parte.serie]),
+							parte.total,
+						),
+					})),
+				).map(({ clave, desglose }) => [clave, desglose]),
+			);
+
 			const folioGrupo = ordenMixta
 				? `G${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 6).toUpperCase()}`
 				: null;
@@ -750,7 +769,7 @@ const NuevoPaciente = () => {
 				const cambioParte = parte.serie === partesOrden[0].serie ? cambioVenta : 0;
 				// Con varias formas de pago, a cada folio le toca el pedazo del
 				// cobro que alcanza a cubrir su importe.
-				const desgloseParte = repartirDesglosePorMonto(desglosePagos, pagoParte);
+				const desgloseParte = desglosePorParte[parte.serie] || [];
 
 				const ventaPayload = agregarSucursalEmpleadoPayload(
 					{
@@ -1059,7 +1078,7 @@ const NuevoPaciente = () => {
 					?.nombre || empresaActual.nombre;
 
 			const ticketsOrden = ventasRegistradas.map((registro) => {
-				const desgloseTicket = repartirDesglosePorMonto(desglosePagos, registro.pago);
+				const desgloseTicket = desglosePorParte[registro.parte.serie] || [];
 				return {
 				tipo:
 					registro.parte.serie === SERIE_LABORATORIO

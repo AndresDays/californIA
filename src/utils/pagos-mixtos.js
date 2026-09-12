@@ -51,6 +51,11 @@ export const construirDesglosePagos = (pagoPrincipal = {}, pagosAdicionales = []
 		}))
 		.filter((pago) => pago.monto > 0);
 
+// Los centavos del reparto se cierran a dos decimales: con tres formas de pago
+// los residuos binarios dejaban diferencias de un centavo entre lo cobrado y la
+// suma de los tickets.
+const redondear = (valor) => Math.round(numero(valor) * 100) / 100;
+
 export const totalDesglosePagos = (desglose = []) =>
 	desglose.reduce((suma, pago) => suma + numero(pago.monto), 0);
 
@@ -135,6 +140,31 @@ export const leerDesglosePagos = (valor) => {
 // Reparte un cobro entre varias formas cuando la venta se divide en partes
 // (una orden que factura por dos series): se va llenando en orden hasta agotar
 // el importe que le toca a la parte.
+// Reparte el cobro entre los folios de una orden mixta consumiendo el desglose:
+// lo que se lleva un folio de cada forma de pago ya no está disponible para el
+// siguiente. Repartir folio por folio con `repartirDesglosePorMonto` los hacía
+// arrancar a todos desde el desglose completo, y con dos formas de pago la
+// suma de los tickets cobraba de una misma forma más de lo que entró.
+export const repartirDesglosePorPartes = (desglose = [], montosPorParte = []) => {
+	const disponibles = (desglose || []).map((pago) => ({ ...pago, monto: numero(pago.monto) }));
+
+	return (montosPorParte || []).map(({ clave, monto }) => {
+		let restante = numero(monto);
+		const repartido = [];
+
+		for (const pago of disponibles) {
+			if (restante <= 0) break;
+			if (pago.monto <= 0) continue;
+			const tomado = Math.min(pago.monto, restante);
+			repartido.push({ ...pago, monto: redondear(tomado) });
+			pago.monto = redondear(pago.monto - tomado);
+			restante = redondear(restante - tomado);
+		}
+
+		return { clave, desglose: repartido };
+	});
+};
+
 export const repartirDesglosePorMonto = (desglose = [], montoParte = 0) => {
 	let restante = numero(montoParte);
 	const repartido = [];
