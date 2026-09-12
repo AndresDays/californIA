@@ -169,3 +169,54 @@ test("una orden mixta pagada con efectivo y tarjeta cuadra folio por folio", () 
 	expect(porForma.efectivo).toBe(1200);
 	expect(porForma.tarjeta).toBe(300);
 });
+
+// El renglón guarda el cliente con el que se cotizó y el cliente elegido puede
+// cambiar a media captura: la serie tiene que salir del convenio de cada
+// renglón, no del que quedó seleccionado al final.
+test("cada estudio se factura por el convenio con el que se cotizo", () => {
+	const reglasIMSS = [{ modalidad: "tomografia", criterio: "", empresa: "CDC" }];
+	const tacDeImss = estudio({
+		clave: "TAC-ABDOMEN",
+		modalidad: "tomografia",
+		empresa_operativa: "CDI",
+		cliente: "IMSS",
+		precio: 2350,
+	});
+	const laboratorioParticular = estudio({
+		clave: "BHC",
+		modulo: "laboratorio",
+		modalidad: "laboratorio",
+		cliente: "Particular",
+		precio: 165,
+	});
+
+	const partes = dividirOrdenPorSerie({
+		estudios: [tacDeImss, laboratorioParticular],
+		// Particular no tiene reglas; IMSS sí. Se resuelven por renglón.
+		reglasConvenio: (est) => (est.cliente === "IMSS" ? reglasIMSS : []),
+	});
+
+	expect(partes.map((parte) => [parte.serie, parte.total])).toEqual([
+		["B", 2350],
+		["C", 165],
+	]);
+});
+
+// Con la lista del cliente elegido -y no la del renglón- la tomografía de IMSS
+// caía a la empresa del catálogo, o sea serie A.
+test("sin las reglas del renglon la tomografia de IMSS se iria a la serie A", () => {
+	const partes = dividirOrdenPorSerie({
+		estudios: [
+			estudio({
+				clave: "TAC-ABDOMEN",
+				modalidad: "tomografia",
+				empresa_operativa: "CDI",
+				cliente: "IMSS",
+				precio: 2350,
+			}),
+		],
+		reglasConvenio: [],
+	});
+
+	expect(partes[0].serie).toBe("A");
+});
