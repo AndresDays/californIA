@@ -13,8 +13,13 @@
 -- convenios nuevos.
 --
 --   California (CDC): IMSS (tomografía, resonancia y ultrasonido doppler),
---   Odile/Anamaya (toda su imagen), y la resonancia de Medisim y SSA.
+--   CENTRO MEDICO ANAMAYA -el convenio de Odile- en toda su imagen, y la
+--   resonancia de Medisim y SSA.
 --   Imagen (CDI): ISSSTE, Medisim y SSA en el resto de su imagen.
+--
+-- Los dos convenios que importan hoy están dados de alta como "IMSS" y
+-- "CENTRO MEDICO ANAMAYA": el primero entra por nombre exacto y el segundo
+-- porque ANAMAYA aparece como palabra completa.
 --
 -- La resonancia de particular no necesita regla: la factura CDC porque así está
 -- en el catálogo de estudios, que es de donde sale la empresa cuando el cliente
@@ -47,8 +52,10 @@ join (
 		('IMSS', 'tomografia', '', 'CDC'),
 		('IMSS', 'resonancia', '', 'CDC'),
 		('IMSS', 'ultrasonido', 'doppler', 'CDC'),
-		('ODILE', '*', '', 'CDC'),
+		-- El convenio de Odile está dado de alta como CENTRO MEDICO ANAMAYA;
+		-- "ODILE" se deja como alias por si alguna sucursal lo capturó así.
 		('ANAMAYA', '*', '', 'CDC'),
+		('ODILE', '*', '', 'CDC'),
 		('ISSSTE', '*', '', 'CDI'),
 		('MEDISIM', '*', '', 'CDI'),
 		('MEDISIM', 'resonancia', '', 'CDC'),
