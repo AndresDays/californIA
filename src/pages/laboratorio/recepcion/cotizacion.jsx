@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import empresaIcono from "../../../assets/empresaIcono.png";
 import enviarEmailBtn from "../../../assets/enviarEmailBtn.png";
 import enviarWppBtn from "../../../assets/enviarWppBtn.png";
+import {
+	compartirArchivo,
+	crearArchivoPdf,
+	descargarArchivo,
+} from "../../../utils/compartir-archivo";
 import guardarBtn from "../../../assets/guardarBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import ModalNotificacion from "../../../components/ModalNotificacion";
@@ -15,7 +20,7 @@ import {
 } from "../../../hooks/use-campo-persistente";
 import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
 import ModalDetalleEstudio from "../componentes/modal-detalle-estudio";
-import { generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
+import { crearNombreArchivoCotizacion, generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
 	construirEstudioCatalogoUnificado,
@@ -330,8 +335,8 @@ const Cotizacion = () => {
 		return `COT-${dia}${mes}${anio}${String((count || 0) + 1).padStart(4, "0")}`;
 	};
 
-	const abrirPDFCotizacion = async (cotizacion) => {
-		const datosTicket = {
+	const datosTicketCotizacion = (cotizacion) => {
+		return {
 			numeroCotizacion: cotizacion.numero_cotizacion,
 			fecha: new Date(cotizacion.fecha_cotizacion).toLocaleDateString("es-MX", {
 				day: "2-digit",
@@ -348,8 +353,10 @@ const Cotizacion = () => {
 			total: parseFloat(cotizacion.total),
 			descuentoPercent: parseFloat(cotizacion.descuento_porcentaje || 0),
 		};
-		await generarPDFCotizacion(datosTicket);
 	};
+
+	const abrirPDFCotizacion = async (cotizacion) =>
+		generarPDFCotizacion(datosTicketCotizacion(cotizacion));
 
 	// Guarda la cotización actual y devuelve el registro creado (o null si falla).
 	const guardarCotizacion = async ({ abrirPDF = true } = {}) => {
@@ -454,32 +461,68 @@ const Cotizacion = () => {
 			`Cotización ${cotizacion.numero_cotizacion}`,
 		)}&body=${encodeURIComponent(construirMensajeCotizacion(cotizacion))}`;
 
-	const handleEnviarWhatsAppCotizacion = (cotizacion) => {
-		window.open(enlaceWhatsAppCotizacion(cotizacion), "_blank");
+	// Lo que se manda es el ticket, no un resumen escrito: se arma el PDF y se
+	// entrega por el menú de compartir del sistema, que es lo único que acepta
+	// adjuntos. `wa.me` y `mailto:` sólo llevan texto.
+	const enviarCotizacion = async (cotizacion, canal, ventana = null) => {
+		const nombreArchivo = crearNombreArchivoCotizacion(cotizacion.numero_cotizacion);
+		const texto = construirMensajeCotizacion(cotizacion);
+
+		try {
+			const pdf = await generarPDFCotizacion(datosTicketCotizacion(cotizacion), {
+				salida: "blob",
+			});
+			const archivo = crearArchivoPdf(pdf, nombreArchivo);
+
+			if (
+				await compartirArchivo({
+					archivo,
+					titulo: `Cotización ${cotizacion.numero_cotizacion}`,
+					texto,
+				})
+			) {
+				ventana?.close();
+				return;
+			}
+
+			// Sin menú de compartir el adjunto no se puede poner solo: el ticket se
+			// descarga y se abre la conversación con el mensaje, para adjuntarlo.
+			descargarArchivo(pdf, nombreArchivo);
+			mostrarNotificacion(
+				`Se descargó "${nombreArchivo}": adjúntalo en el mensaje que se abrió.`,
+				"advertencia",
+			);
+		} catch (error) {
+			console.error("No se pudo preparar el PDF de la cotización:", error);
+			mostrarNotificacion("No se pudo generar el PDF de la cotización", "error");
+		}
+
+		const url =
+			canal === "whatsapp"
+				? enlaceWhatsAppCotizacion(cotizacion)
+				: enlaceCorreoCotizacion(cotizacion);
+		if (ventana) ventana.location.href = url;
+		else window.open(url, "_blank");
 	};
 
-	const handleEnviarCorreoCotizacion = (cotizacion) => {
-		window.open(enlaceCorreoCotizacion(cotizacion), "_blank");
-	};
+	const handleEnviarWhatsAppCotizacion = (cotizacion) =>
+		enviarCotizacion(cotizacion, "whatsapp");
 
-	// Guarda la cotización en segundo plano y abre WhatsApp / correo con el mensaje.
+	const handleEnviarCorreoCotizacion = (cotizacion) =>
+		enviarCotizacion(cotizacion, "correo");
+
+	// Guarda la cotización en segundo plano y manda su ticket por WhatsApp o
+	// correo.
 	const guardarYEnviar = async (canal) => {
-		// La ventana se abre antes del await para que el navegador no la bloquee.
+		// La ventana se abre antes del await para que el navegador no la bloquee;
+		// si el ticket sale por el menú de compartir, se cierra sin usarse.
 		const ventana = window.open("", "_blank");
 		const cotizacion = await guardarCotizacion({ abrirPDF: false });
 		if (!cotizacion) {
 			ventana?.close();
 			return;
 		}
-		const url =
-			canal === "whatsapp"
-				? enlaceWhatsAppCotizacion(cotizacion)
-				: enlaceCorreoCotizacion(cotizacion);
-		if (ventana) {
-			ventana.location.href = url;
-		} else {
-			window.open(url, "_blank");
-		}
+		await enviarCotizacion(cotizacion, canal, ventana);
 	};
 
 	const empresaActual = empresas.find(

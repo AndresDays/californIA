@@ -45,7 +45,15 @@ const convertToGrayscale = (imageBase64) => {
 	});
 };
 
-export const generarPDFCotizacion = async (datosTicket) => {
+// El nombre con el que llega el archivo a quien lo recibe: "Cotizacion
+// C-00123.pdf" dice qué es sin abrirlo.
+export const crearNombreArchivoCotizacion = (numeroCotizacion = "") =>
+	`Cotizacion ${String(numeroCotizacion || "").trim() || "sin folio"}.pdf`.replace(/[\\/:*?"<>|]/g, "-");
+
+// `salida` decide qué hacer con el ticket ya armado: "abrir" lo muestra en otra
+// pestaña, que es lo de siempre, y "blob" lo devuelve para mandarlo por
+// WhatsApp o por correo como archivo adjunto.
+export const generarPDFCotizacion = async (datosTicket, { salida = "abrir" } = {}) => {
 	const {
 		numeroCotizacion,
 		fecha,
@@ -172,6 +180,9 @@ export const generarPDFCotizacion = async (datosTicket) => {
 	});
 
 	const pdfBlob = pdf.output('blob');
+	if (salida === 'blob') return pdfBlob;
+
 	const pdfUrl = URL.createObjectURL(pdfBlob);
 	window.open(pdfUrl, '_blank');
+	return pdfBlob;
 };
