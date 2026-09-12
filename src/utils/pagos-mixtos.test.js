@@ -3,6 +3,7 @@ import {
 	describirDesglosePagos,
 	leerDesglosePagos,
 	repartirDesglosePorMonto,
+	repartirDesglosePorPartes,
 	resolverDatosTarjetaVenta,
 	resolverFormaPagoVenta,
 	restantePorPagar,
@@ -131,5 +132,99 @@ describe("repartirDesglosePorMonto", () => {
 			expect.objectContaining({ formaPago: "efectivo", monto: 20 }),
 		]);
 		expect(repartirDesglosePorMonto(desglose, 0)).toEqual([]);
+	});
+});
+
+// Una orden mixta se parte en varios folios y el paciente paga con varias
+// formas: cada folio se lleva el pedazo de cada forma que alcanza a cubrirlo, y
+// lo que ya se llevó no lo puede volver a cobrar el siguiente.
+describe("repartirDesglosePorPartes", () => {
+	const desglose = [
+		{ formaPago: "efectivo", monto: 1200 },
+		{ formaPago: "tarjeta", monto: 300 },
+	];
+
+	test("el cobro se consume: ninguna forma se cobra dos veces", () => {
+		const reparto = repartirDesglosePorPartes(desglose, [
+			{ clave: "C", monto: 1000 },
+			{ clave: "A", monto: 500 },
+		]);
+
+		expect(reparto[0].desglose).toEqual([{ formaPago: "efectivo", monto: 1000 }]);
+		// Al segundo folio ya sólo le quedan 200 de efectivo: el resto va con
+		// tarjeta.
+		expect(reparto[1].desglose).toEqual([
+			{ formaPago: "efectivo", monto: 200 },
+			{ formaPago: "tarjeta", monto: 300 },
+		]);
+	});
+
+	test("lo repartido por forma de pago nunca excede lo que entro", () => {
+		const reparto = repartirDesglosePorPartes(desglose, [
+			{ clave: "C", monto: 900 },
+			{ clave: "B", monto: 400 },
+			{ clave: "A", monto: 200 },
+		]);
+
+		const porForma = reparto
+			.flatMap((parte) => parte.desglose)
+			.reduce((suma, pago) => ({ ...suma, [pago.formaPago]: (suma[pago.formaPago] || 0) + pago.monto }), {});
+
+		expect(porForma.efectivo).toBeLessThanOrEqual(1200);
+		expect(porForma.tarjeta).toBeLessThanOrEqual(300);
+		expect(porForma.efectivo + porForma.tarjeta).toBe(1500);
+	});
+
+	test("cada folio recibe exactamente lo que le toca", () => {
+		const reparto = repartirDesglosePorPartes(desglose, [
+			{ clave: "C", monto: 1000 },
+			{ clave: "A", monto: 500 },
+		]);
+
+		expect(reparto.map(({ clave, desglose: partes }) => [
+			clave,
+			partes.reduce((suma, pago) => suma + pago.monto, 0),
+		])).toEqual([
+			["C", 1000],
+			["A", 500],
+		]);
+	});
+
+	// Con tres formas de pago los residuos binarios dejaban diferencias de un
+	// centavo entre lo cobrado y la suma de los tickets.
+	test("los centavos cuadran con importes partidos", () => {
+		const reparto = repartirDesglosePorPartes(
+			[
+				{ formaPago: "efectivo", monto: 33.33 },
+				{ formaPago: "tarjeta", monto: 33.33 },
+				{ formaPago: "transferencia", monto: 33.34 },
+			],
+			[
+				{ clave: "C", monto: 50 },
+				{ clave: "A", monto: 50 },
+			],
+		);
+
+		const total = reparto
+			.flatMap((parte) => parte.desglose)
+			.reduce((suma, pago) => suma + pago.monto, 0);
+
+		expect(Number(total.toFixed(2))).toBe(100);
+	});
+
+	test("un folio que no recibe cobro se queda sin desglose", () => {
+		const reparto = repartirDesglosePorPartes(desglose, [
+			{ clave: "C", monto: 1500 },
+			{ clave: "A", monto: 0 },
+		]);
+
+		expect(reparto[1].desglose).toEqual([]);
+	});
+
+	test("sin cobro capturado no reparte nada", () => {
+		expect(repartirDesglosePorPartes([], [{ clave: "C", monto: 500 }])).toEqual([
+			{ clave: "C", desglose: [] },
+		]);
+		expect(repartirDesglosePorPartes(desglose, [])).toEqual([]);
 	});
 });
