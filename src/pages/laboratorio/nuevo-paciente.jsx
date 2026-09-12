@@ -43,6 +43,7 @@ import {
 import { consultarClientesSeleccionables } from "../../utils/clientes-seleccionables";
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
+import { normalizarNombre } from "../../utils/catalogo-por-nombre";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
 import { resolverPrecioEstudioCliente } from "../../utils/precio-estudio-cliente";
 import {
@@ -262,6 +263,11 @@ const NuevoPaciente = () => {
 	const [preciosCliente, setPreciosCliente] = useState(null);
 	const [reglasConvenio, setReglasConvenio] = useState([]);
 	const [pagosPorSerie, setPagosPorSerie] = useCampoPersistente(`${BORRADOR}pagosPorSerie`, {});
+	// Un renglón guarda el cliente con el que se cotizó, y el cliente elegido
+	// puede cambiar a media captura. La serie del folio tiene que salir del
+	// convenio de cada renglón, así que se guardan las reglas de todos los
+	// clientes que aparezcan en la orden, no sólo las del seleccionado.
+	const [reglasPorCliente, setReglasPorCliente] = useState({});
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
@@ -346,13 +352,17 @@ const NuevoPaciente = () => {
 		() =>
 			dividirOrdenPorSerie({
 				estudios: estudiosSeleccionados,
-				reglasConvenio,
+				// Cada renglón con las reglas de su propio convenio: una tomografía
+				// cotizada con IMSS factura por California aunque después se haya
+				// cambiado el cliente de la orden.
+				reglasConvenio: (estudio) =>
+					reglasPorCliente[normalizarNombre(estudio?.cliente)] ?? reglasConvenio,
 				descuentoPercent,
 				// Ixtapa y Mascota llevan su propia serie corrida: la orden entera
 				// sale con un folio de la sucursal, no partida por empresa.
 				sucursal: empleadoData,
 			}),
-		[estudiosSeleccionados, reglasConvenio, descuentoPercent, empleadoData],
+		[estudiosSeleccionados, reglasConvenio, reglasPorCliente, descuentoPercent, empleadoData],
 	);
 	const ordenMixta = esOrdenMixta(partesOrden);
 
@@ -487,6 +497,40 @@ const NuevoPaciente = () => {
 			cancelado = true;
 		};
 	}, [clienteSeleccionado, clientes]);
+
+	useEffect(() => {
+		let cancelado = false;
+		const nombresEnLaOrden = [
+			...new Set(
+				estudiosSeleccionados
+					.map((estudio) => String(estudio?.cliente || "").trim())
+					.filter((nombre) => nombre && nombre !== "Sin cliente"),
+			),
+		];
+		const faltantes = nombresEnLaOrden.filter(
+			(nombre) => !(normalizarNombre(nombre) in reglasPorCliente),
+		);
+		if (faltantes.length === 0) return undefined;
+
+		Promise.all(
+			faltantes.map(async (nombre) => {
+				const cliente = clientes.find(
+					(cli) => normalizarNombre(cli.nombre) === normalizarNombre(nombre),
+				);
+				// Sin cliente en el catálogo -particular- no hay reglas que pedir: la
+				// empresa sale del catálogo del estudio, que es lo correcto.
+				const reglas = cliente ? await cargarReglasConvenio(supabase, cliente.id_cliente) : [];
+				return [normalizarNombre(nombre), reglas];
+			}),
+		).then((entradas) => {
+			if (cancelado) return;
+			setReglasPorCliente((previas) => ({ ...previas, ...Object.fromEntries(entradas) }));
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [estudiosSeleccionados, clientes, reglasPorCliente]);
 
 	// Los tipos dependen de la empresa y del convenio del paciente: al cambiar
 	// cualquiera de los dos se vuelven a resolver.

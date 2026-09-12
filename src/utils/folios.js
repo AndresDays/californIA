@@ -99,9 +99,20 @@ const cumpleCriterio = (regla = {}, estudio = {}) => {
 // los dos: Medisim y SSA mandan su resonancia a CDC y el resto de su imagen a
 // CDI, e IMSS sólo lleva ultrasonido cuando es doppler. Esa matriz se configura
 // por convenio en la base, no en el código.
+// Las reglas pueden venir como la lista del convenio seleccionado o como una
+// función que las resuelve por estudio. Lo segundo es lo que necesita una orden
+// con renglones de distintos clientes: cada uno se cotizó con su convenio y
+// tiene que facturarse por la empresa de ese convenio, no por la del cliente
+// que quedó elegido al final.
+export const reglasParaEstudio = (reglasConvenio, estudio = {}) => {
+	const reglas =
+		typeof reglasConvenio === "function" ? reglasConvenio(estudio) : reglasConvenio;
+	return Array.isArray(reglas) ? reglas : [];
+};
+
 export const reglaConvenioParaEstudio = (estudio = {}, reglasConvenio = []) => {
 	const modalidad = String(estudio?.modalidad || "").toLowerCase();
-	const reglas = Array.isArray(reglasConvenio) ? reglasConvenio : [];
+	const reglas = reglasParaEstudio(reglasConvenio, estudio);
 
 	const aplicables = reglas.filter((regla) => {
 		const modalidadRegla = String(regla?.modalidad || "").toLowerCase();
@@ -141,7 +152,7 @@ export const resolverEmpresaFacturaEstudio = (estudio = {}, reglasConvenio = [])
 // acota aquí porque lo delimita el tarifario del cliente.
 export const convenioCubreEstudio = (estudio = {}, reglasConvenio = []) => {
 	if (esEstudioDeLaboratorio(estudio)) return true;
-	const reglas = Array.isArray(reglasConvenio) ? reglasConvenio : [];
+	const reglas = reglasParaEstudio(reglasConvenio, estudio);
 	if (reglas.length === 0) return true;
 	return Boolean(reglaConvenioParaEstudio(estudio, reglas));
 };

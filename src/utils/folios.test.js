@@ -9,6 +9,7 @@ import {
 	normalizarFolioConsulta,
 	resolverEmpresaFacturaEstudio,
 	resolverSerieFolio,
+	reglasParaEstudio,
 	separarFolio,
 	serieFolioDeSucursal,
 } from "./folios";
@@ -293,5 +294,31 @@ describe("series de las sucursales foraneas", () => {
 	test("el folio de la sucursal se arma y se lee como los demas", () => {
 		expect(construirFolio("D", 1)).toBe("D0001");
 		expect(separarFolio("E0012")).toMatchObject({ serie: "E", empresa: "CDC", consecutivo: 12 });
+	});
+});
+
+// Las reglas pueden venir como lista o resolverse por estudio: lo segundo es lo
+// que necesita una orden con renglones de distintos convenios.
+describe("reglas resueltas por estudio", () => {
+	const tac = { modulo: "imagen", modalidad: "tomografia", empresa_operativa: "CDI", cliente: "IMSS" };
+	const reglasIMSS = [{ modalidad: "tomografia", criterio: "", empresa: "CDC" }];
+
+	test("una funcion decide las reglas de cada estudio", () => {
+		const porCliente = (estudio) => (estudio.cliente === "IMSS" ? reglasIMSS : []);
+
+		expect(reglasParaEstudio(porCliente, tac)).toEqual(reglasIMSS);
+		expect(reglasParaEstudio(porCliente, { ...tac, cliente: "Particular" })).toEqual([]);
+		expect(resolverSerieFolio(tac, porCliente)).toBe("B");
+		expect(resolverSerieFolio({ ...tac, cliente: "Particular" }, porCliente)).toBe("A");
+	});
+
+	test("una lista sigue aplicando a todos los estudios", () => {
+		expect(reglasParaEstudio(reglasIMSS, tac)).toEqual(reglasIMSS);
+		expect(resolverSerieFolio(tac, reglasIMSS)).toBe("B");
+	});
+
+	test("lo que no es lista ni funcion no rompe la resolucion", () => {
+		expect(reglasParaEstudio(null, tac)).toEqual([]);
+		expect(reglasParaEstudio(() => null, tac)).toEqual([]);
 	});
 });
