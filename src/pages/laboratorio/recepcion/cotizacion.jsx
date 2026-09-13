@@ -21,6 +21,7 @@ import {
 import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
 import ModalDetalleEstudio from "../componentes/modal-detalle-estudio";
 import { crearNombreArchivoCotizacion, generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
+import { sumarPreciosFinales } from "../../../utils/precio-final";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
 	construirEstudioCatalogoUnificado,
@@ -295,14 +296,18 @@ const Cotizacion = () => {
 	const eliminarEstudio = (id) =>
 		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.id !== id));
 
+	// La cotización cobra como la orden: a pesos cerrados, renglón por renglón,
+	// para que lo cotizado sea exactamente lo que se le va a cobrar.
 	const calcularTotales = () => {
-		const subtotal = estudiosSeleccionados.reduce(
-			(sum, est) => sum + (parseFloat(est.precio) || 0),
-			0,
-		);
+		const importes = estudiosSeleccionados.map((est) => parseFloat(est.precio) || 0);
+		const subtotal = sumarPreciosFinales(importes);
 		setTotal(subtotal);
-		if (descuentoPorcentaje > 0)
-			setDescuento(subtotal * (descuentoPorcentaje / 100));
+		if (descuentoPorcentaje > 0) {
+			const conDescuento = sumarPreciosFinales(
+				importes.map((importe) => importe - importe * (descuentoPorcentaje / 100)),
+			);
+			setDescuento(subtotal - conDescuento);
+		}
 	};
 
 	const generarNumeroCotizacion = async () => {
