@@ -23,6 +23,8 @@ export const dividirOrdenPorSerie = ({
 			grupo.estudios,
 			descuentoPercent,
 		);
+		// `calcularTotalesNuevoPaciente` ya cierra los importes a pesos; aquí sólo
+		// se limpian los residuos binarios de la suma.
 		return {
 			...grupo,
 			subtotal: redondear(subtotal),

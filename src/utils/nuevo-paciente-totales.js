@@ -1,3 +1,5 @@
+import { sumarPreciosFinales } from "./precio-final";
+
 // Tope de unidades por renglón: alto para que no estorbe en una orden real, pero
 // finito para que un click repetido por accidente en el "+" no dispare el cobro.
 export const CANTIDAD_MAXIMA_ESTUDIO = 99;
@@ -12,25 +14,33 @@ export const normalizarCantidadEstudio = (cantidad) => {
 	return Math.min(unidades, CANTIDAD_MAXIMA_ESTUDIO);
 };
 
+// Lo que se cobra sale a pesos cerrados, y se cierra renglón por renglón antes
+// de sumar: así el total de la orden es exactamente lo que suman sus renglones
+// y, cuando la orden se parte en folios, la suma de los folios es el total.
+// Redondear sólo al final dejaría descuadres de un peso entre lo que muestra la
+// tabla y lo que se cobra.
 export const calcularTotalesNuevoPaciente = (
 	estudios = [],
 	descuentoPercent = 0,
 ) => {
-	const subtotal = estudios.reduce(
-		(suma, estudio) =>
-			suma +
+	const importes = estudios.map(
+		(estudio) =>
 			(Number(estudio.precio) || 0) * normalizarCantidadEstudio(estudio.cantidad),
-		0,
 	);
-	const descuento = subtotal * ((Number(descuentoPercent) || 0) / 100);
 
-	return { subtotal, descuento, total: subtotal - descuento };
+	const subtotal = sumarPreciosFinales(importes);
+	const total = sumarPreciosFinales(
+		importes.map((importe) => aplicarDescuentoPorcentaje(importe, descuentoPercent)),
+	);
+
+	// El descuento es la diferencia y no el porcentaje calculado aparte: así los
+	// tres números de la pantalla cuadran entre sí.
+	return { subtotal, descuento: subtotal - total, total };
 };
 
-// Lo que le queda a un renglón con el descuento de la orden aplicado. Es para
-// que la tabla muestre el precio que se va a cobrar; el total de la orden se
-// sigue calculando sobre el subtotal, así que la suma de los renglones puede
-// diferir en centavos por el redondeo de cada uno.
+// Lo que le queda a un renglón con el descuento de la orden aplicado, sin
+// cerrar a pesos: el cierre lo hace quien lo va a cobrar o a mostrar, para que
+// una sola regla decida los centavos.
 export const aplicarDescuentoPorcentaje = (importe, descuentoPercent = 0) => {
 	const monto = Number(importe) || 0;
 	const porcentaje = Number(descuentoPercent) || 0;

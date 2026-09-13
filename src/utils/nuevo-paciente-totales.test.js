@@ -83,3 +83,36 @@ describe("aplicarDescuentoPorcentaje", () => {
 		expect(aplicarDescuentoPorcentaje(undefined, 10)).toBe(0);
 	});
 });
+
+// Lo que se cobra sale a pesos cerrados: de 1 a 60 centavos baja y de 61 a 99
+// sube, renglón por renglón.
+describe("el cobro se cierra a pesos", () => {
+	test("un renglon con centavos se cobra cerrado", () => {
+		expect(calcularTotalesNuevoPaciente([{ precio: 100.6, cantidad: 1 }])).toEqual({
+			subtotal: 100,
+			descuento: 0,
+			total: 100,
+		});
+		expect(calcularTotalesNuevoPaciente([{ precio: 100.61, cantidad: 1 }])).toEqual({
+			subtotal: 101,
+			descuento: 0,
+			total: 101,
+		});
+	});
+
+	test("el descuento es la diferencia, asi los tres numeros cuadran", () => {
+		const { subtotal, descuento, total } = calcularTotalesNuevoPaciente(
+			[{ precio: 165, cantidad: 1 }, { precio: 2350, cantidad: 1 }],
+			10,
+		);
+
+		expect(subtotal).toBe(2515);
+		// 148.50 baja a 148 y 2115 se queda: 2263.
+		expect(total).toBe(2263);
+		expect(descuento).toBe(subtotal - total);
+	});
+
+	test("la cantidad multiplica antes de cerrar el renglon", () => {
+		expect(calcularTotalesNuevoPaciente([{ precio: 33.4, cantidad: 3 }]).total).toBe(100);
+	});
+});
