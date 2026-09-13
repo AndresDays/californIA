@@ -6,6 +6,7 @@ import {
 	validarPagosPorSerie,
 } from "./orden-por-serie";
 import { repartirDesglosePorPartes } from "./pagos-mixtos";
+import { calcularTotalesNuevoPaciente } from "./nuevo-paciente-totales";
 
 const estudio = (extra) => ({ cantidad: 1, modulo: "imagen", ...extra });
 const usg = estudio({ clave: "US-RENAL", modalidad: "ultrasonido", empresa_operativa: "CDI", precio: 700 });
@@ -219,4 +220,22 @@ test("sin las reglas del renglon la tomografia de IMSS se iria a la serie A", ()
 	});
 
 	expect(partes[0].serie).toBe("A");
+});
+
+// El total de la orden es la suma de sus folios: si cada folio se cerrara por
+// su cuenta contra un total cerrado aparte, sobraría o faltaría un peso.
+test("la suma de los folios es el total de la orden", () => {
+	const estudios = [
+		estudio({ clave: "TAC", modalidad: "tomografia", empresa_operativa: "CDI", precio: 2350.5 }),
+		estudio({ clave: "BHC", modulo: "laboratorio", modalidad: "laboratorio", precio: 165.7 }),
+	];
+
+	const partes = dividirOrdenPorSerie({ estudios, descuentoPercent: 10 });
+	const sumaDeFolios = partes.reduce((suma, parte) => suma + parte.total, 0);
+
+	expect(sumaDeFolios).toBe(
+		calcularTotalesNuevoPaciente(estudios, 10).total,
+	);
+	// Y cada folio sale a pesos cerrados.
+	partes.forEach((parte) => expect(Number.isInteger(parte.total)).toBe(true));
 });

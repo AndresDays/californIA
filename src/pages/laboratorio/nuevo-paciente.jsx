@@ -44,6 +44,7 @@ import { consultarClientesSeleccionables } from "../../utils/clientes-selecciona
 import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { normalizarNombre } from "../../utils/catalogo-por-nombre";
+import { redondearPrecioFinal } from "../../utils/precio-final";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
 import { resolverPrecioEstudioCliente } from "../../utils/precio-estudio-cliente";
 import {
@@ -410,7 +411,11 @@ const NuevoPaciente = () => {
 					estudio,
 					cantidad,
 					importe,
-					importeConDescuento: aplicarDescuentoPorcentaje(importe, descuentoPercent),
+					// Cerrado a pesos, que es como se cobra: el total de la orden es la
+					// suma de estos importes, no el subtotal con el descuento encima.
+					importeConDescuento: redondearPrecioFinal(
+						aplicarDescuentoPorcentaje(importe, descuentoPercent),
+					),
 					precioUnitarioConDescuento: aplicarDescuentoPorcentaje(
 						Number(estudio.precio) || 0,
 						descuentoPercent,
