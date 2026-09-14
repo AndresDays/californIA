@@ -11,6 +11,14 @@ import correoIcono from '../../../assets/correoIcono.png';
 import telefonoIcono from '../../../assets/telefonoIcono.png';
 import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../../../utils/form-validations';
 import {
+  PAISES_LADA,
+  PAIS_POR_DEFECTO,
+  ladaDePais,
+  paisDeLada,
+  separarLada,
+  unirLada,
+} from '../../../utils/telefono-lada';
+import {
   hayBorradorPersistente,
   limpiarBorradorPersistente,
   useCampoPersistente,
@@ -40,19 +48,13 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
   const [cedula, setCedula] = useCampoPersistente(`${BORRADOR}cedula`, '', borrador);
   const [condicionEspecial, setCondicionEspecial] = useCampoPersistente(`${BORRADOR}condicionEspecial`, '', borrador);
   const [email, setEmail] = useCampoPersistente(`${BORRADOR}email`, '', borrador);
-  const [pais, setPais] = useCampoPersistente(`${BORRADOR}pais`, 'México', borrador);
+  const [pais, setPais] = useCampoPersistente(`${BORRADOR}pais`, PAIS_POR_DEFECTO, borrador);
   const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, '', borrador);
 
   const [nivelesMAR, setNivelesMAR] = useState([]);
 
   const isEditMode = !!pacienteEditar;
 
-  const codigosPais = {
-    'México': '+52',
-    'Estados Unidos': '+1',
-    'Canadá': '+1',
-    'Otro': ''
-  };
 
   useEffect(() => {
     if (isOpen && pacienteEditar) {
@@ -65,16 +67,18 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
       setCedula(pacienteEditar.cedula || '');
       setCondicionEspecial(pacienteEditar.condicionEspecial || '');
       setEmail(pacienteEditar.email || '');
-      setPais(pacienteEditar.pais || 'México');
-      
-      // Manejar teléfono al editar
-      let telefonoSinCodigo = pacienteEditar.telefono || '';
-      if (telefonoSinCodigo.startsWith('+52 ')) {
-        telefonoSinCodigo = telefonoSinCodigo.substring(4);
-      } else if (telefonoSinCodigo.startsWith('+1 ')) {
-        telefonoSinCodigo = telefonoSinCodigo.substring(3);
-      }
-      setTelefono(normalizarTelefono10(telefonoSinCodigo));
+      // La lada guardada con el teléfono manda sobre el país del registro: los
+      // pacientes dados de alta desde la orden no traen país y se quedaban en
+      // México aunque su número fuera +1, así que al guardar se les cambiaba
+      // la lada sin querer.
+      const { lada, numero } = separarLada(pacienteEditar.telefono);
+      const paisGuardado = pacienteEditar.pais || '';
+      setPais(
+        lada && ladaDePais(paisGuardado) !== lada
+          ? paisDeLada(lada)
+          : paisGuardado || PAIS_POR_DEFECTO,
+      );
+      setTelefono(numero);
       
       // La fecha viene como YYYY-MM-DD, que es justo lo que espera el control.
       setFechaNacimiento(String(pacienteEditar.fechaNacimiento || '').slice(0, 10));
@@ -161,7 +165,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     setCedula('');
     setCondicionEspecial('');
     setEmail('');
-    setPais('México');
+    setPais(PAIS_POR_DEFECTO);
     setTelefono('');
   };
 
@@ -169,11 +173,7 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
     setTelefono(normalizarTelefono10(e.target.value));
   };
 
-  const obtenerTelefonoCompleto = () => {
-    if (!telefono) return '';
-    const codigo = codigosPais[pais] || '';
-    return codigo ? `${codigo} ${telefono}` : telefono;
-  };
+  const obtenerTelefonoCompleto = () => unirLada(pais, telefono);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -415,17 +415,18 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
               onChange={(e) => setPais(e.target.value)}
               className="modal-select-paciente"
             >
-              <option value="México">México</option>
-              <option value="Estados Unidos">Estados Unidos</option>
-              <option value="Canadá">Canadá</option>
-              <option value="Otro">Otro</option>
+              {PAISES_LADA.map(({ pais: nombrePais, lada }) => (
+                <option key={nombrePais} value={nombrePais}>
+                  {lada ? `${nombrePais} (${lada})` : nombrePais}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="modal-campo-paciente modal-campo-telefono">
             <img src={telefonoIcono} alt="Teléfono" className="modal-icono-campo" />
-            {codigosPais[pais] && (
-              <span className="codigo-pais">{codigosPais[pais]}</span>
+            {ladaDePais(pais) && (
+              <span className="codigo-pais">{ladaDePais(pais)}</span>
             )}
             <input
               type="tel"
