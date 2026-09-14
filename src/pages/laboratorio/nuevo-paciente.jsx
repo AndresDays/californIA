@@ -150,8 +150,8 @@ import {
 	esEmailValido,
 	esTelefono10Digitos,
 	normalizarPorcentaje,
-	normalizarTelefono10,
 } from "../../utils/form-validations";
+import { separarLada } from "../../utils/telefono-lada";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import ModalObservacionDoctor from "../../components/modal-observacion-doctor";
 import {
@@ -232,6 +232,12 @@ const NuevoPaciente = () => {
 	const [edad, setEdad] = useCampoPersistente(`${BORRADOR}edad`, "");
 	const [sexo, setSexo] = useCampoPersistente(`${BORRADOR}sexo`, "");
 	const [telefono, setTelefono] = useCampoPersistente(`${BORRADOR}telefono`, "");
+	// La lada viaja aparte de los diez dígitos: el teléfono se valida y se busca
+	// a diez dígitos, pero el paciente y el ticket tienen que conservar el +1 de
+	// Estados Unidos y Canadá o el +52 de México con el que se dio de alta.
+	const [ladaTelefono, setLadaTelefono] = useCampoPersistente(`${BORRADOR}ladaTelefono`, "");
+	// Lo que se guarda y se imprime: los diez dígitos con su lada, cuando hay.
+	const telefonoConLada = ladaTelefono && telefono ? `${ladaTelefono} ${telefono}` : telefono;
 	const [correo, setCorreo] = useCampoPersistente(`${BORRADOR}correo`, "");
 	const [rfc, setRfc] = useCampoPersistente(`${BORRADOR}rfc`, "");
 
@@ -720,7 +726,7 @@ const NuevoPaciente = () => {
 					.insert([
 						{
 							nombre: nombreCompleto,
-							telefono: telefono,
+							telefono: telefonoConLada,
 							email: correo,
 							sexo: sexo,
 							edad: parseInt(edad) || null,
@@ -1142,7 +1148,7 @@ const NuevoPaciente = () => {
 				cliente: clienteActual?.nombre || "Particular",
 				sucursal: sucursalEmpleado?.sucursal || "",
 				empresa: nombreEmpresaFiscal(registro.parte.empresa),
-				telefono,
+				telefono: telefonoConLada,
 				email: correo,
 				// El ticket imprime "cantidad x descripción" con el precio del
 				// renglón como importe, así que se le manda ya multiplicado para
@@ -1503,7 +1509,9 @@ const NuevoPaciente = () => {
 		if (limpiarOrden) limpiarDatosOrden();
 		setPacienteSeleccionado(paciente);
 		setNombreCompleto(paciente.nombre);
-		setTelefono(normalizarTelefono10(paciente.telefono || ""));
+		const { lada, numero } = separarLada(paciente.telefono);
+		setTelefono(numero);
+		setLadaTelefono(lada);
 		setCorreo(paciente.email || "");
 		// Muchos pacientes están dados de alta con fecha de nacimiento y sin edad:
 		// dejar el campo vacío hacía que el ticket saliera sin edad.
@@ -1836,7 +1844,9 @@ const NuevoPaciente = () => {
 				seleccionarPaciente(cita.pacientes);
 			} else {
 				const nombrePaciente = cita.nombre_paciente || "";
-				const telefonoPaciente = normalizarTelefono10(cita.telefono_paciente || "");
+				const { lada: ladaPaciente, numero: telefonoPaciente } = separarLada(
+					cita.telefono_paciente,
+				);
 				const { data: pacienteExistente } = telefonoPaciente
 					? await supabase
 						.from("pacientes")
@@ -1848,6 +1858,7 @@ const NuevoPaciente = () => {
 				else setPacienteSeleccionado(null);
 				setNombreCompleto(nombrePaciente);
 				setTelefono(telefonoPaciente);
+				setLadaTelefono(ladaPaciente);
 				setBuscarPaciente(nombrePaciente);
 			}
 
@@ -1920,6 +1931,7 @@ const NuevoPaciente = () => {
 		setEdad("");
 		setSexo("");
 		setTelefono("");
+		setLadaTelefono("");
 		setCorreo("");
 		setRfc("");
 		setDoctorSeleccionado(null);
@@ -2021,6 +2033,7 @@ const NuevoPaciente = () => {
 		setBuscarPaciente("");
 		setNombreCompleto("");
 		setTelefono("");
+		setLadaTelefono("");
 		setCorreo("");
 		setEdad("");
 		setSexo("");
@@ -2170,7 +2183,7 @@ const NuevoPaciente = () => {
 									<label>Teléfono</label>
 									<input
 										type="tel"
-										value={telefono}
+										value={telefonoConLada}
 										readOnly
 										tabIndex={-1}
 										className="form-input form-input-solo-lectura"
