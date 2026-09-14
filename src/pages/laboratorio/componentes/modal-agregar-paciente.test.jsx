@@ -203,3 +203,68 @@ describe("ModalAgregarPaciente: nombres y fecha de nacimiento", () => {
 		expect(screen.getByPlaceholderText("Ingresar Segundo Nombre")).toHaveValue("Guadalupe");
 	});
 });
+
+describe("lada del teléfono", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		globalThis.mostrarNotificacion = jest.fn();
+	});
+
+	test("el select cambia la lada entre México, Estados Unidos y Canadá", () => {
+		const onGuardar = jest.fn();
+		abrirModal({ onGuardar });
+		capturarPaciente();
+
+		const selectPais = screen.getByDisplayValue("México (+52)");
+		expect(screen.getByText("+52")).toBeInTheDocument();
+
+		fireEvent.change(selectPais, { target: { value: "Estados Unidos" } });
+		expect(screen.getByText("+1")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByText("Guardar cliente"));
+
+		expect(onGuardar).toHaveBeenCalledWith(
+			expect.objectContaining({ pais: "Estados Unidos", telefono: "+1 3221234567" }),
+			false,
+		);
+	});
+
+	test("Canadá también guarda con +1", () => {
+		const onGuardar = jest.fn();
+		abrirModal({ onGuardar });
+		capturarPaciente();
+
+		fireEvent.change(screen.getByDisplayValue("México (+52)"), { target: { value: "Canadá" } });
+		fireEvent.click(screen.getByText("Guardar cliente"));
+
+		expect(onGuardar).toHaveBeenCalledWith(
+			expect.objectContaining({ pais: "Canadá", telefono: "+1 3221234567" }),
+			false,
+		);
+	});
+
+	test("al editar, la lada guardada manda sobre el país vacío del registro", () => {
+		abrirModal({
+			pacienteEditar: { id: 9, nombre: "Ana", apellidoPaterno: "Ruiz", telefono: "+1 2135551234" },
+		});
+
+		expect(screen.getByDisplayValue("Estados Unidos (+1)")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Ingresar Teléfono (10 dígitos)")).toHaveValue("2135551234");
+		expect(screen.getByText("+1")).toBeInTheDocument();
+	});
+
+	test("al editar un paciente de México se conserva el +52", () => {
+		abrirModal({
+			pacienteEditar: {
+				id: 4,
+				nombre: "Luis",
+				apellidoPaterno: "Mora",
+				pais: "México",
+				telefono: "+52 3221234567",
+			},
+		});
+
+		expect(screen.getByDisplayValue("México (+52)")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Ingresar Teléfono (10 dígitos)")).toHaveValue("3221234567");
+	});
+});
