@@ -238,6 +238,7 @@ const Cotizacion = () => {
 					`
 				id_cotizacion, numero_cotizacion, nombre_paciente, estudios,
 				total, descuento, descuento_porcentaje, fecha_cotizacion,
+				condiciones_paciente,
 				clientes (nombre)
 			`,
 				)
@@ -357,6 +358,7 @@ const Cotizacion = () => {
 			descuento: parseFloat(cotizacion.descuento || 0),
 			total: parseFloat(cotizacion.total),
 			descuentoPercent: parseFloat(cotizacion.descuento_porcentaje || 0),
+			condiciones: cotizacion.condiciones_paciente || "",
 		};
 	};
 
