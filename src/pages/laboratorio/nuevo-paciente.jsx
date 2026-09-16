@@ -509,6 +509,74 @@ const NuevoPaciente = () => {
 		};
 	}, [clienteSeleccionado, clientes]);
 
+	// Cambiar de cliente cambia el tarifario: los estudios que ya estaban
+	// capturados se quedaban con el precio del cliente anterior y la orden se
+	// cobraba con la lista equivocada. Al cambiar el select se vuelven a cotizar
+	// con el convenio nuevo, igual que si se acabaran de agregar.
+	const estudiosParaRecotizarRef = useRef(estudiosSeleccionados);
+	useEffect(() => {
+		estudiosParaRecotizarRef.current = estudiosSeleccionados;
+	}, [estudiosSeleccionados]);
+
+	// La primera vuelta —y lo que se carga de una cotización o de una cita, que
+	// ya trae su propio precio— sólo deja anotado con qué cliente quedó cotizada
+	// la orden, sin volver a pedir precios.
+	const clienteCotizadoRef = useRef(null);
+	const saltarRecotizacionRef = useRef(true);
+
+	useEffect(() => {
+		const nombreCliente =
+			clientes.find(
+				(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+			)?.nombre || "";
+		// Con el catálogo todavía sin cargar no se sabe a qué cliente corresponde
+		// el id: recotizar aquí dejaría los estudios a precio de particular.
+		if (clienteSeleccionado && !nombreCliente) return undefined;
+
+		if (saltarRecotizacionRef.current || clienteCotizadoRef.current === nombreCliente) {
+			saltarRecotizacionRef.current = false;
+			clienteCotizadoRef.current = nombreCliente;
+			return undefined;
+		}
+		clienteCotizadoRef.current = nombreCliente;
+
+		const estudios = estudiosParaRecotizarRef.current;
+		if (estudios.length === 0) return undefined;
+
+		let cancelado = false;
+		Promise.all(
+			estudios.map(async (estudio) => ({
+				...estudio,
+				precio: await resolverPrecioEstudioCliente(supabase, {
+					clave: estudio?.clave,
+					descripcion: estudio?.descripcion,
+					// Un cliente de porcentaje cobra la lista de particular y el
+					// descuento se aplica encima, igual que al agregar el estudio.
+					cliente: clienteParaPrecios(nombreCliente),
+				}),
+				cliente: nombreCliente || "Sin cliente",
+			})),
+		).then((recotizados) => {
+			if (cancelado) return;
+			const porId = new Map(recotizados.map((estudio) => [estudio.id, estudio]));
+			setEstudiosSeleccionados((actuales) =>
+				actuales.map((estudio) => porId.get(estudio.id) ?? estudio),
+			);
+			const cambioAlgunPrecio = estudios.some(
+				(estudio) => Number(porId.get(estudio.id)?.precio) !== Number(estudio.precio),
+			);
+			if (cambioAlgunPrecio) {
+				globalThis.mostrarNotificacion(
+					`Los precios de los estudios se actualizaron para ${nombreCliente || "particular"}`,
+				);
+			}
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
+
 	useEffect(() => {
 		let cancelado = false;
 		const nombresEnLaOrden = [
@@ -1485,6 +1553,8 @@ const NuevoPaciente = () => {
 		setDoctorSeleccionado(null);
 		setDoctorBusqueda("");
 		setObservaciones("");
+		// Limpiar la orden no es cambiar de convenio: no hay nada que recotizar.
+		saltarRecotizacionRef.current = true;
 		setClienteSeleccionado("");
 		setEmpresaSeleccionada("");
 		setTipoEstudioSeleccionado("");
@@ -1766,6 +1836,7 @@ const NuevoPaciente = () => {
 			setNombreCompleto(cotizacion.nombre_paciente);
 
 			if (cotizacion.id_cliente) {
+				saltarRecotizacionRef.current = true;
 				setClienteSeleccionado(cotizacion.id_cliente.toString());
 			}
 
@@ -1869,6 +1940,8 @@ const NuevoPaciente = () => {
 				: "";
 
 			tipoEstudioPendienteRef.current = tipoEstudioId;
+			// La cita cotiza sus estudios con este mismo cliente más abajo.
+			saltarRecotizacionRef.current = true;
 			setClienteSeleccionado(clienteId);
 			setEmpresaSeleccionada(empresaId);
 			if (!empresaId) setTipoEstudioSeleccionado(tipoEstudioId);
@@ -1937,6 +2010,8 @@ const NuevoPaciente = () => {
 		setDoctorSeleccionado(null);
 		setDoctorBusqueda("");
 		setObservaciones("");
+		// Limpiar la orden no es cambiar de convenio: no hay nada que recotizar.
+		saltarRecotizacionRef.current = true;
 		setClienteSeleccionado("");
 		setEmpresaSeleccionada("");
 		setTipoEstudioSeleccionado("");
