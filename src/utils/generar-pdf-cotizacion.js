@@ -61,7 +61,8 @@ export const generarPDFCotizacion = async (datosTicket, { salida = "abrir" } = {
 		estudios,
 		subtotal,
 		descuento,
-		total
+		total,
+		condiciones
 	} = datosTicket;
 
 	const pdf = new jsPDF({
@@ -169,6 +170,27 @@ export const generarPDFCotizacion = async (datosTicket, { salida = "abrir" } = {
 	pdf.setLineWidth(0.3);
 	pdf.line(5, y, 75, y);
 	y += 6;
+
+	// Las condiciones se capturan para que el paciente llegue preparado (en
+	// ayunas, sin medicamento), así que tienen que ir impresas: si sólo quedan
+	// guardadas en la cotización, quien se lleva el ticket no las ve.
+	const textoCondiciones = String(condiciones ?? '').trim();
+	if (textoCondiciones) {
+		pdf.setFont('helvetica', 'bold');
+		pdf.setFontSize(8);
+		pdf.text('Condiciones del paciente:', 10, y);
+		y += 4.5;
+
+		pdf.setFont('helvetica', 'normal');
+		pdf.splitTextToSize(textoCondiciones, 65).forEach((linea) => {
+			pdf.text(linea, 10, y);
+			y += 4;
+		});
+		y += 2;
+
+		pdf.line(5, y, 75, y);
+		y += 6;
+	}
 
 	pdf.setFont('helvetica', 'italic');
 	pdf.setFontSize(7);
