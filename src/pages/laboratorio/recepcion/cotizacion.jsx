@@ -37,6 +37,7 @@ import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
 } from "../../../utils/precios-cliente";
+import { resolverPrecioEstudioCliente } from "../../../utils/precio-estudio-cliente";
 import "./cotizacion.css";
 
 // El borrador de la cotización vive bajo este prefijo: así se limpia completo
@@ -139,6 +140,66 @@ const Cotizacion = () => {
 			cancelado = true;
 		};
 	}, [clienteSeleccionado, clientes]);
+	// Cambiar de cliente recotiza lo ya capturado: el renglón tiene que mostrar
+	// el precio del convenio elegido, no el del anterior.
+	//
+	// La primera vuelta —y el borrador que se retoma, que ya trae su precio—
+	// sólo deja anotado con qué cliente quedó cotizado, sin volver a pedir
+	// precios.
+	const estudiosParaRecotizarRef = useRef(estudiosSeleccionados);
+	useEffect(() => {
+		estudiosParaRecotizarRef.current = estudiosSeleccionados;
+	}, [estudiosSeleccionados]);
+
+	const clienteCotizadoRef = useRef(null);
+	const saltarRecotizacionRef = useRef(true);
+
+	useEffect(() => {
+		const nombreCliente =
+			clientes.find(
+				(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+			)?.nombre || "";
+		// Con el catálogo de clientes todavía sin cargar no se sabe a qué cliente
+		// corresponde el id: recotizar aquí dejaría todo a precio de particular.
+		if (clienteSeleccionado && !nombreCliente) return undefined;
+
+		if (saltarRecotizacionRef.current || clienteCotizadoRef.current === nombreCliente) {
+			saltarRecotizacionRef.current = false;
+			clienteCotizadoRef.current = nombreCliente;
+			return undefined;
+		}
+		clienteCotizadoRef.current = nombreCliente;
+
+		const estudios = estudiosParaRecotizarRef.current;
+		if (estudios.length === 0) return undefined;
+
+		let cancelado = false;
+		Promise.all(
+			estudios.map(async (estudio) => ({
+				...estudio,
+				precio: await obtenerPrecioEstudio(estudio, nombreCliente),
+			})),
+		).then((recotizados) => {
+			if (cancelado) return;
+			const porId = new Map(recotizados.map((estudio) => [estudio.id, estudio]));
+			setEstudiosSeleccionados((actuales) =>
+				actuales.map((estudio) => porId.get(estudio.id) ?? estudio),
+			);
+			const cambioAlgunPrecio = estudios.some(
+				(estudio) => Number(porId.get(estudio.id)?.precio) !== Number(estudio.precio),
+			);
+			if (cambioAlgunPrecio) {
+				mostrarNotificacion(
+					`Los precios se actualizaron para ${nombreCliente || "particular"}`,
+				);
+			}
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
+
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
@@ -250,23 +311,17 @@ const Cotizacion = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
-		try {
-			// Un cliente de porcentaje cotiza con la lista de particular.
-			const nombreEmpresa = clienteParaPrecios(nombreClienteOrden);
-			if (!nombreEmpresa) return 150;
-			const { data, error } = await supabase
-				.from("precios_estudios")
-				.select("precio")
-				.eq("clave", claveEstudio)
-				.eq("cliente", nombreEmpresa)
-				.single();
-			if (error) return 150;
-			return parseFloat(data.precio);
-		} catch (error) {
-			return 150;
-		}
-	};
+	// El precio pactado se resuelve igual que en la captura de la orden: por
+	// clave o por descripción, y cayendo a la lista de particular cuando el
+	// convenio no tiene pactado ese estudio. Así lo cotizado es lo que se cobra.
+	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) =>
+		resolverPrecioEstudioCliente(supabase, {
+			clave: estudio?.clave,
+			descripcion: estudio?.descripcion,
+			// Un cliente de porcentaje cotiza con la lista de particular: su
+			// descuento se aplica encima, sobre el total.
+			cliente: clienteParaPrecios(nombreClienteOrden),
+		});
 
 	const agregarEstudio = async (estudio) => {
 		if (estudiosSeleccionados.find((e) => e.id === estudio.id)) {
@@ -278,7 +333,7 @@ const Cotizacion = () => {
 				cliente.id_cliente.toString() === clienteSeleccionado.toString(),
 		);
 		const precioEstudio = await obtenerPrecioEstudio(
-			estudio.clave,
+			estudio,
 			clienteObj?.nombre || "",
 		);
 		setEstudiosSeleccionados([
