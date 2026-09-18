@@ -22,6 +22,7 @@ import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
 import ModalDetalleEstudio from "../componentes/modal-detalle-estudio";
 import { crearNombreArchivoCotizacion, generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
 import { sumarPreciosFinales } from "../../../utils/precio-final";
+import { aplicarDescuentoPorcentaje } from "../../../utils/nuevo-paciente-totales";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
 	construirEstudioCatalogoUnificado,
@@ -37,6 +38,7 @@ import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
 } from "../../../utils/precios-cliente";
+import { resolverPrecioEstudioCliente } from "../../../utils/precio-estudio-cliente";
 import "./cotizacion.css";
 
 // El borrador de la cotización vive bajo este prefijo: así se limpia completo
@@ -71,6 +73,16 @@ const Cotizacion = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	// Al guardar, la captura se queda puesta por si falta agregar un estudio o
+	// corregir algo. Esto es lo que quedó guardado, para no duplicar la
+	// cotización si se vuelve a presionar guardar sin cambiar nada.
+	const [cotizacionGuardada, setCotizacionGuardada] = useState(null);
+	// Con qué porcentaje se calculó el descuento la vuelta anterior: es lo que
+	// permite distinguir "el cliente ya no tiene descuento" de "lo capturaron a
+	// mano en pesos".
+	const porcentajePrevioRef = useRef(descuentoPorcentaje);
+	const guardandoRef = useRef(false);
+	const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
 
 	useEffect(() => {
 		cargarCotizaciones();
@@ -139,6 +151,66 @@ const Cotizacion = () => {
 			cancelado = true;
 		};
 	}, [clienteSeleccionado, clientes]);
+	// Cambiar de cliente recotiza lo ya capturado: el renglón tiene que mostrar
+	// el precio del convenio elegido, no el del anterior.
+	//
+	// La primera vuelta —y el borrador que se retoma, que ya trae su precio—
+	// sólo deja anotado con qué cliente quedó cotizado, sin volver a pedir
+	// precios.
+	const estudiosParaRecotizarRef = useRef(estudiosSeleccionados);
+	useEffect(() => {
+		estudiosParaRecotizarRef.current = estudiosSeleccionados;
+	}, [estudiosSeleccionados]);
+
+	const clienteCotizadoRef = useRef(null);
+	const saltarRecotizacionRef = useRef(true);
+
+	useEffect(() => {
+		const nombreCliente =
+			clientes.find(
+				(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+			)?.nombre || "";
+		// Con el catálogo de clientes todavía sin cargar no se sabe a qué cliente
+		// corresponde el id: recotizar aquí dejaría todo a precio de particular.
+		if (clienteSeleccionado && !nombreCliente) return undefined;
+
+		if (saltarRecotizacionRef.current || clienteCotizadoRef.current === nombreCliente) {
+			saltarRecotizacionRef.current = false;
+			clienteCotizadoRef.current = nombreCliente;
+			return undefined;
+		}
+		clienteCotizadoRef.current = nombreCliente;
+
+		const estudios = estudiosParaRecotizarRef.current;
+		if (estudios.length === 0) return undefined;
+
+		let cancelado = false;
+		Promise.all(
+			estudios.map(async (estudio) => ({
+				...estudio,
+				precio: await obtenerPrecioEstudio(estudio, nombreCliente),
+			})),
+		).then((recotizados) => {
+			if (cancelado) return;
+			const porId = new Map(recotizados.map((estudio) => [estudio.id, estudio]));
+			setEstudiosSeleccionados((actuales) =>
+				actuales.map((estudio) => porId.get(estudio.id) ?? estudio),
+			);
+			const cambioAlgunPrecio = estudios.some(
+				(estudio) => Number(porId.get(estudio.id)?.precio) !== Number(estudio.precio),
+			);
+			if (cambioAlgunPrecio) {
+				mostrarNotificacion(
+					`Los precios se actualizaron para ${nombreCliente || "particular"}`,
+				);
+			}
+		});
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
+
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
@@ -250,23 +322,17 @@ const Cotizacion = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreClienteOrden) => {
-		try {
-			// Un cliente de porcentaje cotiza con la lista de particular.
-			const nombreEmpresa = clienteParaPrecios(nombreClienteOrden);
-			if (!nombreEmpresa) return 150;
-			const { data, error } = await supabase
-				.from("precios_estudios")
-				.select("precio")
-				.eq("clave", claveEstudio)
-				.eq("cliente", nombreEmpresa)
-				.single();
-			if (error) return 150;
-			return parseFloat(data.precio);
-		} catch (error) {
-			return 150;
-		}
-	};
+	// El precio pactado se resuelve igual que en la captura de la orden: por
+	// clave o por descripción, y cayendo a la lista de particular cuando el
+	// convenio no tiene pactado ese estudio. Así lo cotizado es lo que se cobra.
+	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) =>
+		resolverPrecioEstudioCliente(supabase, {
+			clave: estudio?.clave,
+			descripcion: estudio?.descripcion,
+			// Un cliente de porcentaje cotiza con la lista de particular: su
+			// descuento se aplica encima, sobre el total.
+			cliente: clienteParaPrecios(nombreClienteOrden),
+		});
 
 	const agregarEstudio = async (estudio) => {
 		if (estudiosSeleccionados.find((e) => e.id === estudio.id)) {
@@ -278,7 +344,7 @@ const Cotizacion = () => {
 				cliente.id_cliente.toString() === clienteSeleccionado.toString(),
 		);
 		const precioEstudio = await obtenerPrecioEstudio(
-			estudio.clave,
+			estudio,
 			clienteObj?.nombre || "",
 		);
 		setEstudiosSeleccionados([
@@ -308,7 +374,14 @@ const Cotizacion = () => {
 				importes.map((importe) => importe - importe * (descuentoPorcentaje / 100)),
 			);
 			setDescuento(subtotal - conDescuento);
+		} else if (porcentajePrevioRef.current > 0) {
+			// Al pasar de un cliente de porcentaje a uno sin descuento, el monto se
+			// quedaba pegado: el porcentaje bajaba a cero pero el descuento en pesos
+			// seguía aplicándose. Un descuento capturado a mano con 0% sí se
+			// respeta, por eso sólo se limpia cuando venía de un porcentaje.
+			setDescuento(0);
 		}
+		porcentajePrevioRef.current = descuentoPorcentaje;
 	};
 
 	const generarNumeroCotizacion = async () => {
@@ -365,8 +438,30 @@ const Cotizacion = () => {
 	const abrirPDFCotizacion = async (cotizacion) =>
 		generarPDFCotizacion(datosTicketCotizacion(cotizacion));
 
+	// Qué se cotizó: paciente, cliente, estudios y descuento. Sirve para saber si
+	// lo que hay en pantalla es la cotización que ya se guardó o una distinta.
+	const firmaCotizacion = () =>
+		JSON.stringify({
+			nombrePaciente: nombrePaciente.trim(),
+			clienteSeleccionado,
+			condicionesPaciente,
+			descuentoPorcentaje,
+			estudios: estudiosSeleccionados.map((est) => [est.clave, est.precio]),
+		});
+
 	// Guarda la cotización actual y devuelve el registro creado (o null si falla).
 	const guardarCotizacion = async ({ abrirPDF = true } = {}) => {
+		if (guardandoRef.current) return null;
+		// La captura se queda puesta después de guardar —falta un estudio, hay que
+		// corregir un dato— así que guardar de nuevo sin cambiar nada duplicaría
+		// la cotización. Cambiar cualquier cosa sí genera una cotización nueva.
+		if (cotizacionGuardada && cotizacionGuardada.firma === firmaCotizacion()) {
+			mostrarNotificacion(
+				`Esta cotización ya se guardó como ${cotizacionGuardada.numero}. Modifique algo o use "Nueva cotización".`,
+				"advertencia",
+			);
+			return null;
+		}
 		if (!nombrePaciente.trim()) {
 			mostrarNotificacion("Por favor ingrese el nombre del paciente", "advertencia");
 			return null;
@@ -375,6 +470,8 @@ const Cotizacion = () => {
 			mostrarNotificacion("Por favor agregue al menos un estudio", "advertencia");
 			return null;
 		}
+		guardandoRef.current = true;
+		setGuardandoCotizacion(true);
 		try {
 			const numeroCotizacion = await generarNumeroCotizacion();
 			const totalFinal = total - descuento;
@@ -400,17 +497,25 @@ const Cotizacion = () => {
 				.select()
 				.single();
 			if (error) throw error;
-			const cotizacionGuardada = {
+			const cotizacionRegistrada = {
 				...data,
 				fecha_cotizacion: data?.fecha_cotizacion || new Date().toISOString(),
 			};
-			mostrarNotificacion("¡Cotización guardada exitosamente!", "exito");
+			mostrarNotificacion(
+				`¡Cotización ${numeroCotizacion} guardada! Los datos se quedan por si falta agregar algo.`,
+				"exito",
+			);
 			if (abrirPDF) {
-				await abrirPDFCotizacion(cotizacionGuardada);
+				await abrirPDFCotizacion(cotizacionRegistrada);
 			}
 			await cargarCotizaciones();
-			limpiarFormulario();
-			return cotizacionGuardada;
+			// La captura no se limpia: queda tal cual para completarla o corregirla.
+			// Para empezar una cotización nueva está el botón de limpiar.
+			setCotizacionGuardada({
+				numero: numeroCotizacion,
+				firma: firmaCotizacion(),
+			});
+			return cotizacionRegistrada;
 		} catch (error) {
 			console.error("Error al guardar cotización:", error);
 			mostrarNotificacion(
@@ -418,6 +523,9 @@ const Cotizacion = () => {
 				"error",
 			);
 			return null;
+		} finally {
+			guardandoRef.current = false;
+			setGuardandoCotizacion(false);
 		}
 	};
 
@@ -435,6 +543,7 @@ const Cotizacion = () => {
 		setDescuento(0);
 		setDescuentoPorcentaje(0);
 		setEstudioDetalle(null);
+		setCotizacionGuardada(null);
 		limpiarBorradorPersistente(BORRADOR);
 	};
 
@@ -542,6 +651,19 @@ const Cotizacion = () => {
 	const puedeBuscarEstudios = Boolean(
 		clienteSeleccionado && empresaSeleccionada && tipoEstudioSeleccionado,
 	);
+	// Un cliente de porcentaje (10%, 20%, 30%) cotiza con la lista de particular
+	// y su descuento se aplica encima: el renglón muestra ya el precio con
+	// descuento, igual que en la captura de la orden.
+	const hayDescuentoPorRenglon = Number(descuentoPorcentaje) > 0;
+	// El campo de Total suma los renglones tal como se ven en la tabla: con el
+	// descuento del cliente ya aplicado. Se quedaba con el precio de lista y no
+	// cuadraba con lo que decía la tabla ni con el total final.
+	const totalDeRenglones = sumarPreciosFinales(
+		estudiosSeleccionados.map((est) =>
+			aplicarDescuentoPorcentaje(parseFloat(est.precio) || 0, descuentoPorcentaje),
+		),
+	);
+
 	const clavesConPrecio = resolverClavesConPrecio(
 		preciosCliente,
 		estudiosDisponibles,
@@ -826,7 +948,11 @@ const Cotizacion = () => {
 											<th>Clave</th>
 											<th>Descripcion</th>
 											<th>Tipo</th>
-											<th>Precio</th>
+											<th>
+												{hayDescuentoPorRenglon
+													? `Precio (−${Number(descuentoPorcentaje)}%)`
+													: "Precio"}
+											</th>
 											<th>Días</th>
 											<th>✖</th>
 										</tr>
@@ -852,7 +978,21 @@ const Cotizacion = () => {
 														</button>
 													</td>
 													<td>{estudio.tipo}</td>
-													<td>${estudio.precio.toFixed(2)}</td>
+													<td>
+													{/* Con un cliente de porcentaje el renglón muestra
+													    directamente lo que se va a cobrar; el encabezado
+													    dice qué descuento se aplicó. */}
+													<span
+														className={
+															hayDescuentoPorRenglon ? "precio-con-descuento-cot" : undefined
+														}>
+														$
+														{aplicarDescuentoPorcentaje(
+															estudio.precio,
+															descuentoPorcentaje,
+														).toFixed(2)}
+													</span>
+												</td>
 													<td>{estudio.diasProceso}</td>
 													<td>
 														<button
@@ -870,10 +1010,10 @@ const Cotizacion = () => {
 
 							<div className="totales-cotizacion">
 								<div className="campo-total-cot">
-									<label>Total</label>
+									<label>{hayDescuentoPorRenglon ? "Total con descuento" : "Total"}</label>
 									<input
 										type="text"
-										value={`$${total.toFixed(2)}`}
+										value={`$${totalDeRenglones.toFixed(2)}`}
 										readOnly
 										className="input-total-cot"
 									/>
@@ -916,7 +1056,10 @@ const Cotizacion = () => {
 									onClick={() => guardarYEnviar("whatsapp")}>
 									<img src={enviarWppBtn} alt="WhatsApp" className="icono-btn-cot" />
 								</button>
-								<button className="btn-img-cot" onClick={handleGuardarGenerar}>
+								<button
+									className="btn-img-cot"
+									onClick={handleGuardarGenerar}
+									disabled={guardandoCotizacion}>
 									<img src={guardarBtn} alt="Guardar" className="icono-btn-cot" />
 								</button>
 								<button
@@ -926,6 +1069,23 @@ const Cotizacion = () => {
 									<img src={enviarEmailBtn} alt="Correo" className="icono-btn-cot" />
 								</button>
 							</div>
+
+							{/* La captura se queda puesta al guardar, así que empezar una
+							    cotización nueva es un acto aparte. */}
+							{cotizacionGuardada && (
+								<div className="cotizacion-guardada-aviso">
+									<span>Guardada como {cotizacionGuardada.numero}</span>
+									<button
+										type="button"
+										className="btn-nueva-cotizacion"
+										onClick={() => {
+											limpiarFormulario();
+											mostrarNotificacion("Listo, puedes capturar otra cotización");
+										}}>
+										Nueva cotización
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>
