@@ -72,6 +72,12 @@ const Cotizacion = () => {
 		mensaje: "",
 		tipo: "exito",
 	});
+	// Al guardar, la captura se queda puesta por si falta agregar un estudio o
+	// corregir algo. Esto es lo que quedó guardado, para no duplicar la
+	// cotización si se vuelve a presionar guardar sin cambiar nada.
+	const [cotizacionGuardada, setCotizacionGuardada] = useState(null);
+	const guardandoRef = useRef(false);
+	const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
 
 	useEffect(() => {
 		cargarCotizaciones();
@@ -420,8 +426,30 @@ const Cotizacion = () => {
 	const abrirPDFCotizacion = async (cotizacion) =>
 		generarPDFCotizacion(datosTicketCotizacion(cotizacion));
 
+	// Qué se cotizó: paciente, cliente, estudios y descuento. Sirve para saber si
+	// lo que hay en pantalla es la cotización que ya se guardó o una distinta.
+	const firmaCotizacion = () =>
+		JSON.stringify({
+			nombrePaciente: nombrePaciente.trim(),
+			clienteSeleccionado,
+			condicionesPaciente,
+			descuentoPorcentaje,
+			estudios: estudiosSeleccionados.map((est) => [est.clave, est.precio]),
+		});
+
 	// Guarda la cotización actual y devuelve el registro creado (o null si falla).
 	const guardarCotizacion = async ({ abrirPDF = true } = {}) => {
+		if (guardandoRef.current) return null;
+		// La captura se queda puesta después de guardar —falta un estudio, hay que
+		// corregir un dato— así que guardar de nuevo sin cambiar nada duplicaría
+		// la cotización. Cambiar cualquier cosa sí genera una cotización nueva.
+		if (cotizacionGuardada && cotizacionGuardada.firma === firmaCotizacion()) {
+			mostrarNotificacion(
+				`Esta cotización ya se guardó como ${cotizacionGuardada.numero}. Modifique algo o use "Nueva cotización".`,
+				"advertencia",
+			);
+			return null;
+		}
 		if (!nombrePaciente.trim()) {
 			mostrarNotificacion("Por favor ingrese el nombre del paciente", "advertencia");
 			return null;
@@ -430,6 +458,8 @@ const Cotizacion = () => {
 			mostrarNotificacion("Por favor agregue al menos un estudio", "advertencia");
 			return null;
 		}
+		guardandoRef.current = true;
+		setGuardandoCotizacion(true);
 		try {
 			const numeroCotizacion = await generarNumeroCotizacion();
 			const totalFinal = total - descuento;
@@ -455,17 +485,25 @@ const Cotizacion = () => {
 				.select()
 				.single();
 			if (error) throw error;
-			const cotizacionGuardada = {
+			const cotizacionRegistrada = {
 				...data,
 				fecha_cotizacion: data?.fecha_cotizacion || new Date().toISOString(),
 			};
-			mostrarNotificacion("¡Cotización guardada exitosamente!", "exito");
+			mostrarNotificacion(
+				`¡Cotización ${numeroCotizacion} guardada! Los datos se quedan por si falta agregar algo.`,
+				"exito",
+			);
 			if (abrirPDF) {
-				await abrirPDFCotizacion(cotizacionGuardada);
+				await abrirPDFCotizacion(cotizacionRegistrada);
 			}
 			await cargarCotizaciones();
-			limpiarFormulario();
-			return cotizacionGuardada;
+			// La captura no se limpia: queda tal cual para completarla o corregirla.
+			// Para empezar una cotización nueva está el botón de limpiar.
+			setCotizacionGuardada({
+				numero: numeroCotizacion,
+				firma: firmaCotizacion(),
+			});
+			return cotizacionRegistrada;
 		} catch (error) {
 			console.error("Error al guardar cotización:", error);
 			mostrarNotificacion(
@@ -473,6 +511,9 @@ const Cotizacion = () => {
 				"error",
 			);
 			return null;
+		} finally {
+			guardandoRef.current = false;
+			setGuardandoCotizacion(false);
 		}
 	};
 
@@ -490,6 +531,7 @@ const Cotizacion = () => {
 		setDescuento(0);
 		setDescuentoPorcentaje(0);
 		setEstudioDetalle(null);
+		setCotizacionGuardada(null);
 		limpiarBorradorPersistente(BORRADOR);
 	};
 
@@ -971,7 +1013,10 @@ const Cotizacion = () => {
 									onClick={() => guardarYEnviar("whatsapp")}>
 									<img src={enviarWppBtn} alt="WhatsApp" className="icono-btn-cot" />
 								</button>
-								<button className="btn-img-cot" onClick={handleGuardarGenerar}>
+								<button
+									className="btn-img-cot"
+									onClick={handleGuardarGenerar}
+									disabled={guardandoCotizacion}>
 									<img src={guardarBtn} alt="Guardar" className="icono-btn-cot" />
 								</button>
 								<button
@@ -981,6 +1026,23 @@ const Cotizacion = () => {
 									<img src={enviarEmailBtn} alt="Correo" className="icono-btn-cot" />
 								</button>
 							</div>
+
+							{/* La captura se queda puesta al guardar, así que empezar una
+							    cotización nueva es un acto aparte. */}
+							{cotizacionGuardada && (
+								<div className="cotizacion-guardada-aviso">
+									<span>Guardada como {cotizacionGuardada.numero}</span>
+									<button
+										type="button"
+										className="btn-nueva-cotizacion"
+										onClick={() => {
+											limpiarFormulario();
+											mostrarNotificacion("Listo, puedes capturar otra cotización");
+										}}>
+										Nueva cotización
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

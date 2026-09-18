@@ -103,3 +103,53 @@ describe("Cotización — borrador y detalle del estudio", () => {
 		expect(screen.getByText("Hematología")).toBeInTheDocument();
 	});
 });
+
+// Guardar no vacía la captura: el paciente casi siempre pregunta por un estudio
+// más, y volver a llenar todo desde cero era el reclamo de recepción.
+describe("Cotización — la captura persiste al guardar", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		jest.clearAllMocks();
+	});
+
+	const capturarYGuardar = async () => {
+		guardar("nombrePaciente", "JUAN PEREZ");
+		guardar("estudios", [
+			{ id: 1, clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 100, tipo: "Laboratorio" },
+		]);
+
+		await renderCotizacion();
+		await act(async () => {
+			fireEvent.click(screen.getByAltText("Guardar"));
+		});
+	};
+
+	test("los datos siguen puestos después de guardar", async () => {
+		await capturarYGuardar();
+
+		expect(screen.getByPlaceholderText("Nombre del Paciente")).toHaveValue("JUAN PEREZ");
+		expect(screen.getByText("BIOMETRIA HEMATICA")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Nueva cotización" })).toBeInTheDocument();
+	});
+
+	test("guardar otra vez sin cambiar nada no duplica la cotización", async () => {
+		await capturarYGuardar();
+
+		await act(async () => {
+			fireEvent.click(screen.getByAltText("Guardar"));
+		});
+
+		expect(screen.getByRole("alert")).toHaveTextContent("ya se guardó");
+	});
+
+	test("nueva cotización deja la pantalla en blanco", async () => {
+		await capturarYGuardar();
+
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Nueva cotización" }));
+		});
+
+		expect(screen.getByPlaceholderText("Nombre del Paciente")).toHaveValue("");
+		expect(screen.getByText("No hay estudios agregados")).toBeInTheDocument();
+	});
+});
