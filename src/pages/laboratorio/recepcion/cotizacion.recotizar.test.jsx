@@ -202,3 +202,29 @@ describe("Cotización — descuento de mostrador", () => {
 		expect(precioMostrado()).toBe("$100.00");
 	});
 });
+
+// El campo de Total tiene que cuadrar con lo que muestra la tabla: se quedaba
+// con el precio de lista al cambiar de cliente o al aplicar un descuento.
+describe("Cotización — el campo de Total sigue a la tabla", () => {
+	const totalCampo = () => document.querySelector(".input-total-cot")?.value;
+
+	test("cambiar de convenio actualiza el total", async () => {
+		await cotizarConIMSS();
+		expect(totalCampo()).toBe("$80.00");
+
+		await elegir("IMSS", "2");
+
+		expect(precioMostrado()).toBe("$200.00");
+		expect(totalCampo()).toBe("$200.00");
+	});
+
+	test("con un cliente de porcentaje el total ya trae el descuento", async () => {
+		await cotizarConIMSS();
+
+		await elegir("IMSS", "3");
+
+		expect(precioMostrado()).toBe("$80.00");
+		expect(totalCampo()).toBe("$80.00");
+		expect(document.querySelector(".input-total-final-cot")?.value).toBe("$80.00");
+	});
+});

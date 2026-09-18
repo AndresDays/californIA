@@ -655,6 +655,14 @@ const Cotizacion = () => {
 	// y su descuento se aplica encima: el renglón muestra ya el precio con
 	// descuento, igual que en la captura de la orden.
 	const hayDescuentoPorRenglon = Number(descuentoPorcentaje) > 0;
+	// El campo de Total suma los renglones tal como se ven en la tabla: con el
+	// descuento del cliente ya aplicado. Se quedaba con el precio de lista y no
+	// cuadraba con lo que decía la tabla ni con el total final.
+	const totalDeRenglones = sumarPreciosFinales(
+		estudiosSeleccionados.map((est) =>
+			aplicarDescuentoPorcentaje(parseFloat(est.precio) || 0, descuentoPorcentaje),
+		),
+	);
 
 	const clavesConPrecio = resolverClavesConPrecio(
 		preciosCliente,
@@ -1002,10 +1010,10 @@ const Cotizacion = () => {
 
 							<div className="totales-cotizacion">
 								<div className="campo-total-cot">
-									<label>Total</label>
+									<label>{hayDescuentoPorRenglon ? "Total con descuento" : "Total"}</label>
 									<input
 										type="text"
-										value={`$${total.toFixed(2)}`}
+										value={`$${totalDeRenglones.toFixed(2)}`}
 										readOnly
 										className="input-total-cot"
 									/>
