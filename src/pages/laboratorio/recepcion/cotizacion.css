@@ -667,3 +667,38 @@
 	text-decoration-color: currentColor;
 	text-decoration-style: solid;
 }
+
+/* Al guardar, la captura se queda puesta por si falta agregar un estudio: el
+   aviso dice con qué número quedó y da la salida para empezar otra. */
+.cotizacion-guardada-aviso {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-top: 0.75rem;
+	padding: 0.5rem 0.7rem;
+	border: 1px dashed var(--borde-fuerte);
+	border-radius: 8px;
+	font-size: 0.82rem;
+	color: var(--texto);
+}
+
+.btn-nueva-cotizacion {
+	background: var(--superficie-2);
+	border: 1px solid var(--borde);
+	border-radius: 7px;
+	padding: 0.4rem 0.7rem;
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.8rem;
+	cursor: pointer;
+}
+
+.btn-nueva-cotizacion:hover {
+	background: var(--superficie-hover);
+}
+
+.btn-img-cot:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
