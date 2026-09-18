@@ -22,6 +22,7 @@ import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
 import ModalDetalleEstudio from "../componentes/modal-detalle-estudio";
 import { crearNombreArchivoCotizacion, generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
 import { sumarPreciosFinales } from "../../../utils/precio-final";
+import { aplicarDescuentoPorcentaje } from "../../../utils/nuevo-paciente-totales";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
 	construirEstudioCatalogoUnificado,
@@ -76,6 +77,10 @@ const Cotizacion = () => {
 	// corregir algo. Esto es lo que quedó guardado, para no duplicar la
 	// cotización si se vuelve a presionar guardar sin cambiar nada.
 	const [cotizacionGuardada, setCotizacionGuardada] = useState(null);
+	// Con qué porcentaje se calculó el descuento la vuelta anterior: es lo que
+	// permite distinguir "el cliente ya no tiene descuento" de "lo capturaron a
+	// mano en pesos".
+	const porcentajePrevioRef = useRef(descuentoPorcentaje);
 	const guardandoRef = useRef(false);
 	const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
 
@@ -369,7 +374,14 @@ const Cotizacion = () => {
 				importes.map((importe) => importe - importe * (descuentoPorcentaje / 100)),
 			);
 			setDescuento(subtotal - conDescuento);
+		} else if (porcentajePrevioRef.current > 0) {
+			// Al pasar de un cliente de porcentaje a uno sin descuento, el monto se
+			// quedaba pegado: el porcentaje bajaba a cero pero el descuento en pesos
+			// seguía aplicándose. Un descuento capturado a mano con 0% sí se
+			// respeta, por eso sólo se limpia cuando venía de un porcentaje.
+			setDescuento(0);
 		}
+		porcentajePrevioRef.current = descuentoPorcentaje;
 	};
 
 	const generarNumeroCotizacion = async () => {
@@ -639,6 +651,11 @@ const Cotizacion = () => {
 	const puedeBuscarEstudios = Boolean(
 		clienteSeleccionado && empresaSeleccionada && tipoEstudioSeleccionado,
 	);
+	// Un cliente de porcentaje (10%, 20%, 30%) cotiza con la lista de particular
+	// y su descuento se aplica encima: el renglón muestra ya el precio con
+	// descuento, igual que en la captura de la orden.
+	const hayDescuentoPorRenglon = Number(descuentoPorcentaje) > 0;
+
 	const clavesConPrecio = resolverClavesConPrecio(
 		preciosCliente,
 		estudiosDisponibles,
@@ -923,7 +940,11 @@ const Cotizacion = () => {
 											<th>Clave</th>
 											<th>Descripcion</th>
 											<th>Tipo</th>
-											<th>Precio</th>
+											<th>
+												{hayDescuentoPorRenglon
+													? `Precio (−${Number(descuentoPorcentaje)}%)`
+													: "Precio"}
+											</th>
 											<th>Días</th>
 											<th>✖</th>
 										</tr>
@@ -949,7 +970,21 @@ const Cotizacion = () => {
 														</button>
 													</td>
 													<td>{estudio.tipo}</td>
-													<td>${estudio.precio.toFixed(2)}</td>
+													<td>
+													{/* Con un cliente de porcentaje el renglón muestra
+													    directamente lo que se va a cobrar; el encabezado
+													    dice qué descuento se aplicó. */}
+													<span
+														className={
+															hayDescuentoPorRenglon ? "precio-con-descuento-cot" : undefined
+														}>
+														$
+														{aplicarDescuentoPorcentaje(
+															estudio.precio,
+															descuentoPorcentaje,
+														).toFixed(2)}
+													</span>
+												</td>
 													<td>{estudio.diasProceso}</td>
 													<td>
 														<button

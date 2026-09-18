@@ -29,6 +29,8 @@ jest.mock("../../../lib/supabase-client", () => {
 		clientes: [
 			{ id_cliente: 1, nombre: "IMSS" },
 			{ id_cliente: 2, nombre: "ISSSTE" },
+			{ id_cliente: 3, nombre: "20%" },
+			{ id_cliente: 4, nombre: "Particular" },
 		],
 		empresas: [{ id_empresa: 2, nombre: "CDI" }],
 		empresa_tipos_estudio: [
@@ -52,6 +54,7 @@ jest.mock("../../../lib/supabase-client", () => {
 		precios_estudios: [
 			{ cliente: "IMSS", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 80 },
 			{ cliente: "ISSSTE", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 200 },
+			{ cliente: "Particular", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 100 },
 		],
 	};
 
@@ -98,6 +101,8 @@ jest.mock("../../../utils/clientes-seleccionables", () => ({
 			data: [
 				{ id_cliente: 1, nombre: "IMSS" },
 				{ id_cliente: 2, nombre: "ISSSTE" },
+				{ id_cliente: 3, nombre: "20%" },
+				{ id_cliente: 4, nombre: "Particular" },
 			],
 			error: null,
 		}),
@@ -160,4 +165,40 @@ test("volver al cliente anterior devuelve su precio", async () => {
 
 	await elegir("ISSSTE", "1");
 	expect(precioMostrado()).toBe("$80.00");
+});
+
+// Un cliente de porcentaje cotiza con la lista de particular y su descuento va
+// encima: el renglón tiene que mostrar el precio final, y al volver a un
+// cliente sin descuento el monto en pesos tiene que irse con el porcentaje.
+describe("Cotización — descuento de mostrador", () => {
+	const campoPorValor = (selector) => document.querySelector(selector)?.value;
+	const totalFinal = () => campoPorValor(".input-total-final-cot");
+	const descuentoMonto = () => campoPorValor(".input-descuento-cot");
+	const descuentoPct = () => campoPorValor(".input-descuento-pct-cot");
+
+	test("el renglón, el descuento y el total final siguen al porcentaje", async () => {
+		await cotizarConIMSS();
+
+		// "20%" cotiza con la lista de particular ($100) y descuenta encima.
+		await elegir("IMSS", "3");
+
+		expect(precioMostrado()).toBe("$80.00");
+		expect(descuentoPct()).toBe("20");
+		expect(descuentoMonto()).toBe("20");
+		expect(totalFinal()).toBe("$80.00");
+	});
+
+	test("volver a un cliente sin descuento limpia el monto, no sólo el porcentaje", async () => {
+		await cotizarConIMSS();
+
+		await elegir("IMSS", "3");
+		expect(descuentoMonto()).toBe("20");
+
+		await elegir("20%", "4");
+
+		expect(descuentoPct()).toBe("0");
+		expect(descuentoMonto()).toBe("0");
+		expect(totalFinal()).toBe("$100.00");
+		expect(precioMostrado()).toBe("$100.00");
+	});
 });

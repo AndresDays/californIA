@@ -702,3 +702,9 @@
 	opacity: 0.6;
 	cursor: not-allowed;
 }
+
+/* El renglón cotizado con descuento de mostrador muestra ya el precio final. */
+.precio-con-descuento-cot {
+	color: #2e7d32;
+	font-weight: 700;
+}
