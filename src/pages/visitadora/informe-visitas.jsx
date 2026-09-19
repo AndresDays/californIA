@@ -91,11 +91,15 @@ const InformeVisitas = () => {
 	const avisar = (mensaje, tipo = "exito") => setNotificacion({ isOpen: true, mensaje, tipo });
 
 	const elegirArchivo = async (evento) => {
-		const archivo = evento.target.files?.[0];
-		evento.target.value = "";
+		const campo = evento.target;
+		const archivo = campo.files?.[0];
 		if (!archivo) return;
 		try {
-			const libro = XLSX.read(await archivo.arrayBuffer(), { cellDates: true });
+			// Los bytes se leen antes de vaciar el campo. Vaciarlo primero suelta el
+			// archivo que el navegador tenía tomado y la lectura falla a medias, que
+			// es por lo que la importación entraba una de cada tantas veces.
+			const contenido = new Uint8Array(await archivo.arrayBuffer());
+			const libro = XLSX.read(contenido, { type: "array", cellDates: true });
 			const { filas, advertencias } = leerInformeVisitas(libro);
 			if (filas.length === 0 && advertencias.length === 0) {
 				avisar("El archivo no trae visitas que importar.", "error");
@@ -106,6 +110,10 @@ const InformeVisitas = () => {
 			setPrevia({ filas, advertencias });
 		} catch (fallo) {
 			avisar(`No se pudo leer el archivo: ${fallo.message}`, "error");
+		} finally {
+			// Se vacía al final para que se pueda volver a elegir el mismo archivo:
+			// sin esto, reintentar con el mismo no dispara el evento.
+			campo.value = "";
 		}
 	};
 

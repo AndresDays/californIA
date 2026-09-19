@@ -46,6 +46,8 @@ jest.mock("../../hooks/use-doctores", () => ({
 	useDoctores: () => ({ data: { data: [{ id_doctor: 3, nombre: "Saúl Ruiz" }], count: 1 } }),
 }));
 
+import * as XLSX from "xlsx";
+import { ENCABEZADOS_INFORME } from "../../utils/importar-informe-visitas";
 import InformeVisitas from "./informe-visitas";
 
 const mostrar = async () => {
@@ -188,5 +190,72 @@ describe("InformeVisitas", () => {
 		visitas.current = [];
 		await mostrar();
 		expect(screen.getByText("No hay visitas capturadas en esta semana.")).toBeInTheDocument();
+	});
+
+	// El navegador suelta el archivo en cuanto se vacía el campo, y la lectura
+	// se quedaba a medias: la importación entraba una de cada tantas veces.
+	describe("importar Excel", () => {
+		const libroDePrueba = () => {
+			const hoja = XLSX.utils.aoa_to_sheet([
+				ENCABEZADOS_INFORME,
+				[
+					"2026-08-17",
+					"Dr. Saúl Ruiz",
+					"Ginecólogo",
+					"Núcleo Médico Joya",
+					"Visita de seguimiento",
+					"",
+					"",
+					"",
+					"MIXTO",
+				],
+			]);
+			const libro = XLSX.utils.book_new();
+			XLSX.utils.book_append_sheet(libro, hoja, "Informe");
+			return XLSX.write(libro, { type: "array", bookType: "xlsx" });
+		};
+
+		// El campo se vacía para poder volver a elegir el mismo archivo; el archivo
+		// sólo se deja leer mientras el campo aún lo tiene tomado.
+		const archivoSoltadoAlVaciar = (campo, bytes) => ({
+			name: "informe.xlsx",
+			arrayBuffer: async () => {
+				if (campo.value === "") {
+					throw new Error("The requested file could not be read");
+				}
+				return bytes;
+			},
+		});
+
+		const elegirArchivo = async (campo, archivo) => {
+			Object.defineProperty(campo, "files", { value: [archivo], configurable: true });
+			Object.defineProperty(campo, "value", {
+				value: "C:\\fakepath\\informe.xlsx",
+				writable: true,
+				configurable: true,
+			});
+			await act(async () => {
+				fireEvent.change(campo);
+			});
+		};
+
+		test("lee el archivo elegido y enseña la revisión previa", async () => {
+			await mostrar();
+			const campo = document.querySelector('input[type="file"]');
+
+			await elegirArchivo(campo, archivoSoltadoAlVaciar(campo, libroDePrueba()));
+
+			expect(screen.getByText("Revisar antes de importar")).toBeInTheDocument();
+			expect(screen.getByText("Importar")).toBeInTheDocument();
+		});
+
+		test("el campo queda vacío para poder reintentar con el mismo archivo", async () => {
+			await mostrar();
+			const campo = document.querySelector('input[type="file"]');
+
+			await elegirArchivo(campo, archivoSoltadoAlVaciar(campo, libroDePrueba()));
+
+			expect(campo.value).toBe("");
+		});
 	});
 });
