@@ -105,9 +105,15 @@ const RECEPCIONISTA_PATHS = [
 // comparación es exacta, así que sólo pasa esta pantalla.
 const RECEPCIONISTA_PATHS_EXACTOS = ["/configuracion/version"];
 
-// La visitadora sólo sale de su módulo para su propio perfil, donde cambia su
-// contraseña.
-const VISITADORA_PATHS = ["/visitadora", "/perfil"];
+// La visitadora sale de su módulo para su propio perfil, donde cambia su
+// contraseña, y para el catálogo de doctores de Administración: es el mismo
+// catálogo del que cuelga su directorio, y ahí da de alta al médico que acaba
+// de conocer aunque todavía no tenga expediente comercial.
+const VISITADORA_PATHS = ["/visitadora", "/perfil", "/doctores"];
+
+// De Administración ve esa pantalla y nada más: pacientes, usuarios y clientes
+// siguen fuera de su alcance.
+const VISITADORA_SUBMENU_ADMINISTRACION = new Set(["doctores"]);
 
 const QUIMICO_PATHS_BLOQUEADOS = [
 	"/visitadora",
@@ -229,8 +235,23 @@ const sinClientesConvenio = (items = []) =>
 	);
 
 const filtrarMenuPorRolBase = (items = [], rol) => {
-	// Para la visitadora el módulo no es una sección más: es su menú completo.
-	if (esVisitadora(rol)) return items.filter((item) => item.id === "visitadora");
+	// Para la visitadora el módulo es casi todo su menú; de Administración se le
+	// deja únicamente el catálogo de doctores.
+	if (esVisitadora(rol)) {
+		return items
+			.filter((item) => item.id === "visitadora" || item.id === "administracion")
+			.map((item) =>
+				item.id === "administracion"
+					? {
+							...item,
+							path: "/doctores",
+							submenu: item.submenu?.filter((subItem) =>
+								VISITADORA_SUBMENU_ADMINISTRACION.has(subItem.id),
+							),
+						}
+					: item,
+			);
+	}
 
 	if (esClienteConvenio(rol)) return [];
 	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) return [];
