@@ -7,7 +7,7 @@ import { useAgendaVisitas } from "../../hooks/use-agenda-visitas";
 import { useTareasSeguimiento } from "../../hooks/use-tareas-seguimiento";
 import { useVisitasMedicas } from "../../hooks/use-visitas-medicas";
 import { cumpleanosProximos, etiquetaTipoTarea, visitaVencida, proximaVisitaSugerida } from "../../utils/crm-visitadora";
-import { hoyEnMexico, lunesDeLaSemana, rangoSemanaLaboral, sumarDias } from "../../utils/semanas-visitadora";
+import { hoyEnMexico, lunesDeLaSemana, rangoSemanaCompleta, sumarDias } from "../../utils/semanas-visitadora";
 import "./visitadora.css";
 
 // Lo primero que se ve al entrar: qué toca hoy y cómo va la semana. Cada
@@ -16,7 +16,7 @@ const Panel = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navegar = useNavigate();
 	const hoy = hoyEnMexico();
-	const semana = rangoSemanaLaboral(lunesDeLaSemana(hoy));
+	const semana = rangoSemanaCompleta(lunesDeLaSemana(hoy));
 	// `getPrimerNombre` espera el nombre, no el empleado completo: pasarle el
 	// objeto imprimía "Hola, [object Object]". Del nombre se toma la primera
 	// palabra, que es como saluda el resto de la aplicación.

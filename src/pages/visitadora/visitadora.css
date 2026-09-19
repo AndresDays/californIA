@@ -753,7 +753,8 @@
 	opacity: 0.6;
 }
 
-.visitadora-cita.cancelada,
+/* La cancelada ya no se dibuja; la reprogramada se queda atenuada para que se
+   vea que ese día se movió. */
 .visitadora-cita.reprogramada {
 	opacity: 0.5;
 	text-decoration: line-through;

@@ -30,10 +30,19 @@ export const sumarDias = (iso, dias) => aTexto(new Date(aFecha(iso).getTime() + 
 export const semanaDesplazada = (lunes, semanas) => lunesDeLaSemana(sumarDias(lunes, semanas * 7));
 
 // La semana laboral que ella reporta es de lunes a viernes; el fin de semana no
-// se programa.
+// se programa. Sirve para el encabezado y para la hoja de Excel, no para leer.
 export const rangoSemanaLaboral = (lunes) => ({
 	desde: lunesDeLaSemana(lunes),
 	hasta: sumarDias(lunesDeLaSemana(lunes), 4),
+});
+
+// Para *leer* lo capturado se usa la semana completa: aunque la ruta se
+// programe de lunes a viernes, una visita registrada en sábado existe, y con el
+// rango laboral no aparecía en el informe ni en el panel — se veía como si
+// guardar no hubiera hecho nada.
+export const rangoSemanaCompleta = (lunes) => ({
+	desde: lunesDeLaSemana(lunes),
+	hasta: sumarDias(lunesDeLaSemana(lunes), 6),
 });
 
 export const etiquetaSemana = (lunes) => {

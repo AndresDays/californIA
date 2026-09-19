@@ -7,6 +7,7 @@ jest.mock("../visitadora.css", () => ({}));
 const mockGuardarVisita = jest.fn().mockResolvedValue(undefined);
 const mockGuardarTarea = jest.fn().mockResolvedValue(undefined);
 const mockGuardarAgenda = jest.fn().mockResolvedValue(undefined);
+const mockActualizarContacto = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("../../../hooks/use-visitas-medicas", () => ({
 	useGuardarVisita: () => ({ mutateAsync: mockGuardarVisita, isPending: false }),
@@ -17,6 +18,9 @@ jest.mock("../../../hooks/use-tareas-seguimiento", () => ({
 jest.mock("../../../hooks/use-agenda-visitas", () => ({
 	useGuardarAgenda: () => ({ mutateAsync: mockGuardarAgenda, isPending: false }),
 }));
+jest.mock("../../../hooks/use-directorio-medicos", () => ({
+	useActualizarContactoMedico: () => ({ mutateAsync: mockActualizarContacto, isPending: false }),
+}));
 
 import ModalRegistroVisita from "./modal-registro-visita";
 
@@ -26,6 +30,9 @@ const medico = {
 	especialidad: "Ginecología",
 	zona: "Centro",
 	hospital: "Hospital del Valle",
+	telefono: "3221234567",
+	email: "ramon@ejemplo.mx",
+	fecha_nacimiento: "1975-09-19",
 };
 
 const mostrar = async (props = {}) => {
@@ -55,6 +62,7 @@ beforeEach(() => {
 	mockGuardarVisita.mockClear();
 	mockGuardarTarea.mockClear();
 	mockGuardarAgenda.mockClear();
+	mockActualizarContacto.mockClear();
 });
 afterEach(() => jest.useRealTimers());
 
@@ -136,5 +144,43 @@ describe("Registro rápido de visita", () => {
 		});
 		expect(mockGuardarVisita).not.toHaveBeenCalled();
 		expect(onError).toHaveBeenCalledWith("Escribe al menos el resultado de la visita.");
+	});
+});
+
+describe("Datos de contacto del médico", () => {
+	test("trae lo que ya está capturado en su ficha", async () => {
+		await mostrar();
+		expect(screen.getByLabelText("Teléfono")).toHaveValue("3221234567");
+		expect(screen.getByLabelText("Correo electrónico")).toHaveValue("ramon@ejemplo.mx");
+		expect(screen.getByLabelText("Fecha de nacimiento")).toHaveValue("1975-09-19");
+	});
+
+	// El dato que le sacó en el consultorio se guarda en el catálogo, para que
+	// el cumpleaños y el WhatsApp funcionen desde el directorio.
+	test("lo que se complete se guarda en la ficha del médico", async () => {
+		await mostrar();
+		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Aceptó" } });
+		fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+			target: { value: "nuevo@ejemplo.mx" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockActualizarContacto).toHaveBeenCalledWith({
+			idDoctor: 7,
+			telefono: "3221234567",
+			email: "nuevo@ejemplo.mx",
+			fechaNacimiento: "1975-09-19",
+		});
+	});
+
+	test("si no se cambió nada no se toca la ficha", async () => {
+		await mostrar();
+		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Aceptó" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).toHaveBeenCalled();
+		expect(mockActualizarContacto).not.toHaveBeenCalled();
 	});
 });

@@ -92,7 +92,7 @@ afterEach(() => jest.useRealTimers());
 describe("InformeVisitas", () => {
 	test("consulta la semana laboral de la fecha actual, de lunes a viernes", async () => {
 		await mostrar();
-		expect(rangoConsultado.current).toEqual({ desde: "2026-08-17", hasta: "2026-08-21" });
+		expect(rangoConsultado.current).toEqual({ desde: "2026-08-17", hasta: "2026-08-23" });
 		expect(screen.getByText("Del 17 al 21 de agosto")).toBeInTheDocument();
 	});
 
@@ -101,7 +101,7 @@ describe("InformeVisitas", () => {
 		await act(async () => {
 			fireEvent.click(screen.getByLabelText("Semana anterior"));
 		});
-		expect(rangoConsultado.current).toEqual({ desde: "2026-08-10", hasta: "2026-08-14" });
+		expect(rangoConsultado.current).toEqual({ desde: "2026-08-10", hasta: "2026-08-16" });
 		expect(screen.getByText("Del 10 al 14 de agosto")).toBeInTheDocument();
 	});
 
