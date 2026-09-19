@@ -58,13 +58,29 @@ const Agenda = () => {
 
 	const { data: citas = [], isLoading, error } = useAgendaVisitas(rango);
 
+	// La cancelada desaparece del día: tachada seguía ocupando lugar en la
+	// columna y estorbaba para leer lo que sí queda por hacer. El renglón no se
+	// borra de la base, así que el reporte sigue sabiendo que ese día se canceló.
 	const visibles = useMemo(
-		() => (zona ? citas.filter((cita) => cita.zona === zona) : citas),
+		() =>
+			citas.filter(
+				(cita) => cita.estatus !== "cancelada" && (!zona || cita.zona === zona),
+			),
 		[citas, zona],
 	);
 
+	// Las zonas salen de lo que sí se dibuja: si la única visita de una zona se
+	// canceló, esa zona dejaría el filtro apuntando a una lista vacía.
 	const zonas = useMemo(
-		() => [...new Set(citas.map((cita) => cita.zona).filter(Boolean))].sort(),
+		() =>
+			[
+				...new Set(
+					citas
+						.filter((cita) => cita.estatus !== "cancelada")
+						.map((cita) => cita.zona)
+						.filter(Boolean),
+				),
+			].sort(),
 		[citas],
 	);
 
