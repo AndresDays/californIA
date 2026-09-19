@@ -7,7 +7,10 @@ const ProtectedRoute = ({ children }) => {
   const { user, loading, empleadoData, empleadoLoading } = useAuth()
   const { pathname } = useLocation()
 
-  if (loading || (user && empleadoLoading)) {
+  // El spinner sólo mientras no hay perfil que enseñar. Si ya lo hay y se está
+  // revalidando en segundo plano, la pantalla se queda: cambiarla por el
+  // spinner la desmonta, y con ella cualquier modal abierto a medio llenar.
+  if (loading || (user && empleadoLoading && !empleadoData)) {
     return <LoadingSpinner />
   }
 
