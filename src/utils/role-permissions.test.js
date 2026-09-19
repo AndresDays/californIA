@@ -257,10 +257,15 @@ describe("rol visitadora", () => {
 		expect(puedeAccederRuta("visitadora", "/perfil")).toBe(true);
 	});
 
+	// El catálogo de doctores es del que cuelga su directorio: ahí da de alta al
+	// médico que acaba de conocer.
+	test("entra al catálogo de doctores de Administración", () => {
+		expect(puedeAccederRuta("visitadora", "/doctores")).toBe(true);
+	});
+
 	test.each([
 		"/dashboard",
 		"/pacientes",
-		"/doctores",
 		"/usuarios",
 		"/nuevo-paciente",
 		"/captura",
@@ -275,14 +280,21 @@ describe("rol visitadora", () => {
 		expect(puedeAccederRuta("visitadora", ruta)).toBe(false);
 	});
 
-	test("su menu es su modulo y nada mas", () => {
+	test("su menu es su modulo y el catalogo de doctores", () => {
 		const filtrado = filtrarMenuPorRol(menuConVisitadora, "visitadora");
-		expect(filtrado.map((item) => item.id)).toEqual(["visitadora"]);
-		expect(filtrado[0].submenu.map((item) => item.id)).toEqual([
+		expect(filtrado.map((item) => item.id)).toEqual(["administracion", "visitadora"]);
+		expect(filtrado.find((item) => item.id === "visitadora").submenu.map((item) => item.id)).toEqual([
 			"visitadora-informe",
 			"visitadora-agenda",
 			"visitadora-comisiones",
 		]);
+	});
+
+	test("de Administracion solo ve Doctores", () => {
+		const filtrado = filtrarMenuPorRol(menuConVisitadora, "visitadora");
+		const administracion = filtrado.find((item) => item.id === "administracion");
+		expect(administracion.submenu.map((item) => item.id)).toEqual(["doctores"]);
+		expect(administracion.path).toBe("/doctores");
 	});
 
 	test.each(["visitadora", "Visitadora", "visitador", " VISITADORA "])(
