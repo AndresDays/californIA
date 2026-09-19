@@ -335,3 +335,39 @@ test('filters by local doctor session even before doctor profile is hydrated', a
 
   expect(mockEqEstudios).toHaveBeenCalledWith('id_doctor', 3);
 });
+
+// El convenio ve las mismas etiquetas que el personal pero no tiene a quién
+// preguntarle qué quieren decir.
+test('el cliente de convenio ve qué significa cada estado', async () => {
+  mockAuthEmpleadoData = {
+    nombre: 'CENTRO MEDICO ANAMAYA',
+    rol: 'cliente_imagen',
+    id_cliente: 4,
+    cliente_nombre: 'CENTRO MEDICO ANAMAYA',
+  };
+
+  render(<DashboardRadiologia />);
+
+  await waitFor(() =>
+    expect(screen.getByText('Qué significa cada estado')).toBeInTheDocument(),
+  );
+  expect(
+    screen.getByText('Todavía no tiene imagen: el estudio no se ha tomado o no se ha subido.'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Ya tiene la imagen, falta que el radiólogo la interprete.'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Ya fue interpretado: el reporte está listo.'),
+  ).toBeInTheDocument();
+});
+
+// Al personal la leyenda sólo le quitaría espacio: esos estados son su trabajo.
+test('el personal no ve la leyenda', async () => {
+  render(<DashboardRadiologia />);
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /Maria Gomez POR ASIGNAR/i })).toBeInTheDocument(),
+  );
+  expect(screen.queryByText('Qué significa cada estado')).not.toBeInTheDocument();
+});

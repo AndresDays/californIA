@@ -29,6 +29,15 @@ const ESTADOS_FILTRO = [
   { id: 'COMPLETADO', label: 'Completados' }
 ];
 
+// El convenio ve los mismos estados que el personal, pero sin nadie a quien
+// preguntarle qué significan: "por asignar" suena a trámite interno cuando lo
+// que dice es que el estudio todavía no se toma.
+const SIGNIFICADO_ESTADOS = [
+  { estado: 'Por asignar', clase: 'estado-por-asignar', significado: 'Todavía no tiene imagen: el estudio no se ha tomado o no se ha subido.' },
+  { estado: 'En proceso', clase: 'estado-en-proceso', significado: 'Ya tiene la imagen, falta que el radiólogo la interprete.' },
+  { estado: 'Completado', clase: 'estado-completado', significado: 'Ya fue interpretado: el reporte está listo.' },
+];
+
 const CLAVE_FILTROS_RADIOLOGIA = 'radiologia:filtros';
 const leerFiltrosRadiologia = () => {
   try { return JSON.parse(sessionStorage.getItem(CLAVE_FILTROS_RADIOLOGIA) || '{}'); } catch { return {}; }
@@ -400,6 +409,7 @@ const DashboardRadiologia = () => {
     new Set(estudios.map(estudio => estudio.tipoEstudio).filter(Boolean))
   );
   const puedeAsignar = puedeAsignarRadiologia(empleadoData);
+  const esClienteConvenio = esClienteImagenRadiologia(empleadoData?.rol);
 
   const conteosPorEstado = ESTADOS_FILTRO.reduce((conteos, estado) => {
     conteos[estado.id] = estado.id === 'todos'
@@ -522,6 +532,20 @@ const DashboardRadiologia = () => {
             </div>
           </div>
         </div>
+
+        {esClienteConvenio && (
+          <div className="radiologia-leyenda-estados">
+            <span className="radiologia-leyenda-titulo">Qué significa cada estado</span>
+            <ul>
+              {SIGNIFICADO_ESTADOS.map(({ estado, clase, significado }) => (
+                <li key={estado}>
+                  <span className={`estado-badge ${clase}`}>{estado.toUpperCase()}</span>
+                  <span>{significado}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="grid-estudios">
           {loading ? (
