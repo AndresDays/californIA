@@ -316,7 +316,7 @@ export const filtrarMenuPorRol = (items = [], rol) => {
 // que lo decidían por su cuenta; la visitadora obliga a que sea una sola regla,
 // porque mandarla al dashboard -al que tampoco entra- la dejaría rebotando.
 export const rutaInicialPorRol = (rol) => {
-	if (esVisitadora(rol)) return "/visitadora/informe";
+	if (esVisitadora(rol)) return "/visitadora/panel";
 	if (esClienteImagen(rol)) return "/radiologia";
 	if (esClienteLaboratorio(rol)) return "/resultados-convenio";
 	if (esDoctorExternoPermisos(rol) || esRadiologoClinicoPermisos(rol)) return "/radiologia";

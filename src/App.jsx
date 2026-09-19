@@ -53,6 +53,14 @@ const Usuarios = lazy(() => import('./pages/usuarios'));
 const InformeVisitas = lazy(() => import('./pages/visitadora/informe-visitas'));
 const ProgramacionSemanal = lazy(() => import('./pages/visitadora/programacion-semanal'));
 const ConcentradoComisiones = lazy(() => import('./pages/visitadora/concentrado-comisiones'));
+const PanelVisitadora = lazy(() => import('./pages/visitadora/panel'));
+const DirectorioMedico = lazy(() => import('./pages/visitadora/directorio'));
+const FichaMedico = lazy(() => import('./pages/visitadora/ficha-medico'));
+const AgendaVisitas = lazy(() => import('./pages/visitadora/agenda'));
+const PendientesVisitadora = lazy(() => import('./pages/visitadora/pendientes'));
+const ProspectosMedicos = lazy(() => import('./pages/visitadora/prospectos'));
+const OrdenesMedicas = lazy(() => import('./pages/visitadora/ordenes'));
+const ReportesVisitadora = lazy(() => import('./pages/visitadora/reportes'));
 
 const B = ({ children }) => <AppBoundary>{children}</AppBoundary>;
 
@@ -105,6 +113,15 @@ function App() {
 							<Route path="/cortes-dia" element={<P><CortesDia /></P>} />
 							<Route path="/reporte-administrativo" element={<P><ReporteAdministrativo /></P>} />
 
+							<Route path="/visitadora" element={<P><PanelVisitadora /></P>} />
+							<Route path="/visitadora/panel" element={<P><PanelVisitadora /></P>} />
+							<Route path="/visitadora/directorio" element={<P><DirectorioMedico /></P>} />
+							<Route path="/visitadora/medico/:idDoctor" element={<P><FichaMedico /></P>} />
+							<Route path="/visitadora/agenda" element={<P><AgendaVisitas /></P>} />
+							<Route path="/visitadora/pendientes" element={<P><PendientesVisitadora /></P>} />
+							<Route path="/visitadora/prospectos" element={<P><ProspectosMedicos /></P>} />
+							<Route path="/visitadora/ordenes" element={<P><OrdenesMedicas /></P>} />
+							<Route path="/visitadora/reportes" element={<P><ReportesVisitadora /></P>} />
 							<Route path="/visitadora/informe" element={<P><InformeVisitas /></P>} />
 							<Route path="/visitadora/programacion" element={<P><ProgramacionSemanal /></P>} />
 							<Route path="/visitadora/comisiones" element={<P><ConcentradoComisiones /></P>} />

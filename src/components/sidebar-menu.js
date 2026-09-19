@@ -110,9 +110,51 @@ export const sidebarItems = [
 		id: "visitadora",
 		label: "Visitadora",
 		icon: doctorIcono,
-		path: "/visitadora/informe",
+		path: "/visitadora/panel",
 		hasSubmenu: true,
 		submenu: [
+			{
+				id: "visitadora-panel",
+				label: "Panel",
+				icon: subIcon,
+				path: "/visitadora/panel",
+			},
+			{
+				id: "visitadora-directorio",
+				label: "Directorio",
+				icon: subIcon,
+				path: "/visitadora/directorio",
+			},
+			{
+				id: "visitadora-agenda",
+				label: "Agenda",
+				icon: subIcon,
+				path: "/visitadora/agenda",
+			},
+			{
+				id: "visitadora-pendientes",
+				label: "Pendientes",
+				icon: subIcon,
+				path: "/visitadora/pendientes",
+			},
+			{
+				id: "visitadora-prospectos",
+				label: "Prospectos",
+				icon: subIcon,
+				path: "/visitadora/prospectos",
+			},
+			{
+				id: "visitadora-ordenes",
+				label: "Órdenes y eBudaicom",
+				icon: subIcon,
+				path: "/visitadora/ordenes",
+			},
+			{
+				id: "visitadora-reportes",
+				label: "Reportes",
+				icon: subIcon,
+				path: "/visitadora/reportes",
+			},
 			{
 				id: "visitadora-informe",
 				label: "Informe de visitas",
