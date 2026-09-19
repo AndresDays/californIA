@@ -93,7 +93,11 @@ const FichaMedico = () => {
 			<PageLayout empleadoData={empleadoData} formatRol={formatRol} getPrimerNombre={getPrimerNombre}>
 				<div className="visitadora-pagina">
 					<p className="visitadora-error">
-						{error ? `No se pudo cargar el expediente: ${error.message}` : "Ese médico no está en el directorio."}
+						{error
+							? `No se pudo cargar el expediente: ${error.message}`
+							: "Este médico no está en el catálogo, así que todavía no tiene expediente. " +
+								"Pasa cuando la visita se capturó con el nombre escrito a mano: dalo de alta en " +
+								"el directorio y sus visitas se le podrán ligar."}
 					</p>
 					<button type="button" onClick={() => navegar("/visitadora/directorio")}>
 						Volver al directorio

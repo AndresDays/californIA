@@ -70,6 +70,15 @@ beforeEach(() => {
 			estatus: "programada",
 		},
 		{
+			id_agenda: "a3",
+			id_doctor: null,
+			medico_nombre: "Dr. Escrito a mano",
+			zona: "Centro",
+			fecha: "2026-09-18",
+			tipo_visita: "seguimiento",
+			estatus: "programada",
+		},
+		{
 			id_agenda: "a2",
 			id_doctor: 2,
 			medico_nombre: "Ana Ruiz",
@@ -100,7 +109,8 @@ describe("Agenda de visitas", () => {
 	test("al cancelar se avisa a la base y la tarjeta se va al recargar", async () => {
 		await mostrar();
 		await act(async () => {
-			fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+			// Hay una visita programada más en el día; se cancela la primera.
+			fireEvent.click(screen.getAllByRole("button", { name: "Cancelar" })[0]);
 		});
 		expect(mockCancelar).toHaveBeenCalledWith("a1");
 	});
@@ -109,11 +119,31 @@ describe("Agenda de visitas", () => {
 		await mostrar();
 		fireEvent.click(screen.getByRole("button", { name: "Exportar Excel" }));
 		const [citasExportadas] = mockExportar.mock.calls[0];
-		expect(citasExportadas.map((cita) => cita.id_agenda)).toEqual(["a1"]);
+		expect(citasExportadas.map((cita) => cita.id_agenda)).toEqual(["a1", "a3"]);
 	});
 
 	test("el contador sólo cuenta lo que se ve", async () => {
 		await mostrar();
-		expect(screen.getByText("1 visitas")).toBeInTheDocument();
+		expect(screen.getByText("2 visitas")).toBeInTheDocument();
+	});
+});
+
+describe("Visitas sin médico del catálogo", () => {
+	// Llevaban a /visitadora/medico/undefined, una pantalla que sólo sabía decir
+	// que el médico no estaba en el directorio.
+	test("el nombre no es un enlace cuando la visita no está ligada", async () => {
+		await mostrar();
+		expect(screen.queryByRole("button", { name: "Dr. Escrito a mano" })).not.toBeInTheDocument();
+		expect(screen.getByText(/Dr\. Escrito a mano/)).toBeInTheDocument();
+	});
+
+	test("se marca como sin expediente", async () => {
+		await mostrar();
+		expect(screen.getByText("sin expediente")).toBeInTheDocument();
+	});
+
+	test("la visita ligada sí lleva al expediente", async () => {
+		await mostrar();
+		expect(screen.getByRole("button", { name: "Ramón Pérez" })).toBeInTheDocument();
 	});
 });
