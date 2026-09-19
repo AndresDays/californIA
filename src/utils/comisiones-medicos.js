@@ -40,6 +40,35 @@ export const rangoDelPeriodo = (periodo) => {
 	);
 };
 
+// Los dos extremos del mes como fecha suelta, que es lo que capturan los campos
+// del filtro: el rango que se elija vive dentro del mes que se está viendo,
+// porque el cierre y el porcentaje vigente se siguen resolviendo por mes.
+export const limitesDelPeriodo = (periodo) => {
+	const [anio, mes] = String(periodo || "").split("-").map(Number);
+	if (!Number.isFinite(anio) || !Number.isFinite(mes)) return { desde: "", hasta: "" };
+	return {
+		desde: new Date(Date.UTC(anio, mes - 1, 1)).toISOString().slice(0, 10),
+		hasta: new Date(Date.UTC(anio, mes, 0)).toISOString().slice(0, 10),
+	};
+};
+
+// Acota las ventas a los días elegidos, con el mismo offset de Ciudad de México
+// con el que se pidieron: una orden de las 23:00 pertenece al día en que se
+// cobró, no al siguiente.
+export const filtrarVentasPorRango = (ventas = [], desde = "", hasta = "") => {
+	if (!desde || !hasta) return ventas || [];
+
+	const { inicio, fin } = crearRangoFechaMexico(desde, hasta);
+	const desdeMs = new Date(inicio).getTime();
+	const finMs = new Date(fin).getTime();
+
+	return (ventas || []).filter((venta) => {
+		const momento = new Date(venta?.fecha_venta ?? "").getTime();
+		if (!Number.isFinite(momento)) return false;
+		return momento >= desdeMs && momento < finMs;
+	});
+};
+
 const ultimoDiaDelPeriodo = (periodo) => {
 	const [anio, mes] = String(periodo || "").split("-").map(Number);
 	return new Date(Date.UTC(anio, mes, 0)).toISOString().slice(0, 10);

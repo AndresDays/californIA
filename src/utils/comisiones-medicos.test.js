@@ -1,5 +1,7 @@
 import {
 	construirConcentradoMensual,
+	filtrarVentasPorRango,
+	limitesDelPeriodo,
 	nombreDoctor,
 	porcentajeVigente,
 	rangoDelPeriodo,
@@ -211,5 +213,47 @@ describe("nombreDoctor", () => {
 	test("sin datos regresa el texto de relleno", () => {
 		expect(nombreDoctor(null)).toBe("Sin nombre");
 		expect(nombreDoctor({})).toBe("Sin nombre");
+	});
+});
+
+describe("limitesDelPeriodo", () => {
+	test("da el primer y el último día del mes", () => {
+		expect(limitesDelPeriodo("2026-08")).toEqual({ desde: "2026-08-01", hasta: "2026-08-31" });
+		expect(limitesDelPeriodo("2026-02")).toEqual({ desde: "2026-02-01", hasta: "2026-02-28" });
+	});
+
+	test("sin periodo no inventa fechas", () => {
+		expect(limitesDelPeriodo("")).toEqual({ desde: "", hasta: "" });
+	});
+});
+
+describe("filtrarVentasPorRango", () => {
+	const ventas = [
+		{ id_venta: 1, fecha_venta: "2026-08-14T18:00:00-06:00" },
+		{ id_venta: 2, fecha_venta: "2026-08-15T09:30:00-06:00" },
+		// Las 23:00 del último día del rango siguen siendo de ese día, no del
+		// siguiente: con UTC se iban al día de después.
+		{ id_venta: 3, fecha_venta: "2026-08-31T23:00:00-06:00" },
+		{ id_venta: 4, fecha_venta: "2026-09-01T08:00:00-06:00" },
+	];
+
+	test("deja sólo las ventas de los días elegidos", () => {
+		expect(
+			filtrarVentasPorRango(ventas, "2026-08-15", "2026-08-31").map((v) => v.id_venta),
+		).toEqual([2, 3]);
+	});
+
+	test("un solo día se acota a ese día", () => {
+		expect(
+			filtrarVentasPorRango(ventas, "2026-08-15", "2026-08-15").map((v) => v.id_venta),
+		).toEqual([2]);
+	});
+
+	test("sin rango no se filtra nada", () => {
+		expect(filtrarVentasPorRango(ventas, "", "")).toHaveLength(4);
+	});
+
+	test("una fecha ilegible no se cuela", () => {
+		expect(filtrarVentasPorRango([{ fecha_venta: null }], "2026-08-01", "2026-08-31")).toEqual([]);
 	});
 });

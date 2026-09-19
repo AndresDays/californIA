@@ -11,7 +11,9 @@ import {
 } from "../../hooks/use-comisiones-medicos";
 import {
 	construirConcentradoMensual,
+	filtrarVentasPorRango,
 	formatoMonedaComision,
+	limitesDelPeriodo,
 	nombreDoctor,
 	totalesConcentrado,
 } from "../../utils/comisiones-medicos";
@@ -42,6 +44,16 @@ const filasDesdeMesCerrado = (mensuales = []) =>
 const ConcentradoComisiones = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const [periodo, setPeriodo] = useState(periodoDeHoy());
+	// El rango vive dentro del mes que se está viendo: el cierre y el porcentaje
+	// vigente se siguen resolviendo por mes, y un rango a caballo entre dos meses
+	// no tendría con cuál cerrarse. Por eso se guarda con el mes al que
+	// pertenece: al cambiar de mes vuelve solo al mes completo, en lugar de
+	// dejar la tabla vacía con los días del mes anterior.
+	const limites = limitesDelPeriodo(periodo);
+	const [rango, setRango] = useState({ periodo: null, desde: "", hasta: "" });
+	const { desde, hasta } =
+		rango.periodo === periodo ? rango : { desde: limites.desde, hasta: limites.hasta };
+	const fijarRango = (cambio) => setRango({ periodo, desde, hasta, ...cambio });
 	const [doctorPorcentaje, setDoctorPorcentaje] = useState(null);
 	const [doctorDetalle, setDoctorDetalle] = useState(null);
 	const [confirmarCierre, setConfirmarCierre] = useState(false);
@@ -66,16 +78,37 @@ const ConcentradoComisiones = () => {
 		});
 	}, [data, periodo]);
 
+	// Lo que se ve en pantalla puede estar acotado a unos días; lo que se cierra
+	// es siempre el mes completo -`filas`-, porque el cierre paga el mes.
+	const rangoEsMesCompleto = desde === limites.desde && hasta === limites.hasta;
+	const filasDelRango = useMemo(() => {
+		// Un mes cerrado es una foto por médico, sin el detalle de cada orden: no
+		// hay con qué acotarlo por día.
+		if (!data || data.cerrado || rangoEsMesCompleto) return filas;
+		return construirConcentradoMensual({
+			ventas: filtrarVentasPorRango(data.ventas, desde, hasta),
+			doctores: data.doctores,
+			comisiones: data.comisiones,
+			periodo,
+		});
+	}, [data, filas, rangoEsMesCompleto, desde, hasta, periodo]);
+
 	// Los médicos que generaron ingreso sin porcentaje asignado salen primero:
 	// ese hueco es el que provoca los reclamos de comisión.
 	const filasOrdenadas = useMemo(
-		() => [...filas].sort((a, b) => Number(b.sinPorcentaje) - Number(a.sinPorcentaje)),
-		[filas],
+		() => [...filasDelRango].sort((a, b) => Number(b.sinPorcentaje) - Number(a.sinPorcentaje)),
+		[filasDelRango],
 	);
 
-	const totales = useMemo(() => totalesConcentrado(filas), [filas]);
+	const totales = useMemo(() => totalesConcentrado(filasDelRango), [filasDelRango]);
+	// El cierre paga el mes entero, así que lo que anuncia su confirmación se
+	// cuenta sobre el mes y no sobre lo que se esté viendo.
+	const totalesDelMes = useMemo(() => totalesConcentrado(filas), [filas]);
 
 	const avisar = (mensaje, tipo = "exito") => setNotificacion({ isOpen: true, mensaje, tipo });
+
+	const etiquetaArchivo = () =>
+		rangoEsMesCompleto ? `Comisiones_${periodo}` : `Comisiones_${desde}_a_${hasta}`;
 
 	const filasParaExportar = () =>
 		filasOrdenadas.map((fila) => [
@@ -144,7 +177,7 @@ const ConcentradoComisiones = () => {
 								exportarExcel(
 									COLUMNAS,
 									filasParaExportar(),
-									`Comisiones_${periodo}`,
+									etiquetaArchivo(),
 								)
 							}>
 							Exportar Excel
@@ -153,10 +186,12 @@ const ConcentradoComisiones = () => {
 							type="button"
 							onClick={() =>
 								exportarPDF(
-									`Comisiones de médicos — ${etiquetaPeriodo(periodo)}`,
+									rangoEsMesCompleto
+										? `Comisiones de médicos — ${etiquetaPeriodo(periodo)}`
+										: `Comisiones de médicos — del ${desde} al ${hasta}`,
 									COLUMNAS,
 									filasParaExportar(),
-									`Comisiones_${periodo}`,
+									etiquetaArchivo(),
 								)
 							}>
 							PDF
@@ -173,9 +208,48 @@ const ConcentradoComisiones = () => {
 					</div>
 				</div>
 
+				<div className="visitadora-filtro-fechas">
+					<span className="visitadora-filtro-titulo">Rango</span>
+					<label>
+						<span>Inicio</span>
+						<input
+							type="date"
+							value={desde}
+							min={limites.desde}
+							max={hasta || limites.hasta}
+							onChange={(evento) => fijarRango({ desde: evento.target.value })}
+							disabled={cerrado}
+						/>
+					</label>
+					<label>
+						<span>Fin</span>
+						<input
+							type="date"
+							value={hasta}
+							min={desde || limites.desde}
+							max={limites.hasta}
+							onChange={(evento) => fijarRango({ hasta: evento.target.value })}
+							disabled={cerrado}
+						/>
+					</label>
+					<button
+						type="button"
+						onClick={() => fijarRango({ desde: limites.desde, hasta: limites.hasta })}
+						disabled={cerrado || rangoEsMesCompleto}>
+						Todo el mes
+					</button>
+					{cerrado && (
+						<span className="visitadora-filtro-nota">
+							El mes cerrado se muestra completo, como quedó al cerrarlo.
+						</span>
+					)}
+				</div>
+
 				<div className="visitadora-tarjetas">
 					<div className="visitadora-tarjeta">
-						<span className="visitadora-tarjeta-clave">Ingreso del mes</span>
+						<span className="visitadora-tarjeta-clave">
+							{rangoEsMesCompleto ? "Ingreso del mes" : "Ingreso del rango"}
+						</span>
 						<span className="visitadora-tarjeta-valor">
 							{formatoMonedaComision(totales.ingreso)}
 						</span>
@@ -341,8 +415,8 @@ const ConcentradoComisiones = () => {
 					onConfirm={confirmarCerrarMes}
 					titulo={`Cerrar ${etiquetaPeriodo(periodo)}`}
 					mensaje={`Se congelarán ${filas.length} médicos por ${formatoMonedaComision(
-						totales.comision,
-					)} de comisión. Después de cerrar, un cambio de porcentaje ya no moverá este mes.`}
+						totalesDelMes.comision,
+					)} de comisión: el mes completo, no sólo los días que se estén viendo. Después de cerrar, un cambio de porcentaje ya no moverá este mes.`}
 					textoConfirmar="Cerrar el mes"
 					textoCancelar="Cancelar"
 					mostrarAdvertencia={false}
