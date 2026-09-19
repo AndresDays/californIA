@@ -178,3 +178,48 @@ describe('sidebar-home responsive desktop layout', () => {
     expect(screen.queryByRole('button', { name: /Reportes/i })).not.toBeInTheDocument();
   });
 });
+
+// El submenú de Visitadora creció a diez opciones y, anclado al borde de arriba
+// del botón, la última quedaba fuera de la pantalla. Ahora se mide el hueco y
+// se abre hacia donde quepa, con el alto máximo del espacio disponible.
+describe('sidebar-home submenu placement', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    mockEmpleadoData = { rol: 'admin' };
+    mockUser = null;
+    window.innerHeight = 800;
+  });
+
+  const abrirSubmenu = (etiqueta, topDelBoton) => {
+    render(<SidebarHome />);
+    const boton = screen.getByLabelText(etiqueta);
+    jest.spyOn(boton, 'getBoundingClientRect').mockReturnValue({
+      top: topDelBoton,
+      bottom: topDelBoton + 50,
+      left: 20,
+      right: 80,
+      height: 50,
+      width: 60,
+    });
+    fireEvent.click(boton);
+    return document.querySelector('.sidebar-home-submenu');
+  };
+
+  test('un botón de arriba abre el panel hacia abajo', () => {
+    const submenu = abrirSubmenu('Visitadora', 100);
+    expect(submenu).toHaveStyle({ top: '0px', bottom: 'auto' });
+    expect(submenu.style.maxHeight).toBe('684px');
+  });
+
+  test('un botón de abajo abre el panel hacia arriba para que quepa completo', () => {
+    const submenu = abrirSubmenu('Visitadora', 700);
+    expect(submenu).toHaveStyle({ top: 'auto', bottom: '0px' });
+    expect(submenu.style.maxHeight).toBe('734px');
+  });
+
+  test('todas las opciones del submenú se renderizan', () => {
+    abrirSubmenu('Visitadora', 700);
+    expect(screen.getByText('Panel')).toBeInTheDocument();
+    expect(screen.getByText('Concentrado')).toBeInTheDocument();
+  });
+});

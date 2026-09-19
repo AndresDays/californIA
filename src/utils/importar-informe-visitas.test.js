@@ -1,9 +1,7 @@
 import * as XLSX from "xlsx";
 import {
 	ENCABEZADOS_INFORME,
-	ENCABEZADOS_PROGRAMACION,
 	leerInformeVisitas,
-	leerProgramacionSemanal,
 	separarMedicosProgramados,
 } from "./importar-informe-visitas";
 
@@ -212,73 +210,3 @@ describe("separarMedicosProgramados", () => {
 	});
 });
 
-describe("leerProgramacionSemanal", () => {
-	const hojaProgramacion = (...dias) => [
-		["PROGRAMACION SEMANAL DEL 17 AL 21 AGO"],
-		ENCABEZADOS_PROGRAMACION,
-		...dias,
-	];
-
-	test("lee un dia con sus medicos separados", () => {
-		const { filas, advertencias } = leerProgramacionSemanal(
-			libroDesde({
-				"17-21 ago": hojaProgramacion([
-					"Lunes",
-					"Torre coralia",
-					"Camila Ross                Mona Khalaf",
-					"Seguimiento a medicos visitados con anterioridad.",
-				]),
-			}),
-		);
-
-		expect(advertencias).toEqual([]);
-		expect(filas).toEqual([
-			{
-				hoja: "17-21 ago",
-				renglon: 3,
-				dia_semana: 1,
-				zona: "Torre coralia",
-				medicos_programados: ["Camila Ross", "Mona Khalaf"],
-				objetivos: "Seguimiento a medicos visitados con anterioridad.",
-			},
-		]);
-	});
-
-	test("reconoce los cinco dias con y sin acento", () => {
-		const { filas } = leerProgramacionSemanal(
-			libroDesde({
-				Semana: hojaProgramacion(
-					["Lunes", "A"],
-					["Martes", "B"],
-					["Miércoles", "C"],
-					["Miercoles", "D"],
-					["Jueves", "E"],
-					["Viernes", "F"],
-				),
-			}),
-		);
-		expect(filas.map((fila) => fila.dia_semana)).toEqual([1, 2, 3, 3, 4, 5]);
-	});
-
-	test("avisa del dia que no reconoce", () => {
-		const { filas, advertencias } = leerProgramacionSemanal(
-			libroDesde({ Semana: hojaProgramacion(["Lunes o martes", "Zona"]) }),
-		);
-		expect(filas).toHaveLength(0);
-		expect(advertencias).toEqual([
-			{
-				hoja: "Semana",
-				renglon: 3,
-				motivo: 'No se reconoce el día "Lunes o martes".',
-			},
-		]);
-	});
-
-	test("omite los renglones vacios del final", () => {
-		const { filas, advertencias } = leerProgramacionSemanal(
-			libroDesde({ Semana: hojaProgramacion(["Lunes", "Zona"], [], ["", ""]) }),
-		);
-		expect(filas).toHaveLength(1);
-		expect(advertencias).toEqual([]);
-	});
-});

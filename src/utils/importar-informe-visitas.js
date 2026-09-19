@@ -18,7 +18,6 @@ export const ENCABEZADOS_INFORME = [
 	"Tipo de convenio",
 ];
 
-export const ENCABEZADOS_PROGRAMACION = ["Día", "Zona", "Médicos programados", "Objetivos"];
 
 const CAMPOS_INFORME = [
 	"fecha",
@@ -31,16 +30,6 @@ const CAMPOS_INFORME = [
 	"seguimiento",
 	"tipo_convenio",
 ];
-
-const DIAS = {
-	lunes: 1,
-	martes: 2,
-	miercoles: 3,
-	jueves: 4,
-	viernes: 5,
-	sabado: 6,
-	domingo: 7,
-};
 
 // Quita emoji, acentos y espacios de más para que "📅 Fecha" y "fecha " se
 // reconozcan igual. Los encabezados vienen escritos a mano y varían.
@@ -158,52 +147,6 @@ export const leerInformeVisitas = (libro) => {
 				visita[campo] = campo === "fecha" ? fecha : texto(cruda[columna]);
 			});
 			filas.push(visita);
-		}
-	}
-
-	return { filas, advertencias };
-};
-
-export const leerProgramacionSemanal = (libro) => {
-	const filas = [];
-	const advertencias = [];
-
-	for (const nombreHoja of libro?.SheetNames ?? []) {
-		const crudas = aFilas(libro.Sheets[nombreHoja]);
-		const indiceEncabezados = buscarEncabezados(crudas, ["dia", "zona"]);
-
-		if (indiceEncabezados === -1) {
-			advertencias.push({
-				hoja: nombreHoja,
-				renglon: null,
-				motivo: "No se encontraron los encabezados de la programación en esta hoja.",
-			});
-			continue;
-		}
-
-		for (let indice = indiceEncabezados + 1; indice < crudas.length; indice += 1) {
-			const cruda = crudas[indice] || [];
-			const renglon = indice + 1;
-			if (renglonVacio(cruda)) continue;
-
-			const dia = DIAS[normalizarEncabezado(cruda[0])];
-			if (!dia) {
-				advertencias.push({
-					hoja: nombreHoja,
-					renglon,
-					motivo: `No se reconoce el día "${texto(cruda[0])}".`,
-				});
-				continue;
-			}
-
-			filas.push({
-				hoja: nombreHoja,
-				renglon,
-				dia_semana: dia,
-				zona: texto(cruda[1]),
-				medicos_programados: separarMedicosProgramados(cruda[2]),
-				objetivos: texto(cruda[3]),
-			});
 		}
 	}
 
