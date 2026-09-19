@@ -168,6 +168,29 @@ export const useConvertirProspecto = () => {
 	});
 };
 
+// Al registrar una visita ella completa lo que le faltaba al médico: su
+// teléfono, su correo o su cumpleaños. Se actualizan sólo esas tres columnas de
+// `doctores`, sin tocar la ficha comercial, para que guardar desde ahí no borre
+// nada de lo demás.
+export const useActualizarContactoMedico = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ idDoctor, telefono, email, fechaNacimiento }) => {
+			if (!idDoctor) return;
+			const { error } = await supabase
+				.from("doctores")
+				.update({
+					telefono: telefono || null,
+					email: email || null,
+					fecha_nacimiento: fechaNacimiento || null,
+				})
+				.eq("id_doctor", idDoctor);
+			if (error) throw error;
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["directorio-medicos"] }),
+	});
+};
+
 export const useGuardarVisorDicom = () => {
 	const queryClient = useQueryClient();
 	return useMutation({

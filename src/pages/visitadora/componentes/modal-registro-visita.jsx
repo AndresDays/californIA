@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGuardarVisita } from "../../../hooks/use-visitas-medicas";
 import { useGuardarTarea } from "../../../hooks/use-tareas-seguimiento";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
+import { useActualizarContactoMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
 import { hoyEnMexico, sumarDias } from "../../../utils/semanas-visitadora";
 import "../visitadora.css";
@@ -30,10 +31,16 @@ const ModalRegistroVisita = ({
 		proxima_accion: "",
 		fecha_seguimiento: sumarDias(hoyEnMexico(), 15),
 		tipo_convenio: medico?.convenio?.tipo ?? "",
+		// Datos del médico, no de la visita: vienen precargados de su ficha y se
+		// completan aquí porque es cuando se los pide en el consultorio.
+		telefono: medico?.telefono ?? "",
+		email: medico?.email ?? "",
+		fecha_nacimiento: medico?.fecha_nacimiento ?? "",
 	}));
 	const guardarVisita = useGuardarVisita();
 	const guardarTarea = useGuardarTarea();
 	const guardarAgenda = useGuardarAgenda();
+	const actualizarContacto = useActualizarContactoMedico();
 
 	if (!isOpen) return null;
 
@@ -87,6 +94,21 @@ const ModalRegistroVisita = ({
 				});
 			}
 
+			// Sólo se escribe en el catálogo si algo cambió: así registrar una
+			// visita no toca la ficha del médico cuando no hacía falta.
+			const contactoCambio =
+				campos.telefono !== (medico?.telefono ?? "") ||
+				campos.email !== (medico?.email ?? "") ||
+				campos.fecha_nacimiento !== (medico?.fecha_nacimiento ?? "");
+			if (medico?.id_doctor && contactoCambio) {
+				await actualizarContacto.mutateAsync({
+					idDoctor: medico.id_doctor,
+					telefono: campos.telefono,
+					email: campos.email,
+					fechaNacimiento: campos.fecha_nacimiento,
+				});
+			}
+
 			if (cita?.id_agenda) {
 				await guardarAgenda.mutateAsync({
 					id_agenda: cita.id_agenda,
@@ -130,6 +152,36 @@ const ModalRegistroVisita = ({
 									<option key={tipo.valor} value={tipo.valor}>{tipo.etiqueta}</option>
 								))}
 							</select>
+						</div>
+					</div>
+
+					<div className="visitadora-modal-columnas">
+						<div>
+							<label htmlFor="registro-telefono">Teléfono</label>
+							<input
+								id="registro-telefono"
+								type="tel"
+								value={campos.telefono}
+								onChange={cambiar("telefono")}
+							/>
+						</div>
+						<div>
+							<label htmlFor="registro-correo">Correo electrónico</label>
+							<input
+								id="registro-correo"
+								type="email"
+								value={campos.email}
+								onChange={cambiar("email")}
+							/>
+						</div>
+						<div>
+							<label htmlFor="registro-cumple">Fecha de nacimiento</label>
+							<input
+								id="registro-cumple"
+								type="date"
+								value={campos.fecha_nacimiento}
+								onChange={cambiar("fecha_nacimiento")}
+							/>
 						</div>
 					</div>
 
