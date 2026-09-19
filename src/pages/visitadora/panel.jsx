@@ -17,6 +17,10 @@ const Panel = () => {
 	const navegar = useNavigate();
 	const hoy = hoyEnMexico();
 	const semana = rangoSemanaLaboral(lunesDeLaSemana(hoy));
+	// `getPrimerNombre` espera el nombre, no el empleado completo: pasarle el
+	// objeto imprimía "Hola, [object Object]". Del nombre se toma la primera
+	// palabra, que es como saluda el resto de la aplicación.
+	const saludo = String(getPrimerNombre?.(empleadoData?.nombre) ?? "").trim().split(/\s+/)[0];
 
 	const { medicos } = useDirectorioMedicos();
 	const { data: citasHoy = [] } = useAgendaVisitas({ desde: hoy, hasta: hoy });
@@ -82,7 +86,7 @@ const Panel = () => {
 			<div className="visitadora-pagina">
 				<div className="visitadora-encabezado">
 					<h1 className="visitadora-titulo">
-						Hola{getPrimerNombre ? `, ${getPrimerNombre(empleadoData)}` : ""} · {hoy}
+						Hola{saludo ? `, ${saludo}` : ""} · {hoy}
 					</h1>
 					<div className="visitadora-acciones">
 						<button type="button" className="visitadora-boton-primario" onClick={() => navegar("/visitadora/agenda")}>
