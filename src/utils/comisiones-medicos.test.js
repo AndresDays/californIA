@@ -1,5 +1,8 @@
 import {
 	construirConcentradoMensual,
+	esDoctorSinRemitente,
+	filtrarVentasPorRango,
+	limitesDelPeriodo,
 	nombreDoctor,
 	porcentajeVigente,
 	rangoDelPeriodo,
@@ -211,5 +214,81 @@ describe("nombreDoctor", () => {
 	test("sin datos regresa el texto de relleno", () => {
 		expect(nombreDoctor(null)).toBe("Sin nombre");
 		expect(nombreDoctor({})).toBe("Sin nombre");
+	});
+});
+
+describe("limitesDelPeriodo", () => {
+	test("da el primer y el último día del mes", () => {
+		expect(limitesDelPeriodo("2026-08")).toEqual({ desde: "2026-08-01", hasta: "2026-08-31" });
+		expect(limitesDelPeriodo("2026-02")).toEqual({ desde: "2026-02-01", hasta: "2026-02-28" });
+	});
+
+	test("sin periodo no inventa fechas", () => {
+		expect(limitesDelPeriodo("")).toEqual({ desde: "", hasta: "" });
+	});
+});
+
+describe("filtrarVentasPorRango", () => {
+	const ventas = [
+		{ id_venta: 1, fecha_venta: "2026-08-14T18:00:00-06:00" },
+		{ id_venta: 2, fecha_venta: "2026-08-15T09:30:00-06:00" },
+		// Las 23:00 del último día del rango siguen siendo de ese día, no del
+		// siguiente: con UTC se iban al día de después.
+		{ id_venta: 3, fecha_venta: "2026-08-31T23:00:00-06:00" },
+		{ id_venta: 4, fecha_venta: "2026-09-01T08:00:00-06:00" },
+	];
+
+	test("deja sólo las ventas de los días elegidos", () => {
+		expect(
+			filtrarVentasPorRango(ventas, "2026-08-15", "2026-08-31").map((v) => v.id_venta),
+		).toEqual([2, 3]);
+	});
+
+	test("un solo día se acota a ese día", () => {
+		expect(
+			filtrarVentasPorRango(ventas, "2026-08-15", "2026-08-15").map((v) => v.id_venta),
+		).toEqual([2]);
+	});
+
+	test("sin rango no se filtra nada", () => {
+		expect(filtrarVentasPorRango(ventas, "", "")).toHaveLength(4);
+	});
+
+	test("una fecha ilegible no se cuela", () => {
+		expect(filtrarVentasPorRango([{ fecha_venta: null }], "2026-08-01", "2026-08-31")).toEqual([]);
+	});
+});
+
+describe("esDoctorSinRemitente", () => {
+	test("reconoce el registro que se usa cuando la orden no trae médico", () => {
+		expect(esDoctorSinRemitente({ nombre: "A QUIEN CORRESPONDA" })).toBe(true);
+		expect(esDoctorSinRemitente({ nombre: "  a quien corresponda " })).toBe(true);
+		expect(esDoctorSinRemitente("A Quién Corresponda")).toBe(true);
+	});
+
+	test("un médico de verdad no se confunde con él", () => {
+		expect(esDoctorSinRemitente({ nombre: "Juan Díaz" })).toBe(false);
+		expect(esDoctorSinRemitente(null)).toBe(false);
+	});
+});
+
+describe("construirConcentradoMensual y el remitente vacío", () => {
+	// Sus órdenes no las mandó nadie: cobrarle comisión a ese renglón no tiene
+	// a quién pagársela, y ensucia el concentrado.
+	test("deja fuera a A quien corresponda", () => {
+		const filas = construirConcentradoMensual({
+			ventas: [
+				{ id_doctor: 1, total: 1000, estado: "activo" },
+				{ id_doctor: 99, total: 5000, estado: "activo" },
+			],
+			doctores: [
+				{ id_doctor: 1, nombre: "Juan Díaz" },
+				{ id_doctor: 99, nombre: "A QUIEN CORRESPONDA" },
+			],
+			comisiones: [{ id_doctor: 1, porcentaje: 10, vigente_desde: "2026-01-01" }],
+			periodo: "2026-08",
+		});
+
+		expect(filas.map((fila) => fila.nombre)).toEqual(["Juan Díaz"]);
 	});
 });

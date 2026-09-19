@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 jest.mock("./visitadora.css", () => ({}));
@@ -169,5 +169,218 @@ describe("ConcentradoComisiones", () => {
 	test("sin ventas en el mes lo dice en vez de mostrar una tabla vacia", async () => {
 		await mostrar({ cerrado: false, ventas: [], doctores: [], comisiones: [], mensuales: [] });
 		expect(screen.getByText(/Ningún médico generó ingreso/)).toBeInTheDocument();
+	});
+});
+
+// El concentrado se ve por mes, pero muchas veces se revisa una quincena: el
+// filtro acota los días sin cambiar de qué mes se está hablando.
+describe("filtro por fechas", () => {
+	const mesConFechas = {
+		cerrado: false,
+		mensuales: [],
+		doctores: [
+			{ id_doctor: 1, nombre: "Juan Díaz" },
+			{ id_doctor: 2, nombre: "María López" },
+		],
+		comisiones: [
+			{ id_doctor: 1, porcentaje: 10, vigente_desde: "2026-01-01" },
+			{ id_doctor: 2, porcentaje: 20, vigente_desde: "2026-01-01" },
+		],
+		ventas: [
+			{ id_doctor: 1, total: 50000, estado: "activo", fecha_venta: "2026-08-03T10:00:00-06:00" },
+			{ id_doctor: 2, total: 100000, estado: "activo", fecha_venta: "2026-08-20T10:00:00-06:00" },
+		],
+	};
+
+	beforeEach(() => {
+		jest.useFakeTimers().setSystemTime(new Date("2026-08-19T12:00:00-06:00"));
+	});
+
+	afterEach(() => jest.useRealTimers());
+
+	const campoInicio = () => screen.getByLabelText("Inicio");
+	const campoFin = () => screen.getByLabelText("Fin");
+
+	test("arranca con el mes completo", async () => {
+		await mostrar(mesConFechas);
+
+		expect(campoInicio()).toHaveValue("2026-08-01");
+		expect(campoFin()).toHaveValue("2026-08-31");
+		expect(screen.getByText("Juan Díaz")).toBeInTheDocument();
+		expect(screen.getByText("María López")).toBeInTheDocument();
+	});
+
+	test("acotar los días deja sólo las órdenes de ese rango", async () => {
+		await mostrar(mesConFechas);
+
+		await act(async () => {
+			fireEvent.change(campoInicio(), { target: { value: "2026-08-16" } });
+		});
+
+		expect(screen.queryByText("Juan Díaz")).not.toBeInTheDocument();
+		expect(within(renglonDe("María López")).getByText("$20,000.00")).toBeInTheDocument();
+
+		const pie = screen.getByText(/TOTAL/).closest("tr");
+		expect(within(pie).getByText("$100,000.00")).toBeInTheDocument();
+		expect(within(pie).getByText("TOTAL · 1 médicos")).toBeInTheDocument();
+	});
+
+	test("el rótulo de la tarjeta deja de decir del mes cuando está acotado", async () => {
+		await mostrar(mesConFechas);
+		expect(screen.getByText("Ingreso del mes")).toBeInTheDocument();
+
+		await act(async () => {
+			fireEvent.change(campoFin(), { target: { value: "2026-08-10" } });
+		});
+
+		expect(screen.getByText("Ingreso del rango")).toBeInTheDocument();
+	});
+
+	test("Todo el mes regresa al mes completo", async () => {
+		await mostrar(mesConFechas);
+
+		await act(async () => {
+			fireEvent.change(campoInicio(), { target: { value: "2026-08-16" } });
+		});
+		expect(screen.queryByText("Juan Díaz")).not.toBeInTheDocument();
+
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Todo el mes" }));
+		});
+
+		expect(screen.getByText("Juan Díaz")).toBeInTheDocument();
+		expect(campoInicio()).toHaveValue("2026-08-01");
+	});
+
+	// Al cambiar de mes, quedarse con los días del anterior dejaría la tabla
+	// vacía sin que se note por qué.
+	test("cambiar de mes devuelve el rango al mes completo", async () => {
+		await mostrar(mesConFechas);
+
+		await act(async () => {
+			fireEvent.change(campoInicio(), { target: { value: "2026-08-16" } });
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByLabelText("Mes anterior"));
+		});
+
+		expect(campoInicio()).toHaveValue("2026-07-01");
+		expect(campoFin()).toHaveValue("2026-07-31");
+	});
+
+	// Un mes cerrado es una foto por médico, sin el detalle de cada orden.
+	test("un mes cerrado no se puede acotar y lo dice", async () => {
+		await mostrar({
+			cerrado: true,
+			ventas: [],
+			doctores: [],
+			comisiones: [],
+			mensuales: [
+				{
+					id_mensual: "m1",
+					id_doctor: 1,
+					ordenes: 18,
+					ingreso_generado: 50000,
+					porcentaje: 10,
+					comision: 5000,
+					estado: "pagado",
+					doctores: { id_doctor: 1, nombre: "Juan Díaz" },
+				},
+			],
+		});
+
+		expect(campoInicio()).toBeDisabled();
+		expect(campoFin()).toBeDisabled();
+		expect(
+			screen.getByText("El mes cerrado se muestra completo, como quedó al cerrarlo."),
+		).toBeInTheDocument();
+	});
+});
+
+// Con el encabezado pegado a la izquierda y la cifra a la derecha parecía que
+// el número no era de esa columna.
+describe("alineación de la tabla", () => {
+	test("el encabezado de cada cifra se alinea como su columna", async () => {
+		await mostrar(mesAbierto);
+
+		const encabezados = screen.getAllByRole("columnheader");
+		const alineados = encabezados
+			.filter((celda) => celda.classList.contains("numero"))
+			.map((celda) => celda.textContent);
+		expect(alineados).toEqual(["Órdenes", "%", "Ingreso generado", "Comisión"]);
+
+		// Médico y Estado se quedan a la izquierda, como su contenido.
+		for (const titulo of ["Médico", "Estado"]) {
+			expect(screen.getByRole("columnheader", { name: titulo })).not.toHaveClass("numero");
+		}
+	});
+
+	test("cada cifra sigue alineada a la derecha", async () => {
+		await mostrar(mesAbierto);
+
+		const renglon = renglonDe("Juan Díaz");
+		const celdas = [...renglon.querySelectorAll("td")];
+		expect(celdas[1]).toHaveClass("numero");
+		expect(celdas[2]).toHaveClass("numero");
+		expect(celdas[3]).toHaveClass("numero");
+		expect(celdas[4]).toHaveClass("numero");
+	});
+});
+
+// "A quien corresponda" es el registro que se usa cuando la orden no trae
+// médico remitente: no comisiona a nadie.
+describe("el remitente vacío", () => {
+	test("no sale en el mes abierto", async () => {
+		await mostrar({
+			cerrado: false,
+			mensuales: [],
+			doctores: [
+				{ id_doctor: 1, nombre: "Juan Díaz" },
+				{ id_doctor: 99, nombre: "A QUIEN CORRESPONDA" },
+			],
+			comisiones: [{ id_doctor: 1, porcentaje: 10, vigente_desde: "2026-01-01" }],
+			ventas: [
+				{ id_doctor: 1, total: 50000, estado: "activo" },
+				{ id_doctor: 99, total: 80000, estado: "activo" },
+			],
+		});
+
+		expect(screen.getByText("Juan Díaz")).toBeInTheDocument();
+		expect(screen.queryByText(/QUIEN CORRESPONDA/i)).not.toBeInTheDocument();
+		expect(screen.getByText("TOTAL · 1 médicos")).toBeInTheDocument();
+	});
+
+	test("tampoco en un mes ya cerrado", async () => {
+		await mostrar({
+			cerrado: true,
+			ventas: [],
+			doctores: [],
+			comisiones: [],
+			mensuales: [
+				{
+					id_mensual: "m1",
+					id_doctor: 1,
+					ordenes: 18,
+					ingreso_generado: 50000,
+					porcentaje: 10,
+					comision: 5000,
+					estado: "pagado",
+					doctores: { id_doctor: 1, nombre: "Juan Díaz" },
+				},
+				{
+					id_mensual: "m2",
+					id_doctor: 99,
+					ordenes: 30,
+					ingreso_generado: 80000,
+					porcentaje: 0,
+					comision: 0,
+					estado: "pendiente",
+					doctores: { id_doctor: 99, nombre: "A QUIEN CORRESPONDA" },
+				},
+			],
+		});
+
+		expect(screen.getByText("Juan Díaz")).toBeInTheDocument();
+		expect(screen.queryByText(/QUIEN CORRESPONDA/i)).not.toBeInTheDocument();
 	});
 });

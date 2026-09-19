@@ -46,6 +46,8 @@ jest.mock("../../hooks/use-doctores", () => ({
 	useDoctores: () => ({ data: { data: [{ id_doctor: 3, nombre: "Saúl Ruiz" }], count: 1 } }),
 }));
 
+import * as XLSX from "xlsx";
+import { ENCABEZADOS_INFORME } from "../../utils/importar-informe-visitas";
 import InformeVisitas from "./informe-visitas";
 
 const mostrar = async () => {
@@ -131,14 +133,14 @@ describe("InformeVisitas", () => {
 		expect(archivo).toBe("Reporte_visitas_2026-08-17");
 	});
 
-	test("muestra las nueve columnas del Excel mas la de acciones", async () => {
+	// La fecha, la especialidad y la ubicación se siguen capturando y siguen
+	// yendo al Excel; en la tabla estorbaban, porque lo que se consulta aquí es
+	// qué se habló con cada médico.
+	test("la tabla deja fuera fecha, especialidad y ubicacion", async () => {
 		await mostrar();
 		const encabezados = screen.getAllByRole("columnheader").map((celda) => celda.textContent);
 		expect(encabezados).toEqual([
-			"Fecha",
 			"Médico / Empresa",
-			"Especialidad",
-			"Ubicación",
 			"Actividades",
 			"Comentarios del médico",
 			"Observaciones",
@@ -146,6 +148,21 @@ describe("InformeVisitas", () => {
 			"Convenio",
 			"Acción",
 		]);
+	});
+
+	// Quitarlas de la tabla no las quita del archivo: el Excel se sigue
+	// exportando con las nueve columnas, que es lo que se comparte.
+	test("el Excel sigue llevando las nueve columnas", async () => {
+		await mostrar();
+		await act(async () => {
+			fireEvent.click(screen.getByText("Exportar"));
+		});
+		const [hojas] = mockExportar.mock.calls.at(-1);
+		expect(hojas[0].visitas[0]).toMatchObject({
+			fecha: "2026-08-17",
+			especialidad: "Ginecólogo",
+			ubicacion: "Núcleo Médico Joya",
+		});
 	});
 
 	test("lista los cuatro campos largos en su columna", async () => {
@@ -188,5 +205,72 @@ describe("InformeVisitas", () => {
 		visitas.current = [];
 		await mostrar();
 		expect(screen.getByText("No hay visitas capturadas en esta semana.")).toBeInTheDocument();
+	});
+
+	// El navegador suelta el archivo en cuanto se vacía el campo, y la lectura
+	// se quedaba a medias: la importación entraba una de cada tantas veces.
+	describe("importar Excel", () => {
+		const libroDePrueba = () => {
+			const hoja = XLSX.utils.aoa_to_sheet([
+				ENCABEZADOS_INFORME,
+				[
+					"2026-08-17",
+					"Dr. Saúl Ruiz",
+					"Ginecólogo",
+					"Núcleo Médico Joya",
+					"Visita de seguimiento",
+					"",
+					"",
+					"",
+					"MIXTO",
+				],
+			]);
+			const libro = XLSX.utils.book_new();
+			XLSX.utils.book_append_sheet(libro, hoja, "Informe");
+			return XLSX.write(libro, { type: "array", bookType: "xlsx" });
+		};
+
+		// El campo se vacía para poder volver a elegir el mismo archivo; el archivo
+		// sólo se deja leer mientras el campo aún lo tiene tomado.
+		const archivoSoltadoAlVaciar = (campo, bytes) => ({
+			name: "informe.xlsx",
+			arrayBuffer: async () => {
+				if (campo.value === "") {
+					throw new Error("The requested file could not be read");
+				}
+				return bytes;
+			},
+		});
+
+		const elegirArchivo = async (campo, archivo) => {
+			Object.defineProperty(campo, "files", { value: [archivo], configurable: true });
+			Object.defineProperty(campo, "value", {
+				value: "C:\\fakepath\\informe.xlsx",
+				writable: true,
+				configurable: true,
+			});
+			await act(async () => {
+				fireEvent.change(campo);
+			});
+		};
+
+		test("lee el archivo elegido y enseña la revisión previa", async () => {
+			await mostrar();
+			const campo = document.querySelector('input[type="file"]');
+
+			await elegirArchivo(campo, archivoSoltadoAlVaciar(campo, libroDePrueba()));
+
+			expect(screen.getByText("Revisar antes de importar")).toBeInTheDocument();
+			expect(screen.getByText("Importar")).toBeInTheDocument();
+		});
+
+		test("el campo queda vacío para poder reintentar con el mismo archivo", async () => {
+			await mostrar();
+			const campo = document.querySelector('input[type="file"]');
+
+			await elegirArchivo(campo, archivoSoltadoAlVaciar(campo, libroDePrueba()));
+
+			expect(campo.value).toBe("");
+		});
 	});
 });

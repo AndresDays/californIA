@@ -186,10 +186,16 @@
 	vertical-align: top;
 }
 
+/* El encabezado se alinea como su columna: con el título a la izquierda y la
+   cifra a la derecha parecía que el valor no era de esa columna. */
+.visitadora-tabla th.numero,
 .visitadora-tabla td.numero {
 	text-align: right;
-	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
+}
+
+.visitadora-tabla td.numero {
+	font-variant-numeric: tabular-nums;
 }
 
 .visitadora-tabla tfoot td {
@@ -465,4 +471,69 @@
 	.visitadora-pagina {
 		padding: 1rem 1rem 2rem;
 	}
+}
+
+/* Filtro por días dentro del mes que se está viendo, con la misma forma que el
+   de captura y el de entrega de resultados. */
+.visitadora-filtro-fechas {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--borde);
+	border-radius: 6px;
+	background: var(--superficie-2);
+	font-size: 0.85rem;
+}
+
+.visitadora-filtro-titulo {
+	color: var(--texto-suave);
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+}
+
+.visitadora-filtro-fechas label {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.visitadora-filtro-fechas label span {
+	color: var(--texto-suave);
+}
+
+.visitadora-filtro-fechas input {
+	padding: 0.3rem 0.45rem;
+	border: 1px solid var(--borde);
+	border-radius: 5px;
+	background: var(--superficie);
+	color: var(--texto);
+	font: inherit;
+}
+
+.visitadora-filtro-fechas input:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.visitadora-filtro-fechas button {
+	padding: 0.3rem 0.6rem;
+	border: 1px solid var(--borde);
+	border-radius: 5px;
+	background: var(--superficie);
+	color: var(--texto);
+	cursor: pointer;
+	font: inherit;
+}
+
+.visitadora-filtro-fechas button:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.visitadora-filtro-nota {
+	color: var(--texto-suave);
 }
