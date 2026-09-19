@@ -186,10 +186,16 @@
 	vertical-align: top;
 }
 
+/* El encabezado se alinea como su columna: con el título a la izquierda y la
+   cifra a la derecha parecía que el valor no era de esa columna. */
+.visitadora-tabla th.numero,
 .visitadora-tabla td.numero {
 	text-align: right;
-	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
+}
+
+.visitadora-tabla td.numero {
+	font-variant-numeric: tabular-nums;
 }
 
 .visitadora-tabla tfoot td {

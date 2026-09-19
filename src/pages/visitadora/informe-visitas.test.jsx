@@ -133,14 +133,14 @@ describe("InformeVisitas", () => {
 		expect(archivo).toBe("Reporte_visitas_2026-08-17");
 	});
 
-	test("muestra las nueve columnas del Excel mas la de acciones", async () => {
+	// La fecha, la especialidad y la ubicación se siguen capturando y siguen
+	// yendo al Excel; en la tabla estorbaban, porque lo que se consulta aquí es
+	// qué se habló con cada médico.
+	test("la tabla deja fuera fecha, especialidad y ubicacion", async () => {
 		await mostrar();
 		const encabezados = screen.getAllByRole("columnheader").map((celda) => celda.textContent);
 		expect(encabezados).toEqual([
-			"Fecha",
 			"Médico / Empresa",
-			"Especialidad",
-			"Ubicación",
 			"Actividades",
 			"Comentarios del médico",
 			"Observaciones",
@@ -148,6 +148,21 @@ describe("InformeVisitas", () => {
 			"Convenio",
 			"Acción",
 		]);
+	});
+
+	// Quitarlas de la tabla no las quita del archivo: el Excel se sigue
+	// exportando con las nueve columnas, que es lo que se comparte.
+	test("el Excel sigue llevando las nueve columnas", async () => {
+		await mostrar();
+		await act(async () => {
+			fireEvent.click(screen.getByText("Exportar"));
+		});
+		const [hojas] = mockExportar.mock.calls.at(-1);
+		expect(hojas[0].visitas[0]).toMatchObject({
+			fecha: "2026-08-17",
+			especialidad: "Ginecólogo",
+			ubicacion: "Núcleo Médico Joya",
+		});
 	});
 
 	test("lista los cuatro campos largos en su columna", async () => {

@@ -23,11 +23,11 @@ import { nombreDoctor } from "../../utils/comisiones-medicos";
 import ModalVisita from "./componentes/modal-visita";
 import "./visitadora.css";
 
+// La fecha, la especialidad y la ubicación siguen capturándose y siguen en el
+// Excel; sólo dejaron de ocupar columna aquí, donde lo que se consulta es qué
+// se habló con cada médico.
 const COLUMNAS = [
-	"Fecha",
 	"Médico / Empresa",
-	"Especialidad",
-	"Ubicación",
 	"Actividades",
 	"Comentarios del médico",
 	"Observaciones",
@@ -256,7 +256,6 @@ const InformeVisitas = () => {
 							)}
 							{visitas.map((visita) => (
 								<tr key={visita.id_visita}>
-									<td>{visita.fecha}</td>
 									<td>
 										{visita.medico_nombre}{" "}
 										{visita.id_doctor ? (
@@ -265,8 +264,6 @@ const InformeVisitas = () => {
 											<span className="visitadora-pastilla suelto">sin ligar</span>
 										)}
 									</td>
-									<td>{visita.especialidad}</td>
-									<td>{visita.ubicacion}</td>
 									{/* El recorte va en un div y no en la celda: poner display
 									    en un <td> lo saca del modelo de tabla y descuadra las
 									    líneas de separación del renglón. */}

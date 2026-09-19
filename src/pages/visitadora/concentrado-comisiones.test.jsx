@@ -296,3 +296,91 @@ describe("filtro por fechas", () => {
 		).toBeInTheDocument();
 	});
 });
+
+// Con el encabezado pegado a la izquierda y la cifra a la derecha parecía que
+// el número no era de esa columna.
+describe("alineación de la tabla", () => {
+	test("el encabezado de cada cifra se alinea como su columna", async () => {
+		await mostrar(mesAbierto);
+
+		const encabezados = screen.getAllByRole("columnheader");
+		const alineados = encabezados
+			.filter((celda) => celda.classList.contains("numero"))
+			.map((celda) => celda.textContent);
+		expect(alineados).toEqual(["Órdenes", "%", "Ingreso generado", "Comisión"]);
+
+		// Médico y Estado se quedan a la izquierda, como su contenido.
+		for (const titulo of ["Médico", "Estado"]) {
+			expect(screen.getByRole("columnheader", { name: titulo })).not.toHaveClass("numero");
+		}
+	});
+
+	test("cada cifra sigue alineada a la derecha", async () => {
+		await mostrar(mesAbierto);
+
+		const renglon = renglonDe("Juan Díaz");
+		const celdas = [...renglon.querySelectorAll("td")];
+		expect(celdas[1]).toHaveClass("numero");
+		expect(celdas[2]).toHaveClass("numero");
+		expect(celdas[3]).toHaveClass("numero");
+		expect(celdas[4]).toHaveClass("numero");
+	});
+});
+
+// "A quien corresponda" es el registro que se usa cuando la orden no trae
+// médico remitente: no comisiona a nadie.
+describe("el remitente vacío", () => {
+	test("no sale en el mes abierto", async () => {
+		await mostrar({
+			cerrado: false,
+			mensuales: [],
+			doctores: [
+				{ id_doctor: 1, nombre: "Juan Díaz" },
+				{ id_doctor: 99, nombre: "A QUIEN CORRESPONDA" },
+			],
+			comisiones: [{ id_doctor: 1, porcentaje: 10, vigente_desde: "2026-01-01" }],
+			ventas: [
+				{ id_doctor: 1, total: 50000, estado: "activo" },
+				{ id_doctor: 99, total: 80000, estado: "activo" },
+			],
+		});
+
+		expect(screen.getByText("Juan Díaz")).toBeInTheDocument();
+		expect(screen.queryByText(/QUIEN CORRESPONDA/i)).not.toBeInTheDocument();
+		expect(screen.getByText("TOTAL · 1 médicos")).toBeInTheDocument();
+	});
+
+	test("tampoco en un mes ya cerrado", async () => {
+		await mostrar({
+			cerrado: true,
+			ventas: [],
+			doctores: [],
+			comisiones: [],
+			mensuales: [
+				{
+					id_mensual: "m1",
+					id_doctor: 1,
+					ordenes: 18,
+					ingreso_generado: 50000,
+					porcentaje: 10,
+					comision: 5000,
+					estado: "pagado",
+					doctores: { id_doctor: 1, nombre: "Juan Díaz" },
+				},
+				{
+					id_mensual: "m2",
+					id_doctor: 99,
+					ordenes: 30,
+					ingreso_generado: 80000,
+					porcentaje: 0,
+					comision: 0,
+					estado: "pendiente",
+					doctores: { id_doctor: 99, nombre: "A QUIEN CORRESPONDA" },
+				},
+			],
+		});
+
+		expect(screen.getByText("Juan Díaz")).toBeInTheDocument();
+		expect(screen.queryByText(/QUIEN CORRESPONDA/i)).not.toBeInTheDocument();
+	});
+});

@@ -11,6 +11,7 @@ import {
 } from "../../hooks/use-comisiones-medicos";
 import {
 	construirConcentradoMensual,
+	esDoctorSinRemitente,
 	filtrarVentasPorRango,
 	formatoMonedaComision,
 	limitesDelPeriodo,
@@ -25,9 +26,17 @@ import "./visitadora.css";
 
 const COLUMNAS = ["Médico", "Órdenes", "%", "Ingreso generado", "Comisión", "Estado"];
 
+// Las cifras van alineadas a la derecha para poder compararlas de un vistazo, y
+// su encabezado tiene que ir igual: con el título pegado a la izquierda parecía
+// que el número estaba fuera de su columna.
+const COLUMNAS_NUMERICAS = new Set(["Órdenes", "%", "Ingreso generado", "Comisión"]);
+
 // Un mes cerrado ya no se recalcula: se muestra tal como quedó congelado.
 const filasDesdeMesCerrado = (mensuales = []) =>
 	mensuales
+		// Un mes cerrado antes de esto puede traer el renglón de "A quien
+		// corresponda": no es un médico y no se le paga, así que tampoco se enseña.
+		.filter((registro) => !esDoctorSinRemitente(registro.doctores))
 		.map((registro) => ({
 			idDoctor: registro.id_doctor,
 			idMensual: registro.id_mensual,
@@ -286,7 +295,11 @@ const ConcentradoComisiones = () => {
 						<thead>
 							<tr>
 								{COLUMNAS.map((columna) => (
-									<th key={columna}>{columna}</th>
+									<th
+										key={columna}
+										className={COLUMNAS_NUMERICAS.has(columna) ? "numero" : undefined}>
+										{columna}
+									</th>
 								))}
 								{puedeEditar && <th>Acción</th>}
 							</tr>

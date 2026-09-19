@@ -27,6 +27,23 @@ export const nombreDoctor = (doctor) => {
 	return String(doctor.nombre || "").trim() || "Sin nombre";
 };
 
+// "A quien corresponda" no es un médico: es el registro que se usa cuando la
+// orden no trae remitente. No comisiona a nadie, así que no tiene por qué
+// ocupar un renglón del concentrado ni entrar al cierre del mes.
+const SIN_REMITENTE = "a quien corresponda";
+
+export const esDoctorSinRemitente = (doctor) => {
+	const nombre = typeof doctor === "string" ? doctor : nombreDoctor(doctor);
+	return (
+		String(nombre)
+			.normalize("NFD")
+			.replace(/[\u0300-\u036f]/g, "")
+			.replace(/\s+/g, " ")
+			.trim()
+			.toLowerCase() === SIN_REMITENTE
+	);
+};
+
 // El periodo llega como "YYYY-MM". Las ventas se acotan con el mismo offset de
 // Ciudad de México que usa el resto de los reportes, para que una orden de las
 // 23:00 del último día del mes no se vaya al mes siguiente.
@@ -103,6 +120,12 @@ export const construirConcentradoMensual = ({
 		historialPorDoctor.get(clave).push(registro);
 	}
 
+	const sinRemitente = new Set(
+		(doctores || [])
+			.filter((doctor) => esDoctorSinRemitente(doctor))
+			.map((doctor) => String(doctor.id_doctor)),
+	);
+
 	const acumulado = new Map();
 	for (const venta of ventas || []) {
 		// Una orden sin médico remitente no comisiona a nadie, y una cancelada
@@ -111,6 +134,7 @@ export const construirConcentradoMensual = ({
 		if (!esVentaActiva(venta)) continue;
 
 		const clave = String(venta.id_doctor);
+		if (sinRemitente.has(clave)) continue;
 		const fila = acumulado.get(clave) || { ordenes: 0, ingreso: 0 };
 		fila.ordenes += 1;
 		fila.ingreso += numero(venta[CAMPO_BASE_COMISION]);
