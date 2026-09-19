@@ -336,9 +336,9 @@ describe("acceso al modulo de visitadora desde los demas roles", () => {
 describe("rutaInicialPorRol", () => {
 	// La visitadora no puede entrar a /dashboard, asi que mandarla ahi la
 	// dejaria rebotando entre redirecciones sin poder usar la aplicacion.
-	test("la visitadora aterriza en su informe, no en el dashboard", () => {
-		expect(rutaInicialPorRol("visitadora")).toBe("/visitadora/informe");
-		expect(rutaInicialPorRol("Visitadora")).toBe("/visitadora/informe");
+	test("la visitadora aterriza en su panel, no en el dashboard", () => {
+		expect(rutaInicialPorRol("visitadora")).toBe("/visitadora/panel");
+		expect(rutaInicialPorRol("Visitadora")).toBe("/visitadora/panel");
 	});
 
 	test("los demas roles conservan su destino de siempre", () => {

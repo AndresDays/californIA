@@ -30,6 +30,13 @@ describe("sidebar shared menu", () => {
 
 	test("groups the medical rep module into its own section", () => {
 		expect(labelsFor("visitadora")).toEqual([
+			"Panel",
+			"Directorio",
+			"Agenda",
+			"Pendientes",
+			"Prospectos",
+			"Órdenes y eBudaicom",
+			"Reportes",
 			"Informe de visitas",
 			"Programación",
 			"Concentrado",

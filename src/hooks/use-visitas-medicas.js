@@ -4,7 +4,9 @@ import { supabase } from "../lib/supabase-client";
 const CAMPOS = `
 	id_visita, id_empleado, fecha, id_doctor, medico_nombre, especialidad,
 	ubicacion, zona, actividades, comentarios_medico, observaciones,
-	seguimiento, tipo_convenio
+	seguimiento, tipo_convenio, tipo_visita, objetivo, resultado,
+	que_se_ofrecio, que_se_entrego, compromisos, proxima_accion,
+	fecha_seguimiento, id_agenda
 `;
 
 export const useVisitasMedicas = ({ desde, hasta } = {}) =>
@@ -23,6 +25,23 @@ export const useVisitasMedicas = ({ desde, hasta } = {}) =>
 			return data ?? [];
 		},
 		staleTime: 1000 * 60 * 5,
+	});
+
+// El expediente del médico necesita todo su histórico, no sólo la semana que
+// se está viendo en el informe.
+export const useVisitasDeMedico = (idDoctor) =>
+	useQuery({
+		queryKey: ["visitas-medicas", "medico", idDoctor],
+		enabled: Boolean(idDoctor),
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("visitas_medicas")
+				.select(CAMPOS)
+				.eq("id_doctor", idDoctor)
+				.order("fecha", { ascending: false });
+			if (error) throw error;
+			return data ?? [];
+		},
 	});
 
 export const useGuardarVisita = () => {

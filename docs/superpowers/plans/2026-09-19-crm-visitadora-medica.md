@@ -49,62 +49,62 @@ RLS: mismas funciones ya escritas (`es_usuario_visitadora()`, `es_usuario_comisi
 ## 3. Fases
 
 ### Fase 1 — Directorio y expediente del médico (puntos 1, 2, 14)
-- [ ] Migración `doctores_crm` + `convenios_medico` + índices y RLS.
-- [ ] Hooks `use-directorio-medicos.js` y `use-convenios-medico.js` (TanStack Query, mismo patrón que `use-visitas-medicas.js`).
-- [ ] Pantalla `/visitadora/directorio`: lista con búsqueda y filtros por especialidad, zona, convenio, hospital, estatus y cumpleaños del mes.
-- [ ] Ficha `/visitadora/medico/:id` con pestañas: Datos · Convenio · Visitas · Llamadas · Órdenes · Seguimientos · eBudaicom · Notas.
-- [ ] Alta y edición del médico en un formulario de una sola columna, pensado para celular.
+- [x] Migración `doctores_crm` + `convenios_medico` + índices y RLS.
+- [x] Hooks `use-directorio-medicos.js` y `use-convenios-medico.js` (TanStack Query, mismo patrón que `use-visitas-medicas.js`).
+- [x] Pantalla `/visitadora/directorio`: lista con búsqueda y filtros por especialidad, zona, convenio, hospital, estatus y cumpleaños del mes.
+- [x] Ficha `/visitadora/medico/:id` con pestañas: Datos · Convenio · Visitas · Llamadas · Órdenes · Seguimientos · eBudaicom · Notas.
+- [x] Alta y edición del médico en un formulario de una sola columna, pensado para celular.
 - [ ] Foto del médico en Supabase Storage (bucket privado con URL firmada, igual que radiología).
-- [ ] Pruebas Jest de filtros, alta y ficha.
+- [x] Pruebas Jest de filtros, alta y ficha.
 
 ### Fase 2 — Agenda y registro de visitas (puntos 3, 4)
-- [ ] Migración `agenda_visitas` + ampliación de `visitas_medicas`; migrar `programacion_visitas` existente.
-- [ ] Vistas de agenda Día / Semana / Mes con cambio de fecha y filtro por zona.
-- [ ] Reprogramar: cambiar fecha desde la propia tarjeta de la visita (en celular, con un selector; en escritorio, además arrastrar).
-- [ ] Captura rápida post-visita: un modal de pantalla completa en celular con médico, motivo, qué se ofreció, qué se entregó, resultado, compromisos, próxima acción y fecha de seguimiento; guardar crea automáticamente la tarea de seguimiento.
-- [ ] Al guardar una visita se actualizan `última visita` y `próxima visita` del médico.
-- [ ] Pruebas de agenda, reprogramación y creación automática de seguimiento.
+- [x] Migración `agenda_visitas` + ampliación de `visitas_medicas`; migrar `programacion_visitas` existente.
+- [x] Vistas de agenda Día / Semana / Mes con cambio de fecha y filtro por zona.
+- [x] Reprogramar: cambiar fecha desde la propia tarjeta de la visita (en celular, con un selector; en escritorio, además arrastrar).
+- [x] Captura rápida post-visita: un modal de pantalla completa en celular con médico, motivo, qué se ofreció, qué se entregó, resultado, compromisos, próxima acción y fecha de seguimiento; guardar crea automáticamente la tarea de seguimiento.
+- [x] Al guardar una visita se actualizan `última visita` y `próxima visita` del médico.
+- [x] Pruebas de agenda, reprogramación y creación automática de seguimiento.
 
 ### Fase 3 — Seguimientos, recordatorios y cumpleaños (puntos 5, 8)
-- [ ] Migración `tareas_seguimiento`.
-- [ ] Bandeja de pendientes con filtros Hoy / Vencidos / Semana y cierre en un toque.
-- [ ] Cumpleaños: calendario del mes y aviso configurable N días antes (se calcula de `doctores.fecha_nacimiento`, ya existente).
+- [x] Migración `tareas_seguimiento`.
+- [x] Bandeja de pendientes con filtros Hoy / Vencidos / Semana y cierre en un toque.
+- [x] Cumpleaños: calendario del mes y aviso configurable N días antes (se calcula de `doctores.fecha_nacimiento`, ya existente).
 - [ ] Recordatorios dentro de la app reutilizando la tabla `notificaciones` y la campana ya implementadas.
 - [ ] Notificaciones push del PWA (Web Push) y, opcionalmente, recordatorio por WhatsApp reusando la Edge Function `whatsapp-reminders`.
 - [ ] Pruebas de vencimientos, cumpleaños y generación de avisos.
 
 ### Fase 4 — Panel principal (punto 13)
 - [ ] Vista SQL o RPC `panel_visitadora(id_empleado, fecha)` que devuelva los contadores en una sola llamada.
-- [ ] Pantalla de inicio del módulo: bloque **Hoy** (visitas programadas, seguimientos, llamadas, médicos por visitar, cumpleaños, tareas) y bloque **Esta semana** (visitas, prospectos nuevos, convenios, seguimientos, resultados).
-- [ ] Cada tarjeta es un botón grande que lleva a la lista filtrada correspondiente.
-- [ ] El módulo abre aquí por defecto (`redireccionPorRol` en `role-permissions.js`).
+- [x] Pantalla de inicio del módulo: bloque **Hoy** (visitas programadas, seguimientos, llamadas, médicos por visitar, cumpleaños, tareas) y bloque **Esta semana** (visitas, prospectos nuevos, convenios, seguimientos, resultados).
+- [x] Cada tarjeta es un botón grande que lleva a la lista filtrada correspondiente.
+- [x] El módulo abre aquí por defecto (`redireccionPorRol` en `role-permissions.js`).
 
 ### Fase 5 — Prospectos, órdenes y eBudaicom (puntos 7, 9, 10)
-- [ ] Migraciones `ordenes_medicas_entregadas` y `ebudaicom_medicos`; campos de prospecto en `doctores_crm`.
-- [ ] Embudo de prospectos con estatus y probabilidad de cierre; botón **Convertir en médico activo** que pide el tipo de convenio y conserva todo el historial.
-- [ ] Registro de órdenes entregadas y alerta de médicos con órdenes por renovar.
-- [ ] Tablero de eBudaicom con filtro «pendientes de crear usuario».
+- [x] Migraciones `ordenes_medicas_entregadas` y `ebudaicom_medicos`; campos de prospecto en `doctores_crm`.
+- [x] Embudo de prospectos con estatus y probabilidad de cierre; botón **Convertir en médico activo** que pide el tipo de convenio y conserva todo el historial.
+- [x] Registro de órdenes entregadas y alerta de médicos con órdenes por renovar.
+- [x] Tablero de eBudaicom con filtro «pendientes de crear usuario».
 - [ ] Pruebas de conversión de prospecto y de los dos tableros.
 
 ### Fase 6 — Reportes (punto 6)
 - [ ] RPC de reporte con parámetros de periodo, médico, especialidad, zona y tipo de convenio.
-- [ ] Pantalla de reportes con el resumen semanal completo solicitado (visitados, visitas, nuevos, prospectos, convenios nuevos y reactivados, seguimientos, llamadas, órdenes, altas en eBudaicom, pendientes, resultados).
-- [ ] Exportar a Excel (`xlsx`, como ya hace `exportar-informe-visitas.js`) y a PDF (`jspdf-autotable`).
-- [ ] Pruebas de los conteos con datos de ejemplo.
+- [x] Pantalla de reportes con el resumen semanal completo solicitado (visitados, visitas, nuevos, prospectos, convenios nuevos y reactivados, seguimientos, llamadas, órdenes, altas en eBudaicom, pendientes, resultados).
+- [x] Exportar a Excel (`xlsx`, como ya hace `exportar-informe-visitas.js`) y a PDF (`jspdf-autotable`).
+- [x] Pruebas de los conteos con datos de ejemplo.
 
 ### Fase 7 — Catálogo de servicios y sugerencia por especialidad (punto 11)
-- [ ] Tabla `servicios_por_especialidad` sobre los catálogos de estudios existentes, con semilla inicial.
+- [x] Tabla `servicios_por_especialidad` sobre los catálogos de estudios existentes, con semilla inicial.
 - [ ] Consulta rápida durante la visita: buscador de estudios, paquetes y (si se autoriza) precios.
-- [ ] Al abrir la ficha de un médico, el sistema propone los estudios más relevantes para su especialidad.
+- [x] Al abrir la ficha de un médico, el sistema propone los estudios más relevantes para su especialidad.
 
 ### Fase 8 — Mapa, zonas y ruta (punto 12)
-- [ ] Guardar latitud/longitud del consultorio (captura manual o desde la ubicación del celular).
+- [x] Guardar latitud/longitud del consultorio (captura manual o desde la ubicación del celular).
 - [ ] «Médicos cercanos» ordenados por distancia desde la posición actual.
-- [ ] Botón **Cómo llegar** que abre Google Maps, y armado de la agenda del día agrupando por zona.
+- [x] Botón **Cómo llegar** que abre Google Maps, y armado de la agenda del día agrupando por zona.
 
 ### Fase 9 — Uso móvil y cierre (punto 15)
-- [ ] Repaso responsive de todo el módulo: una columna, botones grandes, tipografía legible, barra inferior de accesos.
-- [ ] Accesos directos a llamar y a WhatsApp desde la ficha del médico.
+- [x] Repaso responsive de todo el módulo: una columna, botones grandes, tipografía legible, barra inferior de accesos.
+- [x] Accesos directos a llamar y a WhatsApp desde la ficha del médico.
 - [ ] Verificar que el PWA se instala y que la captura funciona con conexión intermitente.
 - [ ] Pruebas e2e Playwright del recorrido completo: abrir panel → ver agenda → registrar visita → crear seguimiento → generar reporte.
 - [ ] Auditoría de accesibilidad/contraste con `npm run audit:contraste`.
@@ -113,6 +113,23 @@ RLS: mismas funciones ya escritas (`es_usuario_visitadora()`, `es_usuario_comisi
 Metas mensuales y estadísticas de productividad, comisiones ligadas a referencias, varios representantes con cartera propia, reportes para dirección, comparación entre periodos e integraciones de calendario y WhatsApp. El modelo de datos de las fases anteriores ya deja lugar para esto (`id_empleado` en todas las tablas y convenios con histórico).
 
 ---
+
+## 3 bis. Estado de la implementación (19 de septiembre de 2026)
+
+Las fases 1 a 7 quedaron implementadas en la rama `claude/medical-rep-crm-jwa735`:
+migración `20260919130000_crm_visitadora.sql`, hooks nuevos, y las pantallas
+Panel, Directorio, Expediente del médico, Agenda, Pendientes, Prospectos,
+Órdenes y eBudaicom, y Reportes, con su diseño móvil y pruebas.
+
+Sigue pendiente, por orden:
+
+- Fotografía del médico en Supabase Storage (el campo `foto_url` ya existe).
+- Notificaciones push del PWA y recordatorio por WhatsApp (hoy los avisos se ven
+  dentro de la aplicación, en el panel y en la bandeja de pendientes).
+- Pantalla de "médicos cercanos" y armado de ruta por zona: el cálculo de
+  distancia y los enlaces a Google Maps ya están, falta la pantalla que los use.
+- Pruebas e2e del recorrido completo y auditoría de contraste (fase 9).
+- Fase 10 completa (metas, productividad, varios representantes).
 
 ## 4. Respuesta a las preguntas de la solicitud
 

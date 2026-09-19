@@ -466,3 +466,276 @@
 		padding: 1rem 1rem 2rem;
 	}
 }
+
+/* ==========================================================================
+   CRM: directorio, agenda, pendientes y expediente. El módulo se usa parado en
+   un consultorio con el celular en una mano, así que aquí todo es tarjeta
+   grande y una sola columna en pantalla chica; la tabla se reserva para el
+   escritorio.
+   ========================================================================== */
+.visitadora-barra-filtros {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.visitadora-barra-filtros input,
+.visitadora-barra-filtros select {
+	font-family: inherit;
+	font-size: 0.85rem;
+	padding: 0.5rem 0.65rem;
+	border-radius: 8px;
+	border: 1px solid var(--borde);
+	background: var(--superficie-2);
+	color: var(--texto);
+	min-height: 2.6rem;
+}
+
+.visitadora-buscador {
+	flex: 1 1 14rem;
+	min-width: 0;
+}
+
+.visitadora-lista {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+	gap: 0.75rem;
+}
+
+.visitadora-ficha-medico {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	padding: 0.9rem 1rem;
+	border: 1px solid var(--borde);
+	border-radius: 10px;
+	background: var(--superficie-2);
+	text-align: left;
+	color: var(--texto);
+	font-family: inherit;
+	cursor: pointer;
+}
+
+.visitadora-ficha-medico:hover {
+	background: var(--superficie-hover);
+}
+
+.visitadora-ficha-nombre {
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+.visitadora-ficha-dato {
+	font-size: 0.8rem;
+	opacity: 0.85;
+}
+
+.visitadora-pastillas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin-top: 0.25rem;
+}
+
+/* Un color por estatus para reconocerlo de un vistazo sin leer la etiqueta. */
+.visitadora-pastilla.activo {
+	background: var(--superficie-3);
+}
+
+.visitadora-pastilla.prospecto,
+.visitadora-pastilla.pendiente {
+	background: var(--superficie-hover);
+}
+
+.visitadora-pastilla.vencido {
+	background: var(--superficie-3);
+	font-weight: 700;
+}
+
+/* Botones de acción rápida: llamar, WhatsApp, cómo llegar. Se tocan con el
+   pulgar, de ahí el tamaño mínimo. */
+.visitadora-acciones-rapidas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.visitadora-acciones-rapidas a,
+.visitadora-acciones-rapidas button {
+	flex: 1 1 8rem;
+	min-height: 2.9rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	padding: 0.55rem 0.9rem;
+	border-radius: 8px;
+	border: 1px solid var(--borde-fuerte);
+	background: var(--superficie-2);
+	color: var(--texto);
+	font-family: inherit;
+	font-size: 0.85rem;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.visitadora-pestanas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	border-bottom: 1px solid var(--borde);
+	padding-bottom: 0.5rem;
+}
+
+.visitadora-pestanas button {
+	font-family: inherit;
+	font-size: 0.82rem;
+	padding: 0.45rem 0.85rem;
+	border-radius: 8px 8px 0 0;
+	border: 1px solid transparent;
+	background: none;
+	color: var(--texto);
+	cursor: pointer;
+}
+
+.visitadora-pestanas button[aria-selected="true"] {
+	background: var(--superficie-2);
+	border-color: var(--borde);
+	font-weight: 600;
+}
+
+/* Panel principal: cada tarjeta es un botón que lleva a su lista filtrada. */
+.visitadora-panel-bloque {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.visitadora-panel-titulo {
+	margin: 0;
+	font-size: 0.72rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	opacity: 0.85;
+}
+
+.visitadora-tarjeta.accionable {
+	cursor: pointer;
+	text-align: left;
+	font-family: inherit;
+	color: var(--texto);
+	background: var(--superficie-2);
+}
+
+.visitadora-tarjeta.accionable:hover {
+	background: var(--superficie-hover);
+}
+
+.visitadora-vacio {
+	padding: 1.2rem;
+	border: 1px dashed var(--borde);
+	border-radius: 10px;
+	font-size: 0.85rem;
+	opacity: 0.85;
+}
+
+/* Agenda: una columna por día en semana, lista simple en día y mes compacto. */
+.visitadora-agenda-semana {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.6rem;
+}
+
+.visitadora-agenda-dia {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	padding: 0.6rem;
+	border: 1px solid var(--borde);
+	border-radius: 10px;
+	background: var(--superficie-2);
+	min-height: 6rem;
+}
+
+.visitadora-agenda-dia h3 {
+	margin: 0;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.visitadora-cita {
+	padding: 0.5rem 0.6rem;
+	border: 1px solid var(--borde);
+	border-radius: 8px;
+	background: var(--superficie-3);
+	font-size: 0.8rem;
+	text-align: left;
+	color: var(--texto);
+	font-family: inherit;
+	cursor: pointer;
+	width: 100%;
+}
+
+.visitadora-cita.realizada {
+	opacity: 0.6;
+}
+
+.visitadora-cita.cancelada,
+.visitadora-cita.reprogramada {
+	opacity: 0.5;
+	text-decoration: line-through;
+}
+
+.visitadora-mes {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 0.3rem;
+}
+
+.visitadora-mes-celda {
+	min-height: 4.2rem;
+	padding: 0.3rem;
+	border: 1px solid var(--borde);
+	border-radius: 6px;
+	background: var(--superficie-2);
+	font-size: 0.72rem;
+}
+
+.visitadora-mes-celda.hoy {
+	border-color: var(--borde-fuerte);
+	border-width: 2px;
+}
+
+@media (max-width: 768px) {
+	.visitadora-lista,
+	.visitadora-agenda-semana {
+		grid-template-columns: 1fr;
+	}
+
+	.visitadora-titulo {
+		font-size: 1.15rem;
+	}
+
+	/* En celular el modal ocupa la pantalla completa: se captura de pie y no
+	   hay espacio para adivinar dónde termina la ventana. */
+	.visitadora-modal {
+		width: 100%;
+		max-width: none;
+		min-height: 100vh;
+		border-radius: 0;
+	}
+
+	.visitadora-acciones button,
+	.visitadora-modal-acciones button {
+		min-height: 2.9rem;
+		font-size: 0.85rem;
+		flex: 1 1 8rem;
+	}
+
+	.visitadora-mes-celda {
+		min-height: 3rem;
+		font-size: 0.65rem;
+	}
+}
