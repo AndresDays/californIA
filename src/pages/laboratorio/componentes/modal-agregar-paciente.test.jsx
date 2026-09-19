@@ -204,6 +204,40 @@ describe("ModalAgregarPaciente: nombres y fecha de nacimiento", () => {
 	});
 });
 
+// Los dos nombres van en un renglón y los dos apellidos en otro, no uno debajo
+// del otro: se captura el nombre completo de un vistazo.
+describe("acomodo de los campos de nombre", () => {
+	beforeEach(() => {
+		sessionStorage.clear();
+		globalThis.mostrarNotificacion = jest.fn();
+	});
+
+	const renglonDe = (placeholder) =>
+		screen.getByPlaceholderText(placeholder).closest(".modal-fila-doble");
+
+	test("primer y segundo nombre comparten renglón", () => {
+		abrirModal();
+
+		const renglon = renglonDe("Ingresar Primer Nombre");
+		expect(renglon).not.toBeNull();
+		expect(renglon).toBe(renglonDe("Ingresar Segundo Nombre"));
+	});
+
+	test("apellido paterno y materno comparten renglón", () => {
+		abrirModal();
+
+		const renglon = renglonDe("Ingresar Apellido Paterno");
+		expect(renglon).not.toBeNull();
+		expect(renglon).toBe(renglonDe("Ingresar Apellido Materno"));
+	});
+
+	test("los nombres y los apellidos van en renglones distintos", () => {
+		abrirModal();
+
+		expect(renglonDe("Ingresar Primer Nombre")).not.toBe(renglonDe("Ingresar Apellido Paterno"));
+	});
+});
+
 describe("lada del teléfono", () => {
 	beforeEach(() => {
 		sessionStorage.clear();
@@ -251,6 +285,32 @@ describe("lada del teléfono", () => {
 		expect(screen.getByDisplayValue("Estados Unidos (+1)")).toBeInTheDocument();
 		expect(screen.getByPlaceholderText("Ingresar Teléfono (10 dígitos)")).toHaveValue("2135551234");
 		expect(screen.getByText("+1")).toBeInTheDocument();
+	});
+
+	// La captura no es sólo de México: el select trae la lada de cualquier país.
+	test("el select trae la lada de los demás países", () => {
+		const onGuardar = jest.fn();
+		abrirModal({ onGuardar });
+		capturarPaciente();
+
+		fireEvent.change(screen.getByDisplayValue("México (+52)"), { target: { value: "Argentina" } });
+		expect(screen.getByText("+54")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByText("Guardar cliente"));
+
+		expect(onGuardar).toHaveBeenCalledWith(
+			expect.objectContaining({ pais: "Argentina", telefono: "+54 3221234567" }),
+			false,
+		);
+	});
+
+	test("al editar, una lada de otro país se reconoce", () => {
+		abrirModal({
+			pacienteEditar: { id: 11, nombre: "Luz", apellidoPaterno: "Sosa", telefono: "+34 6125551234" },
+		});
+
+		expect(screen.getByDisplayValue("España (+34)")).toBeInTheDocument();
+		expect(screen.getByPlaceholderText("Ingresar Teléfono (10 dígitos)")).toHaveValue("6125551234");
 	});
 
 	test("al editar un paciente de México se conserva el +52", () => {

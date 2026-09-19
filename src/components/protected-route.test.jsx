@@ -58,6 +58,27 @@ describe('ProtectedRoute', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/radiologia')
   })
 
+  // Volver a la pestaña revalida la sesión. Si eso cambiaba la pantalla por el
+  // spinner, se desmontaba todo lo que estuviera abierto -un modal a medio
+  // llenar incluido-.
+  it('deja la pantalla puesta mientras se revalida una sesión ya resuelta', () => {
+    useAuth.mockReturnValue({
+      user: { id: 1 },
+      loading: false,
+      empleadoLoading: true,
+      empleadoData: { rol: 'admin' },
+    })
+    render(<MemoryRouter initialEntries={['/dashboard']}><ProtectedRoute><div>Contenido protegido</div></ProtectedRoute></MemoryRouter>)
+    expect(screen.getByText('Contenido protegido')).toBeInTheDocument()
+    expect(screen.queryByText('Cargando...')).not.toBeInTheDocument()
+  })
+
+  it('muestra loading mientras resuelve el perfil por primera vez', () => {
+    useAuth.mockReturnValue({ user: { id: 1 }, loading: false, empleadoLoading: true, empleadoData: null })
+    render(<MemoryRouter initialEntries={['/dashboard']}><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)
+    expect(screen.getByText('Cargando...')).toBeInTheDocument()
+  })
+
   it('no permite una ruta protegida sin perfil de empleado resuelto', () => {
     useAuth.mockReturnValue({ user: { id: 1 }, loading: false, empleadoLoading: false, empleadoData: null })
     render(<MemoryRouter initialEntries={['/usuarios']}><ProtectedRoute><div>Contenido</div></ProtectedRoute></MemoryRouter>)

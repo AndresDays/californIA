@@ -923,3 +923,33 @@
 		flex-direction: column;
 	}
 }
+
+/* El botón que abre el catálogo completo vive dentro del recuadro del buscador,
+   como el de la pantalla de alta: escribir acota, el botón enseña todo. */
+.buscar-estudios-grupo .btn-catalogo-estudios {
+	background: transparent;
+	border: none;
+	color: var(--texto);
+	cursor: pointer;
+	flex: 0 0 auto;
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.9rem;
+	line-height: 1;
+	padding: 0.35rem 0.25rem;
+}
+
+.buscar-estudios-grupo .btn-catalogo-estudios:hover,
+.buscar-estudios-grupo .btn-catalogo-estudios[aria-expanded="true"] {
+	color: var(--azul);
+}
+
+/* El aviso del tarifario del convenio, igual que en el alta. */
+.nota-precios-cliente {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.78rem;
+	color: var(--texto-azul);
+}
+
+.nota-precios-cliente-aviso {
+	color: var(--texto);
+}
