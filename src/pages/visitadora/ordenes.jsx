@@ -3,15 +3,15 @@ import { useNavigate } from "react-router-dom";
 import PageLayout from "../../components/page-layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
-import { useDirectorioMedicos, useGuardarEbudaicom } from "../../hooks/use-directorio-medicos";
+import { useDirectorioMedicos, useGuardarVisorDicom } from "../../hooks/use-directorio-medicos";
 import { useOrdenesEntregadas } from "../../hooks/use-ordenes-medicas";
-import { ESTADOS_EBUDAICOM, etiquetaEbudaicom } from "../../utils/crm-visitadora";
+import { ESTADOS_VISORDICOM, etiquetaVisorDicom } from "../../utils/crm-visitadora";
 import { hoyEnMexico, sumarDias } from "../../utils/semanas-visitadora";
 import ModalOrden from "./componentes/modal-orden";
 import "./visitadora.css";
 
 // Dos controles que se llevan igual: talonarios entregados y usuarios de
-// eBudaicom. Comparten pantalla porque son las dos listas de "a quién le falta
+// VisorDICOM. Comparten pantalla porque son las dos listas de "a quién le falta
 // algo" que ella revisa antes de salir a la ruta.
 const Ordenes = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
@@ -23,7 +23,7 @@ const Ordenes = () => {
 
 	const { medicos } = useDirectorioMedicos();
 	const { data: entregas = [], isLoading, error } = useOrdenesEntregadas({});
-	const guardarEbudaicom = useGuardarEbudaicom();
+	const guardarVisorDicom = useGuardarVisorDicom();
 
 	const avisar = (mensaje, tipo = "exito") => setNotificacion({ isOpen: true, mensaje, tipo });
 
@@ -41,8 +41,8 @@ const Ordenes = () => {
 			.sort((uno, otro) => uno.fecha_renovacion.localeCompare(otro.fecha_renovacion));
 	}, [entregas, hoy]);
 
-	const pendientesEbudaicom = useMemo(
-		() => medicos.filter((medico) => (medico.ebudaicom?.estado ?? "pendiente") === "pendiente"),
+	const pendientesVisorDicom = useMemo(
+		() => medicos.filter((medico) => (medico.visordicom?.estado ?? "pendiente") === "pendiente"),
 		[medicos],
 	);
 
@@ -50,7 +50,7 @@ const Ordenes = () => {
 		<PageLayout empleadoData={empleadoData} formatRol={formatRol} getPrimerNombre={getPrimerNombre}>
 			<div className="visitadora-pagina">
 				<div className="visitadora-encabezado">
-					<h1 className="visitadora-titulo">Órdenes y eBudaicom</h1>
+					<h1 className="visitadora-titulo">Órdenes y VisorDICOM</h1>
 					<div className="visitadora-acciones">
 						<button type="button" className="visitadora-boton-primario" onClick={() => setModalAbierto(true)}>
 							+ Registrar entrega
@@ -65,8 +65,8 @@ const Ordenes = () => {
 					<button type="button" role="tab" aria-selected={pestana === "renovar"} onClick={() => setPestana("renovar")}>
 						Por renovar ({porRenovar.length})
 					</button>
-					<button type="button" role="tab" aria-selected={pestana === "ebudaicom"} onClick={() => setPestana("ebudaicom")}>
-						eBudaicom ({pendientesEbudaicom.length} pendientes)
+					<button type="button" role="tab" aria-selected={pestana === "visordicom"} onClick={() => setPestana("visordicom")}>
+						VisorDICOM ({pendientesVisorDicom.length} pendientes)
 					</button>
 				</div>
 
@@ -113,7 +113,7 @@ const Ordenes = () => {
 					</div>
 				)}
 
-				{pestana === "ebudaicom" && (
+				{pestana === "visordicom" && (
 					<div className="visitadora-lista">
 						{medicos.length === 0 && <p className="visitadora-vacio">El directorio está vacío.</p>}
 						{medicos.map((medico) => (
@@ -125,33 +125,33 @@ const Ordenes = () => {
 									{medico.nombre_completo}
 								</button>
 								<span className="visitadora-ficha-dato">
-									{etiquetaEbudaicom(medico.ebudaicom?.estado ?? "pendiente")}
-									{medico.ebudaicom?.fecha_creacion ? ` · desde ${medico.ebudaicom.fecha_creacion}` : ""}
+									{etiquetaVisorDicom(medico.visordicom?.estado ?? "pendiente")}
+									{medico.visordicom?.fecha_creacion ? ` · desde ${medico.visordicom.fecha_creacion}` : ""}
 								</span>
-								<label htmlFor={`ebudaicom-${medico.id_doctor}`} className="visitadora-ficha-dato">
+								<label htmlFor={`visordicom-${medico.id_doctor}`} className="visitadora-ficha-dato">
 									Estado
 								</label>
 								<select
-									id={`ebudaicom-${medico.id_doctor}`}
-									value={medico.ebudaicom?.estado ?? "pendiente"}
+									id={`visordicom-${medico.id_doctor}`}
+									value={medico.visordicom?.estado ?? "pendiente"}
 									onChange={async (evento) => {
 										try {
-											await guardarEbudaicom.mutateAsync({
+											await guardarVisorDicom.mutateAsync({
 												id_doctor: medico.id_doctor,
 												estado: evento.target.value,
-												usuario: medico.ebudaicom?.usuario ?? null,
+												usuario: medico.visordicom?.usuario ?? null,
 												fecha_creacion:
 													evento.target.value === "pendiente"
-														? medico.ebudaicom?.fecha_creacion ?? null
-														: medico.ebudaicom?.fecha_creacion ?? hoy,
+														? medico.visordicom?.fecha_creacion ?? null
+														: medico.visordicom?.fecha_creacion ?? hoy,
 												id_empleado: empleadoData?.id_empleado ?? null,
 											});
-											avisar("eBudaicom actualizado.");
+											avisar("VisorDICOM actualizado.");
 										} catch (fallo) {
 											avisar(fallo.message || "No se pudo actualizar.", "error");
 										}
 									}}>
-									{ESTADOS_EBUDAICOM.map((estado) => (
+									{ESTADOS_VISORDICOM.map((estado) => (
 										<option key={estado.valor} value={estado.valor}>{estado.etiqueta}</option>
 									))}
 								</select>

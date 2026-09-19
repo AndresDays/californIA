@@ -145,9 +145,15 @@ export const sidebarItems = [
 			},
 			{
 				id: "visitadora-ordenes",
-				label: "Órdenes y eBudaicom",
+				label: "Órdenes y VisorDICOM",
 				icon: subIcon,
 				path: "/visitadora/ordenes",
+			},
+			{
+				id: "visitadora-referidos",
+				label: "Pacientes referidos",
+				icon: subIcon,
+				path: "/visitadora/referidos",
 			},
 			{
 				id: "visitadora-reportes",

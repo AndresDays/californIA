@@ -42,13 +42,13 @@ export const TIPOS_TAREA = [
 	{ valor: "visita", etiqueta: "Visitar de nuevo" },
 	{ valor: "entrega_ordenes", etiqueta: "Entregar órdenes" },
 	{ valor: "reactivar_convenio", etiqueta: "Reactivar convenio" },
-	{ valor: "alta_ebudaicom", etiqueta: "Crear usuario en eBudaicom" },
+	{ valor: "alta_visordicom", etiqueta: "Crear usuario en VisorDICOM" },
 	{ valor: "confirmar_cita", etiqueta: "Confirmar cita" },
 	{ valor: "cumpleanos", etiqueta: "Cumpleaños" },
 	{ valor: "otro", etiqueta: "Otro" },
 ];
 
-export const ESTADOS_EBUDAICOM = [
+export const ESTADOS_VISORDICOM = [
 	{ valor: "pendiente", etiqueta: "Pendiente" },
 	{ valor: "creado", etiqueta: "Usuario creado" },
 	{ valor: "activo", etiqueta: "Usuario activo" },
@@ -62,7 +62,7 @@ export const etiquetaEstatus = (valor) => etiquetaDe(ESTATUS_MEDICO, valor);
 export const etiquetaConvenio = (valor) => etiquetaDe(TIPOS_CONVENIO, valor);
 export const etiquetaTipoVisita = (valor) => etiquetaDe(TIPOS_VISITA, valor);
 export const etiquetaTipoTarea = (valor) => etiquetaDe(TIPOS_TAREA, valor);
-export const etiquetaEbudaicom = (valor) => etiquetaDe(ESTADOS_EBUDAICOM, valor);
+export const etiquetaVisorDicom = (valor) => etiquetaDe(ESTADOS_VISORDICOM, valor);
 
 // Se compara sin acentos ni mayúsculas y sin el "Dr." de adelante, igual que en
 // el informe: el nombre que ella escribe casi nunca coincide letra por letra

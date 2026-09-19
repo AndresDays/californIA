@@ -84,3 +84,46 @@ export const exportarProgramacionSemanal = (
 		})),
 		nombreArchivo,
 	);
+
+// --- agenda de visitas ------------------------------------------------------
+// La agenda también se manda por correo y se imprime para salir a la ruta, así
+// que se exporta con las mismas columnas que se ven en pantalla.
+export const ENCABEZADOS_AGENDA = [
+	"Fecha",
+	"Hora",
+	"Médico",
+	"Especialidad",
+	"Zona",
+	"Tipo de visita",
+	"Objetivo",
+	"Estatus",
+	"Resultado",
+	"Próximo seguimiento",
+];
+
+export const construirHojaAgenda = (citas = [], { titulo = "", etiquetaTipo = (valor) => valor } = {}) => [
+	["AGENDA DE VISITAS MÉDICAS"],
+	[`📅 ${texto(titulo)}`],
+	ENCABEZADOS_AGENDA,
+	...citas.map((cita) => [
+		texto(cita.fecha),
+		texto(cita.hora).slice(0, 5),
+		texto(cita.medico_nombre),
+		texto(cita.especialidad),
+		texto(cita.zona),
+		texto(etiquetaTipo(cita.tipo_visita)),
+		texto(cita.objetivo),
+		texto(cita.estatus),
+		texto(cita.resultado),
+		texto(cita.proximo_seguimiento),
+	]),
+];
+
+export const exportarAgenda = (citas = [], opciones = {}, nombreArchivo = "Agenda_visitas") => {
+	const filas = construirHojaAgenda(citas, opciones);
+	const hoja = XLSX.utils.aoa_to_sheet(filas);
+	hoja["!cols"] = anchosDeColumna(filas);
+	const libro = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(libro, hoja, "Agenda");
+	XLSX.writeFile(libro, `${nombreArchivo}.xlsx`);
+};

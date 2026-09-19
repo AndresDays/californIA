@@ -24,7 +24,7 @@
 | Login, roles y permisos (`visitadora` ya es un rol con menú propio) | Funciona | `src/utils/role-permissions.js` |
 | PWA / uso en celular | Base lista, falta diseño móvil del módulo | `vite.config.js` |
 
-**Lo que falta** respecto a lo pedido: expediente comercial del médico, convenios estructurados, prospectos, agenda día/semana/mes con reprogramación, captura rápida móvil, recordatorios y cumpleaños, reportes automáticos con exportación, control de órdenes, control de eBudaicom, ficha de servicios por especialidad, mapa/zonas y panel principal.
+**Lo que falta** respecto a lo pedido: expediente comercial del médico, convenios estructurados, prospectos, agenda día/semana/mes con reprogramación, captura rápida móvil, recordatorios y cumpleaños, reportes automáticos con exportación, control de órdenes, control de VisorDICOM, ficha de servicios por especialidad, mapa/zonas y panel principal.
 
 ---
 
@@ -39,7 +39,7 @@ Todo cuelga de `doctores.id_doctor` para no duplicar el catálogo que ya usan re
 - `tareas_seguimiento`: tipo (`seguimiento|llamada|entrega_ordenes|reactivar_convenio|alta_ebudaicom|confirmar_cita|cumpleanos`), médico, fecha objetivo, estado, notas.
 - `prospectos_medicos`: vive como `doctores` con estatus `prospecto` + campos propios (interés, probabilidad de cierre, servicios ofrecidos, número de contactos). Convertir a activo es un cambio de estatus + alta de convenio, sin recapturar nada.
 - `ordenes_medicas_entregadas`: médico, fecha, cantidad, tipo, folios, seguimiento, observaciones.
-- `ebudaicom_medicos`: estado (`pendiente|creado|activo`), fecha de creación, usuario, observaciones.
+- `visordicom_medicos`: estado (`pendiente|creado|activo`), fecha de creación, usuario, observaciones.
 - `servicios_por_especialidad`: relación especialidad → estudios recomendados, sobre los catálogos de estudios que ya existen.
 
 RLS: mismas funciones ya escritas (`es_usuario_visitadora()`, `es_usuario_comisiones_admin()`); cuando entre un segundo representante se añade filtro por `id_empleado` para que cada quien vea su cartera y dirección vea todo.
@@ -52,7 +52,7 @@ RLS: mismas funciones ya escritas (`es_usuario_visitadora()`, `es_usuario_comisi
 - [x] Migración `doctores_crm` + `convenios_medico` + índices y RLS.
 - [x] Hooks `use-directorio-medicos.js` y `use-convenios-medico.js` (TanStack Query, mismo patrón que `use-visitas-medicas.js`).
 - [x] Pantalla `/visitadora/directorio`: lista con búsqueda y filtros por especialidad, zona, convenio, hospital, estatus y cumpleaños del mes.
-- [x] Ficha `/visitadora/medico/:id` con pestañas: Datos · Convenio · Visitas · Llamadas · Órdenes · Seguimientos · eBudaicom · Notas.
+- [x] Ficha `/visitadora/medico/:id` con pestañas: Datos · Convenio · Visitas · Llamadas · Órdenes · Seguimientos · VisorDICOM · Notas.
 - [x] Alta y edición del médico en un formulario de una sola columna, pensado para celular.
 - [ ] Foto del médico en Supabase Storage (bucket privado con URL firmada, igual que radiología).
 - [x] Pruebas Jest de filtros, alta y ficha.
@@ -79,16 +79,16 @@ RLS: mismas funciones ya escritas (`es_usuario_visitadora()`, `es_usuario_comisi
 - [x] Cada tarjeta es un botón grande que lleva a la lista filtrada correspondiente.
 - [x] El módulo abre aquí por defecto (`redireccionPorRol` en `role-permissions.js`).
 
-### Fase 5 — Prospectos, órdenes y eBudaicom (puntos 7, 9, 10)
-- [x] Migraciones `ordenes_medicas_entregadas` y `ebudaicom_medicos`; campos de prospecto en `doctores_crm`.
+### Fase 5 — Prospectos, órdenes y VisorDICOM (puntos 7, 9, 10)
+- [x] Migraciones `ordenes_medicas_entregadas` y `visordicom_medicos`; campos de prospecto en `doctores_crm`.
 - [x] Embudo de prospectos con estatus y probabilidad de cierre; botón **Convertir en médico activo** que pide el tipo de convenio y conserva todo el historial.
 - [x] Registro de órdenes entregadas y alerta de médicos con órdenes por renovar.
-- [x] Tablero de eBudaicom con filtro «pendientes de crear usuario».
+- [x] Tablero de VisorDICOM con filtro «pendientes de crear usuario».
 - [ ] Pruebas de conversión de prospecto y de los dos tableros.
 
 ### Fase 6 — Reportes (punto 6)
 - [ ] RPC de reporte con parámetros de periodo, médico, especialidad, zona y tipo de convenio.
-- [x] Pantalla de reportes con el resumen semanal completo solicitado (visitados, visitas, nuevos, prospectos, convenios nuevos y reactivados, seguimientos, llamadas, órdenes, altas en eBudaicom, pendientes, resultados).
+- [x] Pantalla de reportes con el resumen semanal completo solicitado (visitados, visitas, nuevos, prospectos, convenios nuevos y reactivados, seguimientos, llamadas, órdenes, altas en VisorDICOM, pendientes, resultados).
 - [x] Exportar a Excel (`xlsx`, como ya hace `exportar-informe-visitas.js`) y a PDF (`jspdf-autotable`).
 - [x] Pruebas de los conteos con datos de ejemplo.
 
@@ -119,7 +119,14 @@ Metas mensuales y estadísticas de productividad, comisiones ligadas a referenci
 Las fases 1 a 7 quedaron implementadas en la rama `claude/medical-rep-crm-jwa735`:
 migración `20260919130000_crm_visitadora.sql`, hooks nuevos, y las pantallas
 Panel, Directorio, Expediente del médico, Agenda, Pendientes, Prospectos,
-Órdenes y eBudaicom, y Reportes, con su diseño móvil y pruebas.
+Órdenes y VisorDICOM, y Reportes, con su diseño móvil y pruebas.
+
+Después se agregó, a pedido de la representante: la ventana **Pacientes
+referidos** (cuántos pacientes distintos mandó cada médico, con filtro por
+fechas y exportación a Excel), la exportación de la agenda a Excel, el
+renombre de eBudaicom a **VisorDICOM** en la aplicación y en la base
+(`20260920120000_visordicom_rename.sql`), y el submenú del módulo, que ahora
+se ancla hacia donde quepa para que no se corte la última opción.
 
 Sigue pendiente, por orden:
 
@@ -136,7 +143,7 @@ Sigue pendiente, por orden:
 - **¿Es posible?** Sí. Más de la mitad de la base (autenticación, roles, catálogo de médicos, visitas, programación, comisiones, catálogo de estudios con precios, notificaciones y PWA) ya está construida y en producción en CalifornIA; lo que falta es sobre todo pantallas y tablas nuevas alrededor de eso.
 - **Tecnología recomendada:** la misma del sistema actual — React + Vite (PWA para celular sin necesidad de publicar en tiendas) y Supabase (Postgres, autenticación, permisos por rol, respaldos y archivos). Evita mantener dos plataformas y aprovecha el catálogo de médicos que ya existe.
 - **Primera versión funcional (fases 1 a 4):** directorio con expediente, convenios, agenda con reprogramación, captura rápida desde celular, seguimientos, cumpleaños y panel principal. Estimado **6 a 8 semanas** de trabajo.
-- **Versión completa (fases 5 a 9):** prospectos, órdenes, eBudaicom, reportes exportables, catálogo de servicios y mapa. **6 a 8 semanas adicionales**, entregables por fases para ir usándolas conforme se liberan.
+- **Versión completa (fases 5 a 9):** prospectos, órdenes, VisorDICOM, reportes exportables, catálogo de servicios y mapa. **6 a 8 semanas adicionales**, entregables por fases para ir usándolas conforme se liberan.
 - **Costo:** al construirse dentro de CalifornIA no hay licencias ni infraestructura nueva; el costo es tiempo de desarrollo. La cifra concreta depende de la tarifa que se acuerde con la dirección, sobre la estimación de horas de arriba.
 
 ## 5. Orden sugerido de entrega

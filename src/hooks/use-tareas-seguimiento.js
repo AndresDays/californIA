@@ -1,4 +1,4 @@
-// Los pendientes: seguimientos, llamadas, entregas, altas de eBudaicom y
+// Los pendientes: seguimientos, llamadas, entregas, altas de VisorDICOM y
 // cumpleaños. Se leen por rango de fecha para la bandeja del día y sin rango
 // para el expediente de un médico.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

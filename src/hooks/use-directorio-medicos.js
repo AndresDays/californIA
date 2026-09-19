@@ -31,11 +31,11 @@ export const useDirectorioMedicos = () => {
 	const consulta = useQuery({
 		queryKey: ["directorio-medicos"],
 		queryFn: async () => {
-			const [doctores, fichas, convenios, ebudaicom, visitas] = await Promise.all([
+			const [doctores, fichas, convenios, visordicom, visitas] = await Promise.all([
 				supabase.from("doctores").select(CAMPOS_DOCTOR).order("id_doctor"),
 				supabase.from("doctores_crm").select(CAMPOS_CRM),
 				supabase.from("convenios_medico").select(CAMPOS_CONVENIO).eq("activo", true),
-				supabase.from("ebudaicom_medicos").select("id_doctor, estado, usuario, fecha_creacion"),
+				supabase.from("visordicom_medicos").select("id_doctor, estado, usuario, fecha_creacion"),
 				// Sólo la fecha: es lo que necesita la tarjeta "última visita" del
 				// directorio, y así no se arrastra el texto completo de cada visita.
 				supabase
@@ -44,14 +44,14 @@ export const useDirectorioMedicos = () => {
 					.not("id_doctor", "is", null)
 					.order("fecha", { ascending: false }),
 			]);
-			for (const respuesta of [doctores, fichas, convenios, ebudaicom, visitas]) {
+			for (const respuesta of [doctores, fichas, convenios, visordicom, visitas]) {
 				if (respuesta.error) throw respuesta.error;
 			}
 			return {
 				doctores: doctores.data ?? [],
 				fichas: fichas.data ?? [],
 				convenios: convenios.data ?? [],
-				ebudaicom: ebudaicom.data ?? [],
+				visordicom: visordicom.data ?? [],
 				visitas: visitas.data ?? [],
 			};
 		},
@@ -64,7 +64,7 @@ export const useDirectorioMedicos = () => {
 		const porId = (lista) => new Map(lista.map((fila) => [fila.id_doctor, fila]));
 		const fichas = porId(datos.fichas);
 		const convenios = porId(datos.convenios);
-		const ebudaicom = porId(datos.ebudaicom);
+		const visordicom = porId(datos.visordicom);
 		// La consulta viene ordenada de la más reciente a la más vieja, así que
 		// la primera que aparece de cada médico es su última visita.
 		const ultimaVisita = new Map();
@@ -87,7 +87,7 @@ export const useDirectorioMedicos = () => {
 				ultima_visita: ultimaVisita.get(doctor.id_doctor) ?? null,
 				convenio,
 				tipo_convenio: convenio?.tipo ?? "sin_convenio",
-				ebudaicom: ebudaicom.get(doctor.id_doctor) ?? null,
+				visordicom: visordicom.get(doctor.id_doctor) ?? null,
 			};
 		});
 	}, [consulta.data]);
@@ -168,12 +168,12 @@ export const useConvertirProspecto = () => {
 	});
 };
 
-export const useGuardarEbudaicom = () => {
+export const useGuardarVisorDicom = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async (registro) => {
 			const { error } = await supabase
-				.from("ebudaicom_medicos")
+				.from("visordicom_medicos")
 				.upsert({ ...registro, updated_at: new Date().toISOString() });
 			if (error) throw error;
 		},

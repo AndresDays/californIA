@@ -1,6 +1,6 @@
 // El reporte de trabajo se armaba a mano cada viernes contando renglones del
 // Excel. Aquí se calcula de lo que ya está capturado: visitas, tareas, órdenes,
-// convenios y altas de eBudaicom del periodo que se pida.
+// convenios y altas de VisorDICOM del periodo que se pida.
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -91,7 +91,7 @@ export const construirReporte = ({
 		llamadas: hechas("llamada"),
 		entregas_ordenes: ordenesPeriodo.length,
 		ordenes_entregadas: ordenesPeriodo.reduce((suma, orden) => suma + Number(orden.cantidad || 0), 0),
-		usuarios_ebudaicom: hechas("alta_ebudaicom"),
+		usuarios_visordicom: hechas("alta_visordicom"),
 		pendientes: tareasPeriodo.filter((tarea) => tarea.estado === "pendiente").length,
 		resultados: delPeriodo.filter((visita) => texto(visita.resultado)).length,
 		detalle: delPeriodo,
@@ -109,7 +109,7 @@ export const RENGLONES_RESUMEN = [
 	["Llamadas realizadas", "llamadas"],
 	["Entregas de órdenes", "entregas_ordenes"],
 	["Órdenes entregadas", "ordenes_entregadas"],
-	["Usuarios creados en eBudaicom", "usuarios_ebudaicom"],
+	["Usuarios creados en VisorDICOM", "usuarios_visordicom"],
 	["Pendientes", "pendientes"],
 	["Resultados registrados", "resultados"],
 ];

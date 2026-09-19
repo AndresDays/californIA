@@ -3,18 +3,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import PageLayout from "../../components/page-layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
-import { useMedico, useGuardarEbudaicom } from "../../hooks/use-directorio-medicos";
+import { useMedico, useGuardarVisorDicom } from "../../hooks/use-directorio-medicos";
 import { useVisitasDeMedico } from "../../hooks/use-visitas-medicas";
 import { useTareasDeMedico, useCompletarTarea } from "../../hooks/use-tareas-seguimiento";
 import { useOrdenesEntregadas, useServiciosPorEspecialidad } from "../../hooks/use-ordenes-medicas";
 import { useAgendaDeMedico } from "../../hooks/use-agenda-visitas";
 import {
-	ESTADOS_EBUDAICOM,
+	ESTADOS_VISORDICOM,
 	diasParaCumpleanos,
 	enlaceMapa,
 	enlaceWhatsApp,
 	etiquetaConvenio,
-	etiquetaEbudaicom,
+	etiquetaVisorDicom,
 	etiquetaEstatus,
 	etiquetaTipoTarea,
 	etiquetaTipoVisita,
@@ -36,7 +36,7 @@ const PESTANAS = [
 	{ id: "agenda", etiqueta: "Agenda" },
 	{ id: "seguimientos", etiqueta: "Seguimientos" },
 	{ id: "ordenes", etiqueta: "Órdenes" },
-	{ id: "ebudaicom", etiqueta: "eBudaicom" },
+	{ id: "visordicom", etiqueta: "VisorDICOM" },
 	{ id: "servicios", etiqueta: "Servicios" },
 ];
 
@@ -58,7 +58,7 @@ const FichaMedico = () => {
 	const { data: citas = [] } = useAgendaDeMedico(idDoctor);
 	const { data: servicios = [] } = useServiciosPorEspecialidad(medico?.especialidad);
 	const completarTarea = useCompletarTarea();
-	const guardarEbudaicom = useGuardarEbudaicom();
+	const guardarVisorDicom = useGuardarVisorDicom();
 
 	const [pestana, setPestana] = useState("datos");
 	const [modal, setModal] = useState(null);
@@ -306,30 +306,30 @@ const FichaMedico = () => {
 					</>
 				)}
 
-				{pestana === "ebudaicom" && (
+				{pestana === "visordicom" && (
 					<div className="visitadora-historial">
-						<p className="visitadora-historial-titulo">eBudaicom</p>
-						{dato("Estado", etiquetaEbudaicom(medico.ebudaicom?.estado ?? "pendiente"))}
-						{dato("Usuario", medico.ebudaicom?.usuario)}
-						{dato("Fecha de creación", medico.ebudaicom?.fecha_creacion)}
-						<label htmlFor="ebudaicom-estado">Cambiar estado</label>
+						<p className="visitadora-historial-titulo">VisorDICOM</p>
+						{dato("Estado", etiquetaVisorDicom(medico.visordicom?.estado ?? "pendiente"))}
+						{dato("Usuario", medico.visordicom?.usuario)}
+						{dato("Fecha de creación", medico.visordicom?.fecha_creacion)}
+						<label htmlFor="visordicom-estado">Cambiar estado</label>
 						<select
-							id="ebudaicom-estado"
-							value={medico.ebudaicom?.estado ?? "pendiente"}
+							id="visordicom-estado"
+							value={medico.visordicom?.estado ?? "pendiente"}
 							onChange={async (evento) => {
-								await guardarEbudaicom.mutateAsync({
+								await guardarVisorDicom.mutateAsync({
 									id_doctor: medico.id_doctor,
 									estado: evento.target.value,
 									fecha_creacion:
 										evento.target.value === "pendiente"
-											? medico.ebudaicom?.fecha_creacion ?? null
-											: medico.ebudaicom?.fecha_creacion ?? hoyEnMexico(),
-									usuario: medico.ebudaicom?.usuario ?? null,
+											? medico.visordicom?.fecha_creacion ?? null
+											: medico.visordicom?.fecha_creacion ?? hoyEnMexico(),
+									usuario: medico.visordicom?.usuario ?? null,
 									id_empleado: empleadoData?.id_empleado ?? null,
 								});
-								avisar("eBudaicom actualizado.");
+								avisar("VisorDICOM actualizado.");
 							}}>
-							{ESTADOS_EBUDAICOM.map((estado) => (
+							{ESTADOS_VISORDICOM.map((estado) => (
 								<option key={estado.valor} value={estado.valor}>{estado.etiqueta}</option>
 							))}
 						</select>

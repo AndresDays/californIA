@@ -12,6 +12,11 @@ const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
   const { empleadoData, empleadoLoading, user } = useAuth();
   const sidebarRef = useRef(null);
   const [activeSubmenu, setActiveSubmenu] = useState(null);
+  // El panel se colocaba pegado al borde de arriba del botón, así que un
+  // submenú largo —el de Visitadora ya trae diez opciones— se salía por abajo
+  // de la pantalla y la última opción quedaba fuera. Aquí se mide el hueco que
+  // hay y se ancla arriba o abajo, con el alto máximo del espacio disponible.
+  const [posicionSubmenu, setPosicionSubmenu] = useState(null);
 
   // Auth context es la fuente de verdad. El prop se usa solo como fallback
   // mientras el contexto termina de cargar (navegación desde otra página).
@@ -28,8 +33,24 @@ const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
   const isItemActive = (item) =>
     (!item.hasSubmenu && isCurrentPath(item.path)) || isSubmenuActive(item) || activeSubmenu === item.id;
 
-  const handleItemClick = (item) => {
+  const MARGEN_PANTALLA = 16;
+
+  const calcularPosicion = (boton) => {
+    const rect = boton?.getBoundingClientRect?.();
+    const alto = window.innerHeight || 0;
+    if (!rect || !alto) return null;
+    const espacioAbajo = alto - rect.top - MARGEN_PANTALLA;
+    const espacioArriba = rect.bottom - MARGEN_PANTALLA;
+    // Se abre hacia donde quepa más: hacia abajo desde el borde superior del
+    // botón, o hacia arriba desde su borde inferior.
+    return espacioAbajo >= espacioArriba
+      ? { top: 0, bottom: 'auto', maxHeight: `${Math.max(espacioAbajo, 120)}px` }
+      : { top: 'auto', bottom: 0, maxHeight: `${Math.max(espacioArriba, 120)}px` };
+  };
+
+  const handleItemClick = (item, evento) => {
     if (item.hasSubmenu) {
+      setPosicionSubmenu(calcularPosicion(evento?.currentTarget));
       setActiveSubmenu((current) => (current === item.id ? null : item.id));
       return;
     }
@@ -69,7 +90,7 @@ const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
         >
           <button
             className={`sidebar-home-item ${item.hasSubmenu ? 'has-submenu' : ''} ${isItemActive(item) ? 'active' : ''}`}
-            onClick={() => handleItemClick(item)}
+            onClick={(evento) => handleItemClick(item, evento)}
             title={item.hasSubmenu ? undefined : item.label}
             aria-label={item.label}
             aria-expanded={item.hasSubmenu ? activeSubmenu === item.id : undefined}
@@ -79,7 +100,8 @@ const SidebarHome = ({ empleadoData: empleadoDataProp }) => {
 
           {item.hasSubmenu && activeSubmenu === item.id && (
             <div
-              className={`sidebar-home-submenu ${item.id === 'configuracion' ? 'grid-layout open-up' : ''}`}
+              className={`sidebar-home-submenu ${item.id === 'configuracion' ? 'grid-layout' : ''}`}
+              style={posicionSubmenu ?? undefined}
             >
               <div className="submenu-header">{item.label}</div>
               <div className="submenu-items">

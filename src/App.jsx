@@ -61,6 +61,7 @@ const PendientesVisitadora = lazy(() => import('./pages/visitadora/pendientes'))
 const ProspectosMedicos = lazy(() => import('./pages/visitadora/prospectos'));
 const OrdenesMedicas = lazy(() => import('./pages/visitadora/ordenes'));
 const ReportesVisitadora = lazy(() => import('./pages/visitadora/reportes'));
+const ReferidosVisitadora = lazy(() => import('./pages/visitadora/referidos'));
 
 const B = ({ children }) => <AppBoundary>{children}</AppBoundary>;
 
@@ -121,6 +122,7 @@ function App() {
 							<Route path="/visitadora/pendientes" element={<P><PendientesVisitadora /></P>} />
 							<Route path="/visitadora/prospectos" element={<P><ProspectosMedicos /></P>} />
 							<Route path="/visitadora/ordenes" element={<P><OrdenesMedicas /></P>} />
+							<Route path="/visitadora/referidos" element={<P><ReferidosVisitadora /></P>} />
 							<Route path="/visitadora/reportes" element={<P><ReportesVisitadora /></P>} />
 							<Route path="/visitadora/informe" element={<P><InformeVisitas /></P>} />
 							<Route path="/visitadora/programacion" element={<P><ProgramacionSemanal /></P>} />

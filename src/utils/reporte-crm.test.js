@@ -72,7 +72,7 @@ const base = {
 		{ id_tarea: "t1", tipo: "llamada", estado: "hecha", fecha_objetivo: "2026-09-15" },
 		{ id_tarea: "t2", tipo: "seguimiento", estado: "hecha", fecha_objetivo: "2026-09-16" },
 		{ id_tarea: "t3", tipo: "seguimiento", estado: "pendiente", fecha_objetivo: "2026-09-17" },
-		{ id_tarea: "t4", tipo: "alta_ebudaicom", estado: "hecha", fecha_objetivo: "2026-09-17" },
+		{ id_tarea: "t4", tipo: "alta_visordicom", estado: "hecha", fecha_objetivo: "2026-09-17" },
 		{ id_tarea: "t5", tipo: "llamada", estado: "hecha", fecha_objetivo: "2026-09-30" },
 	],
 	ordenes: [
@@ -110,7 +110,7 @@ test("sólo cuenta las tareas hechas dentro del periodo", () => {
 	const reporte = construirReporte(base);
 	expect(reporte.llamadas).toBe(1);
 	expect(reporte.seguimientos).toBe(1);
-	expect(reporte.usuarios_ebudaicom).toBe(1);
+	expect(reporte.usuarios_visordicom).toBe(1);
 	expect(reporte.pendientes).toBe(1);
 });
 

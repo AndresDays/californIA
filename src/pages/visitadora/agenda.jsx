@@ -10,6 +10,7 @@ import {
 	useReprogramarVisita,
 } from "../../hooks/use-agenda-visitas";
 import { etiquetaTipoVisita } from "../../utils/crm-visitadora";
+import { exportarAgenda } from "../../utils/exportar-informe-visitas";
 import {
 	etiquetaSemana,
 	hoyEnMexico,
@@ -82,6 +83,20 @@ const Agenda = () => {
 			return `${MESES[mes - 1]} ${anio}`;
 		}
 		return etiquetaSemana(lunesDeLaSemana(fecha));
+	};
+
+	// Se exporta lo que se está viendo, con el filtro de zona ya aplicado: es la
+	// hoja que imprime para salir a la ruta.
+	const exportar = () => {
+		try {
+			exportarAgenda(
+				visibles,
+				{ titulo: etiquetaRango(), etiquetaTipo: etiquetaTipoVisita },
+				`Agenda_${rango.desde}_a_${rango.hasta}`,
+			);
+		} catch (fallo) {
+			avisar(fallo.message || "No se pudo generar el archivo.", "error");
+		}
 	};
 
 	const pedirReprogramacion = async (cita) => {
@@ -174,6 +189,9 @@ const Agenda = () => {
 							</button>
 						))}
 						<button type="button" onClick={() => setFecha(hoyEnMexico())}>Hoy</button>
+						<button type="button" onClick={exportar} disabled={visibles.length === 0}>
+							Exportar Excel
+						</button>
 						<button
 							type="button"
 							className="visitadora-boton-primario"
