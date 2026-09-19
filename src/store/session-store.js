@@ -79,7 +79,15 @@ export const useSessionStore = create((set, get) => ({
   sucursalActual: null,
 
   setUser: (user) => {
-    set({ user, empleadoLoading: Boolean(user) });
+    // Al volver a la pestaña, supabase revalida el token y vuelve a emitir la
+    // sesión: es el mismo usuario en otro objeto. Marcar el perfil como que
+    // está cargando otra vez hacía que ProtectedRoute enseñara el spinner y
+    // desmontara la pantalla completa -y con ella el modal abierto y todo lo
+    // que se hubiera capturado dentro-. El perfil ya está en memoria, así que
+    // sólo se refresca el usuario.
+    const mismaSesion = Boolean(user) && get().user?.id === user.id;
+
+    set({ user, empleadoLoading: mismaSesion ? get().empleadoLoading : Boolean(user) });
     if (!user) {
       set({
         empleadoData: null,

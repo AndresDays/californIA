@@ -56,6 +56,35 @@ describe('session store', () => {
 		expect(useSessionStore.getState().empleadoLoading).toBe(true);
 	});
 
+	// Al volver a la pestaña, supabase emite otra vez la misma sesión en un
+	// objeto nuevo. Si eso volvía a marcar el perfil como que carga, la ruta
+	// protegida enseñaba el spinner y desmontaba la pantalla: se cerraba el
+	// modal abierto y se perdía lo capturado.
+	test('no vuelve a cargar el perfil cuando se reemite la misma sesión', () => {
+		useSessionStore.setState({
+			user: { id: 'auth-visitadora' },
+			empleadoData: { nombre: 'ANA', rol: 'visitadora' },
+			empleadoLoading: false,
+		});
+
+		useSessionStore.getState().setUser({ id: 'auth-visitadora' });
+
+		expect(useSessionStore.getState().empleadoLoading).toBe(false);
+		expect(useSessionStore.getState().empleadoData).toMatchObject({ rol: 'visitadora' });
+	});
+
+	test('vuelve a cargar el perfil cuando entra otra persona', () => {
+		useSessionStore.setState({
+			user: { id: 'auth-visitadora' },
+			empleadoData: { nombre: 'ANA', rol: 'visitadora' },
+			empleadoLoading: false,
+		});
+
+		useSessionStore.getState().setUser({ id: 'auth-recepcion' });
+
+		expect(useSessionStore.getState().empleadoLoading).toBe(true);
+	});
+
 	// El convenio no está en `empleados` ni en `doctores`: su cuenta vive en
 	// `clientes_accesos` y de ahí sale su rol y el convenio que lo acota.
 	test('resuelve el acceso de un cliente de convenio', async () => {

@@ -185,7 +185,8 @@
   cursor: pointer;
 }
 
-.modal-fila-edad {
+.modal-fila-edad,
+.modal-fila-doble {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
@@ -317,7 +318,8 @@
     grid-template-columns: 1fr;
   }
 
-  .modal-fila-edad {
+  .modal-fila-edad,
+  .modal-fila-doble {
     grid-template-columns: 1fr;
   }
 

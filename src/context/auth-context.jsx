@@ -100,9 +100,15 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, [setLoading, setUser]);
 
+  // El perfil se vuelve a cargar cuando cambia *quién* entró, no cada vez que
+  // supabase emite otra vez la misma sesión -lo que pasa al volver a la
+  // pestaña-: recargarlo dejaba la pantalla en el spinner y se perdía lo que
+  // hubiera capturado en un modal abierto.
+  const authId = user?.id ?? null;
+
   useEffect(() => {
-    fetchEmpleadoActual(user?.id ?? null)
-  }, [user, fetchEmpleadoActual])
+    fetchEmpleadoActual(authId)
+  }, [authId, fetchEmpleadoActual])
 
   // Login con email y contraseña
   const signIn = async (email, password) => {

@@ -261,49 +261,56 @@ const ModalAgregarPaciente = ({ isOpen, onClose, onGuardar, pacienteEditar = nul
         </div>
 
         <form onSubmit={handleSubmit} className="modal-contenido-paciente">
-          <div className="modal-campo-paciente">
-            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Ingresar Primer Nombre"
-              className="modal-input-paciente"
-              autoFocus
-            />
+          {/* Los dos nombres en un renglón y los dos apellidos en otro: es el
+              orden en que se lee una credencial, y así el nombre completo se
+              captura de un vistazo en vez de en cuatro renglones. */}
+          <div className="modal-fila-doble">
+            <div className="modal-campo-paciente">
+              <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Ingresar Primer Nombre"
+                className="modal-input-paciente"
+                autoFocus
+              />
+            </div>
+
+            <div className="modal-campo-paciente">
+              <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+              <input
+                type="text"
+                value={segundoNombre}
+                onChange={(e) => setSegundoNombre(e.target.value)}
+                placeholder="Ingresar Segundo Nombre"
+                className="modal-input-paciente"
+              />
+            </div>
           </div>
 
-          <div className="modal-campo-paciente">
-            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
-            <input
-              type="text"
-              value={segundoNombre}
-              onChange={(e) => setSegundoNombre(e.target.value)}
-              placeholder="Ingresar Segundo Nombre"
-              className="modal-input-paciente"
-            />
-          </div>
+          <div className="modal-fila-doble">
+            <div className="modal-campo-paciente">
+              <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+              <input
+                type="text"
+                value={apellidoPaterno}
+                onChange={(e) => setApellidoPaterno(e.target.value)}
+                placeholder="Ingresar Apellido Paterno"
+                className="modal-input-paciente"
+              />
+            </div>
 
-          <div className="modal-campo-paciente">
-            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
-            <input
-              type="text"
-              value={apellidoPaterno}
-              onChange={(e) => setApellidoPaterno(e.target.value)}
-              placeholder="Ingresar Apellido Paterno"
-              className="modal-input-paciente"
-            />
-          </div>
-
-          <div className="modal-campo-paciente">
-            <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
-            <input
-              type="text"
-              value={apellidoMaterno}
-              onChange={(e) => setApellidoMaterno(e.target.value)}
-              placeholder="Ingresar Apellido Materno"
-              className="modal-input-paciente"
-            />
+            <div className="modal-campo-paciente">
+              <img src={pacientesIcono} alt="Paciente" className="modal-icono-campo" />
+              <input
+                type="text"
+                value={apellidoMaterno}
+                onChange={(e) => setApellidoMaterno(e.target.value)}
+                placeholder="Ingresar Apellido Materno"
+                className="modal-input-paciente"
+              />
+            </div>
           </div>
 
           <div className="modal-campo-paciente">

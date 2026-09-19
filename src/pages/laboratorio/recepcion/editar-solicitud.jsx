@@ -19,6 +19,18 @@ import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-v
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
 import { calcularEdadPaciente } from "../../../utils/edad-paciente";
 import {
+	construirEstudioCatalogoUnificado,
+	construirPaqueteCatalogoUnificado,
+	filtrarEstudiosCatalogo,
+} from "../../../utils/cita-nuevo-paciente";
+import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
+import {
+	cargarPreciosCliente,
+	resolverClavesConPrecio,
+} from "../../../utils/precios-cliente";
+import { clienteParaPrecios } from "../../../utils/descuento-cliente";
+import { resolverPrecioEstudioCliente } from "../../../utils/precio-estudio-cliente";
+import {
 	generarTicketVenta,
 	resolverEmpresaTicketReimpresion,
 } from "../../../utils/generarTicketVenta";
@@ -77,6 +89,10 @@ const EditarSolicitud = () => {
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosSeleccionados, setEstudiosSeleccionados] = useState([]);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
+	// Igual que en el alta: se puede teclear o abrir el catálogo completo.
+	const [catalogoEstudiosAbierto, setCatalogoEstudiosAbierto] = useState(false);
+	const [preciosCliente, setPreciosCliente] = useState(null);
+	const [reglasConvenio, setReglasConvenio] = useState([]);
 	const [formaPago, setFormaPago] = useState("efectivo");
 	const [tarjetaUltimos4, setTarjetaUltimos4] = useState("");
 	const [codigoAprobacion, setCodigoAprobacion] = useState("");
@@ -229,13 +245,49 @@ const EditarSolicitud = () => {
 		}
 	};
 
+	// El mismo catálogo que ofrece el alta: laboratorio, paquetes e imagen.
+	// Editar una orden traía sólo laboratorio, así que a una orden de imagen no
+	// se le podía agregar el estudio que faltaba sin volver a capturarla.
 	const cargarEstudiosDisponibles = async () => {
 		try {
-			const { data, error } = await supabase
+			const { data: estudiosLab, error } = await supabase
 				.from("estudios_lab_catalogo")
-				.select("id, clave, descripcion, area")
+				.select(
+					"id, clave, descripcion, area, tipo_muestra, recipiente, metodo, tecnica, equipo, condiciones_paciente, etiquetas_extra, dias_proceso",
+				)
 				.order("clave");
-			if (!error) setEstudiosDisponibles(data || []);
+			if (error) throw error;
+
+			const estudiosLaboratorio = (estudiosLab || []).map((estudio) =>
+				construirEstudioCatalogoUnificado(estudio, "laboratorio"),
+			);
+
+			const { data: paquetes, error: errorPaquetes } = await supabase
+				.from("paquetes")
+				.select("id, clave, descripcion, dias_proceso, condiciones")
+				.order("clave");
+			if (errorPaquetes) console.warn("No se pudieron cargar los paquetes:", errorPaquetes);
+
+			const paquetesCatalogo = (paquetes || []).map(construirPaqueteCatalogoUnificado);
+
+			const { data: estudiosImagen, error: errorImagen } = await supabase
+				.from("estudios_imagen_catalogo")
+				.select(
+					"id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, region_anatomica, requiere_contraste, requiere_interpretacion, dias_proceso, preparacion, duracion_minutos",
+				)
+				.eq("activo", true)
+				.order("clave");
+			if (errorImagen) console.warn("No se pudo cargar el catalogo de imagen:", errorImagen);
+
+			const estudiosImagenFormateados = (estudiosImagen || []).map((estudio) =>
+				construirEstudioCatalogoUnificado(estudio, "imagen"),
+			);
+
+			setEstudiosDisponibles([
+				...estudiosLaboratorio,
+				...paquetesCatalogo,
+				...estudiosImagenFormateados,
+			]);
 		} catch (err) {
 			console.error("Error al cargar estudios:", err);
 		}
@@ -352,21 +404,16 @@ const EditarSolicitud = () => {
 		);
 	};
 
-	const obtenerPrecioEstudio = async (claveEstudio, nombreCliente) => {
-		try {
-			if (!nombreCliente) return 150;
-			const { data, error } = await supabase
-				.from("precios_estudios")
-				.select("precio")
-				.eq("clave", claveEstudio)
-				.eq("cliente", nombreCliente)
-				.single();
-			if (error) return 150;
-			return parseFloat(data.precio);
-		} catch {
-			return 150;
-		}
-	};
+	// El mismo precio que cobraría el alta: se busca por clave y por descripción,
+	// sin distinguir mayúsculas, y un cliente de porcentaje cobra la lista de
+	// particular. La comparación exacta de antes mandaba al precio por defecto
+	// todo lo que estuviera escrito distinto en el tarifario.
+	const obtenerPrecioEstudio = async (estudio, nombreCliente) =>
+		resolverPrecioEstudioCliente(supabase, {
+			clave: estudio?.clave ?? estudio,
+			descripcion: estudio?.descripcion,
+			cliente: clienteParaPrecios(nombreCliente),
+		});
 
 	const agregarEstudio = async (estudio) => {
 		if (estudiosSeleccionados.find((e) => e.clave === estudio.clave)) {
@@ -376,10 +423,7 @@ const EditarSolicitud = () => {
 		const clienteObj = clientes.find(
 			(c) => c.id_cliente.toString() === clienteSeleccionado,
 		);
-		const precio = await obtenerPrecioEstudio(
-			estudio.clave,
-			clienteObj?.nombre || "",
-		);
+		const precio = await obtenerPrecioEstudio(estudio, clienteObj?.nombre || "");
 		setEstudiosSeleccionados([
 			...estudiosSeleccionados,
 			{
@@ -393,7 +437,44 @@ const EditarSolicitud = () => {
 			},
 		]);
 		setBuscarEstudio("");
+		cerrarListaEstudios();
+	};
+
+	// El tarifario y la matriz del convenio del cliente de la orden: con eso se
+	// acota el catálogo y se cotiza lo que se agregue.
+	useEffect(() => {
+		let cancelado = false;
+		const nombreCliente = clientes.find(
+			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+		)?.nombre;
+
+		(async () => {
+			if (!clienteSeleccionado || !nombreCliente) {
+				if (!cancelado) {
+					setPreciosCliente(null);
+					setReglasConvenio([]);
+				}
+				return;
+			}
+
+			const [precios, reglas] = await Promise.all([
+				cargarPreciosCliente(supabase, clienteParaPrecios(nombreCliente)),
+				cargarReglasConvenio(supabase, clienteSeleccionado),
+			]);
+
+			if (cancelado) return;
+			setPreciosCliente(precios);
+			setReglasConvenio(reglas);
+		})();
+
+		return () => {
+			cancelado = true;
+		};
+	}, [clienteSeleccionado, clientes]);
+
+	const cerrarListaEstudios = () => {
 		setShowBusquedaEstudios(false);
+		setCatalogoEstudiosAbierto(false);
 	};
 
 	const eliminarEstudio = (clave) =>
@@ -703,10 +784,31 @@ const EditarSolicitud = () => {
 		);
 	});
 
-	const estudiosFiltrados = estudiosDisponibles.filter(
-		(e) =>
-			e.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-			e.clave.toLowerCase().includes(buscarEstudio.toLowerCase()),
+	const clienteActual = clientes.find(
+		(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
+	);
+	// La orden ya viene con su convenio: se ofrece lo que ese convenio cubre y
+	// tiene pactado. Sin empresa ni tipo de estudio que elegir aquí, esos dos
+	// filtros van vacíos y no acotan nada.
+	const clavesConPrecio = resolverClavesConPrecio(preciosCliente, estudiosDisponibles);
+	const filtrosCatalogo = {
+		estudios: estudiosDisponibles,
+		busqueda: buscarEstudio,
+		reglasConvenio,
+	};
+	const estudiosConPrecio = filtrarEstudiosCatalogo({ ...filtrosCatalogo, clavesConPrecio });
+	// Si el convenio no tiene precio para lo que se busca se ofrece el catálogo
+	// igual: dejar la lista vacía impide corregir la orden.
+	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
+	const mostrandoEstudiosSinPrecio =
+		Boolean(clavesConPrecio?.size) &&
+		estudiosConPrecio.length === 0 &&
+		estudiosSinFiltroPrecio.length > 0;
+	const estudiosFiltrados = mostrandoEstudiosSinPrecio
+		? estudiosSinFiltroPrecio
+		: estudiosConPrecio;
+	const listaEstudiosAbierta = Boolean(
+		catalogoEstudiosAbierto || (showBusquedaEstudios && buscarEstudio.length >= 2),
 	);
 
 	const getPrimerNombre = (nombreCompleto) => {
@@ -1105,6 +1207,18 @@ const EditarSolicitud = () => {
 
 						<div className="lista-precios-section">
 							<label className="lista-precios-label">Lista de precios</label>
+							{clavesConPrecio?.size > 0 && (
+								<p
+									className={
+										mostrandoEstudiosSinPrecio
+											? "nota-precios-cliente nota-precios-cliente-aviso"
+											: "nota-precios-cliente"
+									}>
+									{mostrandoEstudiosSinPrecio
+										? `${clienteActual?.nombre || "El cliente"} no tiene precio registrado para estos estudios: se cobrarán al precio por defecto.`
+										: `Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
+								</p>
+							)}
 							<div className="buscar-estudios-row">
 								<div
 									className="buscar-estudios-grupo"
@@ -1118,11 +1232,27 @@ const EditarSolicitud = () => {
 											setBuscarEstudio(e.target.value);
 											setShowBusquedaEstudios(e.target.value.length >= 2);
 										}}
+										role="combobox"
+										aria-expanded={listaEstudiosAbierta}
+										aria-autocomplete="list"
 										className="input-buscar-estudios"
 									/>
-									{showBusquedaEstudios && buscarEstudio.length >= 2 && (
+									<button
+										type="button"
+										className="btn-catalogo-estudios"
+										aria-label={
+											catalogoEstudiosAbierto
+												? "Cerrar el catálogo de estudios"
+												: "Ver todos los estudios"
+										}
+										aria-expanded={catalogoEstudiosAbierto}
+										title="Ver todos los estudios"
+										onClick={() => setCatalogoEstudiosAbierto((abierto) => !abierto)}>
+										▾
+									</button>
+									{listaEstudiosAbierta && (
 										<div className="dropdown-estudios">
-											{estudiosFiltrados.slice(0, 10).map((est) => (
+											{estudiosFiltrados.slice(0, 50).map((est) => (
 												<div
 													key={est.id}
 													className="dropdown-estudio-item"
