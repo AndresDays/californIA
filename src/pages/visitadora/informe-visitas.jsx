@@ -16,7 +16,7 @@ import {
 	etiquetaSemana,
 	hoyEnMexico,
 	lunesDeLaSemana,
-	rangoSemanaLaboral,
+	rangoSemanaCompleta,
 	semanaDesplazada,
 } from "../../utils/semanas-visitadora";
 import { nombreDoctor } from "../../utils/comisiones-medicos";
@@ -57,7 +57,7 @@ const InformeVisitas = () => {
 	const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 	const archivoRef = useRef(null);
 
-	const { desde, hasta } = rangoSemanaLaboral(lunes);
+	const { desde, hasta } = rangoSemanaCompleta(lunes);
 	const { data: visitas = [], isLoading, error } = useVisitasMedicas({ desde, hasta });
 	const { data: doctoresResult } = useDoctores({ buscar: "", pagina: 1, porPagina: 1000 });
 	const eliminarVisita = useEliminarVisita();

@@ -4,6 +4,7 @@ import {
 	etiquetaSemana,
 	lunesDeLaSemana,
 	periodoDesplazado,
+	rangoSemanaCompleta,
 	rangoSemanaLaboral,
 	semanaDesplazada,
 	sumarDias,
@@ -86,5 +87,28 @@ describe("periodos mensuales", () => {
 	test("etiqueta el periodo en espaniol", () => {
 		expect(etiquetaPeriodo("2026-08")).toBe("Agosto 2026");
 		expect(etiquetaPeriodo("2026-12")).toBe("Diciembre 2026");
+	});
+});
+
+// Una visita capturada en sábado quedaba fuera del rango laboral, así que el
+// informe y el panel no la enseñaban y parecía que guardar no había servido.
+describe("rangoSemanaCompleta", () => {
+	test("va del lunes al domingo", () => {
+		expect(rangoSemanaCompleta("2026-08-17")).toEqual({
+			desde: "2026-08-17",
+			hasta: "2026-08-23",
+		});
+	});
+
+	test("cualquier día de la semana da el mismo rango", () => {
+		expect(rangoSemanaCompleta("2026-08-22")).toEqual(rangoSemanaCompleta("2026-08-17"));
+		expect(rangoSemanaCompleta("2026-08-23")).toEqual(rangoSemanaCompleta("2026-08-17"));
+	});
+
+	test("incluye el fin de semana que el rango laboral deja fuera", () => {
+		const laboral = rangoSemanaLaboral("2026-08-17");
+		const completa = rangoSemanaCompleta("2026-08-17");
+		expect(laboral.hasta).toBe("2026-08-21");
+		expect(completa.hasta > laboral.hasta).toBe(true);
 	});
 });
