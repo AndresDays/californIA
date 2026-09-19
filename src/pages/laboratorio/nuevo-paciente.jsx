@@ -276,6 +276,10 @@ const NuevoPaciente = () => {
 	// clientes que aparezcan en la orden, no sólo las del seleccionado.
 	const [reglasPorCliente, setReglasPorCliente] = useState({});
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
+	// El buscador pide dos letras para ofrecer algo. Quien no sabe cómo se llama
+	// el estudio -o quiere ver qué hay- abre el catálogo completo con el botón
+	// de al lado, y de ahí en adelante escribir lo va acotando.
+	const [catalogoEstudiosAbierto, setCatalogoEstudiosAbierto] = useState(false);
 	const [catalogoImagenError, setCatalogoImagenError] = useState("");
 	const [buscandoImagen, setBuscandoImagen] = useState(false);
 
@@ -1733,6 +1737,11 @@ const NuevoPaciente = () => {
 		setShowBusquedaDoctores(false);
 	};
 
+	const cerrarListaEstudios = () => {
+		setShowBusquedaEstudios(false);
+		setCatalogoEstudiosAbierto(false);
+	};
+
 	const filtrarEstudios = (termino) => {
 		if (termino.length < 2) {
 			setShowBusquedaEstudios(false);
@@ -1781,7 +1790,7 @@ const NuevoPaciente = () => {
 				"advertencia",
 			);
 			setBuscarEstudio("");
-			setShowBusquedaEstudios(false);
+			cerrarListaEstudios();
 			return;
 		}
 
@@ -1803,7 +1812,7 @@ const NuevoPaciente = () => {
 
 		setEstudiosSeleccionados((actuales) => [...actuales, estudioConPrecio]);
 		setBuscarEstudio("");
-		setShowBusquedaEstudios(false);
+		cerrarListaEstudios();
 	};
 
 	const eliminarEstudio = (id) => {
@@ -2123,7 +2132,8 @@ const NuevoPaciente = () => {
 	// La lista de estudios se navega con flechas y se elige con Enter, como un
 	// select: capturar sin soltar el teclado es lo normal en recepción.
 	const listaEstudiosAbierta = Boolean(
-		showBusquedaEstudios && buscarEstudio.length >= 2 && clienteSeleccionado,
+		clienteSeleccionado &&
+			(catalogoEstudiosAbierto || (showBusquedaEstudios && buscarEstudio.length >= 2)),
 	);
 	const {
 		manejarTeclas: teclasEstudios,
@@ -2133,7 +2143,7 @@ const NuevoPaciente = () => {
 		cantidad: estudiosFiltrados.length,
 		activo: listaEstudiosAbierta,
 		onSeleccionar: (indice) => agregarEstudio(estudiosFiltrados[indice]),
-		onCerrar: () => setShowBusquedaEstudios(false),
+		onCerrar: cerrarListaEstudios,
 	});
 
 	return (
@@ -2517,9 +2527,29 @@ const NuevoPaciente = () => {
 										role="combobox"
 										aria-expanded={listaEstudiosAbierta}
 										aria-autocomplete="list"
-										className="search-input-full"
+										className="search-input-full search-input-con-catalogo"
 										disabled={!clienteSeleccionado}
 									/>
+
+									<button
+										type="button"
+										className="btn-catalogo-estudios"
+										aria-label={
+											catalogoEstudiosAbierto
+												? "Cerrar el catálogo de estudios"
+												: "Ver todos los estudios"
+										}
+										aria-expanded={catalogoEstudiosAbierto}
+										title="Ver todos los estudios"
+										disabled={!clienteSeleccionado}
+										onClick={() => {
+											if (!clienteSeleccionado) return;
+											// Abrir el catálogo no borra lo escrito: si ya hay texto, la
+											// lista sale acotada a eso, que es lo que se estaba buscando.
+											setCatalogoEstudiosAbierto((abierto) => !abierto);
+										}}>
+										▾
+									</button>
 
 									{listaEstudiosAbierta && (
 											<div
