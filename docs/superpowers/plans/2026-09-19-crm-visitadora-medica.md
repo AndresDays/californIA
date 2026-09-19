@@ -128,6 +128,13 @@ renombre de eBudaicom a **VisorDICOM** en la aplicación y en la base
 (`20260920120000_visordicom_rename.sql`), y el submenú del módulo, que ahora
 se ancla hacia donde quepa para que no se corte la última opción.
 
+En la versión 2.18.0 se retiró la pantalla de **Programación semanal**: la
+agenda la cubre con fecha, hora, reprogramación y registro de la visita. Las
+rutas ya capturadas se migraron a `agenda_visitas`
+(`20260920130000_programacion_a_agenda.sql`) y `programacion_visitas` queda
+como archivo de solo lectura. Con ella se fue la importación y exportación
+del Excel semanal en el formato antiguo; la agenda exporta su propio Excel.
+
 Sigue pendiente, por orden:
 
 - Fotografía del médico en Supabase Storage (el campo `foto_url` ya existe).

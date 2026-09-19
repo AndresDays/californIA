@@ -243,16 +243,16 @@ const menuConVisitadora = [
 		hasSubmenu: true,
 		submenu: [
 			{ id: "visitadora-informe", path: "/visitadora/informe" },
-			{ id: "visitadora-programacion", path: "/visitadora/programacion" },
+			{ id: "visitadora-agenda", path: "/visitadora/agenda" },
 			{ id: "visitadora-comisiones", path: "/visitadora/comisiones" },
 		],
 	},
 ];
 
 describe("rol visitadora", () => {
-	test("entra a sus tres pantallas y a su perfil", () => {
+	test("entra a sus pantallas y a su perfil", () => {
 		expect(puedeAccederRuta("visitadora", "/visitadora/informe")).toBe(true);
-		expect(puedeAccederRuta("visitadora", "/visitadora/programacion")).toBe(true);
+		expect(puedeAccederRuta("visitadora", "/visitadora/agenda")).toBe(true);
 		expect(puedeAccederRuta("visitadora", "/visitadora/comisiones")).toBe(true);
 		expect(puedeAccederRuta("visitadora", "/perfil")).toBe(true);
 	});
@@ -275,12 +275,12 @@ describe("rol visitadora", () => {
 		expect(puedeAccederRuta("visitadora", ruta)).toBe(false);
 	});
 
-	test("su menu son sus tres pantallas y nada mas", () => {
+	test("su menu es su modulo y nada mas", () => {
 		const filtrado = filtrarMenuPorRol(menuConVisitadora, "visitadora");
 		expect(filtrado.map((item) => item.id)).toEqual(["visitadora"]);
 		expect(filtrado[0].submenu.map((item) => item.id)).toEqual([
 			"visitadora-informe",
-			"visitadora-programacion",
+			"visitadora-agenda",
 			"visitadora-comisiones",
 		]);
 	});

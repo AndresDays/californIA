@@ -1,7 +1,7 @@
 // La agenda son las visitas con fecha y hora: las que se ven en el día, se
-// mueven a otro día y se marcan como realizadas. La programación semanal por
-// zonas sigue viviendo en `programacion_visitas`, que es el formato del Excel
-// que ella entrega.
+// mueven a otro día y se marcan como realizadas. Sustituyó a la programación
+// semanal en Excel, cuyas rutas se migraron aquí; `programacion_visitas` queda
+// como archivo de lo que se entregó en su momento y ya nadie la escribe.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase-client";
 

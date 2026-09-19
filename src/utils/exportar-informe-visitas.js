@@ -2,13 +2,9 @@
 // visitadora arma a mano: mismos encabezados, mismo orden de columnas y una
 // hoja por semana. Así puede seguir mandándolo por correo como siempre.
 import * as XLSX from "xlsx";
-import {
-	ENCABEZADOS_INFORME,
-	ENCABEZADOS_PROGRAMACION,
-} from "./importar-informe-visitas";
+import { ENCABEZADOS_INFORME } from "./importar-informe-visitas";
 
 const TITULO_INFORME = "REPORTE SEMANAL DE ACTIVIDADES";
-const DIAS_NOMBRE = ["", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 const texto = (valor) => String(valor ?? "").trim();
 
@@ -37,22 +33,6 @@ export const construirHojaInforme = (visitas = [], { semana = "", zona = "" } = 
 	]),
 ];
 
-export const construirHojaProgramacion = (dias = [], { titulo = "" } = {}) => [
-	[texto(titulo) || "PROGRAMACION SEMANAL"],
-	ENCABEZADOS_PROGRAMACION,
-	...dias.map((dia) => [
-		DIAS_NOMBRE[dia.dia_semana] || "",
-		texto(dia.zona),
-		// Se vuelven a juntar con el mismo separador de bloques de espacios que
-		// usa ella, para que el archivo se vea igual al suyo.
-		(dia.medicos_programados || [])
-			.map((medico) => texto(medico.nombre ?? medico))
-			.filter(Boolean)
-			.join("     "),
-		texto(dia.objetivos),
-	]),
-];
-
 const escribirLibro = (hojas, nombreArchivo) => {
 	const libro = XLSX.utils.book_new();
 	for (const { nombre, filas } of hojas) {
@@ -69,18 +49,6 @@ export const exportarInformeVisitas = (semanas = [], nombreArchivo = "Reporte_vi
 		semanas.map(({ nombre, visitas, semana, zona }) => ({
 			nombre,
 			filas: construirHojaInforme(visitas, { semana, zona }),
-		})),
-		nombreArchivo,
-	);
-
-export const exportarProgramacionSemanal = (
-	semanas = [],
-	nombreArchivo = "Programacion_semanal",
-) =>
-	escribirLibro(
-		semanas.map(({ nombre, dias, titulo }) => ({
-			nombre,
-			filas: construirHojaProgramacion(dias, { titulo }),
 		})),
 		nombreArchivo,
 	);

@@ -168,12 +168,6 @@ export const sidebarItems = [
 				path: "/visitadora/informe",
 			},
 			{
-				id: "visitadora-programacion",
-				label: "Programación",
-				icon: subIcon,
-				path: "/visitadora/programacion",
-			},
-			{
 				id: "visitadora-comisiones",
 				label: "Concentrado",
 				icon: subIcon,

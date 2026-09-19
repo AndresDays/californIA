@@ -51,7 +51,6 @@ const VisorPaciente = lazy(() => import('./pages/radiologia/pages/visor-paciente
 const SalaEspera = lazy(() => import('./pages/sala-espera'));
 const Usuarios = lazy(() => import('./pages/usuarios'));
 const InformeVisitas = lazy(() => import('./pages/visitadora/informe-visitas'));
-const ProgramacionSemanal = lazy(() => import('./pages/visitadora/programacion-semanal'));
 const ConcentradoComisiones = lazy(() => import('./pages/visitadora/concentrado-comisiones'));
 const PanelVisitadora = lazy(() => import('./pages/visitadora/panel'));
 const DirectorioMedico = lazy(() => import('./pages/visitadora/directorio'));
@@ -125,7 +124,6 @@ function App() {
 							<Route path="/visitadora/referidos" element={<P><ReferidosVisitadora /></P>} />
 							<Route path="/visitadora/reportes" element={<P><ReportesVisitadora /></P>} />
 							<Route path="/visitadora/informe" element={<P><InformeVisitas /></P>} />
-							<Route path="/visitadora/programacion" element={<P><ProgramacionSemanal /></P>} />
 							<Route path="/visitadora/comisiones" element={<P><ConcentradoComisiones /></P>} />
 
 							<Route path="/configuracion/estudios" element={<P><EstudiosLab /></P>} />

@@ -39,7 +39,6 @@ describe("sidebar shared menu", () => {
 			"Pacientes referidos",
 			"Reportes",
 			"Informe de visitas",
-			"Programación",
 			"Concentrado",
 		]);
 	});

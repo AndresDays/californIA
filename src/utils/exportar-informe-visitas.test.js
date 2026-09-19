@@ -2,15 +2,9 @@ import * as XLSX from "xlsx";
 import {
 	construirHojaAgenda,
 	construirHojaInforme,
-	construirHojaProgramacion,
 	ENCABEZADOS_AGENDA,
 } from "./exportar-informe-visitas";
-import {
-	ENCABEZADOS_INFORME,
-	ENCABEZADOS_PROGRAMACION,
-	leerInformeVisitas,
-	leerProgramacionSemanal,
-} from "./importar-informe-visitas";
+import { ENCABEZADOS_INFORME, leerInformeVisitas } from "./importar-informe-visitas";
 
 const libroDeUnaHoja = (nombre, filas) => {
 	const libro = XLSX.utils.book_new();
@@ -73,51 +67,6 @@ describe("construirHojaInforme", () => {
 	});
 });
 
-describe("construirHojaProgramacion", () => {
-	const dia = {
-		dia_semana: 1,
-		zona: "Torre coralia",
-		medicos_programados: [{ nombre: "Camila Ross", id_doctor: 42 }, { nombre: "Mona Khalaf", id_doctor: null }],
-		objetivos: "Seguimiento y entrega de órdenes.",
-	};
-
-	test("conserva titulo y encabezados", () => {
-		const filas = construirHojaProgramacion([dia], { titulo: "PROGRAMACION SEMANAL DEL 17 AL 21 AGO" });
-		expect(filas[0]).toEqual(["PROGRAMACION SEMANAL DEL 17 AL 21 AGO"]);
-		expect(filas[1]).toEqual(ENCABEZADOS_PROGRAMACION);
-	});
-
-	test("escribe el dia con nombre y junta los medicos en una celda", () => {
-		const [, , renglon] = construirHojaProgramacion([dia]);
-		expect(renglon[0]).toBe("Lunes");
-		expect(renglon[1]).toBe("Torre coralia");
-		expect(renglon[2]).toBe("Camila Ross     Mona Khalaf");
-		expect(renglon[3]).toBe("Seguimiento y entrega de órdenes.");
-	});
-
-	test("acepta los medicos como texto suelto ademas de como objeto", () => {
-		const [, , renglon] = construirHojaProgramacion([
-			{ dia_semana: 2, medicos_programados: ["Nadia Fierro", "Felipe Magaña"] },
-		]);
-		expect(renglon[2]).toBe("Nadia Fierro     Felipe Magaña");
-	});
-
-	test("lo exportado se vuelve a leer identico", () => {
-		const filas = construirHojaProgramacion([dia]);
-		const { filas: leidas, advertencias } = leerProgramacionSemanal(libroDeUnaHoja("17-21 ago", filas));
-		expect(advertencias).toEqual([]);
-		expect(leidas).toEqual([
-			{
-				hoja: "17-21 ago",
-				renglon: 3,
-				dia_semana: 1,
-				zona: "Torre coralia",
-				medicos_programados: ["Camila Ross", "Mona Khalaf"],
-				objetivos: "Seguimiento y entrega de órdenes.",
-			},
-		]);
-	});
-});
 
 describe("construirHojaAgenda", () => {
 	const cita = {
