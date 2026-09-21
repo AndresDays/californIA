@@ -1,7 +1,7 @@
 {
   "name": "california",
   "private": true,
-  "version": "2.27.0",
+  "version": "2.30.1",
   "type": "module",
   "description": "Sistema de diagnóstico asistido por IA para radiología - Centro Diagnóstico California",
   "engines": {
@@ -35,6 +35,7 @@
     "cornerstone-tools": "^4.22.1",
     "cornerstone-wado-image-loader": "^4.13.2",
     "dicom-parser": "^1.8.21",
+    "exceljs": "^4.4.0",
     "jsbarcode": "^3.12.3",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.8",

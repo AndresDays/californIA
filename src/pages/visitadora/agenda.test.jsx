@@ -47,8 +47,8 @@ jest.mock("../../hooks/use-agenda-visitas", () => ({
 }));
 
 const mockExportar = jest.fn();
-jest.mock("../../utils/exportar-informe-visitas", () => ({
-	exportarAgenda: (...args) => mockExportar(...args),
+jest.mock("../../utils/exportar-agenda-excel", () => ({
+	exportarAgendaExcel: (...args) => mockExportar(...args),
 }));
 
 import Agenda from "./agenda";
@@ -133,7 +133,9 @@ describe("Agenda de visitas", () => {
 
 	test("lo cancelado tampoco se exporta", async () => {
 		await mostrar();
-		fireEvent.click(screen.getByRole("button", { name: "Exportar Excel" }));
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Exportar Excel" }));
+		});
 		const [citasExportadas] = mockExportar.mock.calls[0];
 		expect(citasExportadas.map((cita) => cita.id_agenda)).toEqual(["a1", "a3"]);
 	});
@@ -420,4 +422,14 @@ describe("Buscar visitas repetidas", () => {
 		expect(mockEliminar).toHaveBeenCalledTimes(1);
 		expect(mockEliminar).toHaveBeenCalledWith("r2");
 	});
+});
+
+// El botón "Hoy" sólo volvía a la fecha actual, que es donde la agenda abre:
+// ocupaba lugar en una barra que en el celular ya va apretada.
+test("la barra no trae el botón de Hoy", async () => {
+	await mostrar();
+	expect(screen.queryByRole("button", { name: "Hoy" })).not.toBeInTheDocument();
+	for (const vista of ["Día", "Semana", "Mes"]) {
+		expect(screen.getByRole("button", { name: vista })).toBeInTheDocument();
+	}
 });

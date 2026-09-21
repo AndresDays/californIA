@@ -4,6 +4,7 @@ import { useGuardarTarea } from "../../../hooks/use-tareas-seguimiento";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useActualizarContactoMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
+import CampoFechaNacimiento from "./campo-fecha-nacimiento";
 import { hoyEnMexico, sumarDias } from "../../../utils/semanas-visitadora";
 import "../visitadora.css";
 
@@ -27,9 +28,14 @@ const ModalRegistroVisita = ({
 	const [campos, setCampos] = useState(() => ({
 		fecha: hoyEnMexico(),
 		tipo_visita: cita?.tipo_visita ?? "seguimiento",
+		// El nombre se puede corregir aquí: viene escrito de la agenda y a veces
+		// quedó mal tecleado entre consultorios.
+		medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? cita?.medico_nombre ?? "",
 		especialidad: medico?.especialidad ?? "",
 		ubicacion: medico?.hospital ?? medico?.direccion_consultorio ?? "",
-		actividades: cita?.objetivo ?? "",
+		// Las actividades nacen en blanco: son lo que pasó en la visita, no lo que
+		// se pensaba hacer.
+		actividades: "",
 		comentarios_medico: "",
 		observaciones: "",
 		seguimiento: "",
@@ -47,6 +53,7 @@ const ModalRegistroVisita = ({
 					Object.entries({
 						fecha: visita.fecha,
 						tipo_visita: visita.tipo_visita,
+						medico_nombre: visita.medico_nombre,
 						especialidad: visita.especialidad,
 						ubicacion: visita.ubicacion,
 						actividades: visita.actividades ?? visita.objetivo,
@@ -71,6 +78,10 @@ const ModalRegistroVisita = ({
 
 	const guardar = async (evento) => {
 		evento.preventDefault();
+		if (!campos.medico_nombre.trim()) {
+			onError?.("La visita necesita el nombre del médico.");
+			return;
+		}
 		if (!campos.actividades.trim()) {
 			onError?.("Escribe al menos las actividades de la visita.");
 			return;
@@ -80,7 +91,7 @@ const ModalRegistroVisita = ({
 				...(visita?.id_visita ? { id_visita: visita.id_visita } : {}),
 				fecha: campos.fecha,
 				id_doctor: medico?.id_doctor ?? null,
-				medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? "",
+				medico_nombre: campos.medico_nombre.trim(),
 				especialidad: campos.especialidad || null,
 				zona: medico?.zona ?? null,
 				ubicacion: campos.ubicacion || null,
@@ -103,7 +114,7 @@ const ModalRegistroVisita = ({
 			if (campos.fecha_seguimiento && !visita) {
 				await guardarTarea.mutateAsync({
 					id_doctor: medico?.id_doctor ?? null,
-					medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? "",
+					medico_nombre: campos.medico_nombre.trim(),
 					tipo: "seguimiento",
 					descripcion: campos.seguimiento || "Dar seguimiento a la visita",
 					fecha_objetivo: campos.fecha_seguimiento,
@@ -114,12 +125,14 @@ const ModalRegistroVisita = ({
 			// Sólo se escribe en el catálogo si algo cambió: así registrar una
 			// visita no toca la ficha del médico cuando no hacía falta.
 			const contactoCambio =
+				campos.medico_nombre.trim() !== (medico?.nombre_completo ?? medico?.nombre ?? "") ||
 				campos.telefono !== (medico?.telefono ?? "") ||
 				campos.email !== (medico?.email ?? "") ||
 				campos.fecha_nacimiento !== (medico?.fecha_nacimiento ?? "");
 			if (medico?.id_doctor && contactoCambio) {
 				await actualizarContacto.mutateAsync({
 					idDoctor: medico.id_doctor,
+					nombre: campos.medico_nombre,
 					telefono: campos.telefono,
 					email: campos.email,
 					fechaNacimiento: campos.fecha_nacimiento,
@@ -153,10 +166,23 @@ const ModalRegistroVisita = ({
 		<div className="visitadora-modal-fondo" role="dialog" aria-modal="true">
 			<div className="visitadora-modal ancho">
 				<h2>{visita ? "Editar visita registrada" : "Registrar visita"}</h2>
-				<p className="visitadora-modal-sujeto">
-					{medico?.nombre_completo ?? medico?.nombre} · {medico?.especialidad || "Sin especialidad"}
-				</p>
+				{/* El objetivo con el que se programó la visita se enseña como
+				    referencia, para escribir las actividades contra lo que se iba a
+				    hacer; no se edita aquí, que para eso está la cita. */}
+				{cita?.objetivo && (
+					<div className="visitadora-historial">
+						<p className="visitadora-historial-titulo">Objetivo de la visita</p>
+						<p className="visitadora-notas">{cita.objetivo}</p>
+					</div>
+				)}
 				<form onSubmit={guardar}>
+					<label htmlFor="registro-medico">Médico</label>
+					<input
+						id="registro-medico"
+						type="text"
+						value={campos.medico_nombre}
+						onChange={cambiar("medico_nombre")}
+					/>
 					<div className="visitadora-modal-columnas">
 						<div>
 							<label htmlFor="registro-fecha">Fecha</label>
@@ -192,12 +218,12 @@ const ModalRegistroVisita = ({
 							/>
 						</div>
 						<div>
-							<label htmlFor="registro-cumple">Fecha de nacimiento</label>
-							<input
+							<CampoFechaNacimiento
 								id="registro-cumple"
-								type="date"
-								value={campos.fecha_nacimiento}
-								onChange={cambiar("fecha_nacimiento")}
+								valor={campos.fecha_nacimiento}
+								onChange={(nueva) =>
+									setCampos((previos) => ({ ...previos, fecha_nacimiento: nueva }))
+								}
 							/>
 						</div>
 					</div>

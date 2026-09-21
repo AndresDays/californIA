@@ -168,18 +168,21 @@ export const useConvertirProspecto = () => {
 	});
 };
 
-// Al registrar una visita ella completa lo que le faltaba al médico: su
-// teléfono, su correo o su cumpleaños. Se actualizan sólo esas tres columnas de
-// `doctores`, sin tocar la ficha comercial, para que guardar desde ahí no borre
-// nada de lo demás.
+// Al registrar una visita ella completa o corrige lo que le faltaba al médico:
+// su nombre mal escrito, su teléfono, su correo o su cumpleaños. Se actualizan
+// sólo esas columnas de `doctores`, sin tocar la ficha comercial, para que
+// guardar desde ahí no borre nada de lo demás.
 export const useActualizarContactoMedico = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async ({ idDoctor, telefono, email, fechaNacimiento }) => {
+		mutationFn: async ({ idDoctor, nombre, telefono, email, fechaNacimiento }) => {
 			if (!idDoctor) return;
 			const { error } = await supabase
 				.from("doctores")
 				.update({
+					// El nombre es obligatorio en el catálogo: si viene vacío se deja
+					// el que ya tenía en vez de borrarlo.
+					...(String(nombre || "").trim() ? { nombre: nombre.trim() } : {}),
 					telefono: telefono || null,
 					email: email || null,
 					fecha_nacimiento: fechaNacimiento || null,
