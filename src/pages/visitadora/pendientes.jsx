@@ -98,14 +98,20 @@ const Pendientes = () => {
 					{visibles.map((tarea) => (
 						<div key={tarea.id_tarea} className="visitadora-ficha-medico">
 							<span className="visitadora-ficha-nombre">{etiquetaTipoTarea(tarea.tipo)}</span>
-							{tarea.medico_nombre && (
-								<button
-									type="button"
-									className="visitadora-enlace"
-									onClick={() => tarea.id_doctor && navegar(`/visitadora/medico/${tarea.id_doctor}`)}>
-									{tarea.medico_nombre}
-								</button>
-							)}
+							{tarea.medico_nombre &&
+								(tarea.id_doctor ? (
+									<button
+										type="button"
+										className="visitadora-enlace"
+										onClick={() => navegar(`/visitadora/medico/${tarea.id_doctor}`)}>
+										{tarea.medico_nombre}
+									</button>
+								) : (
+									<span className="visitadora-ficha-dato">
+										{tarea.medico_nombre}{" "}
+										<span className="visitadora-pastilla suelto">sin expediente</span>
+									</span>
+								))}
 							{tarea.descripcion && <span className="visitadora-ficha-dato">{tarea.descripcion}</span>}
 							<span className="visitadora-pastillas">
 								<span className={`visitadora-pastilla ${tarea.fecha_objetivo < hoy && tarea.estado === "pendiente" ? "vencido" : "pendiente"}`}>

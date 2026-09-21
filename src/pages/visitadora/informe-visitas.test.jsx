@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 jest.mock("./visitadora.css", () => ({}));
 jest.mock("../../components/page-layout.jsx", () => ({
@@ -55,7 +56,9 @@ const mostrar = async () => {
 	await act(async () => {
 		render(
 			<QueryClientProvider client={queryClient}>
-				<InformeVisitas />
+				<MemoryRouter>
+					<InformeVisitas />
+				</MemoryRouter>
 			</QueryClientProvider>,
 		);
 	});
@@ -90,7 +93,7 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe("InformeVisitas", () => {
-	test("consulta la semana laboral de la fecha actual, de lunes a viernes", async () => {
+	test("consulta la semana completa de la fecha actual, de lunes a domingo", async () => {
 		await mostrar();
 		expect(rangoConsultado.current).toEqual({ desde: "2026-08-17", hasta: "2026-08-23" });
 		expect(screen.getByText("Del 17 al 21 de agosto")).toBeInTheDocument();

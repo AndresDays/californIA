@@ -130,13 +130,24 @@ const Agenda = () => {
 
 	const tarjetaCita = (cita) => (
 		<div key={cita.id_agenda} className={`visitadora-cita ${cita.estatus}`}>
-			<button
-				type="button"
-				className="visitadora-enlace"
-				onClick={() => navegar(`/visitadora/medico/${cita.id_doctor}`)}>
-				{cita.hora ? `${cita.hora.slice(0, 5)} · ` : ""}
-				{cita.medico_nombre}
-			</button>
+			{/* Sin médico del catálogo no hay expediente al cual ir: llevar a la
+			    ficha mandaba a una pantalla que sólo sabía decir que el médico no
+			    estaba en el directorio. */}
+			{cita.id_doctor ? (
+				<button
+					type="button"
+					className="visitadora-enlace"
+					onClick={() => navegar(`/visitadora/medico/${cita.id_doctor}`)}>
+					{cita.hora ? `${cita.hora.slice(0, 5)} · ` : ""}
+					{cita.medico_nombre}
+				</button>
+			) : (
+				<span>
+					{cita.hora ? `${cita.hora.slice(0, 5)} · ` : ""}
+					{cita.medico_nombre}{" "}
+					<span className="visitadora-pastilla suelto">sin expediente</span>
+				</span>
+			)}
 			<div className="visitadora-ficha-dato">{etiquetaTipoVisita(cita.tipo_visita)}</div>
 			{cita.objetivo && <div className="visitadora-recorte">{cita.objetivo}</div>}
 			{cita.estatus === "programada" && (

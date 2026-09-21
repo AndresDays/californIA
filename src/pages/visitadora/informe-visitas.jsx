@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import PageLayout from "../../components/page-layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
@@ -49,6 +50,7 @@ const claveDeNombre = (valor) =>
 
 const InformeVisitas = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
+	const navegar = useNavigate();
 	const [lunes, setLunes] = useState(lunesDeLaSemana(hoyEnMexico()));
 	const [visitaEditar, setVisitaEditar] = useState(null);
 	const [modalAbierto, setModalAbierto] = useState(false);
@@ -257,11 +259,21 @@ const InformeVisitas = () => {
 							{visitas.map((visita) => (
 								<tr key={visita.id_visita}>
 									<td>
-										{visita.medico_nombre}{" "}
 										{visita.id_doctor ? (
-											<span className="visitadora-pastilla ligado">ligado</span>
+											<>
+												<button
+													type="button"
+													className="visitadora-enlace"
+													onClick={() => navegar(`/visitadora/medico/${visita.id_doctor}`)}>
+													{visita.medico_nombre}
+												</button>{" "}
+												<span className="visitadora-pastilla ligado">ligado</span>
+											</>
 										) : (
-											<span className="visitadora-pastilla suelto">sin ligar</span>
+											<>
+												{visita.medico_nombre}{" "}
+												<span className="visitadora-pastilla suelto">sin ligar</span>
+											</>
 										)}
 									</td>
 									{/* El recorte va en un div y no en la celda: poner display
