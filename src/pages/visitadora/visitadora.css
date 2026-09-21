@@ -749,8 +749,13 @@
 	width: 100%;
 }
 
+/* La visita ya registrada se apaga: sigue a la vista para poder corregirla o
+   quitarla, pero se distingue de un vistazo de lo que falta por hacer. */
 .visitadora-cita.realizada {
-	opacity: 0.6;
+	opacity: 0.75;
+	background: var(--superficie-3);
+	color: var(--texto-suave, var(--texto));
+	border-style: dashed;
 }
 
 /* La cancelada ya no se dibuja; la reprogramada se queda atenuada para que se
