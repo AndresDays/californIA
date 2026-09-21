@@ -193,3 +193,21 @@ describe("Visita ya registrada", () => {
 		expect(mockEliminar).toHaveBeenCalledWith("a9");
 	});
 });
+
+// El velo del modal era blanco sólido y borraba la pantalla de atrás.
+describe("Velo de los modales", () => {
+	const fs = require("fs");
+	const path = require("path");
+	const css = fs.readFileSync(path.join(process.cwd(), "src/pages/visitadora/visitadora.css"), "utf8");
+
+	test("el fondo del modal es translúcido, no una pared blanca", () => {
+		const bloque = css.slice(css.indexOf(".visitadora-modal-fondo"));
+		expect(bloque).toMatch(/background:\s*var\(--velo-modal\)/);
+		expect(bloque.slice(0, bloque.indexOf("}"))).not.toMatch(/--superficie-2/);
+	});
+
+	test("el token del velo lleva transparencia", () => {
+		const tema = fs.readFileSync(path.join(process.cwd(), "src/styles/tema.css"), "utf8");
+		expect(tema).toMatch(/--velo-modal:\s*rgba\([^)]*0?\.\d+\)/);
+	});
+});

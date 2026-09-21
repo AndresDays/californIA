@@ -44,6 +44,24 @@ export const useVisitasDeMedico = (idDoctor) =>
 		},
 	});
 
+// La visita que nació de una cita de la agenda: sirve para reabrirla con todos
+// sus campos cuando hay que corregir lo que se registró.
+export const useVisitaDeAgenda = (idAgenda) =>
+	useQuery({
+		queryKey: ["visitas-medicas", "agenda", idAgenda],
+		enabled: Boolean(idAgenda),
+		queryFn: async () => {
+			const { data, error } = await supabase
+				.from("visitas_medicas")
+				.select(CAMPOS)
+				.eq("id_agenda", idAgenda)
+				.order("fecha", { ascending: false })
+				.limit(1);
+			if (error) throw error;
+			return data?.[0] ?? null;
+		},
+	});
+
 export const useGuardarVisita = () => {
 	const queryClient = useQueryClient();
 	return useMutation({

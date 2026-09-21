@@ -14,6 +14,7 @@ const ModalRegistroVisita = ({
 	isOpen,
 	medico,
 	cita,
+	visita,
 	idEmpleado,
 	onClose,
 	onGuardado,
@@ -36,6 +37,25 @@ const ModalRegistroVisita = ({
 		telefono: medico?.telefono ?? "",
 		email: medico?.email ?? "",
 		fecha_nacimiento: medico?.fecha_nacimiento ?? "",
+		// Corrigiendo una visita ya registrada, los campos llegan con lo que se
+		// guardó; capturando una nueva, con lo que se pueda adivinar de la cita.
+		...(visita
+			? Object.fromEntries(
+					Object.entries({
+						fecha: visita.fecha,
+						tipo_visita: visita.tipo_visita,
+						objetivo: visita.objetivo ?? visita.actividades,
+						que_se_ofrecio: visita.que_se_ofrecio,
+						que_se_entrego: visita.que_se_entrego,
+						resultado: visita.resultado,
+						comentarios_medico: visita.comentarios_medico,
+						compromisos: visita.compromisos ?? visita.observaciones,
+						proxima_accion: visita.proxima_accion ?? visita.seguimiento,
+						fecha_seguimiento: visita.fecha_seguimiento ?? "",
+						tipo_convenio: visita.tipo_convenio,
+					}).filter(([, valor]) => valor !== null && valor !== undefined),
+				)
+			: {}),
 	}));
 	const guardarVisita = useGuardarVisita();
 	const guardarTarea = useGuardarTarea();
@@ -55,6 +75,7 @@ const ModalRegistroVisita = ({
 		}
 		try {
 			await guardarVisita.mutateAsync({
+				...(visita?.id_visita ? { id_visita: visita.id_visita } : {}),
 				fecha: campos.fecha,
 				id_doctor: medico?.id_doctor ?? null,
 				medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? "",
@@ -82,8 +103,9 @@ const ModalRegistroVisita = ({
 			});
 
 			// El seguimiento no se apunta aparte: guardar la visita ya deja el
-			// pendiente en la bandeja, que es donde se le olvidaba.
-			if (campos.fecha_seguimiento) {
+			// pendiente en la bandeja, que es donde se le olvidaba. Al corregir una
+			// visita vieja no se vuelve a crear: ya existe.
+			if (campos.fecha_seguimiento && !visita) {
 				await guardarTarea.mutateAsync({
 					id_doctor: medico?.id_doctor ?? null,
 					medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? "",
@@ -119,7 +141,7 @@ const ModalRegistroVisita = ({
 				});
 			}
 
-			onGuardado?.("Visita registrada.");
+			onGuardado?.(visita ? "Visita actualizada." : "Visita registrada.");
 		} catch (fallo) {
 			onError?.(fallo.message || "No se pudo registrar la visita.");
 		}
@@ -135,7 +157,7 @@ const ModalRegistroVisita = ({
 	return (
 		<div className="visitadora-modal-fondo" role="dialog" aria-modal="true">
 			<div className="visitadora-modal ancho">
-				<h2>Registrar visita</h2>
+				<h2>{visita ? "Editar visita registrada" : "Registrar visita"}</h2>
 				<p className="visitadora-modal-sujeto">
 					{medico?.nombre_completo ?? medico?.nombre} · {medico?.especialidad || "Sin especialidad"}
 				</p>
@@ -208,7 +230,7 @@ const ModalRegistroVisita = ({
 					<div className="visitadora-modal-acciones">
 						<button type="button" onClick={onClose}>Cancelar</button>
 						<button type="submit" className="visitadora-boton-primario" disabled={guardarVisita.isPending}>
-							{guardarVisita.isPending ? "Guardando…" : "Guardar visita"}
+							{guardarVisita.isPending ? "Guardando…" : visita ? "Guardar cambios" : "Guardar visita"}
 						</button>
 					</div>
 				</form>

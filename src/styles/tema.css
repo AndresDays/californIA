@@ -27,6 +27,10 @@
 	--superficie-2: #ffffff;
 	--superficie-3: #f4f7fa;
 	/* Fila alterna y hover de tabla: apenas un velo azul sobre el blanco. */
+	/* El velo de los modales iba en blanco sólido, así que abrir uno borraba la
+	 * pantalla de atrás y se perdía el hilo de dónde estabas. Es un azul oscuro
+	 * translúcido: la ventana se sigue viendo debajo y el modal se lee encima. */
+	--velo-modal: rgba(18, 41, 61, 0.45);
 	--superficie-hover: rgba(16, 109, 160, 0.06);
 	--superficie-activa: rgba(16, 109, 160, 0.12);
 
