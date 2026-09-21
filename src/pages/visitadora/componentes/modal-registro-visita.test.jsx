@@ -18,6 +18,10 @@ jest.mock("../../../hooks/use-tareas-seguimiento", () => ({
 jest.mock("../../../hooks/use-agenda-visitas", () => ({
 	useGuardarAgenda: () => ({ mutateAsync: mockGuardarAgenda, isPending: false }),
 }));
+const mockClasificar = jest.fn();
+jest.mock("../../../hooks/use-clasificar-visita", () => ({
+	useClasificarVisita: () => ({ mutateAsync: mockClasificar, isPending: false }),
+}));
 jest.mock("../../../hooks/use-directorio-medicos", () => ({
 	useActualizarContactoMedico: () => ({ mutateAsync: mockActualizarContacto, isPending: false }),
 }));
@@ -70,6 +74,7 @@ beforeEach(() => {
 	mockGuardarTarea.mockClear();
 	mockGuardarAgenda.mockClear();
 	mockActualizarContacto.mockClear();
+	mockClasificar.mockReset();
 });
 afterEach(() => jest.useRealTimers());
 
@@ -453,5 +458,73 @@ describe("Texto libre sin etiquetas", () => {
 		const guardada = mockGuardarVisita.mock.calls[0][0];
 		expect(guardada.observaciones).toBe("Mostró interés y pidió precios");
 		expect(guardada.comentarios_medico).toBe("");
+	});
+});
+
+describe("Acomodar el dictado con IA", () => {
+	const dictado = "Se dejaron órdenes. No fue posible abordarlo. Quedó de mandarme su base de datos.";
+
+	test("usa lo que devolvió la IA para la vista previa y para guardar", async () => {
+		mockClasificar.mockResolvedValue({
+			fuente: "ia",
+			desglose: {
+				actividades: "Se dejaron órdenes.",
+				comentarios_medico: "Quedó de mandarme su base de datos.",
+				observaciones: "No fue posible abordarlo.",
+				seguimiento: "",
+				tipo_convenio: "",
+			},
+		});
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), { target: { value: dictado } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Acomodar con IA" }));
+		});
+		expect(screen.getByText(/acomodado con IA/)).toBeInTheDocument();
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ observaciones: "No fue posible abordarlo." }),
+		);
+	});
+
+	// Sin señal o sin llave configurada, registrar la visita no se detiene.
+	test("si la IA no contesta, avisa y se queda el reparto local", async () => {
+		mockClasificar.mockResolvedValue({
+			fuente: "local",
+			motivo: "Sin conexión",
+			desglose: { actividades: dictado, comentarios_medico: "", observaciones: "", seguimiento: "", tipo_convenio: "" },
+		});
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), { target: { value: dictado } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Acomodar con IA" }));
+		});
+		expect(screen.getByText(/No se pudo acomodar con IA/)).toBeInTheDocument();
+	});
+
+	// Seguir escribiendo después de acomodar dejaría guardado un reparto que ya
+	// no corresponde al texto.
+	test("cambiar el texto descarta lo que había acomodado", async () => {
+		mockClasificar.mockResolvedValue({
+			fuente: "ia",
+			desglose: { actividades: "Se dejaron órdenes.", comentarios_medico: "", observaciones: "", seguimiento: "", tipo_convenio: "" },
+		});
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), { target: { value: dictado } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Acomodar con IA" }));
+		});
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: `${dictado} Dar seguimiento en 15 días.` },
+		});
+		expect(screen.queryByText(/acomodado con IA/)).not.toBeInTheDocument();
+	});
+
+	test("no se llama a la IA sola: sólo cuando se pide", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), { target: { value: dictado } });
+		expect(mockClasificar).not.toHaveBeenCalled();
 	});
 });
