@@ -123,12 +123,16 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 					fecha: campos.fecha,
 				});
 			}
+			// Se devuelve dónde quedó la visita para que la agenda se mueva hasta
+			// ahí: guardarla en otro día la sacaba de la semana que se estaba
+			// viendo y parecía que se hubiera borrado.
 			onGuardado?.(
 				cita
 					? "Visita actualizada."
 					: esMedicoNuevo
 						? "Médico registrado y visita programada."
 						: "Visita programada.",
+				{ fecha: campos.fecha, zona: campos.zona || null },
 			);
 		} catch (fallo) {
 			onError?.(fallo.message || "No se pudo guardar la visita.");
