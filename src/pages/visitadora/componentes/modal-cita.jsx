@@ -34,10 +34,23 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 		}));
 	};
 
+	// Editando, el médico es el de la tarjeta y no se vuelve a preguntar; si
+	// además no está en el catálogo, se conserva su nombre tal como quedó
+	// escrito en la cita.
+	const medicoDeLaCita = cita
+		? (medico ??
+			medicos.find((candidato) => String(candidato.id_doctor) === String(cita.id_doctor)) ?? {
+				id_doctor: cita.id_doctor ?? null,
+				nombre_completo: cita.medico_nombre,
+				especialidad: cita.especialidad,
+			})
+		: medico;
+
 	const guardar = async (evento) => {
 		evento.preventDefault();
 		const elegido =
-			medico ?? medicos.find((candidato) => String(candidato.id_doctor) === String(campos.id_doctor));
+			medicoDeLaCita ??
+			medicos.find((candidato) => String(candidato.id_doctor) === String(campos.id_doctor));
 		if (!elegido || !campos.fecha) {
 			onError?.("La cita necesita médico y fecha.");
 			return;
@@ -73,8 +86,14 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 		<div className="visitadora-modal-fondo" role="dialog" aria-modal="true">
 			<div className="visitadora-modal">
 				<h2>{cita ? "Editar visita programada" : "Programar visita"}</h2>
+				{medicoDeLaCita && (
+					<p className="visitadora-modal-sujeto">
+						{medicoDeLaCita.nombre_completo ?? medicoDeLaCita.nombre}
+						{medicoDeLaCita.especialidad ? ` · ${medicoDeLaCita.especialidad}` : ""}
+					</p>
+				)}
 				<form onSubmit={guardar}>
-					{!medico && (
+					{!medicoDeLaCita && (
 						<>
 							<label htmlFor="cita-medico">Médico</label>
 							<select id="cita-medico" value={campos.id_doctor} onChange={elegirMedico} required>

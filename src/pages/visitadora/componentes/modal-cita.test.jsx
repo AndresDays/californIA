@@ -85,3 +85,45 @@ describe("Programar visita", () => {
 		expect(mockAgregarNota).not.toHaveBeenCalled();
 	});
 });
+
+describe("Editar la visita de una tarjeta", () => {
+	const cita = {
+		id_agenda: "a1",
+		id_doctor: 7,
+		medico_nombre: "Ramón Pérez",
+		especialidad: "Ginecología",
+		fecha: "2026-09-23",
+		hora: "16:00:00",
+		tipo_visita: "seguimiento",
+		zona: "Centro",
+	};
+
+	// Se edita la visita de ese médico: volver a preguntar cuál era pedía un
+	// dato que ya se sabía y dejaba cambiarlo sin querer.
+	test("no pregunta de nuevo por el médico", async () => {
+		await mostrar({ cita, medico: undefined });
+		expect(screen.queryByLabelText("Médico")).not.toBeInTheDocument();
+		expect(screen.getByText(/Ramón Pérez/)).toBeInTheDocument();
+	});
+
+	test("guarda sobre la misma visita, con su médico", async () => {
+		await mostrar({ cita, medico: undefined, medicos: [] });
+		fireEvent.change(screen.getByLabelText("Hora"), { target: { value: "18:00" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarAgenda).toHaveBeenCalledWith(
+			expect.objectContaining({
+				id_agenda: "a1",
+				id_doctor: 7,
+				medico_nombre: "Ramón Pérez",
+				hora: "18:00",
+			}),
+		);
+	});
+
+	test("programar una visita nueva sí deja elegir médico", async () => {
+		await mostrar({ medico: undefined, medicos: [{ id_doctor: 9, nombre_completo: "Ana Ruiz" }] });
+		expect(screen.getByLabelText("Médico")).toBeInTheDocument();
+	});
+});
