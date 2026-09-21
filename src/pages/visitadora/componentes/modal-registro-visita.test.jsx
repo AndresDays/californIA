@@ -70,7 +70,7 @@ describe("Registro rápido de visita", () => {
 	test("nace con la fecha de hoy y el médico ya puesto", async () => {
 		await mostrar();
 		expect(screen.getByLabelText("Fecha")).toHaveValue("2026-09-19");
-		expect(screen.getByText(/Ramón Pérez/)).toBeInTheDocument();
+		expect(screen.getByLabelText("Médico")).toHaveValue("Ramón Pérez");
 	});
 
 	// Los campos son los del informe semanal, que es el reporte que ella
@@ -189,6 +189,7 @@ describe("Datos de contacto del médico", () => {
 		});
 		expect(mockActualizarContacto).toHaveBeenCalledWith({
 			idDoctor: 7,
+			nombre: "Ramón Pérez",
 			telefono: "3221234567",
 			email: "nuevo@ejemplo.mx",
 			fechaNacimiento: "1975-09-19",
@@ -250,5 +251,50 @@ describe("Corregir una visita ya registrada", () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 		});
 		expect(mockGuardarTarea).not.toHaveBeenCalled();
+	});
+});
+
+describe("Objetivo, actividades y nombre del médico", () => {
+	const cita = { id_agenda: "a1", tipo_visita: "entrega_ordenes", objetivo: "Dejar talonario de órdenes" };
+
+	// El objetivo es con lo que se programó la visita: sirve de referencia al
+	// escribir lo que de verdad pasó, pero no se corrige aquí.
+	test("el objetivo de la cita se enseña sin poder editarlo", async () => {
+		await mostrar({ cita });
+		expect(screen.getByText("Objetivo de la visita")).toBeInTheDocument();
+		expect(screen.getByText("Dejar talonario de órdenes")).toBeInTheDocument();
+		expect(screen.queryByDisplayValue("Dejar talonario de órdenes")).not.toBeInTheDocument();
+	});
+
+	test("las actividades empiezan vacías aunque la cita traiga objetivo", async () => {
+		await mostrar({ cita });
+		expect(screen.getByLabelText("Actividades")).toHaveValue("");
+	});
+
+	test("el nombre del médico se puede corregir y se guarda corregido", async () => {
+		await mostrar();
+		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "Ramón Pérez Gómez" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Se presentaron servicios" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ medico_nombre: "Ramón Pérez Gómez" }),
+		);
+		// Y el catálogo queda con el nombre bien escrito, no sólo esta visita.
+		expect(mockActualizarContacto).toHaveBeenCalledWith(
+			expect.objectContaining({ idDoctor: 7, nombre: "Ramón Pérez Gómez" }),
+		);
+	});
+
+	test("sin nombre no guarda la visita", async () => {
+		const { onError } = await mostrar();
+		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "  " } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Algo" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).not.toHaveBeenCalled();
+		expect(onError).toHaveBeenCalledWith("La visita necesita el nombre del médico.");
 	});
 });
