@@ -240,3 +240,46 @@ describe("El médico nuevo que ya estaba en el directorio", () => {
 		expect(mockGuardarMedico).toHaveBeenCalled();
 	});
 });
+
+describe("Objetivos del día o de la semana", () => {
+	const objetivosPeriodo = [
+		{ id_objetivo: "o1", desde: "2026-09-21", hasta: "2026-09-27", texto: "Levantar pedido de órdenes" },
+		{ id_objetivo: "o2", desde: "2026-09-23", hasta: "2026-09-23", texto: "Presentar el paquete nuevo" },
+	];
+
+	// Se tecleaba lo mismo en cada cita de la semana.
+	test("la cita nace con los objetivos de ese día", async () => {
+		await mostrar({ objetivosPeriodo, fecha: "2026-09-23" });
+		expect(screen.getByLabelText(/Objetivo de la visita/)).toHaveValue(
+			"Levantar pedido de órdenes\nPresentar el paquete nuevo",
+		);
+	});
+
+	test("un día sin objetivos propios sólo trae los de la semana", async () => {
+		await mostrar({ objetivosPeriodo, fecha: "2026-09-22" });
+		expect(screen.getByLabelText(/Objetivo de la visita/)).toHaveValue("Levantar pedido de órdenes");
+	});
+
+	test("al mover la cita de día se traen los objetivos del día nuevo", async () => {
+		await mostrar({ objetivosPeriodo, fecha: "2026-09-22" });
+		fireEvent.change(screen.getByLabelText("Día de visita"), { target: { value: "2026-09-23" } });
+		expect(screen.getByLabelText(/Objetivo de la visita/)).toHaveValue(
+			"Levantar pedido de órdenes\nPresentar el paquete nuevo",
+		);
+	});
+
+	// Lo que ella escribió no se pisa al cambiar de día.
+	test("si ya escribió su objetivo, cambiar de día no lo borra", async () => {
+		await mostrar({ objetivosPeriodo, fecha: "2026-09-22" });
+		fireEvent.change(screen.getByLabelText(/Objetivo de la visita/), {
+			target: { value: "Cobrar la comisión pendiente" },
+		});
+		fireEvent.change(screen.getByLabelText("Día de visita"), { target: { value: "2026-09-23" } });
+		expect(screen.getByLabelText(/Objetivo de la visita/)).toHaveValue("Cobrar la comisión pendiente");
+	});
+
+	test("sin objetivos del periodo el campo queda vacío", async () => {
+		await mostrar({ fecha: "2026-09-23" });
+		expect(screen.getByLabelText(/Objetivo de la visita/)).toHaveValue("");
+	});
+});

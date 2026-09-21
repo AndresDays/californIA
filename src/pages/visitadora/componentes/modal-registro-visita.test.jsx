@@ -35,7 +35,9 @@ const medico = {
 	fecha_nacimiento: "1975-09-19",
 };
 
-const mostrar = async (props = {}) => {
+// El modal abre en la captura de corrido; estas pruebas trabajan sobre los
+// campos sueltos salvo que se pida lo contrario.
+const mostrar = async ({ modo = "campos", ...props } = {}) => {
 	const onGuardado = jest.fn();
 	const onError = jest.fn();
 	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -54,6 +56,11 @@ const mostrar = async (props = {}) => {
 			</QueryClientProvider>,
 		);
 	});
+	if (modo === "campos") {
+		await act(async () => {
+			fireEvent.click(screen.getByRole("tab", { name: "Campo por campo" }));
+		});
+	}
 	return { onGuardado, onError };
 };
 
@@ -299,5 +306,98 @@ describe("Objetivo, actividades y nombre del médico", () => {
 		});
 		expect(mockGuardarVisita).not.toHaveBeenCalled();
 		expect(onError).toHaveBeenCalledWith("La visita necesita el nombre del médico.");
+	});
+});
+
+describe("Captura de corrido", () => {
+	// Parada en el consultorio no hay tiempo de saltar entre siete campos: se
+	// escribe todo seguido y cada cosa se marca con su etiqueta.
+	test("abre en el campo grande, no en los campos sueltos", async () => {
+		await mostrar({ modo: "libre" });
+		expect(screen.getByLabelText("Lo que pasó en la visita")).toBeInTheDocument();
+		expect(screen.queryByLabelText("Comentarios del médico")).not.toBeInTheDocument();
+	});
+
+	test("lo escrito se desglosa en las columnas del informe", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: {
+				value: [
+					"Se presentaron laboratorio e imagen",
+					"Comentarios del médico: pidió precios de resonancia",
+					"Observaciones: recibe los miércoles",
+					"Seguimiento: volver en 15 días",
+					"Convenio: MIXTO",
+				].join("\n"),
+			},
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({
+				actividades: "Se presentaron laboratorio e imagen",
+				comentarios_medico: "pidió precios de resonancia",
+				observaciones: "recibe los miércoles",
+				seguimiento: "volver en 15 días",
+				tipo_convenio: "MIXTO",
+			}),
+		);
+	});
+
+	test("guarda también el texto tal como se escribió", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Entrega de órdenes" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ captura_libre: "Entrega de órdenes" }),
+		);
+	});
+
+	test("el botón de cada etiqueta la mete en el renglón", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Se dejaron órdenes" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "+ Seguimiento" }));
+		expect(screen.getByLabelText("Lo que pasó en la visita")).toHaveValue(
+			"Se dejaron órdenes\nSeguimiento: ",
+		);
+	});
+
+	test("sin nada escrito no guarda", async () => {
+		const { onError } = await mostrar({ modo: "libre" });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		expect(mockGuardarVisita).not.toHaveBeenCalled();
+		expect(onError).toHaveBeenCalledWith("Escribe al menos las actividades de la visita.");
+	});
+
+	// Cambiar de modo no debe obligar a reescribir lo que ya se dictó.
+	test("al pasar a campos, lo escrito se reparte", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Visita de seguimiento\nComentarios: quiere paquetes" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("tab", { name: "Campo por campo" }));
+		});
+		expect(screen.getByLabelText("Actividades")).toHaveValue("Visita de seguimiento");
+		expect(screen.getByLabelText("Comentarios del médico")).toHaveValue("quiere paquetes");
+	});
+
+	test("una visita ya registrada se reabre con su texto", async () => {
+		await mostrar({
+			modo: "libre",
+			visita: { id_visita: "v1", captura_libre: "Actividades: Entrega\nSeguimiento: Llamar" },
+		});
+		expect(screen.getByLabelText("Lo que pasó en la visita")).toHaveValue(
+			"Actividades: Entrega\nSeguimiento: Llamar",
+		);
 	});
 });

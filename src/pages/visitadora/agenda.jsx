@@ -24,7 +24,9 @@ import {
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import { franjaDeCita, HORAS_AGENDA, horaDeFranja } from "../../utils/agenda-horas";
 import { buscarDuplicadas, contarDuplicadas } from "../../utils/duplicados-agenda";
+import { useObjetivosPeriodo } from "../../hooks/use-objetivos-periodo";
 import ModalCita from "./componentes/modal-cita";
+import ModalObjetivos from "./componentes/modal-objetivos";
 import ModalRegistroVisita from "./componentes/modal-registro-visita";
 import EditarVisitaRegistrada from "./componentes/editar-visita-registrada";
 import "./visitadora.css";
@@ -69,6 +71,7 @@ const Agenda = () => {
 	}, [vista, fecha]);
 
 	const { data: citas = [], isLoading, error } = useAgendaVisitas(rango);
+	const { data: objetivosPeriodo = [] } = useObjetivosPeriodo(rango);
 
 	// La cancelada desaparece del día: tachada seguía ocupando lugar en la
 	// columna y estorbaba para leer lo que sí queda por hacer. El renglón no se
@@ -331,6 +334,9 @@ const Agenda = () => {
 						<button type="button" onClick={revisarDuplicadas} disabled={citas.length < 2}>
 							Buscar repetidas
 						</button>
+						<button type="button" onClick={() => setModal("objetivos")}>
+							Objetivos {objetivosPeriodo.length > 0 ? `(${objetivosPeriodo.length})` : ""}
+						</button>
 						<button
 							type="button"
 							className="visitadora-boton-primario"
@@ -464,6 +470,7 @@ const Agenda = () => {
 						isOpen
 						cita={citaElegida}
 						medicos={medicos}
+						objetivosPeriodo={objetivosPeriodo}
 						fecha={vista === "mes" ? primerDiaDelMes(fecha) : fecha}
 						idEmpleado={empleadoData?.id_empleado}
 						onClose={() => setModal(null)}
@@ -511,6 +518,18 @@ const Agenda = () => {
 							setModal(null);
 							avisar(mensaje);
 						}}
+						onError={(mensaje) => avisar(mensaje, "error")}
+					/>
+				)}
+
+				{modal === "objetivos" && (
+					<ModalObjetivos
+						isOpen
+						objetivos={objetivosPeriodo}
+						rango={rango}
+						idEmpleado={empleadoData?.id_empleado}
+						onClose={() => setModal(null)}
+						onAviso={avisar}
 						onError={(mensaje) => avisar(mensaje, "error")}
 					/>
 				)}

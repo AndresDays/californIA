@@ -6,7 +6,7 @@ const CAMPOS = `
 	ubicacion, zona, actividades, comentarios_medico, observaciones,
 	seguimiento, tipo_convenio, tipo_visita, objetivo, resultado,
 	que_se_ofrecio, que_se_entrego, compromisos, proxima_accion,
-	fecha_seguimiento, id_agenda
+	fecha_seguimiento, id_agenda, captura_libre
 `;
 
 export const useVisitasMedicas = ({ desde, hasta } = {}) =>
