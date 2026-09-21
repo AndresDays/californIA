@@ -4,6 +4,7 @@ import PageLayout from "../../components/page-layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
 import { useDirectorioMedicos } from "../../hooks/use-directorio-medicos";
+import { useVisitasMedicas } from "../../hooks/use-visitas-medicas";
 import {
 	useAgendaVisitas,
 	useCancelarVisitaAgenda,
@@ -72,6 +73,9 @@ const Agenda = () => {
 
 	const { data: citas = [], isLoading, error } = useAgendaVisitas(rango);
 	const { data: objetivosPeriodo = [] } = useObjetivosPeriodo(rango);
+	// Para el Excel: lo que ya se registró de esas visitas, que es lo que llena
+	// las columnas del informe.
+	const { data: visitasDelRango = [] } = useVisitasMedicas(rango);
 
 	// La cancelada desaparece del día: tachada seguía ocupando lugar en la
 	// columna y estorbaba para leer lo que sí queda por hacer. El renglón no se
@@ -162,6 +166,7 @@ const Agenda = () => {
 				medicos,
 				{ desde: rango.desde, hasta: rango.hasta, zona },
 				`Agenda_${rango.desde}_a_${rango.hasta}`,
+				visitasDelRango,
 			);
 		} catch (fallo) {
 			avisar(fallo.message || "No se pudo generar el archivo.", "error");

@@ -100,3 +100,52 @@ describe("encabezado de la hoja", () => {
 		expect(tituloDeSemana("2026-08-31", "2026-09-04")).toBe("Del 31 de Agosto al 04 de Septiembre");
 	});
 });
+
+describe("la visita ya registrada llena las columnas", () => {
+	const visita = {
+		id_visita: "v1",
+		id_agenda: "a1",
+		actividades: "Se presentaron laboratorio e imagen",
+		comentarios_medico: "Pidió precios de resonancia",
+		observaciones: "Recibe los miércoles",
+		seguimiento: "Volver en 15 días",
+		tipo_convenio: "MIXTO",
+		ubicacion: "Consultorio 302",
+		especialidad: "Internista",
+	};
+
+	// En el Excel salía el objetivo como actividades y el resto en blanco,
+	// aunque la visita ya se hubiera registrado con todo desglosado.
+	test("cada campo capturado va en su columna", () => {
+		const [fila] = construirFilasAgenda([cita()], medicos, [visita]);
+		expect(fila[2]).toBe("Internista");
+		expect(fila[3]).toBe("Consultorio 302");
+		expect(fila[4]).toBe("Se presentaron laboratorio e imagen");
+		expect(fila[5]).toBe("Pidió precios de resonancia");
+		expect(fila[6]).toBe("Recibe los miércoles");
+		expect(fila[7]).toBe("Volver en 15 días");
+		expect(fila[8]).toBe("MIXTO");
+	});
+
+	// Lo que todavía no se visita sí sale con el objetivo: es lo previsto.
+	test("la cita sin visitar conserva su objetivo como actividades", () => {
+		const [fila] = construirFilasAgenda([cita()], medicos, []);
+		expect(fila[4]).toBe("Presentación de servicios");
+		expect(fila[5]).toBe("");
+	});
+
+	test("la visita de otra cita no se cuela", () => {
+		const [fila] = construirFilasAgenda([cita()], medicos, [{ ...visita, id_agenda: "otra" }]);
+		expect(fila[4]).toBe("Presentación de servicios");
+	});
+
+	test("lo que la visita dejó vacío cae al dato de la cita", () => {
+		const [fila] = construirFilasAgenda(
+			[cita()],
+			medicos,
+			[{ id_agenda: "a1", actividades: "Entrega", comentarios_medico: "", seguimiento: "" }],
+		);
+		expect(fila[4]).toBe("Entrega");
+		expect(fila[7]).toBe("2026-08-17");
+	});
+});
