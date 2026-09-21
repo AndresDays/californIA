@@ -9,7 +9,14 @@ jest.mock("../../components/page-layout.jsx", () => ({
 	default: ({ children }) => <div>{children}</div>,
 }));
 jest.mock("../../components/ModalNotificacion", () => ({ __esModule: true, default: () => null }));
-jest.mock("./componentes/modal-cita", () => ({ __esModule: true, default: () => <div>modal cita</div> }));
+jest.mock("./componentes/modal-cita", () => ({
+	__esModule: true,
+	default: ({ onGuardado }) => (
+		<button type="button" onClick={() => onGuardado("Visita actualizada.", mockGuardada.current)}>
+			simular guardado
+		</button>
+	),
+}));
 jest.mock("./componentes/modal-registro-visita", () => ({
 	__esModule: true,
 	default: () => <div>modal registro</div>,
@@ -30,6 +37,7 @@ jest.mock("../../hooks/use-directorio-medicos", () => ({
 const mockCitas = { current: [] };
 const mockCancelar = jest.fn().mockResolvedValue(undefined);
 const mockEliminar = jest.fn().mockResolvedValue(undefined);
+const mockGuardada = { current: { fecha: "2026-09-25", zona: "Norte" } };
 jest.mock("../../hooks/use-agenda-visitas", () => ({
 	useAgendaVisitas: () => ({ data: mockCitas.current, isLoading: false, error: null }),
 	useCancelarVisitaAgenda: () => ({ mutateAsync: mockCancelar, isPending: false }),
@@ -268,5 +276,58 @@ describe("Calendario por horas", () => {
 		for (const dia of ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]) {
 			expect(screen.getByText(dia)).toBeInTheDocument();
 		}
+	});
+});
+
+describe("Visita de tarde", () => {
+	// Las seis de la tarde caen dentro del horario de la rejilla y deben verse
+	// en su franja, no desaparecer.
+	test("una visita de hoy lunes a las 18:00 se ve", async () => {
+		jest.setSystemTime(new Date("2026-09-21T18:30:00Z"));
+		mockCitas.current = [
+			{
+				id_agenda: "r1",
+				id_doctor: 1,
+				medico_nombre: "Ramón Pérez",
+				zona: "Centro",
+				fecha: "2026-09-21",
+				hora: "18:00:00",
+				tipo_visita: "seguimiento",
+				estatus: "programada",
+			},
+		];
+		await mostrar();
+		expect(screen.getByRole("button", { name: "18:00 · Ramón Pérez" })).toBeInTheDocument();
+	});
+});
+
+describe("La agenda sigue a la visita guardada", () => {
+	const abrirEdicion = async () => {
+		await mostrar();
+		fireEvent.click(screen.getAllByRole("button", { name: "Editar" })[0]);
+	};
+
+	// Cambiarle el día la mandaba a otra semana y parecía que se hubiera
+	// borrado: la agenda se queda viendo donde quedó.
+	test("al guardarla en otro día, la agenda se mueve a ese día", async () => {
+		mockGuardada.current = { fecha: "2026-09-25", zona: "Centro" };
+		await abrirEdicion();
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "simular guardado" }));
+		});
+		expect(screen.getByText("Viernes")).toBeInTheDocument();
+		expect(document.body.textContent).toContain("25");
+	});
+
+	test("si el filtro de zona ya no la deja pasar, se limpia", async () => {
+		mockGuardada.current = { fecha: "2026-09-18", zona: "Poniente" };
+		await mostrar();
+		fireEvent.change(screen.getByLabelText("Zona"), { target: { value: "Centro" } });
+		expect(screen.getByLabelText("Zona")).toHaveValue("Centro");
+		fireEvent.click(screen.getAllByRole("button", { name: "Editar" })[0]);
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "simular guardado" }));
+		});
+		expect(screen.getByLabelText("Zona")).toHaveValue("");
 	});
 });

@@ -6,12 +6,14 @@ jest.mock("../visitadora.css", () => ({}));
 
 const mockGuardarAgenda = jest.fn().mockResolvedValue(undefined);
 const mockAgregarNota = jest.fn().mockResolvedValue(undefined);
+const mockGuardarMedico = jest.fn().mockResolvedValue(42);
 
 jest.mock("../../../hooks/use-agenda-visitas", () => ({
 	useGuardarAgenda: () => ({ mutateAsync: mockGuardarAgenda, isPending: false }),
 }));
 jest.mock("../../../hooks/use-directorio-medicos", () => ({
 	useAgregarNotaMedico: () => ({ mutateAsync: mockAgregarNota, isPending: false }),
+	useGuardarMedico: () => ({ mutateAsync: mockGuardarMedico, isPending: false }),
 }));
 
 import ModalCita from "./modal-cita";
@@ -44,6 +46,7 @@ const mostrar = async (props = {}) => {
 beforeEach(() => {
 	mockGuardarAgenda.mockClear();
 	mockAgregarNota.mockClear();
+	mockGuardarMedico.mockClear();
 });
 
 describe("Programar visita", () => {
@@ -125,5 +128,115 @@ describe("Editar la visita de una tarjeta", () => {
 	test("programar una visita nueva sí deja elegir médico", async () => {
 		await mostrar({ medico: undefined, medicos: [{ id_doctor: 9, nombre_completo: "Ana Ruiz" }] });
 		expect(screen.getByLabelText("Médico")).toBeInTheDocument();
+	});
+});
+
+describe("Médico que todavía no está en el directorio", () => {
+	const abrirAlta = async () => {
+		const resultado = await mostrar({ medico: undefined, medicos: [] });
+		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "nuevo" } });
+		return resultado;
+	};
+
+	test("pide nombre, especialidad, teléfono y correo", async () => {
+		await abrirAlta();
+		expect(screen.getByLabelText("Nombre del médico")).toBeInTheDocument();
+		expect(screen.getByLabelText("Especialidad")).toBeInTheDocument();
+		expect(screen.getByLabelText("Teléfono")).toBeInTheDocument();
+		expect(screen.getByLabelText("Correo electrónico")).toBeInTheDocument();
+	});
+
+	// Se da de alta antes que la cita para que la visita nazca ligada a su
+	// expediente y no como un nombre suelto.
+	test("da de alta al médico y liga la visita a su expediente", async () => {
+		await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), {
+			target: { value: "Marta Lugo" },
+		});
+		fireEvent.change(screen.getByLabelText("Especialidad"), { target: { value: "Pediatría" } });
+		fireEvent.change(screen.getByLabelText("Teléfono"), { target: { value: "3221234567" } });
+		fireEvent.change(screen.getByLabelText("Correo electrónico"), {
+			target: { value: "marta@ejemplo.mx" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).toHaveBeenCalledWith({
+			doctor: {
+				nombre: "Marta Lugo",
+				especialidad: "Pediatría",
+				telefono: "3221234567",
+				email: "marta@ejemplo.mx",
+			},
+			ficha: expect.objectContaining({ estatus: "prospecto", fecha_primer_contacto: "2026-09-23" }),
+		});
+		expect(mockGuardarAgenda).toHaveBeenCalledWith(
+			expect.objectContaining({ id_doctor: 42, medico_nombre: "Marta Lugo" }),
+		);
+	});
+
+	test("sin nombre no da de alta a nadie", async () => {
+		const { onError } = await abrirAlta();
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).not.toHaveBeenCalled();
+		expect(mockGuardarAgenda).not.toHaveBeenCalled();
+		expect(onError).toHaveBeenCalledWith("Escribe el nombre del médico nuevo.");
+	});
+
+	test("elegir un médico del catálogo no enseña el alta", async () => {
+		await mostrar({ medico: undefined, medicos: [{ id_doctor: 9, nombre_completo: "Ana Ruiz" }] });
+		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "9" } });
+		expect(screen.queryByLabelText("Nombre del médico")).not.toBeInTheDocument();
+	});
+});
+
+describe("El médico nuevo que ya estaba en el directorio", () => {
+	const directorio = [
+		{ id_doctor: 9, nombre_completo: "Ramón Pérez", telefono: "3221234567", especialidad: "Ginecología" },
+	];
+
+	const abrirAlta = async () => {
+		const resultado = await mostrar({ medico: undefined, medicos: directorio });
+		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "nuevo" } });
+		return resultado;
+	};
+
+	// Capturarlo dos veces partiría su historial en dos y descuadraría sus
+	// comisiones.
+	test("no lo crea otra vez: liga la visita al que ya existe", async () => {
+		const { onGuardado } = await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), {
+			target: { value: "dr. ramon perez" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).not.toHaveBeenCalled();
+		expect(mockGuardarAgenda).toHaveBeenCalledWith(
+			expect.objectContaining({ id_doctor: 9, medico_nombre: "Ramón Pérez" }),
+		);
+		expect(onGuardado.mock.calls[0][0]).toContain("ya estaba en el directorio");
+	});
+
+	test("también lo reconoce por teléfono aunque el nombre no empate", async () => {
+		await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), { target: { value: "R. Pérez" } });
+		fireEvent.change(screen.getByLabelText("Teléfono"), { target: { value: "+52 322 123 4567" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).not.toHaveBeenCalled();
+		expect(mockGuardarAgenda).toHaveBeenCalledWith(expect.objectContaining({ id_doctor: 9 }));
+	});
+
+	test("al que de verdad es nuevo sí lo da de alta", async () => {
+		await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), { target: { value: "Marta Lugo" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).toHaveBeenCalled();
 	});
 });

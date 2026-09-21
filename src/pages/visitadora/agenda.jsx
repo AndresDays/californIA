@@ -93,6 +93,16 @@ const Agenda = () => {
 
 	const avisar = (mensaje, tipo = "exito") => setNotificacion({ isOpen: true, mensaje, tipo });
 
+	// La agenda se planta donde quedó la visita que se acaba de guardar. Sin
+	// esto, cambiarle el día la mandaba a otra semana y desaparecía de la
+	// pantalla sin decir a dónde se fue; lo mismo si el filtro de zona ya no la
+	// deja pasar.
+	const seguirALaVisita = (guardada) => {
+		if (!guardada?.fecha) return;
+		setFecha(guardada.fecha);
+		if (zona && guardada.zona !== zona) setZona("");
+	};
+
 	const mover = (pasos) => {
 		if (vista === "dia") return setFecha(sumarDias(fecha, pasos));
 		if (vista === "mes") return setFecha(mesDesplazado(primerDiaDelMes(fecha), pasos));
@@ -390,8 +400,9 @@ const Agenda = () => {
 						fecha={vista === "mes" ? primerDiaDelMes(fecha) : fecha}
 						idEmpleado={empleadoData?.id_empleado}
 						onClose={() => setModal(null)}
-						onGuardado={(mensaje) => {
+						onGuardado={(mensaje, guardada) => {
 							setModal(null);
+							seguirALaVisita(guardada);
 							avisar(mensaje);
 						}}
 						onError={(mensaje) => avisar(mensaje, "error")}

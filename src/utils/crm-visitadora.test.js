@@ -1,4 +1,5 @@
 import {
+	buscarMedicoExistente,
 	cumpleHoy,
 	cumpleanosProximos,
 	coincideBusqueda,
@@ -126,4 +127,46 @@ describe("ubicación y contacto", () => {
 test("las etiquetas de convenio se leen en español", () => {
 	expect(etiquetaConvenio("sin_convenio")).toBe("Sin convenio");
 	expect(etiquetaConvenio(null)).toBe("—");
+});
+
+describe("buscar al médico antes de darlo de alta", () => {
+	const medicos = [
+		{
+			id_doctor: 1,
+			nombre_completo: "Ramón Pérez",
+			telefono: "3221234567",
+			email: "ramon@ejemplo.mx",
+		},
+		{ id_doctor: 2, nombre_completo: "Ana Ruiz", whatsapp: "+52 322 987 6543" },
+	];
+
+	test("encuentra por nombre aunque se escriba distinto", () => {
+		expect(buscarMedicoExistente(medicos, { nombre: "dr. ramon perez" })?.id_doctor).toBe(1);
+		expect(buscarMedicoExistente(medicos, { nombre: "RAMÓN PÉREZ" })?.id_doctor).toBe(1);
+	});
+
+	// El nombre se escribe de mil maneras; el teléfono no. Se comparan los
+	// últimos diez dígitos porque unos traen lada de país y otros no.
+	test("encuentra por teléfono, con o sin lada", () => {
+		expect(buscarMedicoExistente(medicos, { nombre: "R. Pérez G.", telefono: "+52 322 123 4567" })?.id_doctor).toBe(1);
+		expect(buscarMedicoExistente(medicos, { nombre: "Otro", telefono: "3229876543" })?.id_doctor).toBe(2);
+	});
+
+	test("encuentra por correo", () => {
+		expect(buscarMedicoExistente(medicos, { nombre: "Otro", email: "RAMON@ejemplo.mx" })?.id_doctor).toBe(1);
+	});
+
+	test("el médico que no está devuelve nulo", () => {
+		expect(buscarMedicoExistente(medicos, { nombre: "Marta Lugo", telefono: "3331112222" })).toBeNull();
+	});
+
+	test("sin datos no inventa coincidencias", () => {
+		expect(buscarMedicoExistente(medicos, {})).toBeNull();
+		expect(buscarMedicoExistente([], { nombre: "Ramón Pérez" })).toBeNull();
+	});
+
+	// Un teléfono a medias no debe emparejar con nadie.
+	test("un teléfono incompleto no empareja", () => {
+		expect(buscarMedicoExistente(medicos, { nombre: "Nuevo", telefono: "4567" })).toBeNull();
+	});
 });
