@@ -423,3 +423,13 @@ describe("Buscar visitas repetidas", () => {
 		expect(mockEliminar).toHaveBeenCalledWith("r2");
 	});
 });
+
+// El botón "Hoy" sólo volvía a la fecha actual, que es donde la agenda abre:
+// ocupaba lugar en una barra que en el celular ya va apretada.
+test("la barra no trae el botón de Hoy", async () => {
+	await mostrar();
+	expect(screen.queryByRole("button", { name: "Hoy" })).not.toBeInTheDocument();
+	for (const vista of ["Día", "Semana", "Mes"]) {
+		expect(screen.getByRole("button", { name: vista })).toBeInTheDocument();
+	}
+});

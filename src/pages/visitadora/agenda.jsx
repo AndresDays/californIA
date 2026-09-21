@@ -325,7 +325,6 @@ const Agenda = () => {
 								{opcion === "dia" ? "Día" : opcion === "semana" ? "Semana" : "Mes"}
 							</button>
 						))}
-						<button type="button" onClick={() => setFecha(hoyEnMexico())}>Hoy</button>
 						<button type="button" onClick={exportar} disabled={visibles.length === 0}>
 							Exportar Excel
 						</button>
