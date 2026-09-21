@@ -820,50 +820,6 @@
 	}
 }
 
-/* --- arrastrar visitas entre días --- */
-.visitadora-asa {
-	background: none;
-	border: none;
-	color: var(--texto-tenue);
-	cursor: grab;
-	font-size: 1rem;
-	line-height: 1;
-	padding: 0.35rem 0.4rem;
-	/* Suficiente para el pulgar, y sin el gesto de desplazar la página encima:
-	   si no, arrastrar la tarjeta en el celular movía la pantalla. */
-	min-height: 2.2rem;
-	touch-action: none;
-}
-
-.visitadora-asa:active {
-	cursor: grabbing;
-}
-
-.visitadora-arrastrando {
-	opacity: 0.4;
-}
-
-/* El día bajo el dedo se ilumina para que se vea dónde va a caer. */
-.visitadora-agenda-dia.recibiendo,
-.visitadora-mes-celda.recibiendo {
-	border-color: var(--azul);
-	border-style: dashed;
-	background: var(--superficie-hover);
-}
-
-.visitadora-cita.arrastre {
-	box-shadow: var(--sombra-alta);
-	background: var(--superficie);
-	cursor: grabbing;
-}
-
-/* Las notas del médico se van acumulando renglón por renglón, con su fecha. */
-.visitadora-notas {
-	white-space: pre-line;
-	font-size: 0.85rem;
-	margin: 0.3rem 0 0;
-}
-
 /* --- calendario por horas --- */
 /* Una rejilla de horas por días, como cualquier agenda: la columna estrecha de
    la izquierda lleva la hora y cada hueco recibe las visitas de ese día a esa
