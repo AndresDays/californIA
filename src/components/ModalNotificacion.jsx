@@ -7,15 +7,20 @@ const ModalNotificacion = ({
   mensaje,
   tipo = 'exito' 
 }) => {
+  // El aviso de error no se va solo: desaparecia a los tres segundos y quien
+  // estaba capturando no alcanzaba a leer por que no se habia guardado, asi
+  // que parecia que si se habia guardado y el dato se perdia sin explicacion.
+  // Se cierra con su boton.
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && tipo !== 'error') {
       const timer = setTimeout(() => {
         onClose();
       }, 3000);
 
       return () => clearTimeout(timer);
     }
-  }, [isOpen, onClose]);
+    return undefined;
+  }, [isOpen, onClose, tipo]);
 
   if (!isOpen) return null;
 

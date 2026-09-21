@@ -35,11 +35,12 @@ jest.mock("../../hooks/use-directorio-medicos", () => ({
 }));
 
 const mockCitas = { current: [] };
+const mockError = { current: null };
 const mockCancelar = jest.fn().mockResolvedValue(undefined);
 const mockEliminar = jest.fn().mockResolvedValue(undefined);
 const mockGuardada = { current: { fecha: "2026-09-25", zona: "Norte" } };
 jest.mock("../../hooks/use-agenda-visitas", () => ({
-	useAgendaVisitas: () => ({ data: mockCitas.current, isLoading: false, error: null }),
+	useAgendaVisitas: () => ({ data: mockCitas.current, isLoading: false, error: mockError.current }),
 	useCancelarVisitaAgenda: () => ({ mutateAsync: mockCancelar, isPending: false }),
 	useEliminarCitaAgenda: () => ({ mutateAsync: mockEliminar, isPending: false }),
 	useReprogramarVisita: () => ({ mutateAsync: jest.fn(), isPending: false }),
@@ -67,6 +68,7 @@ const mostrar = async () => {
 
 beforeEach(() => {
 	jest.useFakeTimers().setSystemTime(new Date("2026-09-19T18:00:00Z"));
+	mockError.current = null;
 	mockCancelar.mockClear();
 	mockEliminar.mockClear();
 	mockExportar.mockClear();
@@ -77,6 +79,7 @@ beforeEach(() => {
 			medico_nombre: "Ramón Pérez",
 			zona: "Centro",
 			fecha: "2026-09-18",
+			hora: "10:00:00",
 			tipo_visita: "seguimiento",
 			estatus: "programada",
 		},
@@ -86,6 +89,7 @@ beforeEach(() => {
 			medico_nombre: "Dr. Escrito a mano",
 			zona: "Centro",
 			fecha: "2026-09-18",
+			hora: "10:00:00",
 			tipo_visita: "seguimiento",
 			estatus: "programada",
 		},
@@ -95,6 +99,7 @@ beforeEach(() => {
 			medico_nombre: "Ana Ruiz",
 			zona: "Norte",
 			fecha: "2026-09-18",
+			hora: "10:00:00",
 			tipo_visita: "seguimiento",
 			estatus: "cancelada",
 		},
@@ -106,8 +111,8 @@ describe("Agenda de visitas", () => {
 	// Tachada seguía ocupando lugar en la columna del día; ahora desaparece.
 	test("una visita cancelada no se dibuja", async () => {
 		await mostrar();
-		expect(screen.getByText("Ramón Pérez")).toBeInTheDocument();
-		expect(screen.queryByText("Ana Ruiz")).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "10:00 · Ramón Pérez" })).toBeInTheDocument();
+		expect(screen.queryByText(/Ana Ruiz/)).not.toBeInTheDocument();
 	});
 
 	test("la zona cuyas visitas se cancelaron no aparece en el filtro", async () => {
@@ -155,7 +160,7 @@ describe("Visitas sin médico del catálogo", () => {
 
 	test("la visita ligada sí lleva al expediente", async () => {
 		await mostrar();
-		expect(screen.getByRole("button", { name: "Ramón Pérez" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "10:00 · Ramón Pérez" })).toBeInTheDocument();
 	});
 });
 
@@ -168,6 +173,7 @@ describe("Visita ya registrada", () => {
 				medico_nombre: "Luis Salas",
 				zona: "Centro",
 				fecha: "2026-09-18",
+				hora: "10:00:00",
 				tipo_visita: "seguimiento",
 				estatus: "realizada",
 				resultado: "Aceptó el convenio",
@@ -178,7 +184,9 @@ describe("Visita ya registrada", () => {
 	test("se enseña apagada y marcada como registrada", async () => {
 		await mostrar();
 		expect(screen.getByText("✓ Registrada")).toBeInTheDocument();
-		expect(screen.getByText("Luis Salas").closest(".visitadora-cita")).toHaveClass("realizada");
+		expect(
+			screen.getByRole("button", { name: "10:00 · Luis Salas" }).closest(".visitadora-cita"),
+		).toHaveClass("realizada");
 	});
 
 	// Ya no se puede volver a registrar ni mover, pero sí corregirla o quitarla
@@ -265,6 +273,7 @@ describe("Calendario por horas", () => {
 
 	test("la visita sin hora va a la franja 'Sin hora'", async () => {
 		await mostrar();
+		fireEvent.click(screen.getByRole("button", { name: /Sin hora/ }));
 		const fila = screen
 			.getByRole("button", { name: "Ana Ruiz" })
 			.closest(".visitadora-calendario-fila");
@@ -329,5 +338,86 @@ describe("La agenda sigue a la visita guardada", () => {
 			fireEvent.click(screen.getByRole("button", { name: "simular guardado" }));
 		});
 		expect(screen.getByLabelText("Zona")).toHaveValue("");
+	});
+});
+
+describe("Cuando la base todavía no tiene las tablas", () => {
+	// Sin esto la agenda salía vacía y parecía que las visitas guardadas se
+	// habían perdido.
+	test("lo dice en lugar de enseñar una agenda vacía", async () => {
+		mockError.current = { message: 'relation "public.agenda_visitas" does not exist' };
+		await mostrar();
+		expect(screen.getByText(/No se pudo cargar la agenda/)).toBeInTheDocument();
+		expect(screen.getByText(/migraciones pendientes/)).toBeInTheDocument();
+	});
+
+	test("otro error se enseña tal cual, sin adivinar la causa", async () => {
+		mockError.current = { message: "Failed to fetch" };
+		await mostrar();
+		expect(screen.getByText(/Failed to fetch/)).toBeInTheDocument();
+		expect(screen.queryByText(/migraciones pendientes/)).not.toBeInTheDocument();
+	});
+});
+
+describe("Franja de visitas sin hora", () => {
+	beforeEach(() => {
+		mockCitas.current = [
+			{ id_agenda: "s1", id_doctor: 1, medico_nombre: "Ramón Pérez", fecha: "2026-09-18", hora: null, estatus: "programada", tipo_visita: "seguimiento" },
+			{ id_agenda: "s2", id_doctor: 2, medico_nombre: "Ana Ruiz", fecha: "2026-09-18", hora: null, estatus: "programada", tipo_visita: "seguimiento" },
+		];
+	});
+
+	// Abierta de arranque, con media ruta sin horario, empujaba las horas fuera
+	// de la pantalla.
+	test("empieza plegada y dice cuántas hay", async () => {
+		await mostrar();
+		expect(screen.getByRole("button", { name: /Sin hora \(2\)/ })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Ramón Pérez" })).not.toBeInTheDocument();
+	});
+
+	test("al abrirla se ven las visitas", async () => {
+		await mostrar();
+		fireEvent.click(screen.getByRole("button", { name: /Sin hora/ }));
+		expect(screen.getByRole("button", { name: "Ramón Pérez" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Ana Ruiz" })).toBeInTheDocument();
+	});
+
+	test("las horas se siguen viendo con la franja plegada", async () => {
+		await mostrar();
+		expect(screen.getByText("07:00")).toBeInTheDocument();
+		expect(screen.getByText("20:00")).toBeInTheDocument();
+	});
+});
+
+describe("Buscar visitas repetidas", () => {
+	const repetidas = [
+		{ id_agenda: "r1", id_doctor: 1, medico_nombre: "Ramón Pérez", fecha: "2026-09-18", hora: "18:00:00", estatus: "programada", tipo_visita: "seguimiento", created_at: "2026-09-17T10:00:00Z" },
+		{ id_agenda: "r2", id_doctor: 1, medico_nombre: "Ramón Pérez", fecha: "2026-09-18", hora: null, estatus: "programada", tipo_visita: "seguimiento", created_at: "2026-09-17T11:00:00Z" },
+	];
+
+	test("avisa cuando no hay ninguna", async () => {
+		await mostrar();
+		fireEvent.click(screen.getByRole("button", { name: "Buscar repetidas" }));
+		expect(mockEliminar).not.toHaveBeenCalled();
+	});
+
+	// Borrar es definitivo, así que primero se enseña qué se va y qué se queda.
+	test("enseña el detalle antes de borrar nada", async () => {
+		mockCitas.current = repetidas;
+		await mostrar();
+		fireEvent.click(screen.getByRole("button", { name: "Buscar repetidas" }));
+		expect(screen.getByText("Visitas repetidas")).toBeInTheDocument();
+		expect(mockEliminar).not.toHaveBeenCalled();
+	});
+
+	test("al confirmar borra la sobrante y conserva la que tiene hora", async () => {
+		mockCitas.current = repetidas;
+		await mostrar();
+		fireEvent.click(screen.getByRole("button", { name: "Buscar repetidas" }));
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Eliminar repetidas" }));
+		});
+		expect(mockEliminar).toHaveBeenCalledTimes(1);
+		expect(mockEliminar).toHaveBeenCalledWith("r2");
 	});
 });

@@ -23,6 +23,7 @@ import {
 } from "../../utils/semanas-visitadora";
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import { franjaDeCita, HORAS_AGENDA, horaDeFranja } from "../../utils/agenda-horas";
+import { buscarDuplicadas, contarDuplicadas } from "../../utils/duplicados-agenda";
 import ModalCita from "./componentes/modal-cita";
 import ModalRegistroVisita from "./componentes/modal-registro-visita";
 import EditarVisitaRegistrada from "./componentes/editar-visita-registrada";
@@ -47,6 +48,10 @@ const Agenda = () => {
 	const [modal, setModal] = useState(null);
 	const [citaElegida, setCitaElegida] = useState(null);
 	const [citaAEliminar, setCitaAEliminar] = useState(null);
+	// La franja de "sin hora" se pliega: con media ruta sin horario confirmado
+	// crecía tanto que empujaba las horas fuera de la pantalla.
+	const [sinHoraAbierta, setSinHoraAbierta] = useState(false);
+	const [duplicadas, setDuplicadas] = useState(null);
 	const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 
 	const { medicos } = useDirectorioMedicos();
@@ -97,6 +102,31 @@ const Agenda = () => {
 	// esto, cambiarle el día la mandaba a otra semana y desaparecía de la
 	// pantalla sin decir a dónde se fue; lo mismo si el filtro de zona ya no la
 	// deja pasar.
+	const limpiarDuplicadas = async () => {
+		const grupos = duplicadas ?? [];
+		try {
+			for (const grupo of grupos) {
+				for (const sobrante of grupo.eliminar) {
+					await eliminar.mutateAsync(sobrante.id_agenda);
+				}
+			}
+			avisar(`Se eliminaron ${contarDuplicadas(grupos)} visitas repetidas.`);
+		} catch (fallo) {
+			avisar(fallo.message || "No se pudieron eliminar las repetidas.", "error");
+		} finally {
+			setDuplicadas(null);
+		}
+	};
+
+	const revisarDuplicadas = () => {
+		const grupos = buscarDuplicadas(citas);
+		if (grupos.length === 0) {
+			avisar("No hay visitas repetidas en lo que se está viendo.");
+			return;
+		}
+		setDuplicadas(grupos);
+	};
+
 	const seguirALaVisita = (guardada) => {
 		if (!guardada?.fecha) return;
 		setFecha(guardada.fecha);
@@ -241,6 +271,11 @@ const Agenda = () => {
 		return mapa;
 	}, [visibles]);
 
+	const totalSinHora = useMemo(
+		() => visibles.filter((cita) => franjaDeCita(cita) === null).length,
+		[visibles],
+	);
+
 	const sinHoraPorDia = useMemo(() => {
 		const mapa = new Map();
 		for (const cita of visibles) {
@@ -291,6 +326,9 @@ const Agenda = () => {
 						<button type="button" onClick={exportar} disabled={visibles.length === 0}>
 							Exportar Excel
 						</button>
+						<button type="button" onClick={revisarDuplicadas} disabled={citas.length < 2}>
+							Buscar repetidas
+						</button>
 						<button
 							type="button"
 							className="visitadora-boton-primario"
@@ -313,7 +351,20 @@ const Agenda = () => {
 					<span className="visitadora-ficha-dato">{visibles.length} visitas</span>
 				</div>
 
-				{error && <p className="visitadora-error">No se pudo cargar la agenda: {error.message}</p>}
+				{error && (
+					<div className="visitadora-error">
+						<p>No se pudo cargar la agenda: {error.message}</p>
+						{/* El error típico mientras el módulo se estrena: las tablas
+						    todavía no existen en esta base. Decirlo evita buscar la
+						    visita perdida durante media hora. */}
+						{/relation|does not exist|schema cache/i.test(String(error.message)) && (
+							<p>
+								Las tablas del módulo no están creadas en esta base todavía. Lo que se guarde
+								desde aquí no se va a ver hasta que se apliquen las migraciones pendientes.
+							</p>
+						)}
+					</div>
+				)}
 				{isLoading && <p>Cargando…</p>}
 
 				{!isLoading && visibles.length === 0 && (
@@ -349,12 +400,26 @@ const Agenda = () => {
 								</div>
 
 								{/* Arriba, lo que todavía no tiene hora: se programó el día
-								    pero el consultorio no dio horario. */}
-								<div className="visitadora-calendario-fila sinhora">
-									<span className="visitadora-hora">Sin hora</span>
+								    pero el consultorio no dio horario. Va plegada, porque
+								    cuando son muchas empujaba las horas fuera de la pantalla;
+								    se abre con un clic y entonces se desplaza sola. */}
+								<div className={`visitadora-calendario-fila sinhora${sinHoraAbierta ? " abierta" : ""}`}>
+									<button
+										type="button"
+										className="visitadora-hora plegable"
+										aria-expanded={sinHoraAbierta}
+										onClick={() => setSinHoraAbierta((abierta) => !abierta)}>
+										{sinHoraAbierta ? "▾" : "▸"} Sin hora ({totalSinHora})
+									</button>
 									{diasVisibles.map(({ dia }) => (
 										<div key={dia} className="visitadora-calendario-celda">
-											{(sinHoraPorDia.get(dia) ?? []).map(tarjetaCita)}
+											{sinHoraAbierta ? (
+												(sinHoraPorDia.get(dia) ?? []).map(tarjetaCita)
+											) : (
+												<span className="visitadora-ficha-dato">
+													{(sinHoraPorDia.get(dia) ?? []).length || ""}
+												</span>
+											)}
 										</div>
 									))}
 								</div>
@@ -446,6 +511,38 @@ const Agenda = () => {
 						}}
 						onError={(mensaje) => avisar(mensaje, "error")}
 					/>
+				)}
+
+				{duplicadas && (
+					<div className="visitadora-modal-fondo" role="dialog" aria-modal="true">
+						<div className="visitadora-modal ancho">
+							<h2>Visitas repetidas</h2>
+							<p>
+								Se encontraron <strong>{contarDuplicadas(duplicadas)}</strong> visitas repetidas.
+								De cada médico y día se conserva una: la que ya está registrada, o la que tiene
+								hora.
+							</p>
+							<ul className="visitadora-advertencias">
+								{duplicadas.map((grupo) => (
+									<li key={grupo.conservar.id_agenda}>
+										<strong>{grupo.conservar.medico_nombre}</strong> · {grupo.conservar.fecha}: se
+										queda {grupo.conservar.hora ? `la de las ${grupo.conservar.hora.slice(0, 5)}` : "una"} y
+										se eliminan {grupo.eliminar.length}.
+									</li>
+								))}
+							</ul>
+							<div className="visitadora-modal-acciones">
+								<button type="button" onClick={() => setDuplicadas(null)}>Cancelar</button>
+								<button
+									type="button"
+									className="visitadora-boton-primario"
+									onClick={limpiarDuplicadas}
+									disabled={eliminar.isPending}>
+									{eliminar.isPending ? "Eliminando…" : "Eliminar repetidas"}
+								</button>
+							</div>
+						</div>
+					</div>
 				)}
 
 				<ModalConfirmarEliminacion
