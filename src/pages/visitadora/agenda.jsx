@@ -23,6 +23,7 @@ import {
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import ModalCita from "./componentes/modal-cita";
 import ModalRegistroVisita from "./componentes/modal-registro-visita";
+import EditarVisitaRegistrada from "./componentes/editar-visita-registrada";
 import "./visitadora.css";
 
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -192,7 +193,10 @@ const Agenda = () => {
 					className="visitadora-enlace"
 					onClick={() => {
 						setCitaElegida(cita);
-						setModal("cita");
+						// La visita ya registrada se corrige con el formulario
+						// completo; la que sigue programada, con los datos de la
+						// cita, que es lo único que existe todavía.
+						setModal(cita.estatus === "realizada" ? "editar-registro" : "cita");
 					}}>
 					Editar
 				</button>
@@ -326,6 +330,25 @@ const Agenda = () => {
 						cita={citaElegida}
 						medicos={medicos}
 						fecha={vista === "mes" ? primerDiaDelMes(fecha) : fecha}
+						idEmpleado={empleadoData?.id_empleado}
+						onClose={() => setModal(null)}
+						onGuardado={(mensaje) => {
+							setModal(null);
+							avisar(mensaje);
+						}}
+						onError={(mensaje) => avisar(mensaje, "error")}
+					/>
+				)}
+
+				{modal === "editar-registro" && citaElegida && (
+					<EditarVisitaRegistrada
+						cita={citaElegida}
+						medico={
+							medicos.find((medico) => medico.id_doctor === citaElegida.id_doctor) ?? {
+								nombre_completo: citaElegida.medico_nombre,
+								especialidad: citaElegida.especialidad,
+							}
+						}
 						idEmpleado={empleadoData?.id_empleado}
 						onClose={() => setModal(null)}
 						onGuardado={(mensaje) => {

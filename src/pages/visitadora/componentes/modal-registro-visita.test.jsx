@@ -184,3 +184,53 @@ describe("Datos de contacto del médico", () => {
 		expect(mockActualizarContacto).not.toHaveBeenCalled();
 	});
 });
+
+describe("Corregir una visita ya registrada", () => {
+	const visita = {
+		id_visita: "v1",
+		fecha: "2026-09-18",
+		tipo_visita: "entrega_ordenes",
+		objetivo: "Dejar talonario",
+		que_se_ofrecio: "Laboratorio e imagen",
+		que_se_entrego: "25 órdenes",
+		resultado: "Mostró interés",
+		comentarios_medico: "Pidió precios",
+		compromisos: "Mandar lista",
+		proxima_accion: "Llevar cotización",
+		fecha_seguimiento: "2026-10-03",
+		tipo_convenio: "MIXTO",
+	};
+
+	test("abre con todos los campos llenos, no sólo los de la cita", async () => {
+		await mostrar({ visita });
+		expect(screen.getByLabelText("Resultado")).toHaveValue("Mostró interés");
+		expect(screen.getByLabelText("Qué se ofreció")).toHaveValue("Laboratorio e imagen");
+		expect(screen.getByLabelText("Qué se entregó")).toHaveValue("25 órdenes");
+		expect(screen.getByLabelText("Compromisos adquiridos")).toHaveValue("Mandar lista");
+		expect(screen.getByLabelText("Próxima acción")).toHaveValue("Llevar cotización");
+		expect(screen.getByLabelText("Fecha de seguimiento")).toHaveValue("2026-10-03");
+		expect(screen.getByLabelText("Fecha")).toHaveValue("2026-09-18");
+	});
+
+	test("guardar actualiza la visita en vez de crear otra", async () => {
+		await mostrar({ visita });
+		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Firmó convenio" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+		});
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ id_visita: "v1", resultado: "Firmó convenio" }),
+		);
+	});
+
+	// El pendiente de seguimiento ya se creó al registrarla; corregirla no debe
+	// dejar un segundo recordatorio del mismo médico.
+	test("corregirla no duplica el pendiente de seguimiento", async () => {
+		await mostrar({ visita });
+		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Firmó" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+		});
+		expect(mockGuardarTarea).not.toHaveBeenCalled();
+	});
+});

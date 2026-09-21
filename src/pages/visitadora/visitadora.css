@@ -367,7 +367,10 @@
 .visitadora-modal-fondo {
 	position: fixed;
 	inset: 0;
-	background: var(--superficie-2);
+	/* Velo translúcido, no una pared blanca: el modal se ve encima de la
+	   ventana y no parece que la pantalla se hubiera vaciado. */
+	background: var(--velo-modal);
+	backdrop-filter: blur(3px);
 	display: flex;
 	align-items: center;
 	justify-content: center;
