@@ -4,6 +4,7 @@ import { useGuardarTarea } from "../../../hooks/use-tareas-seguimiento";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useActualizarContactoMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
+import { componerCaptura, desglosarCaptura, ETIQUETAS_CAPTURA } from "../../../utils/desglose-captura";
 import CampoFechaNacimiento from "./campo-fecha-nacimiento";
 import { hoyEnMexico, sumarDias } from "../../../utils/semanas-visitadora";
 import "../visitadora.css";
@@ -66,6 +67,14 @@ const ModalRegistroVisita = ({
 				)
 			: {}),
 	}));
+	// Dos maneras de capturar la misma visita: de corrido, como se la va
+	// dictando el médico, o campo por campo. La libre es la de la calle; la de
+	// campos, la de revisar sentada.
+	const [modo, setModo] = useState(() => (visita?.captura_libre ? "libre" : "libre"));
+	const [capturaLibre, setCapturaLibre] = useState(
+		() => visita?.captura_libre ?? (visita ? componerCaptura(visita) : ""),
+	);
+
 	const guardarVisita = useGuardarVisita();
 	const guardarTarea = useGuardarTarea();
 	const guardarAgenda = useGuardarAgenda();
@@ -82,7 +91,25 @@ const ModalRegistroVisita = ({
 			onError?.("La visita necesita el nombre del médico.");
 			return;
 		}
-		if (!campos.actividades.trim()) {
+		// En la captura libre las columnas del informe salen de desglosar el
+		// texto; en la de campos, de lo que se escribió en cada uno.
+		const desglosado = modo === "libre" ? desglosarCaptura(capturaLibre) : null;
+		const contenido = desglosado ?? {
+			actividades: campos.actividades,
+			comentarios_medico: campos.comentarios_medico,
+			observaciones: campos.observaciones,
+			seguimiento: campos.seguimiento,
+			tipo_convenio: campos.tipo_convenio,
+		};
+		// Capturando de corrido basta con que haya algo escrito: si ella marcó
+		// todo como observaciones, obligar a llenar actividades sería estorbar.
+		// Campo por campo sí se pide actividades, que es la columna del informe
+		// que nunca va vacía.
+		const hayContenido =
+			modo === "libre"
+				? Object.values(contenido).some((valor) => String(valor || "").trim())
+				: String(contenido.actividades || "").trim();
+		if (!hayContenido) {
 			onError?.("Escribe al menos las actividades de la visita.");
 			return;
 		}
@@ -97,11 +124,14 @@ const ModalRegistroVisita = ({
 				ubicacion: campos.ubicacion || null,
 				// Éstas son las columnas del informe semanal y de su exportación a
 				// Excel: lo capturado aquí sale tal cual en el reporte que entrega.
-				actividades: campos.actividades,
-				comentarios_medico: campos.comentarios_medico,
-				observaciones: campos.observaciones,
-				seguimiento: campos.seguimiento,
-				tipo_convenio: campos.tipo_convenio,
+				actividades: contenido.actividades,
+				comentarios_medico: contenido.comentarios_medico,
+				observaciones: contenido.observaciones,
+				seguimiento: contenido.seguimiento,
+				tipo_convenio: contenido.tipo_convenio || campos.tipo_convenio,
+				// Se guarda lo que escribió tal cual, para poder reabrirlo y seguir
+				// corrigiendo sin rearmar el texto a mano.
+				captura_libre: modo === "libre" ? capturaLibre : null,
 				tipo_visita: campos.tipo_visita,
 				fecha_seguimiento: campos.fecha_seguimiento || null,
 				id_agenda: cita?.id_agenda ?? null,
@@ -116,7 +146,7 @@ const ModalRegistroVisita = ({
 					id_doctor: medico?.id_doctor ?? null,
 					medico_nombre: campos.medico_nombre.trim(),
 					tipo: "seguimiento",
-					descripcion: campos.seguimiento || "Dar seguimiento a la visita",
+					descripcion: contenido.seguimiento || "Dar seguimiento a la visita",
 					fecha_objetivo: campos.fecha_seguimiento,
 					id_empleado: idEmpleado ?? null,
 				});
@@ -143,7 +173,7 @@ const ModalRegistroVisita = ({
 				await guardarAgenda.mutateAsync({
 					id_agenda: cita.id_agenda,
 					estatus: "realizada",
-					resultado: campos.observaciones || campos.actividades,
+					resultado: contenido.observaciones || contenido.actividades,
 					proximo_seguimiento: campos.fecha_seguimiento || null,
 					updated_at: new Date().toISOString(),
 				});
@@ -249,19 +279,104 @@ const ModalRegistroVisita = ({
 						</div>
 					</div>
 
-					{largo("registro-actividades", "Actividades", "actividades", 3)}
-					{largo("registro-comentarios", "Comentarios del médico", "comentarios_medico")}
-					{largo("registro-observaciones", "Observaciones", "observaciones")}
-					{largo("registro-seguimiento-texto", "Seguimiento", "seguimiento")}
+					<div className="visitadora-pestanas" role="tablist">
+						<button
+							type="button"
+							role="tab"
+							aria-selected={modo === "libre"}
+							onClick={() => setModo("libre")}>
+							Escribir de corrido
+						</button>
+						<button
+							type="button"
+							role="tab"
+							aria-selected={modo === "campos"}
+							onClick={() => {
+								// Al pasar a campos se reparte lo ya escrito, para no
+								// empezar de cero.
+								if (capturaLibre.trim()) {
+									setCampos((previos) => ({ ...previos, ...desglosarCaptura(capturaLibre) }));
+								}
+								setModo("campos");
+							}}>
+							Campo por campo
+						</button>
+					</div>
 
-					<label htmlFor="registro-convenio">Convenio</label>
-					<input
-						id="registro-convenio"
-						type="text"
-						list="registro-convenios-sugeridos"
-						value={campos.tipo_convenio}
-						onChange={cambiar("tipo_convenio")}
-					/>
+					{modo === "libre" ? (
+						<>
+							<label htmlFor="registro-libre">Lo que pasó en la visita</label>
+							<textarea
+								id="registro-libre"
+								rows={10}
+								placeholder={
+									"Se presentaron los servicios de laboratorio e imagen y se dejaron órdenes. " +
+									"Mostró interés y pidió precios de resonancia. " +
+									"Recibe representantes los miércoles. Dar seguimiento en 15 días."
+								}
+								value={capturaLibre}
+								onChange={(evento) => setCapturaLibre(evento.target.value)}
+							/>
+							<p className="visitadora-ficha-dato">
+								Escríbelo como te lo vayan diciendo. Abajo ves en qué columna del informe queda
+								cada frase; si algo cayó mal, corrígelo en «Campo por campo».
+							</p>
+
+							{/* La vista previa es lo que hace confiable el reparto: se ve
+							    dónde quedó cada frase antes de guardar, no después en el
+							    informe. */}
+							{capturaLibre.trim() && (
+								<div className="visitadora-historial">
+									<p className="visitadora-historial-titulo">Así va a quedar en el informe</p>
+									{ETIQUETAS_CAPTURA.map(({ campo, etiqueta }) => (
+										<p key={campo} className="visitadora-ficha-dato">
+											<strong>{etiqueta}:</strong>{" "}
+											{desglosarCaptura(capturaLibre)[campo] || "—"}
+										</p>
+									))}
+								</div>
+							)}
+
+							{/* Las etiquetas quedan para cuando el reparto no acierte: se
+							    escribe "Seguimiento:" al principio del renglón y manda eso. */}
+							<details className="visitadora-etiquetas-detalle">
+								<summary>¿Algo quedó en la columna equivocada?</summary>
+								<p className="visitadora-ficha-dato">
+									Empieza el renglón con la columna y dos puntos y se respeta tal cual.
+								</p>
+								<div className="visitadora-etiquetas-captura">
+									{ETIQUETAS_CAPTURA.map(({ campo, etiqueta }) => (
+										<button
+											key={campo}
+											type="button"
+											onClick={() =>
+												setCapturaLibre((texto) =>
+													`${texto.replace(/\s*$/, "")}${texto.trim() ? "\n" : ""}${etiqueta}: `,
+												)
+											}>
+											+ {etiqueta}
+										</button>
+									))}
+								</div>
+							</details>
+						</>
+					) : (
+						<>
+							{largo("registro-actividades", "Actividades", "actividades", 3)}
+							{largo("registro-comentarios", "Comentarios del médico", "comentarios_medico")}
+							{largo("registro-observaciones", "Observaciones", "observaciones")}
+							{largo("registro-seguimiento-texto", "Seguimiento", "seguimiento")}
+
+							<label htmlFor="registro-convenio">Convenio</label>
+							<input
+								id="registro-convenio"
+								type="text"
+								list="registro-convenios-sugeridos"
+								value={campos.tipo_convenio}
+								onChange={cambiar("tipo_convenio")}
+							/>
+						</>
+					)}
 					{/* Los valores que más se repiten en su informe; la lista no cierra
 					    la puerta a escribir el convenio con sus propias palabras. */}
 					<datalist id="registro-convenios-sugeridos">

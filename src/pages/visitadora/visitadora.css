@@ -942,3 +942,33 @@
 	min-width: 4.5rem;
 	min-height: 2.6rem;
 }
+
+/* Los botones que meten la etiqueta del renglón en la captura de corrido. */
+.visitadora-etiquetas-captura {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin: 0.3rem 0;
+}
+
+.visitadora-etiquetas-captura button {
+	font-family: inherit;
+	font-size: 0.72rem;
+	padding: 0.3rem 0.6rem;
+	border-radius: 999px;
+	border: 1px solid var(--borde-fuerte);
+	background: var(--superficie-2);
+	color: var(--texto);
+	cursor: pointer;
+	min-height: 2.2rem;
+}
+
+.visitadora-etiquetas-detalle {
+	margin-top: 0.6rem;
+	font-size: 0.8rem;
+}
+
+.visitadora-etiquetas-detalle summary {
+	cursor: pointer;
+	padding: 0.3rem 0;
+}

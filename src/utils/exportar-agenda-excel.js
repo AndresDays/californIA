@@ -49,10 +49,18 @@ const ubicacionDeCita = (cita, medicosPorId) => {
 	return texto(medico?.hospital || medico?.direccion_consultorio || cita.zona);
 };
 
-export const construirFilasAgenda = (citas = [], medicos = []) => {
+// La visita ya registrada manda sobre la cita: lo que se capturó —actividades,
+// comentarios del médico, observaciones, seguimiento y convenio— es lo que va
+// en el informe. De la cita sólo sale lo que todavía no se ha visitado, donde
+// el objetivo hace las veces de actividades previstas.
+export const construirFilasAgenda = (citas = [], medicos = [], visitas = []) => {
 	const medicosPorId = new Map(medicos.map((medico) => [medico.id_doctor, medico]));
+	const visitasPorAgenda = new Map(
+		visitas.filter((visita) => visita?.id_agenda).map((visita) => [visita.id_agenda, visita]),
+	);
 	return citas.map((cita) => {
 		const medico = medicosPorId.get(cita.id_doctor);
+		const visita = visitasPorAgenda.get(cita.id_agenda);
 		return [
 			// Fecha de verdad, no texto: en su archivo la columna va con formato
 			// de fecha y así se puede ordenar y filtrar. Se fija a mediodía para
@@ -60,13 +68,14 @@ export const construirFilasAgenda = (citas = [], medicos = []) => {
 			// "d-mmm" la hora no se ve.
 			texto(cita.fecha) ? new Date(`${texto(cita.fecha)}T12:00:00Z`) : "",
 			texto(cita.medico_nombre),
-			texto(cita.especialidad || medico?.especialidad),
-			ubicacionDeCita(cita, medicosPorId),
-			texto(cita.objetivo),
-			"",
-			texto(cita.resultado),
-			texto(cita.proximo_seguimiento),
-			medico?.tipo_convenio ? etiquetaConvenio(medico.tipo_convenio) : "",
+			texto(visita?.especialidad || cita.especialidad || medico?.especialidad),
+			texto(visita?.ubicacion) || ubicacionDeCita(cita, medicosPorId),
+			texto(visita?.actividades || cita.objetivo),
+			texto(visita?.comentarios_medico),
+			texto(visita?.observaciones || cita.resultado),
+			texto(visita?.seguimiento || visita?.fecha_seguimiento || cita.proximo_seguimiento),
+			texto(visita?.tipo_convenio) ||
+				(medico?.tipo_convenio ? etiquetaConvenio(medico.tipo_convenio) : ""),
 		];
 	});
 };
@@ -78,7 +87,7 @@ const bordeFino = {
 	bottom: { style: "thin" },
 };
 
-export const construirLibroAgenda = (libro, citas, medicos, { desde, hasta, zona = "" }) => {
+export const construirLibroAgenda = (libro, citas, medicos, { desde, hasta, zona = "" }, visitas = []) => {
 	const hoja = libro.addWorksheet(nombreDeHoja(desde, hasta));
 	hoja.columns = COLUMNAS_AGENDA.map((columna) => ({ width: columna.ancho }));
 
@@ -119,7 +128,7 @@ export const construirLibroAgenda = (libro, citas, medicos, { desde, hasta, zona
 		celda.border = bordeFino;
 	});
 
-	for (const fila of construirFilasAgenda(citas, medicos)) {
+	for (const fila of construirFilasAgenda(citas, medicos, visitas)) {
 		const renglon = hoja.addRow(fila);
 		renglon.eachCell({ includeEmpty: true }, (celda, columna) => {
 			celda.font = { name: TIPOGRAFIA, size: 11 };
@@ -147,10 +156,16 @@ export const construirLibroAgenda = (libro, citas, medicos, { desde, hasta, zona
 
 // ExcelJS se carga sólo al exportar: pesa bastante y no tiene por qué viajar
 // en la carga inicial de la aplicación.
-export const exportarAgendaExcel = async (citas, medicos, rango, nombreArchivo = "Agenda_visitas") => {
+export const exportarAgendaExcel = async (
+	citas,
+	medicos,
+	rango,
+	nombreArchivo = "Agenda_visitas",
+	visitas = [],
+) => {
 	const { default: ExcelJS } = await import("exceljs");
 	const libro = new ExcelJS.Workbook();
-	construirLibroAgenda(libro, citas, medicos, rango);
+	construirLibroAgenda(libro, citas, medicos, rango, visitas);
 	const datos = await libro.xlsx.writeBuffer();
 	const enlace = document.createElement("a");
 	const url = URL.createObjectURL(

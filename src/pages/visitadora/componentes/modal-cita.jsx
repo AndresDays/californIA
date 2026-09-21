@@ -1,16 +1,32 @@
 import { useState } from "react";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useAgregarNotaMedico, useGuardarMedico } from "../../../hooks/use-directorio-medicos";
+import { objetivosDeFecha, textoDeObjetivos } from "../../../hooks/use-objetivos-periodo";
 import { buscarMedicoExistente, TIPOS_VISITA } from "../../../utils/crm-visitadora";
 import "../visitadora.css";
 
-const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onClose, onGuardado, onError }) => {
+const ModalCita = ({
+	isOpen,
+	cita,
+	medico,
+	medicos = [],
+	objetivosPeriodo = [],
+	fecha,
+	idEmpleado,
+	onClose,
+	onGuardado,
+	onError,
+}) => {
+	// Los objetivos del día o de la semana se copian al programar, para no
+	// teclear lo mismo en cada cita; después se pueden corregir a mano.
+	const objetivosDelDia = (dia) => textoDeObjetivos(objetivosDeFecha(objetivosPeriodo, dia));
+
 	const [campos, setCampos] = useState(() => ({
 		id_doctor: cita?.id_doctor ?? medico?.id_doctor ?? "",
 		fecha: cita?.fecha ?? fecha ?? "",
 		hora: cita?.hora ?? "",
 		tipo_visita: cita?.tipo_visita ?? "seguimiento",
-		objetivo: cita?.objetivo ?? "",
+		objetivo: cita?.objetivo ?? objetivosDelDia(fecha) ?? "",
 		zona: cita?.zona ?? medico?.zona ?? "",
 		// La nota no es de la cita: se guarda en la ficha del médico y se lee
 		// después en su pestaña de Datos.
@@ -30,6 +46,19 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 
 	const cambiar = (campo) => (evento) =>
 		setCampos((previos) => ({ ...previos, [campo]: evento.target.value }));
+
+	// Al mover la cita a otro día se traen los objetivos de ese día, pero sólo
+	// si lo que hay escrito son los del día anterior: lo que ella escribió no se
+	// pisa nunca.
+	const cambiarFecha = (evento) => {
+		const nueva = evento.target.value;
+		setCampos((previos) => ({
+			...previos,
+			fecha: nueva,
+			objetivo:
+				previos.objetivo === objetivosDelDia(previos.fecha) ? objetivosDelDia(nueva) : previos.objetivo,
+		}));
+	};
 
 	const NUEVO = "nuevo";
 	const esMedicoNuevo = campos.id_doctor === NUEVO;
@@ -221,7 +250,7 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 					<div className="visitadora-modal-columnas">
 						<div>
 							<label htmlFor="cita-fecha">Día de visita</label>
-							<input id="cita-fecha" type="date" value={campos.fecha} onChange={cambiar("fecha")} required />
+							<input id="cita-fecha" type="date" value={campos.fecha} onChange={cambiarFecha} required />
 						</div>
 						<div>
 							<label htmlFor="cita-hora">Hora</label>
@@ -239,7 +268,10 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 					<label htmlFor="cita-zona">Zona</label>
 					<input id="cita-zona" type="text" value={campos.zona} onChange={cambiar("zona")} />
 
-					<label htmlFor="cita-objetivo">Objetivo de la visita</label>
+					<label htmlFor="cita-objetivo">
+						Objetivo de la visita
+						{objetivosDelDia(campos.fecha) ? " (viene de los objetivos del periodo)" : ""}
+					</label>
 					<textarea id="cita-objetivo" rows={3} value={campos.objetivo} onChange={cambiar("objetivo")} />
 
 					<label htmlFor="cita-nota">Notas del médico</label>
