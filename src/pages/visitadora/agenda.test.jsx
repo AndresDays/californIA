@@ -211,3 +211,37 @@ describe("Velo de los modales", () => {
 		expect(tema).toMatch(/--velo-modal:\s*rgba\([^)]*0?\.\d+\)/);
 	});
 });
+
+describe("Arrastrar visitas entre días", () => {
+	test("la visita programada tiene asa para arrastrarla", async () => {
+		await mostrar();
+		expect(
+			screen.getByRole("button", { name: "Mover la visita de Ramón Pérez" }),
+		).toBeInTheDocument();
+	});
+
+	// La registrada ya quedó con su resultado en el informe: moverla de día
+	// falsearía cuándo se hizo.
+	test("la visita ya registrada no trae asa", async () => {
+		mockCitas.current = [
+			{
+				id_agenda: "a9",
+				id_doctor: 3,
+				medico_nombre: "Luis Salas",
+				zona: "Centro",
+				fecha: "2026-09-18",
+				tipo_visita: "seguimiento",
+				estatus: "realizada",
+			},
+		];
+		await mostrar();
+		expect(
+			screen.queryByRole("button", { name: "Mover la visita de Luis Salas" }),
+		).not.toBeInTheDocument();
+	});
+
+	test("el botón de teclear la fecha sigue disponible", async () => {
+		await mostrar();
+		expect(screen.getAllByRole("button", { name: "Mover" }).length).toBeGreaterThan(0);
+	});
+});

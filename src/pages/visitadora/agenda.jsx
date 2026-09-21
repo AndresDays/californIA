@@ -1,5 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+	DndContext,
+	DragOverlay,
+	PointerSensor,
+	TouchSensor,
+	useDraggable,
+	useDroppable,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core";
 import PageLayout from "../../components/page-layout.jsx";
 import ModalNotificacion from "../../components/ModalNotificacion";
 import { useEmpleadoActual } from "../../hooks/use-empleado-actual";
@@ -21,6 +31,7 @@ import {
 	sumarDias,
 } from "../../utils/semanas-visitadora";
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
+import { idDeDia, movimientoDeArrastre, puedeArrastrarse } from "../../utils/arrastre-agenda";
 import ModalCita from "./componentes/modal-cita";
 import ModalRegistroVisita from "./componentes/modal-registro-visita";
 import EditarVisitaRegistrada from "./componentes/editar-visita-registrada";
@@ -36,6 +47,43 @@ const mesDesplazado = (fecha, meses) => {
 };
 const ultimoDiaDelMes = (fecha) => sumarDias(mesDesplazado(primerDiaDelMes(fecha), 1), -1);
 
+// La tarjeta se arrastra desde su asa, no desde toda su superficie: adentro hay
+// botones —registrar, cancelar, editar— y el enlace al expediente, que dejarían
+// de poder tocarse si el arrastre se quedara con el gesto.
+const CitaArrastrable = ({ cita, children }) => {
+	const movible = puedeArrastrarse(cita);
+	const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+		id: cita.id_agenda,
+		data: { cita },
+		disabled: !movible,
+	});
+
+	return (
+		<div ref={setNodeRef} className={isDragging ? "visitadora-arrastrando" : undefined}>
+			{movible && (
+				<button
+					type="button"
+					className="visitadora-asa"
+					aria-label={`Mover la visita de ${cita.medico_nombre}`}
+					{...attributes}
+					{...listeners}>
+					⠿
+				</button>
+			)}
+			{children}
+		</div>
+	);
+};
+
+const DiaSoltable = ({ fecha, className, children }) => {
+	const { isOver, setNodeRef } = useDroppable({ id: idDeDia(fecha), data: { fecha } });
+	return (
+		<div ref={setNodeRef} className={`${className}${isOver ? " recibiendo" : ""}`}>
+			{children}
+		</div>
+	);
+};
+
 const Agenda = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navegar = useNavigate();
@@ -45,6 +93,7 @@ const Agenda = () => {
 	const [modal, setModal] = useState(null);
 	const [citaElegida, setCitaElegida] = useState(null);
 	const [citaAEliminar, setCitaAEliminar] = useState(null);
+	const [citaArrastrada, setCitaArrastrada] = useState(null);
 	const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 
 	const { medicos } = useDirectorioMedicos();
@@ -117,6 +166,25 @@ const Agenda = () => {
 			);
 		} catch (fallo) {
 			avisar(fallo.message || "No se pudo generar el archivo.", "error");
+		}
+	};
+
+	// Un umbral de arranque para que un toque siga siendo un clic, y una espera
+	// corta en pantalla táctil para no mover una visita al hacer scroll.
+	const sensores = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+		useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+	);
+
+	const soltarCita = async (evento) => {
+		setCitaArrastrada(null);
+		const movimiento = movimientoDeArrastre(evento);
+		if (!movimiento) return;
+		try {
+			await reprogramar.mutateAsync(movimiento);
+			avisar(`Visita movida al ${movimiento.fecha}.`);
+		} catch (fallo) {
+			avisar(fallo.message || "No se pudo reprogramar.", "error");
 		}
 	};
 
@@ -283,45 +351,73 @@ const Agenda = () => {
 					</div>
 				)}
 
-				{vista === "semana" && (
-					<div className="visitadora-agenda-semana">
-						{DIAS.map((nombre, indice) => {
-							const dia = sumarDias(lunesDeLaSemana(fecha), indice);
-							return (
-								<div key={dia} className="visitadora-agenda-dia">
-									<h3>
-										{nombre} {dia.slice(8, 10)}
-									</h3>
-									{(porDia.get(dia) ?? []).map(tarjetaCita)}
-									<button
-										type="button"
-										className="visitadora-enlace"
-										onClick={() => {
-											setCitaElegida(null);
-											setFecha(dia);
-											setModal("cita");
-										}}>
-										+ Agregar
-									</button>
-								</div>
-							);
-						})}
-					</div>
-				)}
+				{(vista === "semana" || vista === "mes") && (
+					// Arrastrar la tarjeta de un día a otro la reprograma, que es lo
+					// que se hacía escribiendo la fecha a mano. El botón "Mover"
+					// sigue ahí para quien prefiera teclear.
+					<DndContext
+						sensors={sensores}
+						onDragStart={(evento) => setCitaArrastrada(evento.active?.data?.current?.cita ?? null)}
+						onDragCancel={() => setCitaArrastrada(null)}
+						onDragEnd={soltarCita}>
+						{vista === "semana" && (
+							<div className="visitadora-agenda-semana">
+								{DIAS.map((nombre, indice) => {
+									const dia = sumarDias(lunesDeLaSemana(fecha), indice);
+									return (
+										<DiaSoltable key={dia} fecha={dia} className="visitadora-agenda-dia">
+											<h3>
+												{nombre} {dia.slice(8, 10)}
+											</h3>
+											{(porDia.get(dia) ?? []).map((cita) => (
+												<CitaArrastrable key={cita.id_agenda} cita={cita}>
+													{tarjetaCita(cita)}
+												</CitaArrastrable>
+											))}
+											<button
+												type="button"
+												className="visitadora-enlace"
+												onClick={() => {
+													setCitaElegida(null);
+													setFecha(dia);
+													setModal("cita");
+												}}>
+												+ Agregar
+											</button>
+										</DiaSoltable>
+									);
+								})}
+							</div>
+						)}
 
-				{vista === "mes" && (
-					<div className="visitadora-mes">
-						{diasDelMes.map((dia) => (
-							<div key={dia} className={`visitadora-mes-celda ${dia === hoyEnMexico() ? "hoy" : ""}`}>
-								<strong>{dia.slice(8, 10)}</strong>
-								{(porDia.get(dia) ?? []).map((cita) => (
-									<div key={cita.id_agenda} className="visitadora-recorte">
-										{cita.medico_nombre}
-									</div>
+						{vista === "mes" && (
+							<div className="visitadora-mes">
+								{diasDelMes.map((dia) => (
+									<DiaSoltable
+										key={dia}
+										fecha={dia}
+										className={`visitadora-mes-celda ${dia === hoyEnMexico() ? "hoy" : ""}`}>
+										<strong>{dia.slice(8, 10)}</strong>
+										{(porDia.get(dia) ?? []).map((cita) => (
+											<CitaArrastrable key={cita.id_agenda} cita={cita}>
+												<div className="visitadora-recorte">{cita.medico_nombre}</div>
+											</CitaArrastrable>
+										))}
+									</DiaSoltable>
 								))}
 							</div>
-						))}
-					</div>
+						)}
+
+						{/* Lo que se ve pegado al dedo mientras se arrastra. */}
+						<DragOverlay>
+							{citaArrastrada && (
+								<div className="visitadora-cita arrastre">
+									{citaArrastrada.hora ? `${citaArrastrada.hora.slice(0, 5)} · ` : ""}
+									{citaArrastrada.medico_nombre}
+								</div>
+							)}
+						</DragOverlay>
+					</DndContext>
 				)}
 
 				{modal === "cita" && (

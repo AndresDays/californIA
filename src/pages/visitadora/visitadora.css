@@ -819,3 +819,40 @@
 		font-size: 0.65rem;
 	}
 }
+
+/* --- arrastrar visitas entre días --- */
+.visitadora-asa {
+	background: none;
+	border: none;
+	color: var(--texto-tenue);
+	cursor: grab;
+	font-size: 1rem;
+	line-height: 1;
+	padding: 0.35rem 0.4rem;
+	/* Suficiente para el pulgar, y sin el gesto de desplazar la página encima:
+	   si no, arrastrar la tarjeta en el celular movía la pantalla. */
+	min-height: 2.2rem;
+	touch-action: none;
+}
+
+.visitadora-asa:active {
+	cursor: grabbing;
+}
+
+.visitadora-arrastrando {
+	opacity: 0.4;
+}
+
+/* El día bajo el dedo se ilumina para que se vea dónde va a caer. */
+.visitadora-agenda-dia.recibiendo,
+.visitadora-mes-celda.recibiendo {
+	border-color: var(--azul);
+	border-style: dashed;
+	background: var(--superficie-hover);
+}
+
+.visitadora-cita.arrastre {
+	box-shadow: var(--sombra-alta);
+	background: var(--superficie);
+	cursor: grabbing;
+}
