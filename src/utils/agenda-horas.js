@@ -2,8 +2,9 @@
 // poder probar los casos de orilla —la visita sin hora, la de las seis de la
 // mañana— sin montar la pantalla entera.
 
-// Las horas a las que se consulta; fuera de esto no hay consultorio abierto.
-export const HORA_INICIO = 7;
+// El horario en el que de verdad se visita: de 10 de la mañana a 8 de la
+// noche. Empezaba a las 7 y esas primeras franjas siempre estaban vacías.
+export const HORA_INICIO = 10;
 export const HORA_FIN = 20;
 
 export const HORAS_AGENDA = Array.from(
@@ -16,7 +17,7 @@ export const horaDeCita = (cita) => {
 	return Number.isFinite(hora) && String(cita?.hora || "").includes(":") ? hora : null;
 };
 
-// La visita de las 6 de la mañana o la de las 10 de la noche existen aunque la
+// La visita de las 8 de la mañana o la de las 10 de la noche existen aunque la
 // rejilla no llegue hasta ahí: se arriman a la primera o la última franja en
 // vez de desaparecer de la pantalla.
 export const franjaDeCita = (cita) => {

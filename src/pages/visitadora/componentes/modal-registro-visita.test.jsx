@@ -73,12 +73,32 @@ describe("Registro rápido de visita", () => {
 		expect(screen.getByText(/Ramón Pérez/)).toBeInTheDocument();
 	});
 
+	// Los campos son los del informe semanal, que es el reporte que ella
+	// entrega: capturar con otras palabras obligaba a traducir cada renglón.
+	test("captura con los campos del informe de visitas", async () => {
+		await mostrar();
+		for (const etiqueta of [
+			"Actividades",
+			"Comentarios del médico",
+			"Observaciones",
+			"Seguimiento",
+			"Convenio",
+			"Especialidad",
+			"Ubicación",
+		]) {
+			expect(screen.getByLabelText(etiqueta)).toBeInTheDocument();
+		}
+	});
+
 	test("guarda la visita con lo capturado", async () => {
 		const { onGuardado } = await mostrar();
-		fireEvent.change(screen.getByLabelText("Resultado"), {
+		fireEvent.change(screen.getByLabelText("Actividades"), {
+			target: { value: "Se presentaron laboratorio e imagen" },
+		});
+		fireEvent.change(screen.getByLabelText("Observaciones"), {
 			target: { value: "Mostró interés en el convenio" },
 		});
-		fireEvent.change(screen.getByLabelText("Qué se entregó"), { target: { value: "25 órdenes" } });
+		fireEvent.change(screen.getByLabelText("Convenio"), { target: { value: "MIXTO" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
 		});
@@ -86,8 +106,9 @@ describe("Registro rápido de visita", () => {
 			expect.objectContaining({
 				id_doctor: 7,
 				medico_nombre: "Ramón Pérez",
-				resultado: "Mostró interés en el convenio",
-				que_se_entrego: "25 órdenes",
+				actividades: "Se presentaron laboratorio e imagen",
+				observaciones: "Mostró interés en el convenio",
+				tipo_convenio: "MIXTO",
 				id_empleado: 4,
 			}),
 		);
@@ -98,8 +119,8 @@ describe("Registro rápido de visita", () => {
 	// dejarlo solo en la bandeja de pendientes.
 	test("crea el pendiente de seguimiento junto con la visita", async () => {
 		await mostrar();
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Pidió cotización" } });
-		fireEvent.change(screen.getByLabelText("Próxima acción"), {
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Pidió cotización" } });
+		fireEvent.change(screen.getByLabelText("Seguimiento"), {
 			target: { value: "Llevarle la lista de precios" },
 		});
 		await act(async () => {
@@ -117,7 +138,7 @@ describe("Registro rápido de visita", () => {
 
 	test("sin fecha de seguimiento no agenda pendiente", async () => {
 		await mostrar();
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "No estaba" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "No estaba" } });
 		fireEvent.change(screen.getByLabelText("Fecha de seguimiento"), { target: { value: "" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
@@ -128,7 +149,7 @@ describe("Registro rápido de visita", () => {
 
 	test("una visita que venía de la agenda queda marcada como realizada", async () => {
 		await mostrar({ cita: { id_agenda: "a1", tipo_visita: "entrega_ordenes", objetivo: "Dejar órdenes" } });
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Entregadas" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Entregadas" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
 		});
@@ -137,13 +158,13 @@ describe("Registro rápido de visita", () => {
 		);
 	});
 
-	test("no guarda una visita sin resultado", async () => {
+	test("no guarda una visita sin actividades", async () => {
 		const { onError } = await mostrar();
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
 		});
 		expect(mockGuardarVisita).not.toHaveBeenCalled();
-		expect(onError).toHaveBeenCalledWith("Escribe al menos el resultado de la visita.");
+		expect(onError).toHaveBeenCalledWith("Escribe al menos las actividades de la visita.");
 	});
 });
 
@@ -159,7 +180,7 @@ describe("Datos de contacto del médico", () => {
 	// el cumpleaños y el WhatsApp funcionen desde el directorio.
 	test("lo que se complete se guarda en la ficha del médico", async () => {
 		await mostrar();
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Aceptó" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Aceptó" } });
 		fireEvent.change(screen.getByLabelText("Correo electrónico"), {
 			target: { value: "nuevo@ejemplo.mx" },
 		});
@@ -176,7 +197,7 @@ describe("Datos de contacto del médico", () => {
 
 	test("si no se cambió nada no se toca la ficha", async () => {
 		await mostrar();
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Aceptó" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Aceptó" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
 		});
@@ -190,36 +211,33 @@ describe("Corregir una visita ya registrada", () => {
 		id_visita: "v1",
 		fecha: "2026-09-18",
 		tipo_visita: "entrega_ordenes",
-		objetivo: "Dejar talonario",
-		que_se_ofrecio: "Laboratorio e imagen",
-		que_se_entrego: "25 órdenes",
-		resultado: "Mostró interés",
+		actividades: "Se dejaron órdenes médicas",
 		comentarios_medico: "Pidió precios",
-		compromisos: "Mandar lista",
-		proxima_accion: "Llevar cotización",
+		observaciones: "Mostró interés",
+		seguimiento: "Llevar cotización",
 		fecha_seguimiento: "2026-10-03",
 		tipo_convenio: "MIXTO",
 	};
 
 	test("abre con todos los campos llenos, no sólo los de la cita", async () => {
 		await mostrar({ visita });
-		expect(screen.getByLabelText("Resultado")).toHaveValue("Mostró interés");
-		expect(screen.getByLabelText("Qué se ofreció")).toHaveValue("Laboratorio e imagen");
-		expect(screen.getByLabelText("Qué se entregó")).toHaveValue("25 órdenes");
-		expect(screen.getByLabelText("Compromisos adquiridos")).toHaveValue("Mandar lista");
-		expect(screen.getByLabelText("Próxima acción")).toHaveValue("Llevar cotización");
+		expect(screen.getByLabelText("Actividades")).toHaveValue("Se dejaron órdenes médicas");
+		expect(screen.getByLabelText("Comentarios del médico")).toHaveValue("Pidió precios");
+		expect(screen.getByLabelText("Observaciones")).toHaveValue("Mostró interés");
+		expect(screen.getByLabelText("Seguimiento")).toHaveValue("Llevar cotización");
+		expect(screen.getByLabelText("Convenio")).toHaveValue("MIXTO");
 		expect(screen.getByLabelText("Fecha de seguimiento")).toHaveValue("2026-10-03");
 		expect(screen.getByLabelText("Fecha")).toHaveValue("2026-09-18");
 	});
 
 	test("guardar actualiza la visita en vez de crear otra", async () => {
 		await mostrar({ visita });
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Firmó convenio" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Firmó convenio" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 		});
 		expect(mockGuardarVisita).toHaveBeenCalledWith(
-			expect.objectContaining({ id_visita: "v1", resultado: "Firmó convenio" }),
+			expect.objectContaining({ id_visita: "v1", actividades: "Firmó convenio" }),
 		);
 	});
 
@@ -227,7 +245,7 @@ describe("Corregir una visita ya registrada", () => {
 	// dejar un segundo recordatorio del mismo médico.
 	test("corregirla no duplica el pendiente de seguimiento", async () => {
 		await mostrar({ visita });
-		fireEvent.change(screen.getByLabelText("Resultado"), { target: { value: "Firmó" } });
+		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Firmó" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 		});

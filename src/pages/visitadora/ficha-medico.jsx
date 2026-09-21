@@ -235,13 +235,12 @@ const FichaMedico = () => {
 								{visita.tipo_visita && (
 									<span className="visitadora-ficha-dato">{etiquetaTipoVisita(visita.tipo_visita)}</span>
 								)}
-								{dato("Objetivo", visita.objetivo || visita.actividades)}
-								{dato("Se ofreció", visita.que_se_ofrecio)}
-								{dato("Se entregó", visita.que_se_entrego)}
-								{dato("Resultado", visita.resultado)}
-								{dato("Comentarios", visita.comentarios_medico)}
-								{dato("Compromisos", visita.compromisos || visita.observaciones)}
-								{dato("Seguimiento", visita.fecha_seguimiento || visita.seguimiento)}
+								{dato("Actividades", visita.actividades || visita.objetivo)}
+								{dato("Comentarios del médico", visita.comentarios_medico)}
+								{dato("Observaciones", visita.observaciones || visita.resultado)}
+								{dato("Convenio", visita.tipo_convenio)}
+								{dato("Seguimiento", visita.seguimiento)}
+								{dato("Próximo seguimiento", visita.fecha_seguimiento)}
 							</div>
 						))}
 					</div>
