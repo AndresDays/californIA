@@ -4,6 +4,7 @@ import { useGuardarTarea } from "../../../hooks/use-tareas-seguimiento";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useActualizarContactoMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
+import CampoFechaNacimiento from "./campo-fecha-nacimiento";
 import { hoyEnMexico, sumarDias } from "../../../utils/semanas-visitadora";
 import "../visitadora.css";
 
@@ -217,12 +218,12 @@ const ModalRegistroVisita = ({
 							/>
 						</div>
 						<div>
-							<label htmlFor="registro-cumple">Fecha de nacimiento</label>
-							<input
+							<CampoFechaNacimiento
 								id="registro-cumple"
-								type="date"
-								value={campos.fecha_nacimiento}
-								onChange={cambiar("fecha_nacimiento")}
+								valor={campos.fecha_nacimiento}
+								onChange={(nueva) =>
+									setCampos((previos) => ({ ...previos, fecha_nacimiento: nueva }))
+								}
 							/>
 						</div>
 					</div>

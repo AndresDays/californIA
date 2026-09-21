@@ -916,3 +916,29 @@
 	justify-content: flex-start;
 	white-space: nowrap;
 }
+
+/* Día, mes y año en tres listas: el calendario del navegador obligaba a
+   retroceder cincuenta años mes por mes. */
+.visitadora-fecha-partes {
+	border: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.visitadora-fecha-partes legend {
+	font-size: 0.7rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--texto);
+	margin-bottom: 0.25rem;
+	padding: 0;
+}
+
+.visitadora-fecha-partes select {
+	flex: 1 1 5rem;
+	min-width: 4.5rem;
+	min-height: 2.6rem;
+}

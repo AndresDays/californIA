@@ -173,7 +173,10 @@ describe("Datos de contacto del médico", () => {
 		await mostrar();
 		expect(screen.getByLabelText("Teléfono")).toHaveValue("3221234567");
 		expect(screen.getByLabelText("Correo electrónico")).toHaveValue("ramon@ejemplo.mx");
-		expect(screen.getByLabelText("Fecha de nacimiento")).toHaveValue("1975-09-19");
+		// El cumpleaños se captura con tres listas, no con el calendario.
+		expect(screen.getByLabelText("Día")).toHaveValue("19");
+		expect(screen.getByLabelText("Mes")).toHaveValue("09");
+		expect(screen.getByLabelText("Año")).toHaveValue("1975");
 	});
 
 	// El dato que le sacó en el consultorio se guarda en el catálogo, para que
