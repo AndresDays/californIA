@@ -59,11 +59,17 @@ describe("desglosar lo que se escribe de corrido", () => {
 		expect(desglosarCaptura(null).actividades).toBe("");
 	});
 
-	// Una hora con dos puntos no es una etiqueta.
-	test("un renglón con dos puntos que no es etiqueta se queda donde va", () => {
-		expect(desglosarCaptura("Llegué a las 10:30 y no estaba").actividades).toBe(
-			"Llegué a las 10:30 y no estaba",
-		);
+	// Una hora con dos puntos no es una etiqueta: el renglón no se parte ni se
+	// pierde, se reparte entero por su contenido.
+	test("un renglón con dos puntos que no es etiqueta no se parte", () => {
+		const partes = desglosarCaptura("Llegué a las 10:30 y no estaba");
+		expect(Object.values(partes).join(" ")).toContain("Llegué a las 10:30 y no estaba");
+	});
+
+	test("con etiquetas manda lo que ella marcó, aunque el texto suene a otra cosa", () => {
+		const partes = desglosarCaptura("Actividades: Mostró interés y pidió precios");
+		expect(partes.actividades).toBe("Mostró interés y pidió precios");
+		expect(partes.comentarios_medico).toBe("");
 	});
 });
 

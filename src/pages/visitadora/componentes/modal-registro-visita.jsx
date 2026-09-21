@@ -101,7 +101,15 @@ const ModalRegistroVisita = ({
 			seguimiento: campos.seguimiento,
 			tipo_convenio: campos.tipo_convenio,
 		};
-		if (!String(contenido.actividades || "").trim()) {
+		// Capturando de corrido basta con que haya algo escrito: si ella marcó
+		// todo como observaciones, obligar a llenar actividades sería estorbar.
+		// Campo por campo sí se pide actividades, que es la columna del informe
+		// que nunca va vacía.
+		const hayContenido =
+			modo === "libre"
+				? Object.values(contenido).some((valor) => String(valor || "").trim())
+				: String(contenido.actividades || "").trim();
+		if (!hayContenido) {
 			onError?.("Escribe al menos las actividades de la visita.");
 			return;
 		}
@@ -298,38 +306,59 @@ const ModalRegistroVisita = ({
 					{modo === "libre" ? (
 						<>
 							<label htmlFor="registro-libre">Lo que pasó en la visita</label>
-							{/* Los botones meten la etiqueta del renglón: se escribe de
-							    corrido y cada cosa queda marcada para que el informe la
-							    ponga en su columna. */}
-							<div className="visitadora-etiquetas-captura">
-								{ETIQUETAS_CAPTURA.map(({ campo, etiqueta }) => (
-									<button
-										key={campo}
-										type="button"
-										onClick={() =>
-											setCapturaLibre((texto) =>
-												`${texto.replace(/\s*$/, "")}${texto.trim() ? "\n" : ""}${etiqueta}: `,
-											)
-										}>
-										+ {etiqueta}
-									</button>
-								))}
-							</div>
 							<textarea
 								id="registro-libre"
 								rows={10}
 								placeholder={
-									"Se presentaron los servicios de laboratorio e imagen.\n" +
-									"Comentarios del médico: pidió precios de resonancia.\n" +
-									"Seguimiento: volver en 15 días."
+									"Se presentaron los servicios de laboratorio e imagen y se dejaron órdenes. " +
+									"Mostró interés y pidió precios de resonancia. " +
+									"Recibe representantes los miércoles. Dar seguimiento en 15 días."
 								}
 								value={capturaLibre}
 								onChange={(evento) => setCapturaLibre(evento.target.value)}
 							/>
 							<p className="visitadora-ficha-dato">
-								Lo que escribas antes de la primera etiqueta entra como actividades. En el informe
-								cada etiqueta cae en su columna.
+								Escríbelo como te lo vayan diciendo. Abajo ves en qué columna del informe queda
+								cada frase; si algo cayó mal, corrígelo en «Campo por campo».
 							</p>
+
+							{/* La vista previa es lo que hace confiable el reparto: se ve
+							    dónde quedó cada frase antes de guardar, no después en el
+							    informe. */}
+							{capturaLibre.trim() && (
+								<div className="visitadora-historial">
+									<p className="visitadora-historial-titulo">Así va a quedar en el informe</p>
+									{ETIQUETAS_CAPTURA.map(({ campo, etiqueta }) => (
+										<p key={campo} className="visitadora-ficha-dato">
+											<strong>{etiqueta}:</strong>{" "}
+											{desglosarCaptura(capturaLibre)[campo] || "—"}
+										</p>
+									))}
+								</div>
+							)}
+
+							{/* Las etiquetas quedan para cuando el reparto no acierte: se
+							    escribe "Seguimiento:" al principio del renglón y manda eso. */}
+							<details className="visitadora-etiquetas-detalle">
+								<summary>¿Algo quedó en la columna equivocada?</summary>
+								<p className="visitadora-ficha-dato">
+									Empieza el renglón con la columna y dos puntos y se respeta tal cual.
+								</p>
+								<div className="visitadora-etiquetas-captura">
+									{ETIQUETAS_CAPTURA.map(({ campo, etiqueta }) => (
+										<button
+											key={campo}
+											type="button"
+											onClick={() =>
+												setCapturaLibre((texto) =>
+													`${texto.replace(/\s*$/, "")}${texto.trim() ? "\n" : ""}${etiqueta}: `,
+												)
+											}>
+											+ {etiqueta}
+										</button>
+									))}
+								</div>
+							</details>
 						</>
 					) : (
 						<>

@@ -1,7 +1,11 @@
 // Parada en el consultorio no hay tiempo de ir saltando entre siete campos: se
-// escribe todo de corrido, como lo va diciendo el médico, y cada cosa se marca
-// con una etiqueta al principio del renglón. De ahí salen las columnas del
-// informe semanal, que es lo que al final se entrega.
+// escribe todo de corrido, como lo va diciendo el médico, y de ahí salen las
+// columnas del informe semanal.
+//
+// Sin etiquetas, cada frase se reparte por cómo está escrita (ver
+// clasificar-captura.js). Las etiquetas siguen valiendo para cuando el reparto
+// no acierte y ella quiera decir dónde va algo.
+import { clasificarCaptura } from "./clasificar-captura";
 
 // Cada columna del informe con las palabras que ella usa para nombrarla. El
 // orden importa: "comentarios del médico" se busca antes que "comentarios".
@@ -57,7 +61,16 @@ const VACIO = {
 
 // Lo que se escribe antes de la primera etiqueta son las actividades: es lo que
 // se dicta primero y obligar a etiquetarlo sería estorbar de más.
+export const tieneEtiquetas = (texto = "") =>
+	String(texto ?? "")
+		.split(/\r?\n/)
+		.some((renglon) => campoDelRenglon(renglon));
+
 export const desglosarCaptura = (texto = "") => {
+	// Sin una sola etiqueta se reparte por el contenido; con etiquetas manda lo
+	// que ella marcó, que para eso se tomó el trabajo.
+	if (!tieneEtiquetas(texto)) return clasificarCaptura(texto);
+
 	const partes = { ...VACIO };
 	let actual = "actividades";
 	for (const renglon of String(texto ?? "").split(/\r?\n/)) {

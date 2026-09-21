@@ -401,3 +401,57 @@ describe("Captura de corrido", () => {
 		);
 	});
 });
+
+describe("Texto libre sin etiquetas", () => {
+	const dictado =
+		"Se presentaron los servicios de laboratorio e imagen y se dejaron órdenes. " +
+		"Mostró interés en el convenio y pidió precios de resonancia. " +
+		"Recibe representantes los miércoles. Dar seguimiento en 15 días.";
+
+	// Lo que ella pidió: escribir de corrido, sin marcar nada, y que el sistema
+	// reconozca qué es qué.
+	test("reparte el dictado sin una sola etiqueta", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: dictado },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		const guardada = mockGuardarVisita.mock.calls[0][0];
+		expect(guardada.actividades).toContain("Se presentaron los servicios");
+		expect(guardada.comentarios_medico).toContain("Mostró interés");
+		expect(guardada.observaciones).toContain("Recibe representantes");
+		expect(guardada.seguimiento).toContain("Dar seguimiento en 15 días");
+	});
+
+	// Sin ver dónde cayó cada frase el reparto no es confiable.
+	test("enseña el reparto antes de guardar", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: dictado },
+		});
+		const previa = screen.getByText("Así va a quedar en el informe").closest("div");
+		expect(previa).toHaveTextContent("Comentarios del médico: Mostró interés");
+		expect(previa).toHaveTextContent("Seguimiento: Dar seguimiento en 15 días");
+	});
+
+	test("sin escribir nada no hay vista previa", async () => {
+		await mostrar({ modo: "libre" });
+		expect(screen.queryByText("Así va a quedar en el informe")).not.toBeInTheDocument();
+	});
+
+	// La etiqueta sigue sirviendo cuando el reparto no acierta.
+	test("la etiqueta escrita a mano manda sobre el reparto", async () => {
+		await mostrar({ modo: "libre" });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Observaciones: Mostró interés y pidió precios" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+		const guardada = mockGuardarVisita.mock.calls[0][0];
+		expect(guardada.observaciones).toBe("Mostró interés y pidió precios");
+		expect(guardada.comentarios_medico).toBe("");
+	});
+});
