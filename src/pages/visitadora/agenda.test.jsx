@@ -29,9 +29,11 @@ jest.mock("../../hooks/use-directorio-medicos", () => ({
 
 const mockCitas = { current: [] };
 const mockCancelar = jest.fn().mockResolvedValue(undefined);
+const mockEliminar = jest.fn().mockResolvedValue(undefined);
 jest.mock("../../hooks/use-agenda-visitas", () => ({
 	useAgendaVisitas: () => ({ data: mockCitas.current, isLoading: false, error: null }),
 	useCancelarVisitaAgenda: () => ({ mutateAsync: mockCancelar, isPending: false }),
+	useEliminarCitaAgenda: () => ({ mutateAsync: mockEliminar, isPending: false }),
 	useReprogramarVisita: () => ({ mutateAsync: jest.fn(), isPending: false }),
 }));
 
@@ -58,6 +60,7 @@ const mostrar = async () => {
 beforeEach(() => {
 	jest.useFakeTimers().setSystemTime(new Date("2026-09-19T18:00:00Z"));
 	mockCancelar.mockClear();
+	mockEliminar.mockClear();
 	mockExportar.mockClear();
 	mockCitas.current = [
 		{
@@ -145,5 +148,48 @@ describe("Visitas sin médico del catálogo", () => {
 	test("la visita ligada sí lleva al expediente", async () => {
 		await mostrar();
 		expect(screen.getByRole("button", { name: "Ramón Pérez" })).toBeInTheDocument();
+	});
+});
+
+describe("Visita ya registrada", () => {
+	beforeEach(() => {
+		mockCitas.current = [
+			{
+				id_agenda: "a9",
+				id_doctor: 3,
+				medico_nombre: "Luis Salas",
+				zona: "Centro",
+				fecha: "2026-09-18",
+				tipo_visita: "seguimiento",
+				estatus: "realizada",
+				resultado: "Aceptó el convenio",
+			},
+		];
+	});
+
+	test("se enseña apagada y marcada como registrada", async () => {
+		await mostrar();
+		expect(screen.getByText("✓ Registrada")).toBeInTheDocument();
+		expect(screen.getByText("Luis Salas").closest(".visitadora-cita")).toHaveClass("realizada");
+	});
+
+	// Ya no se puede volver a registrar ni mover, pero sí corregirla o quitarla
+	// si quedó duplicada o en el médico equivocado.
+	test("deja editarla y eliminarla, no registrarla otra vez", async () => {
+		await mostrar();
+		expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Eliminar" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Registrar" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Mover" })).not.toBeInTheDocument();
+	});
+
+	test("eliminar pide confirmación antes de borrar", async () => {
+		await mostrar();
+		fireEvent.click(screen.getByRole("button", { name: "Eliminar" }));
+		expect(mockEliminar).not.toHaveBeenCalled();
+		await act(async () => {
+			fireEvent.click(screen.getAllByRole("button", { name: /Eliminar/ }).at(-1));
+		});
+		expect(mockEliminar).toHaveBeenCalledWith("a9");
 	});
 });

@@ -90,6 +90,23 @@ export const useReprogramarVisita = () => {
 	});
 };
 
+// Borrar de verdad es para el renglón equivocado: la visita que se capturó dos
+// veces o en el médico que no era. Cancelar, que deja rastro, sigue siendo lo
+// normal cuando la visita existió y no se hizo.
+export const useEliminarCitaAgenda = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (idAgenda) => {
+			const { error } = await supabase
+				.from("agenda_visitas")
+				.delete()
+				.eq("id_agenda", idAgenda);
+			if (error) throw error;
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agenda-visitas"] }),
+	});
+};
+
 export const useCancelarVisitaAgenda = () => {
 	const queryClient = useQueryClient();
 	return useMutation({

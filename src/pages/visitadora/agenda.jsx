@@ -7,6 +7,7 @@ import { useDirectorioMedicos } from "../../hooks/use-directorio-medicos";
 import {
 	useAgendaVisitas,
 	useCancelarVisitaAgenda,
+	useEliminarCitaAgenda,
 	useReprogramarVisita,
 } from "../../hooks/use-agenda-visitas";
 import { etiquetaTipoVisita } from "../../utils/crm-visitadora";
@@ -19,6 +20,7 @@ import {
 	semanaDesplazada,
 	sumarDias,
 } from "../../utils/semanas-visitadora";
+import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
 import ModalCita from "./componentes/modal-cita";
 import ModalRegistroVisita from "./componentes/modal-registro-visita";
 import "./visitadora.css";
@@ -41,11 +43,13 @@ const Agenda = () => {
 	const [zona, setZona] = useState("");
 	const [modal, setModal] = useState(null);
 	const [citaElegida, setCitaElegida] = useState(null);
+	const [citaAEliminar, setCitaAEliminar] = useState(null);
 	const [notificacion, setNotificacion] = useState({ isOpen: false, mensaje: "", tipo: "exito" });
 
 	const { medicos } = useDirectorioMedicos();
 	const reprogramar = useReprogramarVisita();
 	const cancelar = useCancelarVisitaAgenda();
+	const eliminar = useEliminarCitaAgenda();
 
 	const rango = useMemo(() => {
 		if (vista === "dia") return { desde: fecha, hasta: fecha };
@@ -150,31 +154,55 @@ const Agenda = () => {
 			)}
 			<div className="visitadora-ficha-dato">{etiquetaTipoVisita(cita.tipo_visita)}</div>
 			{cita.objetivo && <div className="visitadora-recorte">{cita.objetivo}</div>}
-			{cita.estatus === "programada" && (
-				<div className="visitadora-pastillas">
-					<button
-						type="button"
-						className="visitadora-enlace"
-						onClick={() => {
-							setCitaElegida(cita);
-							setModal("registro");
-						}}>
-						Registrar
-					</button>
-					<button type="button" className="visitadora-enlace" onClick={() => pedirReprogramacion(cita)}>
-						Mover
-					</button>
-					<button
-						type="button"
-						className="visitadora-enlace peligro"
-						onClick={async () => {
-							await cancelar.mutateAsync(cita.id_agenda);
-							avisar("Visita cancelada.");
-						}}>
-						Cancelar
-					</button>
-				</div>
+			{cita.estatus === "realizada" && (
+				<div className="visitadora-ficha-dato">✓ Registrada</div>
 			)}
+			<div className="visitadora-pastillas">
+				{cita.estatus === "programada" && (
+					<>
+						<button
+							type="button"
+							className="visitadora-enlace"
+							onClick={() => {
+								setCitaElegida(cita);
+								setModal("registro");
+							}}>
+							Registrar
+						</button>
+						<button type="button" className="visitadora-enlace" onClick={() => pedirReprogramacion(cita)}>
+							Mover
+						</button>
+						<button
+							type="button"
+							className="visitadora-enlace peligro"
+							onClick={async () => {
+								await cancelar.mutateAsync(cita.id_agenda);
+								avisar("Visita cancelada.");
+							}}>
+							Cancelar
+						</button>
+					</>
+				)}
+				{/* Editar y eliminar siguen disponibles después de registrar: la
+				    visita ya hecha se corrige (se equivocó de médico, de hora) o se
+				    quita si quedó duplicada. Lo registrado en el informe no se
+				    toca desde aquí. */}
+				<button
+					type="button"
+					className="visitadora-enlace"
+					onClick={() => {
+						setCitaElegida(cita);
+						setModal("cita");
+					}}>
+					Editar
+				</button>
+				<button
+					type="button"
+					className="visitadora-enlace peligro"
+					onClick={() => setCitaAEliminar(cita)}>
+					Eliminar
+				</button>
+			</div>
 		</div>
 	);
 
@@ -327,6 +355,23 @@ const Agenda = () => {
 						onError={(mensaje) => avisar(mensaje, "error")}
 					/>
 				)}
+
+				<ModalConfirmarEliminacion
+					isOpen={Boolean(citaAEliminar)}
+					onClose={() => setCitaAEliminar(null)}
+					onConfirm={async () => {
+						try {
+							await eliminar.mutateAsync(citaAEliminar.id_agenda);
+							avisar("Visita eliminada de la agenda.");
+						} catch (fallo) {
+							avisar(fallo.message || "No se pudo eliminar la visita.", "error");
+						} finally {
+							setCitaAEliminar(null);
+						}
+					}}
+					tipo="visita"
+					nombreElemento={citaAEliminar?.medico_nombre ?? ""}
+				/>
 
 				<ModalNotificacion
 					isOpen={notificacion.isOpen}
