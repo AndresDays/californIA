@@ -211,3 +211,96 @@ describe("Velo de los modales", () => {
 		expect(tema).toMatch(/--velo-modal:\s*rgba\([^)]*0?\.\d+\)/);
 	});
 });
+
+describe("Arrastrar visitas entre días", () => {
+	test("la visita programada tiene asa para arrastrarla", async () => {
+		await mostrar();
+		expect(
+			screen.getByRole("button", { name: "Mover la visita de Ramón Pérez" }),
+		).toBeInTheDocument();
+	});
+
+	// La registrada ya quedó con su resultado en el informe: moverla de día
+	// falsearía cuándo se hizo.
+	test("la visita ya registrada no trae asa", async () => {
+		mockCitas.current = [
+			{
+				id_agenda: "a9",
+				id_doctor: 3,
+				medico_nombre: "Luis Salas",
+				zona: "Centro",
+				fecha: "2026-09-18",
+				tipo_visita: "seguimiento",
+				estatus: "realizada",
+			},
+		];
+		await mostrar();
+		expect(
+			screen.queryByRole("button", { name: "Mover la visita de Luis Salas" }),
+		).not.toBeInTheDocument();
+	});
+
+	test("el botón de teclear la fecha sigue disponible", async () => {
+		await mostrar();
+		expect(screen.getAllByRole("button", { name: "Mover" }).length).toBeGreaterThan(0);
+	});
+});
+
+describe("Calendario por horas", () => {
+	beforeEach(() => {
+		mockCitas.current = [
+			{
+				id_agenda: "h1",
+				id_doctor: 1,
+				medico_nombre: "Ramón Pérez",
+				zona: "Centro",
+				fecha: "2026-09-18",
+				hora: "16:00:00",
+				tipo_visita: "seguimiento",
+				estatus: "programada",
+			},
+			{
+				id_agenda: "h2",
+				id_doctor: 2,
+				medico_nombre: "Ana Ruiz",
+				zona: "Centro",
+				fecha: "2026-09-18",
+				hora: null,
+				tipo_visita: "seguimiento",
+				estatus: "programada",
+			},
+		];
+	});
+
+	test("dibuja la franja de cada hora de consulta", async () => {
+		await mostrar();
+		expect(screen.getByText("07:00")).toBeInTheDocument();
+		expect(screen.getByText("20:00")).toBeInTheDocument();
+	});
+
+	// Antes todas las visitas del día caían revueltas en una lista.
+	test("la visita se acomoda en la franja de su hora", async () => {
+		await mostrar();
+		// El nombre va junto a la hora dentro del mismo botón de la tarjeta.
+		const fila = screen
+			.getByRole("button", { name: "16:00 · Ramón Pérez" })
+			.closest(".visitadora-calendario-fila");
+		expect(fila).toHaveTextContent("16:00");
+		expect(fila).not.toHaveTextContent("07:00");
+	});
+
+	test("la visita sin hora va a la franja 'Sin hora'", async () => {
+		await mostrar();
+		const fila = screen
+			.getByRole("button", { name: "Ana Ruiz" })
+			.closest(".visitadora-calendario-fila");
+		expect(fila).toHaveClass("sinhora");
+	});
+
+	test("cada día de la semana tiene su columna", async () => {
+		await mostrar();
+		for (const dia of ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]) {
+			expect(screen.getByText(dia)).toBeInTheDocument();
+		}
+	});
+});

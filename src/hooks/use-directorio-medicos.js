@@ -191,6 +191,34 @@ export const useActualizarContactoMedico = () => {
 	});
 };
 
+// La nota que se escribe al programar una visita es del médico, no de la cita:
+// termina en su ficha, que es donde ella la busca después. Se agrega al final
+// de lo que ya había, con su fecha, para no borrar lo escrito antes.
+export const useAgregarNotaMedico = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async ({ idDoctor, nota, fecha }) => {
+			const texto = String(nota || "").trim();
+			if (!idDoctor || !texto) return;
+			const { data, error } = await supabase
+				.from("doctores_crm")
+				.select("notas")
+				.eq("id_doctor", idDoctor)
+				.maybeSingle();
+			if (error) throw error;
+			const previas = String(data?.notas || "").trim();
+			const renglon = `[${fecha}] ${texto}`;
+			const { error: fallo } = await supabase.from("doctores_crm").upsert({
+				id_doctor: idDoctor,
+				notas: previas ? `${previas}\n${renglon}` : renglon,
+				updated_at: new Date().toISOString(),
+			});
+			if (fallo) throw fallo;
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["directorio-medicos"] }),
+	});
+};
+
 export const useGuardarVisorDicom = () => {
 	const queryClient = useQueryClient();
 	return useMutation({

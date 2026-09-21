@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
+import { useAgregarNotaMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
 import "../visitadora.css";
 
@@ -11,8 +12,12 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 		tipo_visita: cita?.tipo_visita ?? "seguimiento",
 		objetivo: cita?.objetivo ?? "",
 		zona: cita?.zona ?? medico?.zona ?? "",
+		// La nota no es de la cita: se guarda en la ficha del médico y se lee
+		// después en su pestaña de Datos.
+		nota: "",
 	}));
 	const guardarAgenda = useGuardarAgenda();
+	const agregarNota = useAgregarNotaMedico();
 
 	if (!isOpen) return null;
 
@@ -51,6 +56,13 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 				id_empleado: idEmpleado ?? null,
 				...(cita?.id_agenda ? { updated_at: new Date().toISOString() } : {}),
 			});
+			if (campos.nota.trim() && elegido.id_doctor) {
+				await agregarNota.mutateAsync({
+					idDoctor: elegido.id_doctor,
+					nota: campos.nota,
+					fecha: campos.fecha,
+				});
+			}
 			onGuardado?.(cita ? "Visita actualizada." : "Visita programada.");
 		} catch (fallo) {
 			onError?.(fallo.message || "No se pudo guardar la visita.");
@@ -100,6 +112,15 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 
 					<label htmlFor="cita-objetivo">Objetivo de la visita</label>
 					<textarea id="cita-objetivo" rows={3} value={campos.objetivo} onChange={cambiar("objetivo")} />
+
+					<label htmlFor="cita-nota">Notas del médico</label>
+					<textarea
+						id="cita-nota"
+						rows={3}
+						placeholder="Se guardan en la ficha del médico, en su pestaña de Datos"
+						value={campos.nota}
+						onChange={cambiar("nota")}
+					/>
 
 					<div className="visitadora-modal-acciones">
 						<button type="button" onClick={onClose}>Cancelar</button>
