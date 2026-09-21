@@ -193,7 +193,14 @@ const FichaMedico = () => {
 						{dato("Cumpleaños", medico.fecha_nacimiento)}
 						{dato("Frecuencia de visita", medico.frecuencia_visita_dias && `cada ${medico.frecuencia_visita_dias} días`)}
 						{dato("Cómo se obtuvo el contacto", medico.origen_contacto)}
-						{dato("Notas", medico.notas)}
+						{/* Las notas se acumulan con su fecha —cada visita programada
+						    puede dejar una—, así que se respetan los renglones. */}
+						{medico.notas && (
+							<>
+								<p className="visitadora-historial-titulo">Notas</p>
+								<p className="visitadora-notas">{medico.notas}</p>
+							</>
+						)}
 					</div>
 				)}
 

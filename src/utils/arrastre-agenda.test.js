@@ -1,9 +1,18 @@
-import { idDeDia, movimientoDeArrastre, puedeArrastrarse } from "./arrastre-agenda";
+import {
+	franjaDeCita,
+	horaDeFranja,
+	HORAS_AGENDA,
+	idDeCelda,
+	movimientoDeArrastre,
+	puedeArrastrarse,
+} from "./arrastre-agenda";
 
 const cita = { id_agenda: "a1", fecha: "2026-09-21", estatus: "programada" };
-const evento = (citaArrastrada, fechaDestino) => ({
+const evento = (citaArrastrada, fechaDestino, hora) => ({
 	active: { data: { current: citaArrastrada ? { cita: citaArrastrada } : {} } },
-	over: fechaDestino ? { data: { current: { fecha: fechaDestino } } } : null,
+	over: fechaDestino
+		? { data: { current: { fecha: fechaDestino, ...(hora === undefined ? {} : { hora }) } } }
+		: null,
 });
 
 test("mover a otro día devuelve el movimiento", () => {
@@ -39,6 +48,56 @@ test("un evento incompleto no revienta", () => {
 	expect(movimientoDeArrastre({})).toBeNull();
 });
 
-test("el identificador del día es estable", () => {
-	expect(idDeDia("2026-09-21")).toBe("dia-2026-09-21");
+test("el identificador de la celda distingue día y hora", () => {
+	expect(idDeCelda("2026-09-21", 9)).toBe("celda-2026-09-21-9");
+	expect(idDeCelda("2026-09-21")).toBe("celda-2026-09-21-sinhora");
+});
+
+describe("franjas por hora", () => {
+	test("la rejilla va de las 7 a las 20", () => {
+		expect(HORAS_AGENDA[0]).toBe(7);
+		expect(HORAS_AGENDA.at(-1)).toBe(20);
+	});
+
+	test("la visita cae en la franja de su hora", () => {
+		expect(franjaDeCita({ hora: "16:30:00" })).toBe(16);
+		expect(horaDeFranja(16)).toBe("16:00");
+	});
+
+	// Fuera del horario de la rejilla la visita no desaparece: se arrima al
+	// extremo más cercano.
+	test("lo que cae fuera del horario se arrima al extremo", () => {
+		expect(franjaDeCita({ hora: "06:00:00" })).toBe(7);
+		expect(franjaDeCita({ hora: "22:00:00" })).toBe(20);
+	});
+
+	test("sin hora no hay franja", () => {
+		expect(franjaDeCita({ hora: null })).toBeNull();
+		expect(franjaDeCita({})).toBeNull();
+	});
+});
+
+describe("soltar en una hora", () => {
+	test("mover a otra hora del mismo día devuelve la hora nueva", () => {
+		expect(movimientoDeArrastre(evento(cita, "2026-09-21", 17))).toEqual({
+			cita,
+			fecha: "2026-09-21",
+			hora: "17:00",
+		});
+	});
+
+	test("soltar en la misma hora del mismo día no hace nada", () => {
+		const conHora = { ...cita, hora: "17:00:00" };
+		expect(movimientoDeArrastre(evento(conHora, "2026-09-21", 17))).toBeNull();
+	});
+
+	// La franja sin hora del día sirve para mover de día sin tocar el horario
+	// que ya se acordó con el consultorio.
+	test("soltar en la franja sin hora conserva la hora", () => {
+		const conHora = { ...cita, hora: "17:00:00" };
+		expect(movimientoDeArrastre(evento(conHora, "2026-09-23", null))).toEqual({
+			cita: conHora,
+			fecha: "2026-09-23",
+		});
+	});
 });

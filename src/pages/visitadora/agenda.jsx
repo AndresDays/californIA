@@ -23,6 +23,7 @@ import {
 import { etiquetaTipoVisita } from "../../utils/crm-visitadora";
 import { exportarAgenda } from "../../utils/exportar-informe-visitas";
 import {
+	diaDeLaSemana,
 	etiquetaSemana,
 	hoyEnMexico,
 	lunesDeLaSemana,
@@ -31,7 +32,14 @@ import {
 	sumarDias,
 } from "../../utils/semanas-visitadora";
 import ModalConfirmarEliminacion from "../../components/ModalConfirmarEliminacion";
-import { idDeDia, movimientoDeArrastre, puedeArrastrarse } from "../../utils/arrastre-agenda";
+import {
+	franjaDeCita,
+	HORAS_AGENDA,
+	horaDeFranja,
+	idDeCelda,
+	movimientoDeArrastre,
+	puedeArrastrarse,
+} from "../../utils/arrastre-agenda";
 import ModalCita from "./componentes/modal-cita";
 import ModalRegistroVisita from "./componentes/modal-registro-visita";
 import EditarVisitaRegistrada from "./componentes/editar-visita-registrada";
@@ -75,8 +83,13 @@ const CitaArrastrable = ({ cita, children }) => {
 	);
 };
 
-const DiaSoltable = ({ fecha, className, children }) => {
-	const { isOver, setNodeRef } = useDroppable({ id: idDeDia(fecha), data: { fecha } });
+// Una celda del calendario: un día y, cuando la lleva, una hora. Soltar encima
+// reprograma la visita a ese hueco.
+const CeldaSoltable = ({ fecha, hora, className, children }) => {
+	const { isOver, setNodeRef } = useDroppable({
+		id: idDeCelda(fecha, hora),
+		data: hora === undefined ? { fecha } : { fecha, hora },
+	});
 	return (
 		<div ref={setNodeRef} className={`${className}${isOver ? " recibiendo" : ""}`}>
 			{children}
@@ -278,6 +291,34 @@ const Agenda = () => {
 		</div>
 	);
 
+	// Los días que dibuja el calendario: uno solo en la vista de día, la semana
+	// completa en la de semana.
+	const diasVisibles = useMemo(() => {
+		if (vista === "dia") return [{ dia: fecha, nombre: DIAS[(diaDeLaSemana(fecha) - 1) % 7] }];
+		const lunes = lunesDeLaSemana(fecha);
+		return DIAS.map((nombre, indice) => ({ dia: sumarDias(lunes, indice), nombre }));
+	}, [vista, fecha]);
+
+	const porFranja = useMemo(() => {
+		const mapa = new Map();
+		for (const cita of visibles) {
+			const franja = franjaDeCita(cita);
+			if (franja === null) continue;
+			const clave = `${cita.fecha} ${franja}`;
+			mapa.set(clave, [...(mapa.get(clave) ?? []), cita]);
+		}
+		return mapa;
+	}, [visibles]);
+
+	const sinHoraPorDia = useMemo(() => {
+		const mapa = new Map();
+		for (const cita of visibles) {
+			if (franjaDeCita(cita) !== null) continue;
+			mapa.set(cita.fecha, [...(mapa.get(cita.fecha) ?? []), cita]);
+		}
+		return mapa;
+	}, [visibles]);
+
 	const porDia = useMemo(() => {
 		const mapa = new Map();
 		for (const cita of visibles) {
@@ -344,14 +385,11 @@ const Agenda = () => {
 				{error && <p className="visitadora-error">No se pudo cargar la agenda: {error.message}</p>}
 				{isLoading && <p>Cargando…</p>}
 
-				{vista === "dia" && (
-					<div className="visitadora-lista">
-						{visibles.length === 0 && <p className="visitadora-vacio">No hay visitas programadas este día.</p>}
-						{visibles.map(tarjetaCita)}
-					</div>
+				{!isLoading && visibles.length === 0 && (
+					<p className="visitadora-vacio">No hay visitas programadas en este periodo.</p>
 				)}
 
-				{(vista === "semana" || vista === "mes") && (
+				{(
 					// Arrastrar la tarjeta de un día a otro la reprograma, que es lo
 					// que se hacía escribiendo la fecha a mano. El botón "Mover"
 					// sigue ahí para quien prefiera teclear.
@@ -360,20 +398,18 @@ const Agenda = () => {
 						onDragStart={(evento) => setCitaArrastrada(evento.active?.data?.current?.cita ?? null)}
 						onDragCancel={() => setCitaArrastrada(null)}
 						onDragEnd={soltarCita}>
-						{vista === "semana" && (
-							<div className="visitadora-agenda-semana">
-								{DIAS.map((nombre, indice) => {
-									const dia = sumarDias(lunesDeLaSemana(fecha), indice);
-									return (
-										<DiaSoltable key={dia} fecha={dia} className="visitadora-agenda-dia">
-											<h3>
-												{nombre} {dia.slice(8, 10)}
-											</h3>
-											{(porDia.get(dia) ?? []).map((cita) => (
-												<CitaArrastrable key={cita.id_agenda} cita={cita}>
-													{tarjetaCita(cita)}
-												</CitaArrastrable>
-											))}
+						{(vista === "semana" || vista === "dia") && (
+							// Calendario de verdad: las horas en el costado y un hueco por
+							// día y hora, para que las visitas dejen de salir revueltas en
+							// una lista y se vea cuándo hay espacio libre.
+							<div
+								className={`visitadora-calendario ${vista}`}
+								style={{ "--columnas": vista === "dia" ? 1 : DIAS.length }}>
+								<div className="visitadora-calendario-fila encabezado">
+									<span className="visitadora-hora" />
+									{diasVisibles.map(({ dia, nombre }) => (
+										<div key={dia} className="visitadora-calendario-dia-titulo">
+											<strong>{nombre}</strong> {dia.slice(8, 10)}
 											<button
 												type="button"
 												className="visitadora-enlace"
@@ -382,18 +418,52 @@ const Agenda = () => {
 													setFecha(dia);
 													setModal("cita");
 												}}>
-												+ Agregar
+												+
 											</button>
-										</DiaSoltable>
-									);
-								})}
+										</div>
+									))}
+								</div>
+
+								{/* Arriba, lo que todavía no tiene hora: se programó el día
+								    pero el consultorio no dio horario. */}
+								<div className="visitadora-calendario-fila sinhora">
+									<span className="visitadora-hora">Sin hora</span>
+									{diasVisibles.map(({ dia }) => (
+										<CeldaSoltable key={dia} fecha={dia} className="visitadora-calendario-celda">
+											{(sinHoraPorDia.get(dia) ?? []).map((cita) => (
+												<CitaArrastrable key={cita.id_agenda} cita={cita}>
+													{tarjetaCita(cita)}
+												</CitaArrastrable>
+											))}
+										</CeldaSoltable>
+									))}
+								</div>
+
+								{HORAS_AGENDA.map((hora) => (
+									<div key={hora} className="visitadora-calendario-fila">
+										<span className="visitadora-hora">{horaDeFranja(hora)}</span>
+										{diasVisibles.map(({ dia }) => (
+											<CeldaSoltable
+												key={`${dia}-${hora}`}
+												fecha={dia}
+												hora={hora}
+												className="visitadora-calendario-celda">
+												{(porFranja.get(`${dia} ${hora}`) ?? []).map((cita) => (
+													<CitaArrastrable key={cita.id_agenda} cita={cita}>
+														{tarjetaCita(cita)}
+													</CitaArrastrable>
+												))}
+											</CeldaSoltable>
+										))}
+									</div>
+								))}
 							</div>
 						)}
 
 						{vista === "mes" && (
 							<div className="visitadora-mes">
 								{diasDelMes.map((dia) => (
-									<DiaSoltable
+									<CeldaSoltable
 										key={dia}
 										fecha={dia}
 										className={`visitadora-mes-celda ${dia === hoyEnMexico() ? "hoy" : ""}`}>
@@ -403,7 +473,7 @@ const Agenda = () => {
 												<div className="visitadora-recorte">{cita.medico_nombre}</div>
 											</CitaArrastrable>
 										))}
-									</DiaSoltable>
+									</CeldaSoltable>
 								))}
 							</div>
 						)}

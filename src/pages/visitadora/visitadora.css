@@ -856,3 +856,83 @@
 	background: var(--superficie);
 	cursor: grabbing;
 }
+
+/* Las notas del médico se van acumulando renglón por renglón, con su fecha. */
+.visitadora-notas {
+	white-space: pre-line;
+	font-size: 0.85rem;
+	margin: 0.3rem 0 0;
+}
+
+/* --- calendario por horas --- */
+/* Una rejilla de horas por días, como cualquier agenda: la columna estrecha de
+   la izquierda lleva la hora y cada hueco recibe las visitas de ese día a esa
+   hora. En pantalla chica la semana no cabe, así que se desplaza a lo ancho. */
+.visitadora-calendario {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--borde);
+	border-radius: 10px;
+	overflow-x: auto;
+	background: var(--superficie-2);
+}
+
+.visitadora-calendario-fila {
+	display: grid;
+	grid-template-columns: 4.5rem repeat(var(--columnas), minmax(11rem, 1fr));
+	border-top: 1px solid var(--borde);
+	min-width: fit-content;
+}
+
+.visitadora-calendario-fila:first-child {
+	border-top: none;
+}
+
+.visitadora-calendario-fila.encabezado {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	background: var(--superficie-3);
+}
+
+.visitadora-calendario-fila.sinhora {
+	background: var(--superficie-3);
+}
+
+.visitadora-calendario-dia-titulo {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.5rem 0.6rem;
+	font-size: 0.8rem;
+	border-left: 1px solid var(--borde);
+}
+
+.visitadora-hora {
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-end;
+	padding: 0.45rem 0.5rem;
+	font-size: 0.7rem;
+	color: var(--texto-tenue);
+	white-space: nowrap;
+}
+
+.visitadora-calendario-celda {
+	min-height: 3rem;
+	padding: 0.3rem;
+	border-left: 1px solid var(--borde);
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.visitadora-calendario.dia .visitadora-calendario-celda {
+	min-height: 3.4rem;
+}
+
+@media (max-width: 768px) {
+	.visitadora-calendario-fila {
+		grid-template-columns: 3.4rem repeat(var(--columnas), minmax(9.5rem, 1fr));
+	}
+}
