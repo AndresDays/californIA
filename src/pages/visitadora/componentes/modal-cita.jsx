@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useAgregarNotaMedico, useGuardarMedico } from "../../../hooks/use-directorio-medicos";
-import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
+import { buscarMedicoExistente, TIPOS_VISITA } from "../../../utils/crm-visitadora";
 import "../visitadora.css";
 
 const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onClose, onGuardado, onError }) => {
@@ -66,6 +66,7 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 		let elegido =
 			medicoDeLaCita ??
 			medicos.find((candidato) => String(candidato.id_doctor) === String(campos.id_doctor));
+		let existente = null;
 
 		try {
 			// El médico nuevo se da de alta antes que la cita: así la visita nace
@@ -76,26 +77,38 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 					onError?.("Escribe el nombre del médico nuevo.");
 					return;
 				}
-				const idDoctor = await guardarMedico.mutateAsync({
-					doctor: {
-						nombre,
-						especialidad: campos.especialidad_nueva || null,
-						telefono: campos.telefono_nuevo || null,
-						email: campos.correo_nuevo || null,
-					},
-					ficha: {
-						estatus: "prospecto",
-						zona: campos.zona || null,
-						origen_contacto: "Alta desde la agenda",
-						fecha_primer_contacto: campos.fecha,
-						id_empleado: idEmpleado ?? null,
-					},
+				// Antes de crearlo se busca en el directorio: el mismo médico
+				// capturado dos veces parte su historial en dos y descuadra sus
+				// comisiones. Si ya está, la visita se le cuelga a ese.
+				existente = buscarMedicoExistente(medicos, {
+					nombre,
+					telefono: campos.telefono_nuevo,
+					email: campos.correo_nuevo,
 				});
-				elegido = {
-					id_doctor: idDoctor,
-					nombre_completo: nombre,
-					especialidad: campos.especialidad_nueva || null,
-				};
+				if (existente) {
+					elegido = existente;
+				} else {
+					const idDoctor = await guardarMedico.mutateAsync({
+						doctor: {
+							nombre,
+							especialidad: campos.especialidad_nueva || null,
+							telefono: campos.telefono_nuevo || null,
+							email: campos.correo_nuevo || null,
+						},
+						ficha: {
+							estatus: "prospecto",
+							zona: campos.zona || null,
+							origen_contacto: "Alta desde la agenda",
+							fecha_primer_contacto: campos.fecha,
+							id_empleado: idEmpleado ?? null,
+						},
+					});
+					elegido = {
+						id_doctor: idDoctor,
+						nombre_completo: nombre,
+						especialidad: campos.especialidad_nueva || null,
+					};
+				}
 			}
 
 			if (!elegido) {
@@ -129,9 +142,11 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 			onGuardado?.(
 				cita
 					? "Visita actualizada."
-					: esMedicoNuevo
-						? "Médico registrado y visita programada."
-						: "Visita programada.",
+					: existente
+						? `${existente.nombre_completo ?? existente.nombre} ya estaba en el directorio: la visita se ligó a su expediente.`
+						: esMedicoNuevo
+							? "Médico registrado y visita programada."
+							: "Visita programada.",
 				{ fecha: campos.fecha, zona: campos.zona || null },
 			);
 		} catch (fallo) {

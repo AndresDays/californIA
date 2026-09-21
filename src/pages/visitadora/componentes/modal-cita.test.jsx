@@ -191,3 +191,52 @@ describe("Médico que todavía no está en el directorio", () => {
 		expect(screen.queryByLabelText("Nombre del médico")).not.toBeInTheDocument();
 	});
 });
+
+describe("El médico nuevo que ya estaba en el directorio", () => {
+	const directorio = [
+		{ id_doctor: 9, nombre_completo: "Ramón Pérez", telefono: "3221234567", especialidad: "Ginecología" },
+	];
+
+	const abrirAlta = async () => {
+		const resultado = await mostrar({ medico: undefined, medicos: directorio });
+		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "nuevo" } });
+		return resultado;
+	};
+
+	// Capturarlo dos veces partiría su historial en dos y descuadraría sus
+	// comisiones.
+	test("no lo crea otra vez: liga la visita al que ya existe", async () => {
+		const { onGuardado } = await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), {
+			target: { value: "dr. ramon perez" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).not.toHaveBeenCalled();
+		expect(mockGuardarAgenda).toHaveBeenCalledWith(
+			expect.objectContaining({ id_doctor: 9, medico_nombre: "Ramón Pérez" }),
+		);
+		expect(onGuardado.mock.calls[0][0]).toContain("ya estaba en el directorio");
+	});
+
+	test("también lo reconoce por teléfono aunque el nombre no empate", async () => {
+		await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), { target: { value: "R. Pérez" } });
+		fireEvent.change(screen.getByLabelText("Teléfono"), { target: { value: "+52 322 123 4567" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).not.toHaveBeenCalled();
+		expect(mockGuardarAgenda).toHaveBeenCalledWith(expect.objectContaining({ id_doctor: 9 }));
+	});
+
+	test("al que de verdad es nuevo sí lo da de alta", async () => {
+		await abrirAlta();
+		fireEvent.change(screen.getByLabelText("Nombre del médico"), { target: { value: "Marta Lugo" } });
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+		});
+		expect(mockGuardarMedico).toHaveBeenCalled();
+	});
+});

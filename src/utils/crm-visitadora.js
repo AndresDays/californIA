@@ -91,6 +91,33 @@ export const coincideBusqueda = (medico, texto) => {
 	return campos.some((campo) => claveDeNombre(campo).includes(buscado));
 };
 
+const soloDigitos = (valor) => String(valor || "").replace(/\D/g, "");
+
+// Antes de dar de alta a un médico hay que ver si ya está: el mismo doctor
+// capturado dos veces parte su historial en dos y las comisiones dejan de
+// cuadrar. Se compara el nombre sin acentos ni "Dr.", y también el teléfono y
+// el correo, porque el nombre se escribe de muchas maneras.
+export const buscarMedicoExistente = (medicos = [], { nombre, telefono, email } = {}) => {
+	const clave = claveDeNombre(nombre);
+	const digitos = soloDigitos(telefono);
+	const correo = String(email || "").trim().toLowerCase();
+
+	return (
+		medicos.find((medico) => {
+			if (clave && claveDeNombre(medico?.nombre_completo ?? medico?.nombre) === clave) return true;
+			// Los últimos diez dígitos: unos teléfonos traen lada de país y otros no.
+			if (digitos.length >= 10) {
+				for (const campo of [medico?.telefono, medico?.whatsapp]) {
+					const guardado = soloDigitos(campo);
+					if (guardado.length >= 10 && guardado.slice(-10) === digitos.slice(-10)) return true;
+				}
+			}
+			if (correo && String(medico?.email || "").trim().toLowerCase() === correo) return true;
+			return false;
+		}) ?? null
+	);
+};
+
 // --- cumpleaños -----------------------------------------------------------
 // La fecha de nacimiento trae el año del médico; para el calendario sólo
 // importan el mes y el día, así que se proyectan sobre el año en curso y, si ya
