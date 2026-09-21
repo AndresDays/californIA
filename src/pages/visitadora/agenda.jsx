@@ -11,7 +11,7 @@ import {
 	useReprogramarVisita,
 } from "../../hooks/use-agenda-visitas";
 import { etiquetaTipoVisita } from "../../utils/crm-visitadora";
-import { exportarAgenda } from "../../utils/exportar-informe-visitas";
+import { exportarAgendaExcel } from "../../utils/exportar-agenda-excel";
 import {
 	diaDeLaSemana,
 	etiquetaSemana,
@@ -150,11 +150,14 @@ const Agenda = () => {
 
 	// Se exporta lo que se está viendo, con el filtro de zona ya aplicado: es la
 	// hoja que imprime para salir a la ruta.
-	const exportar = () => {
+	const exportar = async () => {
 		try {
-			exportarAgenda(
+			// El archivo sale con el formato del reporte semanal que ella entrega:
+			// mismas columnas, mismos colores y sin la hora, que no va en su hoja.
+			await exportarAgendaExcel(
 				visibles,
-				{ titulo: etiquetaRango(), etiquetaTipo: etiquetaTipoVisita },
+				medicos,
+				{ desde: rango.desde, hasta: rango.hasta, zona },
 				`Agenda_${rango.desde}_a_${rango.hasta}`,
 			);
 		} catch (fallo) {

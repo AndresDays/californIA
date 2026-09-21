@@ -47,8 +47,8 @@ jest.mock("../../hooks/use-agenda-visitas", () => ({
 }));
 
 const mockExportar = jest.fn();
-jest.mock("../../utils/exportar-informe-visitas", () => ({
-	exportarAgenda: (...args) => mockExportar(...args),
+jest.mock("../../utils/exportar-agenda-excel", () => ({
+	exportarAgendaExcel: (...args) => mockExportar(...args),
 }));
 
 import Agenda from "./agenda";
@@ -133,7 +133,9 @@ describe("Agenda de visitas", () => {
 
 	test("lo cancelado tampoco se exporta", async () => {
 		await mostrar();
-		fireEvent.click(screen.getByRole("button", { name: "Exportar Excel" }));
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Exportar Excel" }));
+		});
 		const [citasExportadas] = mockExportar.mock.calls[0];
 		expect(citasExportadas.map((cita) => cita.id_agenda)).toEqual(["a1", "a3"]);
 	});
