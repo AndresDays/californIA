@@ -93,7 +93,11 @@ export const construirReporte = ({
 		ordenes_entregadas: ordenesPeriodo.reduce((suma, orden) => suma + Number(orden.cantidad || 0), 0),
 		usuarios_visordicom: hechas("alta_visordicom"),
 		pendientes: tareasPeriodo.filter((tarea) => tarea.estado === "pendiente").length,
-		resultados: delPeriodo.filter((visita) => texto(visita.resultado)).length,
+		// El informe no tiene columna de "resultado": lo que se escribe es la
+		// observación de la visita. Se cuenta cualquiera de las dos para no
+		// perder lo capturado con el formulario anterior.
+		resultados: delPeriodo.filter((visita) => texto(visita.resultado) || texto(visita.observaciones))
+			.length,
 		detalle: delPeriodo,
 	};
 };
@@ -111,7 +115,7 @@ export const RENGLONES_RESUMEN = [
 	["Órdenes entregadas", "ordenes_entregadas"],
 	["Usuarios creados en VisorDICOM", "usuarios_visordicom"],
 	["Pendientes", "pendientes"],
-	["Resultados registrados", "resultados"],
+	["Visitas con observaciones", "resultados"],
 ];
 
 const COLUMNAS_DETALLE = [
@@ -133,8 +137,8 @@ const filasDetalle = (reporte) =>
 		texto(visita.especialidad),
 		texto(visita.zona),
 		visita.tipo_visita ? etiquetaTipoVisita(visita.tipo_visita) : "",
-		texto(visita.objetivo || visita.actividades),
-		texto(visita.resultado),
+		texto(visita.actividades || visita.objetivo),
+		texto(visita.observaciones || visita.resultado),
 		texto(visita.tipo_convenio),
 		texto(visita.fecha_seguimiento || visita.seguimiento),
 	]);

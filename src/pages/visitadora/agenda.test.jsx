@@ -256,7 +256,7 @@ describe("Calendario por horas", () => {
 
 	test("dibuja la franja de cada hora de consulta", async () => {
 		await mostrar();
-		expect(screen.getByText("07:00")).toBeInTheDocument();
+		expect(screen.getByText("10:00")).toBeInTheDocument();
 		expect(screen.getByText("20:00")).toBeInTheDocument();
 	});
 
@@ -384,7 +384,7 @@ describe("Franja de visitas sin hora", () => {
 
 	test("las horas se siguen viendo con la franja plegada", async () => {
 		await mostrar();
-		expect(screen.getByText("07:00")).toBeInTheDocument();
+		expect(screen.getByText("10:00")).toBeInTheDocument();
 		expect(screen.getByText("20:00")).toBeInTheDocument();
 	});
 });

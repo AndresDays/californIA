@@ -20,16 +20,19 @@ const ModalRegistroVisita = ({
 	onGuardado,
 	onError,
 }) => {
+	// Los campos son los mismos del informe de visitas —actividades, comentarios
+	// del médico, observaciones, seguimiento y convenio—, porque es el reporte
+	// que ella entrega y con el que lleva años trabajando: capturar con otras
+	// palabras obligaba a traducir cada renglón al llenar el informe.
 	const [campos, setCampos] = useState(() => ({
 		fecha: hoyEnMexico(),
 		tipo_visita: cita?.tipo_visita ?? "seguimiento",
-		objetivo: cita?.objetivo ?? "",
-		que_se_ofrecio: "",
-		que_se_entrego: "",
-		resultado: "",
+		especialidad: medico?.especialidad ?? "",
+		ubicacion: medico?.hospital ?? medico?.direccion_consultorio ?? "",
+		actividades: cita?.objetivo ?? "",
 		comentarios_medico: "",
-		compromisos: "",
-		proxima_accion: "",
+		observaciones: "",
+		seguimiento: "",
 		fecha_seguimiento: sumarDias(hoyEnMexico(), 15),
 		tipo_convenio: medico?.convenio?.tipo ?? "",
 		// Datos del médico, no de la visita: vienen precargados de su ficha y se
@@ -44,13 +47,12 @@ const ModalRegistroVisita = ({
 					Object.entries({
 						fecha: visita.fecha,
 						tipo_visita: visita.tipo_visita,
-						objetivo: visita.objetivo ?? visita.actividades,
-						que_se_ofrecio: visita.que_se_ofrecio,
-						que_se_entrego: visita.que_se_entrego,
-						resultado: visita.resultado,
+						especialidad: visita.especialidad,
+						ubicacion: visita.ubicacion,
+						actividades: visita.actividades ?? visita.objetivo,
 						comentarios_medico: visita.comentarios_medico,
-						compromisos: visita.compromisos ?? visita.observaciones,
-						proxima_accion: visita.proxima_accion ?? visita.seguimiento,
+						observaciones: visita.observaciones ?? visita.resultado,
+						seguimiento: visita.seguimiento ?? visita.proxima_accion,
 						fecha_seguimiento: visita.fecha_seguimiento ?? "",
 						tipo_convenio: visita.tipo_convenio,
 					}).filter(([, valor]) => valor !== null && valor !== undefined),
@@ -69,8 +71,8 @@ const ModalRegistroVisita = ({
 
 	const guardar = async (evento) => {
 		evento.preventDefault();
-		if (!campos.resultado.trim()) {
-			onError?.("Escribe al menos el resultado de la visita.");
+		if (!campos.actividades.trim()) {
+			onError?.("Escribe al menos las actividades de la visita.");
 			return;
 		}
 		try {
@@ -79,24 +81,17 @@ const ModalRegistroVisita = ({
 				fecha: campos.fecha,
 				id_doctor: medico?.id_doctor ?? null,
 				medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? "",
-				especialidad: medico?.especialidad ?? null,
+				especialidad: campos.especialidad || null,
 				zona: medico?.zona ?? null,
-				ubicacion: medico?.hospital ?? medico?.direccion_consultorio ?? null,
-				// `actividades` es la columna que ya lee el informe semanal y la
-				// exportación a Excel: se llena con lo mismo que el objetivo para
-				// que el reporte de siempre no salga vacío.
-				actividades: campos.objetivo || campos.que_se_ofrecio,
+				ubicacion: campos.ubicacion || null,
+				// Éstas son las columnas del informe semanal y de su exportación a
+				// Excel: lo capturado aquí sale tal cual en el reporte que entrega.
+				actividades: campos.actividades,
 				comentarios_medico: campos.comentarios_medico,
-				observaciones: campos.compromisos,
-				seguimiento: campos.proxima_accion,
+				observaciones: campos.observaciones,
+				seguimiento: campos.seguimiento,
 				tipo_convenio: campos.tipo_convenio,
 				tipo_visita: campos.tipo_visita,
-				objetivo: campos.objetivo,
-				resultado: campos.resultado,
-				que_se_ofrecio: campos.que_se_ofrecio,
-				que_se_entrego: campos.que_se_entrego,
-				compromisos: campos.compromisos,
-				proxima_accion: campos.proxima_accion,
 				fecha_seguimiento: campos.fecha_seguimiento || null,
 				id_agenda: cita?.id_agenda ?? null,
 				id_empleado: idEmpleado ?? null,
@@ -110,7 +105,7 @@ const ModalRegistroVisita = ({
 					id_doctor: medico?.id_doctor ?? null,
 					medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? "",
 					tipo: "seguimiento",
-					descripcion: campos.proxima_accion || "Dar seguimiento a la visita",
+					descripcion: campos.seguimiento || "Dar seguimiento a la visita",
 					fecha_objetivo: campos.fecha_seguimiento,
 					id_empleado: idEmpleado ?? null,
 				});
@@ -135,7 +130,7 @@ const ModalRegistroVisita = ({
 				await guardarAgenda.mutateAsync({
 					id_agenda: cita.id_agenda,
 					estatus: "realizada",
-					resultado: campos.resultado,
+					resultado: campos.observaciones || campos.actividades,
 					proximo_seguimiento: campos.fecha_seguimiento || null,
 					updated_at: new Date().toISOString(),
 				});
@@ -207,13 +202,47 @@ const ModalRegistroVisita = ({
 						</div>
 					</div>
 
-					{largo("registro-objetivo", "Motivo u objetivo", "objetivo")}
-					{largo("registro-ofrecio", "Qué se ofreció", "que_se_ofrecio")}
-					{largo("registro-entrego", "Qué se entregó", "que_se_entrego")}
-					{largo("registro-resultado", "Resultado", "resultado")}
+					<div className="visitadora-modal-columnas">
+						<div>
+							<label htmlFor="registro-especialidad">Especialidad</label>
+							<input
+								id="registro-especialidad"
+								type="text"
+								value={campos.especialidad}
+								onChange={cambiar("especialidad")}
+							/>
+						</div>
+						<div>
+							<label htmlFor="registro-ubicacion">Ubicación</label>
+							<input
+								id="registro-ubicacion"
+								type="text"
+								value={campos.ubicacion}
+								onChange={cambiar("ubicacion")}
+							/>
+						</div>
+					</div>
+
+					{largo("registro-actividades", "Actividades", "actividades", 3)}
 					{largo("registro-comentarios", "Comentarios del médico", "comentarios_medico")}
-					{largo("registro-compromisos", "Compromisos adquiridos", "compromisos")}
-					{largo("registro-accion", "Próxima acción", "proxima_accion")}
+					{largo("registro-observaciones", "Observaciones", "observaciones")}
+					{largo("registro-seguimiento-texto", "Seguimiento", "seguimiento")}
+
+					<label htmlFor="registro-convenio">Convenio</label>
+					<input
+						id="registro-convenio"
+						type="text"
+						list="registro-convenios-sugeridos"
+						value={campos.tipo_convenio}
+						onChange={cambiar("tipo_convenio")}
+					/>
+					{/* Los valores que más se repiten en su informe; la lista no cierra
+					    la puerta a escribir el convenio con sus propias palabras. */}
+					<datalist id="registro-convenios-sugeridos">
+						{["MIXTO", "PUNTOS", "N/A", "PENDIENTE", "Descuento para Pacientes"].map((valor) => (
+							<option key={valor} value={valor} />
+						))}
+					</datalist>
 
 					<div className="visitadora-modal-columnas">
 						<div>

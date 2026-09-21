@@ -192,8 +192,8 @@ const Reportes = () => {
 								<th>Especialidad</th>
 								<th>Zona</th>
 								<th>Tipo</th>
-								<th>Objetivo</th>
-								<th>Resultado</th>
+								<th>Actividades</th>
+								<th>Observaciones</th>
 								<th>Convenio</th>
 							</tr>
 						</thead>
@@ -211,10 +211,10 @@ const Reportes = () => {
 									<td>{visita.zona}</td>
 									<td>{visita.tipo_visita ? etiquetaTipoVisita(visita.tipo_visita) : ""}</td>
 									<td className="visitadora-celda-larga">
-										<div className="visitadora-recorte">{visita.objetivo || visita.actividades}</div>
+										<div className="visitadora-recorte">{visita.actividades || visita.objetivo}</div>
 									</td>
 									<td className="visitadora-celda-larga">
-										<div className="visitadora-recorte">{visita.resultado}</div>
+										<div className="visitadora-recorte">{visita.observaciones || visita.resultado}</div>
 									</td>
 									<td className="visitadora-celda-convenio">{visita.tipo_convenio}</td>
 								</tr>

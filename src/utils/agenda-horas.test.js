@@ -1,8 +1,8 @@
 import { franjaDeCita, horaDeFranja, HORAS_AGENDA } from "./agenda-horas";
 
 describe("franjas por hora", () => {
-	test("la rejilla va de las 7 a las 20", () => {
-		expect(HORAS_AGENDA[0]).toBe(7);
+	test("la rejilla va de las 10 a las 20", () => {
+		expect(HORAS_AGENDA[0]).toBe(10);
 		expect(HORAS_AGENDA.at(-1)).toBe(20);
 	});
 
@@ -14,7 +14,7 @@ describe("franjas por hora", () => {
 	// Fuera del horario de la rejilla la visita no desaparece: se arrima al
 	// extremo más cercano.
 	test("lo que cae fuera del horario se arrima al extremo", () => {
-		expect(franjaDeCita({ hora: "06:00:00" })).toBe(7);
+		expect(franjaDeCita({ hora: "08:00:00" })).toBe(10);
 		expect(franjaDeCita({ hora: "22:00:00" })).toBe(20);
 	});
 
