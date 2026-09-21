@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
-import { useAgregarNotaMedico } from "../../../hooks/use-directorio-medicos";
+import { useAgregarNotaMedico, useGuardarMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
 import "../visitadora.css";
 
@@ -15,14 +15,24 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 		// La nota no es de la cita: se guarda en la ficha del médico y se lee
 		// después en su pestaña de Datos.
 		nota: "",
+		// Alta al vuelo del médico que todavía no está en el catálogo: pasa
+		// seguido al programar una visita con alguien que se acaba de conocer.
+		nombre_nuevo: "",
+		especialidad_nueva: "",
+		telefono_nuevo: "",
+		correo_nuevo: "",
 	}));
 	const guardarAgenda = useGuardarAgenda();
 	const agregarNota = useAgregarNotaMedico();
+	const guardarMedico = useGuardarMedico();
 
 	if (!isOpen) return null;
 
 	const cambiar = (campo) => (evento) =>
 		setCampos((previos) => ({ ...previos, [campo]: evento.target.value }));
+
+	const NUEVO = "nuevo";
+	const esMedicoNuevo = campos.id_doctor === NUEVO;
 
 	const elegirMedico = (evento) => {
 		const id = evento.target.value;
@@ -48,14 +58,51 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 
 	const guardar = async (evento) => {
 		evento.preventDefault();
-		const elegido =
-			medicoDeLaCita ??
-			medicos.find((candidato) => String(candidato.id_doctor) === String(campos.id_doctor));
-		if (!elegido || !campos.fecha) {
+		if (!campos.fecha) {
 			onError?.("La cita necesita médico y fecha.");
 			return;
 		}
+
+		let elegido =
+			medicoDeLaCita ??
+			medicos.find((candidato) => String(candidato.id_doctor) === String(campos.id_doctor));
+
 		try {
+			// El médico nuevo se da de alta antes que la cita: así la visita nace
+			// ligada a su expediente y no como un nombre suelto.
+			if (esMedicoNuevo) {
+				const nombre = campos.nombre_nuevo.trim();
+				if (!nombre) {
+					onError?.("Escribe el nombre del médico nuevo.");
+					return;
+				}
+				const idDoctor = await guardarMedico.mutateAsync({
+					doctor: {
+						nombre,
+						especialidad: campos.especialidad_nueva || null,
+						telefono: campos.telefono_nuevo || null,
+						email: campos.correo_nuevo || null,
+					},
+					ficha: {
+						estatus: "prospecto",
+						zona: campos.zona || null,
+						origen_contacto: "Alta desde la agenda",
+						fecha_primer_contacto: campos.fecha,
+						id_empleado: idEmpleado ?? null,
+					},
+				});
+				elegido = {
+					id_doctor: idDoctor,
+					nombre_completo: nombre,
+					especialidad: campos.especialidad_nueva || null,
+				};
+			}
+
+			if (!elegido) {
+				onError?.("La cita necesita médico y fecha.");
+				return;
+			}
+
 			await guardarAgenda.mutateAsync({
 				...(cita?.id_agenda ? { id_agenda: cita.id_agenda } : {}),
 				id_doctor: elegido.id_doctor,
@@ -76,7 +123,13 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 					fecha: campos.fecha,
 				});
 			}
-			onGuardado?.(cita ? "Visita actualizada." : "Visita programada.");
+			onGuardado?.(
+				cita
+					? "Visita actualizada."
+					: esMedicoNuevo
+						? "Médico registrado y visita programada."
+						: "Visita programada.",
+			);
 		} catch (fallo) {
 			onError?.(fallo.message || "No se pudo guardar la visita.");
 		}
@@ -98,6 +151,7 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 							<label htmlFor="cita-medico">Médico</label>
 							<select id="cita-medico" value={campos.id_doctor} onChange={elegirMedico} required>
 								<option value="">Elige un médico</option>
+								<option value={NUEVO}>➕ Todavía no está en el directorio</option>
 								{medicos.map((candidato) => (
 									<option key={candidato.id_doctor} value={candidato.id_doctor}>
 										{candidato.nombre_completo}
@@ -105,6 +159,43 @@ const ModalCita = ({ isOpen, cita, medico, medicos = [], fecha, idEmpleado, onCl
 									</option>
 								))}
 							</select>
+
+							{esMedicoNuevo && (
+								<div className="visitadora-historial">
+									<p className="visitadora-historial-titulo">Médico nuevo</p>
+									<p className="visitadora-ficha-dato">
+										Se da de alta como prospecto y la visita queda ligada a su expediente.
+									</p>
+									<label htmlFor="cita-nombre-nuevo">Nombre del médico</label>
+									<input
+										id="cita-nombre-nuevo"
+										type="text"
+										value={campos.nombre_nuevo}
+										onChange={cambiar("nombre_nuevo")}
+									/>
+									<label htmlFor="cita-especialidad-nueva">Especialidad</label>
+									<input
+										id="cita-especialidad-nueva"
+										type="text"
+										value={campos.especialidad_nueva}
+										onChange={cambiar("especialidad_nueva")}
+									/>
+									<label htmlFor="cita-telefono-nuevo">Teléfono</label>
+									<input
+										id="cita-telefono-nuevo"
+										type="tel"
+										value={campos.telefono_nuevo}
+										onChange={cambiar("telefono_nuevo")}
+									/>
+									<label htmlFor="cita-correo-nuevo">Correo electrónico</label>
+									<input
+										id="cita-correo-nuevo"
+										type="email"
+										value={campos.correo_nuevo}
+										onChange={cambiar("correo_nuevo")}
+									/>
+								</div>
+							)}
 						</>
 					)}
 
