@@ -892,3 +892,27 @@
 		grid-template-columns: 3.4rem repeat(var(--columnas), minmax(9.5rem, 1fr));
 	}
 }
+
+/* La franja de visitas sin hora se pliega: plantada abierta con media ruta sin
+   horario confirmado, empujaba las horas fuera de la pantalla. */
+.visitadora-calendario-fila.sinhora .visitadora-calendario-celda {
+	min-height: 2rem;
+	justify-content: center;
+}
+
+.visitadora-calendario-fila.sinhora.abierta .visitadora-calendario-celda {
+	min-height: 3rem;
+	max-height: 14rem;
+	overflow-y: auto;
+	justify-content: flex-start;
+}
+
+.visitadora-hora.plegable {
+	background: none;
+	border: none;
+	font: inherit;
+	color: var(--texto);
+	cursor: pointer;
+	justify-content: flex-start;
+	white-space: nowrap;
+}

@@ -135,3 +135,42 @@ describe('ModalNotificacion — Cierre automático', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+// SUITE — El error no se va solo
+describe('ModalNotificacion — avisos de error', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+  afterEach(() => jest.useRealTimers());
+
+  test('el aviso de exito sigue cerrandose solo', () => {
+    const onClose = jest.fn();
+    render(<ModalNotificacion {...defaultProps} onClose={onClose} />);
+    act(() => jest.advanceTimersByTime(3000));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  // Desaparecia antes de poder leerlo, asi que parecia que si se habia
+  // guardado y el dato se perdia sin explicacion.
+  test('el aviso de error se queda hasta que lo cierren', () => {
+    const onClose = jest.fn();
+    render(
+      <ModalNotificacion
+        {...defaultProps}
+        tipo="error"
+        mensaje="No se pudo guardar"
+        onClose={onClose}
+      />,
+    );
+    act(() => jest.advanceTimersByTime(30000));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('No se pudo guardar')).toBeInTheDocument();
+  });
+
+  test('el boton de cerrar si lo quita', () => {
+    const onClose = jest.fn();
+    render(<ModalNotificacion {...defaultProps} tipo="error" onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClose).toHaveBeenCalled();
+  });
+});
