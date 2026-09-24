@@ -46,7 +46,12 @@ import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { normalizarNombre } from "../../utils/catalogo-por-nombre";
 import { redondearPrecioFinal } from "../../utils/precio-final";
 import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
-import { resolverPrecioEstudioCliente } from "../../utils/precio-estudio-cliente";
+import {
+	ORIGEN_PRECIO,
+	PRECIO_POR_DEFECTO,
+	resolverPrecioEstudioCliente,
+	resolverPrecioEstudioClienteConOrigen,
+} from "../../utils/precio-estudio-cliente";
 import {
 	clienteParaPrecios,
 	descuentoDeCliente,
@@ -1499,16 +1504,19 @@ const NuevoPaciente = () => {
 		}
 	};
 
-	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) => {
+	const obtenerPrecioConOrigen = async (estudio, nombreClienteOrden) => {
 		// Un cliente de porcentaje cobra la lista de particular y el descuento se
 		// aplica sobre ese precio.
 		const nombreCliente = clienteParaPrecios(nombreClienteOrden);
-		return resolverPrecioEstudioCliente(supabase, {
+		return resolverPrecioEstudioClienteConOrigen(supabase, {
 			clave: estudio?.clave ?? estudio,
 			descripcion: estudio?.descripcion,
 			cliente: nombreCliente,
 		});
 	};
+
+	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) =>
+		(await obtenerPrecioConOrigen(estudio, nombreClienteOrden)).precio;
 
 	const buscarPacientes = async (termino) => {
 		if (termino.length < 2) {
@@ -1799,7 +1807,20 @@ const NuevoPaciente = () => {
 		);
 		const nombreCliente = clienteObj ? clienteObj.nombre : "";
 
-		const precioEstudio = await obtenerPrecioEstudio(estudio, nombreCliente);
+		const { precio: precioEstudio, origen } = await obtenerPrecioConOrigen(
+			estudio,
+			nombreCliente,
+		);
+		// Un estudio que entra al precio por defecto es un hueco del tarifario, no
+		// un precio: cobrarlo así en silencio se descubre hasta la caja.
+		if (origen === ORIGEN_PRECIO.DEFECTO) {
+			mostrarNotificacion(
+				`${estudio?.clave || "El estudio"} no tiene precio en la lista de ${
+					nombreCliente || "particular"
+				}: se cobra al precio por defecto de $${PRECIO_POR_DEFECTO}.`,
+				"advertencia",
+			);
+		}
 
 		const estudioConPrecio = {
 			...estudio,

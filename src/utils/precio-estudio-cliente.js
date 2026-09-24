@@ -53,9 +53,17 @@ export const buscarPrecioEstudioCliente = async (
 // tarifario se cobra como particular, no a un precio por defecto que no
 // corresponde a nada. Ese es el aviso que ya sale en la captura cuando el
 // estudio no está en su lista.
-export const resolverPrecioEstudioCliente = async (supabase, datos = {}) => {
+// De dónde salió el precio. El aviso de caja no puede deducirse del importe:
+// hay estudios que de verdad cuestan lo mismo que el precio por defecto.
+export const ORIGEN_PRECIO = {
+	CLIENTE: "cliente",
+	PARTICULAR: "particular",
+	DEFECTO: "defecto",
+};
+
+export const resolverPrecioEstudioClienteConOrigen = async (supabase, datos = {}) => {
 	const precio = await buscarPrecioEstudioCliente(supabase, datos);
-	if (precio !== null) return precio;
+	if (precio !== null) return { precio, origen: ORIGEN_PRECIO.CLIENTE };
 
 	const cliente = String(datos?.cliente ?? "").trim();
 	if (cliente.toLowerCase() !== CLIENTE_PRECIOS_PARTICULAR.toLowerCase()) {
@@ -63,7 +71,9 @@ export const resolverPrecioEstudioCliente = async (supabase, datos = {}) => {
 			...datos,
 			cliente: CLIENTE_PRECIOS_PARTICULAR,
 		});
-		if (precioParticular !== null) return precioParticular;
+		if (precioParticular !== null) {
+			return { precio: precioParticular, origen: ORIGEN_PRECIO.PARTICULAR };
+		}
 	}
 
 	// Cobrar al precio por defecto un estudio que sí tiene precio pactado es
@@ -74,5 +84,12 @@ export const resolverPrecioEstudioCliente = async (supabase, datos = {}) => {
 			`del cliente "${datos?.cliente}", ni en la lista de particular: se cobra el precio ` +
 			`por defecto de $${PRECIO_POR_DEFECTO}.`,
 	);
-	return PRECIO_POR_DEFECTO;
+	return { precio: PRECIO_POR_DEFECTO, origen: ORIGEN_PRECIO.DEFECTO };
 };
+
+// Un convenio sólo tiene pactado parte del catálogo: lo que no le aparece en su
+// tarifario se cobra como particular, no a un precio por defecto que no
+// corresponde a nada. Ese es el aviso que ya sale en la captura cuando el
+// estudio no está en su lista.
+export const resolverPrecioEstudioCliente = async (supabase, datos = {}) =>
+	(await resolverPrecioEstudioClienteConOrigen(supabase, datos)).precio;

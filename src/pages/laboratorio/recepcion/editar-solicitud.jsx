@@ -698,9 +698,17 @@ const EditarSolicitud = () => {
 			mostrarNotificacion("Ingrese el motivo de la devolucion", "advertencia");
 			return;
 		}
-		const montoDevolucion = parseFloat(pago) || 0;
+		// Lo normal es devolverle todo lo que pagó, así que con "Pago $" vacío se
+		// devuelve el abono completo. El monto se captura sólo para una devolución
+		// parcial.
+		const capturado = String(pago ?? "").trim();
+		const montoDevolucion = capturado === "" ? abono : parseFloat(capturado) || 0;
+		if (abono <= 0) {
+			mostrarNotificacion("Esta orden no tiene pagos que devolver", "advertencia");
+			return;
+		}
 		if (montoDevolucion <= 0) {
-			mostrarNotificacion("Ingrese el monto a devolver en Pago $", "advertencia");
+			mostrarNotificacion("El monto a devolver tiene que ser mayor a cero", "advertencia");
 			return;
 		}
 		if (montoDevolucion > abono) {
@@ -1356,6 +1364,10 @@ const EditarSolicitud = () => {
 										<option value="tarjeta_credito">Tarjeta Crédito</option>
 										<option value="tarjeta_debito">Tarjeta Débito</option>
 										<option value="transferencia">Transferencia</option>
+										{/* La orden que se deja a crédito se captura así desde el alta;
+										    sin esta opción, al editarla se le cambiaba la forma de pago
+										    a efectivo sin que nadie lo pidiera. */}
+										<option value="credito">Crédito</option>
 									</select>
 								</div>
 								{esPagoConTarjeta(formaPago) && (
@@ -1461,13 +1473,15 @@ const EditarSolicitud = () => {
 									/>
 								</div>
 								<div className="campo-total">
-									<label>Pago $</label>
+									<label htmlFor="editar-pago">Pago $</label>
 									<input
+										id="editar-pago"
 										type="number"
 										value={pago}
 										onChange={(e) => setPago(e.target.value)}
 										className="input-pago"
 										placeholder="0.00"
+										title="Para una devolución, déjalo vacío si se devuelve todo lo abonado"
 									/>
 								</div>
 							</div>

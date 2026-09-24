@@ -32,6 +32,18 @@ jest.mock("../../../utils/generar-etiquetas-orden", () => ({
 	generarEtiquetasOrden: jest.fn(),
 }));
 
+const mockMovimiento = jest.fn(() => Promise.resolve());
+jest.mock("../../../utils/pagos-ventas", () => ({
+	TIPOS_MOVIMIENTO_PAGO: { DEVOLUCION: "devolucion", CANCELACION: "cancelacion", ABONO: "abono" },
+	cargarHistorialPagosVenta: jest.fn(() => Promise.resolve([])),
+	registrarMovimientoPagoVenta: (...args) => mockMovimiento(...args),
+}));
+jest.mock("../../../utils/solicitud-auditoria", () => ({
+	EVENTOS_SOLICITUD: { ADEUDO_CAMBIADO: "adeudo_cambiado" },
+	formatearEventoAuditoria: () => "",
+	registrarEventoSolicitud: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock("../../../lib/supabase-client", () => {
 	const respuestaPorTabla = {
 		ventas: [
@@ -97,6 +109,9 @@ jest.mock("../../../lib/supabase-client", () => {
 			range: jest.fn(() => cadena),
 			limit: jest.fn(() => cadena),
 			order: jest.fn(() => cadena),
+			update: jest.fn(() => cadena),
+			insert: jest.fn(() => Promise.resolve({ error: null })),
+			delete: jest.fn(() => cadena),
 			single: jest.fn(() => Promise.resolve({ data: datos[0] ?? null, error: null })),
 			maybeSingle: jest.fn(() => Promise.resolve({ data: datos[0] ?? null, error: null })),
 			then: (resolve) => Promise.resolve({ data: datos, error: null }).then(resolve),
@@ -116,6 +131,8 @@ import EditarSolicitud from "./editar-solicitud";
 
 beforeEach(() => {
 	sessionStorage.clear();
+	mockMovimiento.mockClear();
+	globalThis.mostrarNotificacion = jest.fn();
 });
 
 const abrirOrden = async () => {
@@ -182,4 +199,65 @@ test("elegir del catálogo agrega el estudio y cierra la lista", async () => {
 
 	expect(document.querySelector(".dropdown-estudios")).toBeNull();
 	expect(screen.getByText("U.S. RENAL")).toBeInTheDocument();
+});
+
+// La orden que se deja a crédito se captura así desde el alta; sin la opción,
+// al editarla el select caía en efectivo y se guardaba cambiada.
+test("la forma de pago ofrece crédito", async () => {
+	await abrirOrden();
+
+	const select = screen.getByDisplayValue("Efectivo");
+	const formas = [...select.options].map((opcion) => opcion.value);
+	expect(formas).toEqual([
+		"efectivo",
+		"tarjeta_credito",
+		"tarjeta_debito",
+		"transferencia",
+		"credito",
+	]);
+});
+
+// La devolución normal es la del total: pedir el monto obligaba a teclear otra
+// vez lo que ya dice la orden, y equivocarse ahí devuelve de menos.
+describe("devolución", () => {
+	// El motivo se captura antes del monto: con un monto escrito la pantalla lo
+	// toma por abono y le cambia el texto de ayuda al motivo.
+	const capturarMotivo = async () => {
+		await act(async () => {
+			fireEvent.change(screen.getByPlaceholderText("Motivo de Modificación de la Orden"), {
+				target: { value: "El paciente ya no se hizo el estudio" },
+			});
+		});
+	};
+
+	const pedirDevolucion = async () => {
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Devolucion" }));
+		});
+	};
+
+	test("con el monto vacío devuelve todo lo abonado", async () => {
+		await abrirOrden();
+		await capturarMotivo();
+		await pedirDevolucion();
+
+		expect(mockMovimiento).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ tipo_movimiento: "devolucion", monto: 150 }),
+		);
+	});
+
+	test("con un monto capturado devuelve sólo esa parte", async () => {
+		await abrirOrden();
+		await capturarMotivo();
+		await act(async () => {
+			fireEvent.change(screen.getByLabelText("Pago $"), { target: { value: "50" } });
+		});
+		await pedirDevolucion();
+
+		expect(mockMovimiento).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ monto: 50 }),
+		);
+	});
 });
