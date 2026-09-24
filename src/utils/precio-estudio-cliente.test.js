@@ -1,7 +1,9 @@
 import {
+	ORIGEN_PRECIO,
 	PRECIO_POR_DEFECTO,
 	buscarPrecioEstudioCliente,
 	resolverPrecioEstudioCliente,
+	resolverPrecioEstudioClienteConOrigen,
 } from "./precio-estudio-cliente";
 
 // Imita lo que hace Supabase con ilike: compara sin distinguir mayúsculas.
@@ -155,5 +157,37 @@ describe("resolverPrecioEstudioCliente", () => {
 				cliente: "medisim",
 			}),
 		).resolves.toBe(2450);
+	});
+});
+
+// La captura avisa cuando el estudio entró al precio por defecto, y eso no se
+// puede deducir del importe: hay estudios que de verdad cuestan $150.
+describe("de dónde salió el precio", () => {
+	test("dice cuándo vino del tarifario del cliente", async () => {
+		await expect(
+			resolverPrecioEstudioClienteConOrigen(supabaseFalso(PRECIOS), {
+				clave: "RM-RODILLA",
+				cliente: "Medisim",
+			}),
+		).resolves.toEqual({ precio: 2450, origen: ORIGEN_PRECIO.CLIENTE });
+	});
+
+	test("dice cuándo cayó a la lista de particular", async () => {
+		await expect(
+			resolverPrecioEstudioClienteConOrigen(supabaseFalso(PRECIOS), {
+				clave: "UR-CURACION",
+				cliente: "Medisim",
+			}),
+		).resolves.toEqual({ precio: 480, origen: ORIGEN_PRECIO.PARTICULAR });
+	});
+
+	test("dice cuándo no había precio en ninguna lista", async () => {
+		jest.spyOn(console, "warn").mockImplementation(() => {});
+		await expect(
+			resolverPrecioEstudioClienteConOrigen(supabaseFalso(PRECIOS), {
+				clave: "TAC-CRANEO",
+				cliente: "Medisim",
+			}),
+		).resolves.toEqual({ precio: PRECIO_POR_DEFECTO, origen: ORIGEN_PRECIO.DEFECTO });
 	});
 });
