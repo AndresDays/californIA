@@ -4,6 +4,7 @@ import { useGuardarTarea } from "../../../hooks/use-tareas-seguimiento";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useActualizarContactoMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
+import { useClasificarVisita } from "../../../hooks/use-clasificar-visita";
 import { componerCaptura, desglosarCaptura, ETIQUETAS_CAPTURA } from "../../../utils/desglose-captura";
 import CampoFechaNacimiento from "./campo-fecha-nacimiento";
 import { hoyEnMexico, sumarDias } from "../../../utils/semanas-visitadora";
@@ -75,6 +76,12 @@ const ModalRegistroVisita = ({
 		() => visita?.captura_libre ?? (visita ? componerCaptura(visita) : ""),
 	);
 
+	// Lo que devolvió la IA, cuando se le pidió acomodar el dictado. Mientras no
+	// se pida, manda el reparto por palabras, que es instantáneo y no cuesta.
+	const [desgloseIa, setDesgloseIa] = useState(null);
+	const [avisoReparto, setAvisoReparto] = useState("");
+	const clasificar = useClasificarVisita();
+
 	const guardarVisita = useGuardarVisita();
 	const guardarTarea = useGuardarTarea();
 	const guardarAgenda = useGuardarAgenda();
@@ -93,7 +100,7 @@ const ModalRegistroVisita = ({
 		}
 		// En la captura libre las columnas del informe salen de desglosar el
 		// texto; en la de campos, de lo que se escribió en cada uno.
-		const desglosado = modo === "libre" ? desglosarCaptura(capturaLibre) : null;
+		const desglosado = modo === "libre" ? (desgloseIa ?? desglosarCaptura(capturaLibre)) : null;
 		const contenido = desglosado ?? {
 			actividades: campos.actividades,
 			comentarios_medico: campos.comentarios_medico,
@@ -315,7 +322,14 @@ const ModalRegistroVisita = ({
 									"Recibe representantes los miércoles. Dar seguimiento en 15 días."
 								}
 								value={capturaLibre}
-								onChange={(evento) => setCapturaLibre(evento.target.value)}
+								onChange={(evento) => {
+									setCapturaLibre(evento.target.value);
+									// Al seguir escribiendo, lo que acomodó la IA ya no
+									// corresponde al texto: se descarta para no guardar un
+									// reparto viejo.
+									setDesgloseIa(null);
+									setAvisoReparto("");
+								}}
 							/>
 							<p className="visitadora-ficha-dato">
 								Escríbelo como te lo vayan diciendo. Abajo ves en qué columna del informe queda
@@ -327,13 +341,32 @@ const ModalRegistroVisita = ({
 							    informe. */}
 							{capturaLibre.trim() && (
 								<div className="visitadora-historial">
-									<p className="visitadora-historial-titulo">Así va a quedar en el informe</p>
+									<p className="visitadora-historial-titulo">
+										Así va a quedar en el informe{desgloseIa ? " (acomodado con IA)" : ""}
+									</p>
 									{ETIQUETAS_CAPTURA.map(({ campo, etiqueta }) => (
 										<p key={campo} className="visitadora-ficha-dato">
 											<strong>{etiqueta}:</strong>{" "}
-											{desglosarCaptura(capturaLibre)[campo] || "—"}
+											{(desgloseIa ?? desglosarCaptura(capturaLibre))[campo] || "—"}
 										</p>
 									))}
+									<div className="visitadora-modal-acciones">
+										<button
+											type="button"
+											onClick={async () => {
+												const resultado = await clasificar.mutateAsync(capturaLibre);
+												setDesgloseIa(resultado.desglose);
+												setAvisoReparto(
+													resultado.fuente === "ia"
+														? ""
+														: `No se pudo acomodar con IA (${resultado.motivo}); se repartió aquí mismo.`,
+												);
+											}}
+											disabled={clasificar.isPending}>
+											{clasificar.isPending ? "Acomodando…" : "Acomodar con IA"}
+										</button>
+									</div>
+									{avisoReparto && <p className="visitadora-ficha-dato">{avisoReparto}</p>}
 								</div>
 							)}
 

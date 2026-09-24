@@ -38,7 +38,11 @@ import {
 	cargarPreciosCliente,
 	resolverClavesConPrecio,
 } from "../../../utils/precios-cliente";
-import { resolverPrecioEstudioCliente } from "../../../utils/precio-estudio-cliente";
+import {
+	ORIGEN_PRECIO,
+	PRECIO_POR_DEFECTO,
+	resolverPrecioEstudioClienteConOrigen,
+} from "../../../utils/precio-estudio-cliente";
 import "./cotizacion.css";
 
 // El borrador de la cotización vive bajo este prefijo: así se limpia completo
@@ -325,14 +329,28 @@ const Cotizacion = () => {
 	// El precio pactado se resuelve igual que en la captura de la orden: por
 	// clave o por descripción, y cayendo a la lista de particular cuando el
 	// convenio no tiene pactado ese estudio. Así lo cotizado es lo que se cobra.
-	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) =>
-		resolverPrecioEstudioCliente(supabase, {
+	const obtenerPrecioConOrigen = async (estudio, nombreClienteOrden) =>
+		resolverPrecioEstudioClienteConOrigen(supabase, {
 			clave: estudio?.clave,
 			descripcion: estudio?.descripcion,
 			// Un cliente de porcentaje cotiza con la lista de particular: su
 			// descuento se aplica encima, sobre el total.
 			cliente: clienteParaPrecios(nombreClienteOrden),
 		});
+
+	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) =>
+		(await obtenerPrecioConOrigen(estudio, nombreClienteOrden)).precio;
+
+	// Un estudio que entra al precio por defecto es un hueco del tarifario, no
+	// un precio: cotizarlo así en silencio se descubre hasta que el paciente
+	// llega a pagar.
+	const avisarPrecioPorDefecto = (estudio, nombreCliente) =>
+		mostrarNotificacion(
+			`${estudio?.clave || "El estudio"} no tiene precio en la lista de ${
+				nombreCliente || "particular"
+			}: se cotizó al precio por defecto de $${PRECIO_POR_DEFECTO}.`,
+			"advertencia",
+		);
 
 	const agregarEstudio = async (estudio) => {
 		if (estudiosSeleccionados.find((e) => e.id === estudio.id)) {
@@ -343,10 +361,13 @@ const Cotizacion = () => {
 			(cliente) =>
 				cliente.id_cliente.toString() === clienteSeleccionado.toString(),
 		);
-		const precioEstudio = await obtenerPrecioEstudio(
+		const { precio: precioEstudio, origen } = await obtenerPrecioConOrigen(
 			estudio,
 			clienteObj?.nombre || "",
 		);
+		if (origen === ORIGEN_PRECIO.DEFECTO) {
+			avisarPrecioPorDefecto(estudio, clienteObj?.nombre || "");
+		}
 		setEstudiosSeleccionados([
 			...estudiosSeleccionados,
 			{
