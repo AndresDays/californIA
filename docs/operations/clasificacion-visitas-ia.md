@@ -2,7 +2,13 @@
 
 La representante médica escribe la visita de corrido y el sistema la reparte en
 las columnas de su informe semanal (actividades, comentarios del médico,
-observaciones, seguimiento y convenio).
+observaciones, seguimiento y convenio). Con IA, además, la redacta como va en el
+informe: tercera persona, ortografía corregida, sin muletillas ni abreviaturas.
+No lo alarga —el resultado queda igual de corto que el dictado o más corto—:
+redactar mejor no es escribir más.
+Redactar es reescribir lo que dictó —nunca agregarle hechos, quitarle
+información ni suavizar lo negativo—, y las instrucciones de la función lo dicen
+con esas palabras.
 
 Hay dos repartos, y ése es el punto: el de la aplicación nunca depende de que
 haya señal.
@@ -11,6 +17,9 @@ haya señal.
 | --- | --- | --- | --- |
 | Reparto por palabras (`src/utils/clasificar-captura.js`) | En el navegador | Siempre, mientras se escribe | Ninguno |
 | Claude Haiku 4.5 (`supabase/functions/clasificar-visita`) | Edge Function | Al tocar «Acomodar con IA» | Por uso |
+
+El reparto local sólo reparte: deja el texto tal como se escribió. La redacción
+es lo que aporta la IA, y es la razón principal para tocar el botón.
 
 Si la función no contesta —sin internet, sin llave, un error de la API— la
 pantalla lo dice y se queda con el reparto por palabras.
@@ -56,4 +65,6 @@ Por orden de esfuerzo:
    sobre cualquier reparto, con IA o sin ella.
 3. Ajustar las instrucciones de la función (`INSTRUCCIONES` en `index.ts`) o las
    reglas locales (`REGLAS` en `clasificar-captura.js`), según cuál de los dos
-   falló.
+   falló. Si lo que falla es la redacción —inventa un dato, suaviza un
+   comentario, se pone florido—, la sección «Lo que NO debes hacer nunca» de esas
+   instrucciones es el lugar donde se corrige.
