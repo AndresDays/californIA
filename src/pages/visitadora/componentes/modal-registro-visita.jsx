@@ -332,8 +332,9 @@ const ModalRegistroVisita = ({
 								}}
 							/>
 							<p className="visitadora-ficha-dato">
-								Escríbelo como te lo vayan diciendo. Abajo ves en qué columna del informe queda
-								cada frase; si algo cayó mal, corrígelo en «Campo por campo».
+								Escríbelo como te lo vayan diciendo, sin cuidar la redacción. Abajo ves en qué
+								columna del informe queda cada frase; «Acomodar con IA» además lo redacta como va
+								en el informe. Si algo cayó mal, corrígelo en «Campo por campo».
 							</p>
 
 							{/* La vista previa es lo que hace confiable el reparto: se ve

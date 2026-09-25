@@ -4,8 +4,12 @@
 // acierta en lo típico y se equivoca en cuanto la frase se sale del molde. Esta
 // función se lo pasa a Claude Haiku, que entiende el matiz —"no fue posible
 // abordarlo", "quedó de mandarme la base de datos"—, y devuelve lo mismo que el
-// reparto local: un objeto con las cinco columnas. Si falla, la aplicación cae
-// al reparto local y nadie se queda sin guardar.
+// reparto local: un objeto con las cinco columnas. Además lo redacta como va en
+// el informe —tercera persona, ortografía corregida, sin muletillas—, porque lo
+// que ella teclea entre consultorios va en taquigrafía y el informe lo lee su
+// jefe. Redactar es reescribir lo dictado, nunca agregarle nada. Si falla, la
+// aplicación cae al reparto local, que reparte sin redactar, y nadie se queda
+// sin guardar.
 //
 // La llave de la API vive aquí, en el servidor: nunca viaja al navegador.
 import Anthropic from "npm:@anthropic-ai/sdk@0.127.0";
@@ -41,35 +45,53 @@ const ESQUEMA = {
 // Las reglas son las de su informe real: se escribieron leyendo cómo clasifica
 // ella misma sus visitas, no cómo se clasificarían "en general".
 const INSTRUCCIONES = `Eres quien captura el informe semanal de una representante médica en México.
-Recibes lo que ella dictó de una visita a un médico, escrito de corrido, y lo repartes en las cinco columnas de su informe. Devuelves el texto tal cual lo dictó, sin reescribirlo, corregirlo ni resumirlo: sólo lo repartes.
+Recibes lo que ella dictó de una visita a un médico, escrito de corrido y con prisa, y devuelves ese contenido repartido en las cinco columnas de su informe y redactado como va en un informe de trabajo.
 
+Columnas:
 - actividades: lo que ella hizo en la visita. "Se presentaron los servicios", "se dejaron órdenes", "visita de seguimiento", "entrega de material".
 - comentarios_medico: lo que el médico dijo, pidió, preguntó o mostró. "Mostró interés", "pidió precios de resonancia", "desconocía el convenio", "no estaba".
 - observaciones: el contexto de la visita y lo que ella le explicó o hizo notar. "Se le explicó el esquema de comisiones", "recibe representantes los miércoles", "es un médico estricto", "no fue posible abordarlo".
 - seguimiento: lo que queda por hacer después de la visita, en infinitivo. "Dar seguimiento en 15 días", "mandar la lista de precios", "programar nueva visita".
 - tipo_convenio: sólo si el dictado nombra el convenio. Usa exactamente una de: MIXTO, PUNTOS, N/A, PENDIENTE, Descuento para Pacientes. Si no lo nombra, cadena vacía.
 
-Reglas:
-- Una frase va completa a una sola columna; no la partas ni la repitas en dos.
-- Si una frase menciona lo que el médico pidió Y lo que hay que hacer, es seguimiento.
-- Columna sin contenido: cadena vacía. No inventes nada que no esté en el dictado.
-- Si el dictado trae una etiqueta escrita a mano ("Seguimiento: ..."), respétala: esa frase va a esa columna.`;
+Cómo repartir:
+- Una idea va completa a una sola columna; no la partas ni la repitas en dos.
+- Si una frase menciona lo que el médico pidió Y lo que hay que hacer, la parte del pendiente va en seguimiento.
+- Columna sin contenido: cadena vacía.
+- Si el dictado trae una etiqueta escrita a mano ("Seguimiento: ..."), respétala: ese contenido va a esa columna.
+
+Cómo redactar:
+- Escribe en tercera persona y en pasado lo que ya ocurrió; el seguimiento en infinitivo.
+- Ella dicta en primera persona ("pasé", "dejé", "le expliqué"); pásalo a la forma impersonal del informe ("se acudió", "se dejaron", "se le explicó").
+- Corrige ortografía, acentos y puntuación. Frases completas que empiecen con mayúscula y terminen con punto.
+- Quita muletillas y repeticiones, ordena la idea, y usa el término correcto cuando ella lo abrevió ("resos" -> "resonancias magnéticas", "labs" -> "estudios de laboratorio").
+- Mantén el tono sobrio de un informe: sin adornos, sin adjetivos que ella no dijo, sin interpretar intenciones.
+- No alargues el texto. Redactar mejor no es escribir más: el resultado debe quedar igual de corto que el dictado o más corto. Si una frase ya está bien dicha, déjala casi igual —sólo corrígela— en vez de reescribirla larga.
+- Nada de relleno: sin frases de enlace ("cabe mencionar que", "es importante señalar"), sin repetir el contexto en cada columna, sin cerrar con conclusiones.
+
+Lo que NO debes hacer nunca:
+- No agregues hechos que no estén en el dictado: ni cifras, ni nombres, ni fechas, ni servicios, ni conclusiones.
+- No quites información: todo lo que dictó tiene que aparecer en alguna columna.
+- No cambies el sentido ni suavices lo negativo. Si el médico se mostró molesto, el informe dice que se mostró molesto.
+- No inventes el convenio: si no lo nombró, va vacío.`
 
 const EJEMPLOS = [
 	{
 		role: "user" as const,
 		content:
-			"Presentación de Clínica California y sus servicios, entrega de órdenes médicas. Mostró apertura durante la visita y aceptó trabajar con descuentos para sus pacientes. Es un médico estricto para recibir representantes. Mantener contacto y dar seguimiento al uso de órdenes.",
+			"pase a presentarle la clinica y sus servicios, le deje 25 ordenes. mostro apertura y acepto trabajar con descuentos para sus pacientes, me pidio precios de resos de rodilla. es un medico muy estricto para recibir representantes, nomas los miercoles. hay que mantener contacto y darle seguimiento al uso de las ordenes. quedo en mixto",
 	},
 	{
 		role: "assistant" as const,
 		content: JSON.stringify({
-			actividades: "Presentación de Clínica California y sus servicios, entrega de órdenes médicas.",
+			actividades:
+				"Se presentó Clínica California y sus servicios. Se entregaron 25 órdenes médicas.",
 			comentarios_medico:
-				"Mostró apertura durante la visita y aceptó trabajar con descuentos para sus pacientes.",
-			observaciones: "Es un médico estricto para recibir representantes.",
-			seguimiento: "Mantener contacto y dar seguimiento al uso de órdenes.",
-			tipo_convenio: "Descuento para Pacientes",
+				"Mostró apertura y aceptó trabajar con descuentos para sus pacientes. Solicitó precios de resonancias magnéticas de rodilla.",
+			observaciones:
+				"Es un médico estricto para recibir representantes: únicamente atiende los miércoles.",
+			seguimiento: "Mantener contacto y dar seguimiento al uso de las órdenes médicas.",
+			tipo_convenio: "MIXTO",
 		}),
 	},
 ];
@@ -97,8 +119,8 @@ Deno.serve(async (req) => {
 			model: "claude-haiku-4-5",
 			max_tokens: 2000,
 			system: INSTRUCCIONES,
-			// El ejemplo enseña el estilo de reparto mejor que cualquier regla
-			// añadida a las instrucciones.
+			// El ejemplo enseña el reparto y el estilo de redacción mejor que
+			// cualquier regla añadida a las instrucciones.
 			messages: [...EJEMPLOS, { role: "user", content: texto }],
 			output_config: { format: ESQUEMA },
 		});
