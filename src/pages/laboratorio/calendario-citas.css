@@ -333,103 +333,83 @@
 	outline-offset: -2px;
 }
 
+/* Cada tipo de estudio tiene su color, y con él se pintan la cabecera de la
+   columna y las tarjetas que cuelgan de ella: antes la tarjeta tomaba el color
+   del texto -azul para casi todas- y no se podía saber de un vistazo a qué
+   columna pertenecía la que se estaba mirando. */
 .cal-study-header.tipo-lab,
 .cal-card.tipo-lab {
-	background: var(--superficie);
-	border-left-color: var(--borde-fuerte);
-	box-shadow: inset 4px 0 0 #10b981;
+	--cal-color: #10b981;
 }
 
 .cal-study-header.tipo-ultrasonido,
 .cal-card.tipo-ultrasonido {
-	background: var(--superficie);
-	border-left-color: #eab308;
-	box-shadow: inset 4px 0 0 #eab308;
+	--cal-color: #eab308;
 }
 
 .cal-study-header.tipo-rayos-x,
 .cal-card.tipo-rayos-x {
-	background: var(--superficie);
-	border-left-color: var(--borde-fuerte);
-	box-shadow: inset 4px 0 0 #0284c7;
+	--cal-color: #0284c7;
 }
 
 .cal-study-header.tipo-tac,
 .cal-card.tipo-tac {
-	background: var(--superficie);
-	border-left-color: var(--borde-fuerte);
-	box-shadow: inset 4px 0 0 #06b6d4;
+	--cal-color: #06b6d4;
 }
 
-/* Era la única tarjeta rellena de verde oscuro, con el texto encima sin
-   contraste; sus hermanas son blancas con la barra de color a la izquierda. */
 .cal-study-header.tipo-resonancia,
 .cal-card.tipo-resonancia {
-	background: var(--superficie);
-	border-left-color: var(--exito);
-	box-shadow: inset 4px 0 0 var(--exito);
+	--cal-color: var(--exito);
 }
 
 .cal-study-header.tipo-mastografia,
 .cal-card.tipo-mastografia {
-	background: var(--superficie);
-	border-left-color: #db2777;
-	box-shadow: inset 4px 0 0 #db2777;
+	--cal-color: #db2777;
 }
 
 .cal-study-header.tipo-densitometria,
 .cal-card.tipo-densitometria {
-	background: var(--superficie);
-	border-left-color: #f97316;
-	box-shadow: inset 4px 0 0 #f97316;
+	--cal-color: #f97316;
 }
 
 .cal-study-header.tipo-otros,
 .cal-card.tipo-otros {
-	background: var(--superficie);
-	border-left-color: var(--borde-fuerte);
-	box-shadow: inset 4px 0 0 #64748b;
+	--cal-color: #64748b;
 }
 
-.cal-card.tipo-lab,
-.cal-card.tipo-ultrasonido,
-.cal-card.tipo-rayos-x,
-.cal-card.tipo-tac,
-.cal-card.tipo-resonancia,
-.cal-card.tipo-mastografia,
-.cal-card.tipo-densitometria,
-.cal-card.tipo-otros {
+.cal-study-header[class*="tipo-"] {
+	background: var(--superficie);
+	border-left-color: var(--cal-color);
+	box-shadow: inset 4px 0 0 var(--cal-color);
+}
+
+/* La tarjeta lleva la barra del color de su columna y un fondo apenas teñido
+   del mismo tono: el texto se sigue leyendo sobre blanco. */
+.cal-card[class*="tipo-"] {
+	border-left-color: var(--cal-color);
+	background: color-mix(in srgb, var(--cal-color) 10%, var(--superficie));
 	box-shadow:
-		inset 5px 0 0 currentColor,
+		inset 5px 0 0 var(--cal-color),
 		0 10px 22px rgba(18, 41, 61, 0.14);
 }
 
-.cal-card.tipo-lab { color: var(--azul); }
-.cal-card.tipo-ultrasonido { color: var(--texto); }
-.cal-card.tipo-rayos-x { color: var(--azul); }
-.cal-card.tipo-tac { color: var(--azul); }
-.cal-card.tipo-resonancia { color: var(--exito); }
-.cal-card.tipo-mastografia { color: var(--texto); }
-.cal-card.tipo-densitometria { color: var(--texto); }
-.cal-card.tipo-otros { color: var(--azul); }
+/* Sin soporte de color-mix la tarjeta se queda blanca con su barra de color,
+   que es lo que importa. */
+@supports not (background: color-mix(in srgb, red 10%, white)) {
+	.cal-card[class*="tipo-"] {
+		background: var(--superficie);
+	}
+}
 
-.cal-card.tipo-lab strong,
-.cal-card.tipo-ultrasonido strong,
-.cal-card.tipo-rayos-x strong,
-.cal-card.tipo-tac strong,
-.cal-card.tipo-resonancia strong,
-.cal-card.tipo-mastografia strong,
-.cal-card.tipo-densitometria strong,
-.cal-card.tipo-otros strong,
-.cal-card.tipo-lab span,
-.cal-card.tipo-ultrasonido span,
-.cal-card.tipo-rayos-x span,
-.cal-card.tipo-tac span,
-.cal-card.tipo-resonancia span,
-.cal-card.tipo-mastografia span,
-.cal-card.tipo-densitometria span,
-.cal-card.tipo-otros span {
+.cal-card[class*="tipo-"] strong,
+.cal-card[class*="tipo-"] span {
 	color: var(--texto);
+}
+
+/* La hora repite el color de la columna, que es el detalle que se busca al
+   recorrer la agenda de arriba abajo. */
+.cal-card[class*="tipo-"] .cal-card-time {
+	color: var(--cal-color);
 }
 
 .cal-state {
