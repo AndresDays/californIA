@@ -86,27 +86,28 @@ describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 	// La cita se agendaba solo con el catálogo de laboratorio, así que buscar
 	// "TAC" con tomografía elegida devolvía tacrolimus y no el estudio de imagen.
 	// Los tres campos son de texto: se escriben los nombres, no se eligen ids.
-	const escribir = (etiqueta, valor) =>
-		fireEvent.change(document.querySelector(`input[list="${etiqueta}"]`), {
+	const escribir = (campo, valor) =>
+		fireEvent.change(document.querySelector(`#${campo}`), {
 			target: { value: valor },
 		});
 
 	test("con tomografia escrita aparece el estudio de imagen y no el de laboratorio", async () => {
 		abrirModal();
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-tipos"]')).not.toBeNull(),
+			expect(document.querySelector("#cita-tipo")).not.toBeNull(),
 		);
 
-		escribir("cita-clientes", "Particular");
+		escribir("cita-cliente", "Particular");
+		fireEvent.focus(document.querySelector("#cita-tipo"));
 		await waitFor(() =>
 			expect(
-				[...document.querySelectorAll("#cita-tipos option")].some(
-					(opcion) => opcion.value === "TOMOGRAFIA",
+				[...document.querySelectorAll('[role="listbox"] > *')].some(
+					(opcion) => opcion.textContent === "TOMOGRAFIA",
 				),
 			).toBe(true),
 		);
 
-		escribir("cita-tipos", "TOMOGRAFIA");
+		escribir("cita-tipo", "TOMOGRAFIA");
 		fireEvent.change(screen.getByPlaceholderText("Buscar estudio para agregar..."), {
 			target: { value: "TAC" },
 		});
@@ -122,10 +123,10 @@ describe("NuevaCitaModal: la busqueda ofrece el catalogo de imagen", () => {
 	test("se puede escribir el tipo de estudio sin haber puesto cliente", async () => {
 		abrirModal();
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-tipos"]')).not.toBeNull(),
+			expect(document.querySelector("#cita-tipo")).not.toBeNull(),
 		);
 
-		const campoTipo = document.querySelector('input[list="cita-tipos"]');
+		const campoTipo = document.querySelector("#cita-tipo");
 		expect(campoTipo).not.toBeDisabled();
 		fireEvent.change(campoTipo, { target: { value: "ULTRASONIDO" } });
 		expect(campoTipo.value).toBe("ULTRASONIDO");
@@ -176,17 +177,17 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 	test("lo escrito se convierte en el id del catalogo cuando coincide", async () => {
 		abrirModal();
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-clientes"]')).not.toBeNull(),
+			expect(document.querySelector("#cita-cliente")).not.toBeNull(),
 		);
 
-		const escribir = (lista, valor) =>
-			fireEvent.change(document.querySelector(`input[list="${lista}"]`), {
+		const escribir = (campo, valor) =>
+			fireEvent.change(document.querySelector(`#${campo}`), {
 				target: { value: valor },
 			});
 
 		// Se teclea en minusculas y sin el nombre completo, como en una llamada.
-		escribir("cita-clientes", "particular");
-		escribir("cita-tipos", "tomografia");
+		escribir("cita-cliente", "particular");
+		escribir("cita-tipo", "tomografia");
 
 		const fila = await guardar();
 
@@ -199,13 +200,13 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 	test("un cliente que no esta en el catalogo no impide agendar", async () => {
 		abrirModal();
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-clientes"]')).not.toBeNull(),
+			expect(document.querySelector("#cita-cliente")).not.toBeNull(),
 		);
 
-		fireEvent.change(document.querySelector('input[list="cita-clientes"]'), {
+		fireEvent.change(document.querySelector("#cita-cliente"), {
 			target: { value: "Seguros del Norte" },
 		});
-		fireEvent.change(document.querySelector('input[list="cita-tipos"]'), {
+		fireEvent.change(document.querySelector("#cita-tipo"), {
 			target: { value: "Ultrasonido de abdomen" },
 		});
 
@@ -278,7 +279,7 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 		);
 
 		await waitFor(() =>
-			expect(document.querySelector('input[list="cita-tipos"]').value).toBe("LABORATORIO"),
+			expect(document.querySelector("#cita-tipo").value).toBe("LABORATORIO"),
 		);
 
 		const fila = await guardar();
@@ -297,5 +298,57 @@ describe("NuevaCitaModal: ningun campo es obligatorio", () => {
 
 		expect(fila.id_empleado_creador).toBe(3);
 		expect(fila.creado_por_nombre).toBe("Ana Ruiz");
+	});
+});
+// Cliente y tipo se escriben, pero la lista de opciones tiene que estar a la
+// vista: era un <datalist>, y el navegador no lo abre cuando el campo ya trae
+// texto -que es lo que pasa desde que el tipo llega puesto desde la columna del
+// calendario-, así que la lista no se veía nunca.
+describe("NuevaCitaModal: las opciones se despliegan al enfocar", () => {
+	const opcionesVisibles = () =>
+		[...document.querySelectorAll('[role="listbox"] > *')].map((o) => o.textContent);
+
+	test("el campo de cliente ofrece el catálogo al enfocarlo, sin escribir nada", async () => {
+		abrirModal();
+		await waitFor(() => expect(document.querySelector("#cita-cliente")).not.toBeNull());
+
+		fireEvent.focus(document.querySelector("#cita-cliente"));
+
+		await waitFor(() => expect(opcionesVisibles()).toContain("Particular"));
+	});
+
+	test("con el tipo ya puesto por la columna, la lista sigue saliendo", async () => {
+		render(
+			<NuevaCitaModal
+				isOpen
+				onClose={jest.fn()}
+				fechaInicial="2026-08-27"
+				horaInicial="10:00"
+				tipoEstudioInicial="LABORATORIO"
+			/>,
+		);
+		await waitFor(() =>
+			expect(document.querySelector("#cita-tipo").value).toBe("LABORATORIO"),
+		);
+
+		fireEvent.focus(document.querySelector("#cita-tipo"));
+
+		await waitFor(() => expect(opcionesVisibles()).toContain("LABORATORIO"));
+	});
+
+	test("elegir de la lista llena el campo", async () => {
+		abrirModal();
+		await waitFor(() => expect(document.querySelector("#cita-cliente")).not.toBeNull());
+
+		fireEvent.focus(document.querySelector("#cita-cliente"));
+		await waitFor(() => expect(opcionesVisibles()).toContain("Particular"));
+
+		fireEvent.mouseDown(
+			[...document.querySelectorAll('[role="listbox"] > *')].find(
+				(o) => o.textContent === "Particular",
+			),
+		);
+
+		expect(document.querySelector("#cita-cliente").value).toBe("Particular");
 	});
 });
