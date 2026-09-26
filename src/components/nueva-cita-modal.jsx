@@ -111,6 +111,14 @@ const NuevaCitaModal = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Cliente y tipo de estudio se escriben, y la lista de opciones se despliega
+  // al enfocar el campo. Antes eran un <datalist>, que el navegador sólo abre
+  // cuando lo escrito coincide con alguna opción: desde que el tipo llega
+  // puesto desde la columna del calendario, el campo ya traía texto y la lista
+  // no se veía nunca.
+  const [listaClientesAbierta, setListaClientesAbierta] = useState(false);
+  const [listaTiposAbierta, setListaTiposAbierta] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -465,6 +473,49 @@ const NuevaCitaModal = ({
     onCerrar: () => setShowBusquedaEstudios(false),
   });
 
+  const filtrarPorNombre = (lista, escrito) => {
+    const texto = String(escrito || '').trim().toLowerCase();
+    // Sin nada escrito se ofrece todo: el campo se acaba de enfocar y lo que se
+    // quiere es ver las opciones, como en un select.
+    if (!texto) return lista;
+    return lista.filter((item) => item.nombre.toLowerCase().includes(texto));
+  };
+
+  const opcionesCliente = filtrarPorNombre(clientes, clienteSeleccionado).slice(0, 10);
+  const opcionesTipo = filtrarPorNombre(tiposEstudio, tipoEstudioSeleccionado).slice(0, 10);
+
+  const elegirCliente = (cliente) => {
+    setClienteSeleccionado(cliente.nombre);
+    setListaClientesAbierta(false);
+  };
+
+  const elegirTipo = (tipo) => {
+    setTipoEstudioSeleccionado(tipo.nombre);
+    setListaTiposAbierta(false);
+  };
+
+  const {
+    manejarTeclas: teclasClientes,
+    contenedorRef: refClientes,
+    propsOpcion: opcionCliente,
+  } = useNavegacionLista({
+    cantidad: opcionesCliente.length,
+    activo: listaClientesAbierta,
+    onSeleccionar: (indice) => elegirCliente(opcionesCliente[indice]),
+    onCerrar: () => setListaClientesAbierta(false),
+  });
+
+  const {
+    manejarTeclas: teclasTipos,
+    contenedorRef: refTipos,
+    propsOpcion: opcionTipo,
+  } = useNavegacionLista({
+    cantidad: opcionesTipo.length,
+    activo: listaTiposAbierta,
+    onSeleccionar: (indice) => elegirTipo(opcionesTipo[indice]),
+    onCerrar: () => setListaTiposAbierta(false),
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -588,22 +639,76 @@ const NuevaCitaModal = ({
               telefono y estorbaba entre el contacto y el estudio. */}
           <div className="form-group-cita">
             <label className="form-label-cita" htmlFor="cita-cliente">Cliente</label>
-            <input id="cita-cliente" type="text" list="cita-clientes" value={clienteSeleccionado}
-              onChange={(e) => setClienteSeleccionado(e.target.value)}
-              className="form-input-cita" disabled={loading} placeholder="Particular, convenio..." />
-            <datalist id="cita-clientes">
-              {clientes.map(cli => <option key={cli.id_cliente} value={cli.nombre} />)}
-            </datalist>
+            <div className="search-group-cita">
+              <input
+                id="cita-cliente"
+                type="text"
+                value={clienteSeleccionado}
+                onChange={(e) => {
+                  setClienteSeleccionado(e.target.value);
+                  setListaClientesAbierta(true);
+                }}
+                onFocus={() => setListaClientesAbierta(true)}
+                onBlur={() => setTimeout(() => setListaClientesAbierta(false), 120)}
+                onKeyDown={teclasClientes}
+                role="combobox"
+                aria-expanded={listaClientesAbierta}
+                aria-autocomplete="list"
+                className="form-input-cita"
+                disabled={loading}
+                placeholder="Particular, convenio..."
+              />
+              {listaClientesAbierta && opcionesCliente.length > 0 && (
+                <div role="listbox" ref={refClientes} className="search-results-estudios-modal">
+                  {opcionesCliente.map((cli, indice) => (
+                    <div
+                      key={cli.id_cliente}
+                      {...opcionCliente(indice, 'search-result-item-modal')}
+                      onMouseDown={() => elegirCliente(cli)}
+                    >
+                      {cli.nombre}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="form-group-cita">
             <label className="form-label-cita" htmlFor="cita-tipo">Tipo Estudio</label>
-            <input id="cita-tipo" type="text" list="cita-tipos" value={tipoEstudioSeleccionado}
-              onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
-              className="form-input-cita" disabled={loading} placeholder="Laboratorio, tomografía..." />
-            <datalist id="cita-tipos">
-              {tiposEstudio.map(t => <option key={t.id_tipo_estudio} value={t.nombre} />)}
-            </datalist>
+            <div className="search-group-cita">
+              <input
+                id="cita-tipo"
+                type="text"
+                value={tipoEstudioSeleccionado}
+                onChange={(e) => {
+                  setTipoEstudioSeleccionado(e.target.value);
+                  setListaTiposAbierta(true);
+                }}
+                onFocus={() => setListaTiposAbierta(true)}
+                onBlur={() => setTimeout(() => setListaTiposAbierta(false), 120)}
+                onKeyDown={teclasTipos}
+                role="combobox"
+                aria-expanded={listaTiposAbierta}
+                aria-autocomplete="list"
+                className="form-input-cita"
+                disabled={loading}
+                placeholder="Laboratorio, tomografía..."
+              />
+              {listaTiposAbierta && opcionesTipo.length > 0 && (
+                <div role="listbox" ref={refTipos} className="search-results-estudios-modal">
+                  {opcionesTipo.map((tipo, indice) => (
+                    <div
+                      key={tipo.id_tipo_estudio}
+                      {...opcionTipo(indice, 'search-result-item-modal')}
+                      onMouseDown={() => elegirTipo(tipo)}
+                    >
+                      {tipo.nombre}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="form-group-cita">
