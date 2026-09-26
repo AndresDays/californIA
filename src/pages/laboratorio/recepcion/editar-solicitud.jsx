@@ -34,6 +34,7 @@ import {
 	generarTicketVenta,
 	resolverEmpresaTicketReimpresion,
 } from "../../../utils/generarTicketVenta";
+import { resolverTipoTicketVenta } from "../../../utils/tipo-ticket-venta";
 import { generarEtiquetasOrden } from "../../../utils/generar-etiquetas-orden";
 import { esEstudioImagenCaptura } from "../../../utils/captura-row-status";
 import {
@@ -58,7 +59,7 @@ import {
 	esErrorTablaInexistente,
 } from "../../../utils/supabase-errors";
 import { cancelarVenta } from "../../../utils/cancelacion-venta";
-import { normalizarFolio } from "../../../utils/folios";
+import { empresaDeSerie, normalizarFolio, separarFolio } from "../../../utils/folios";
 import { esSoloAbono, resolverMotivoEdicion } from "../../../utils/edicion-solicitud";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
@@ -955,8 +956,10 @@ const EditarSolicitud = () => {
 					.single();
 				if (doc) nombreDoctor = doc.nombre;
 			}
+			// Sin la empresa de la orden, la serie del folio dice cuál cobra: si no
+			// el encabezado caía siempre en California, incluso en una orden de CDI.
 			const nombreEmpresaOperativa = resolverEmpresaTicketReimpresion(
-				orden.empresas?.nombre,
+				orden.empresas?.nombre || empresaDeSerie(separarFolio(orden.folio).serie),
 			);
 			const paciente = orden.pacientes;
 			const edadStr = calcularEdadPaciente(paciente?.fecha_nacimiento);
@@ -970,6 +973,12 @@ const EditarSolicitud = () => {
 					(cliente) => String(cliente.id_cliente) === String(orden.id_cliente),
 				)?.nombre || "Particular";
 			await generarTicketVenta({
+				// El formato lo decide la serie del folio: una orden de imagen se
+				// reimprimía con el ticket del laboratorio.
+				tipo: resolverTipoTicketVenta({
+					folio: orden.folio,
+					empresa: nombreEmpresaOperativa,
+				}),
 				folio: orden.folio,
 				fecha: new Date(orden.fecha_venta),
 				paciente: paciente?.nombre || "N/A",

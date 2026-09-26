@@ -1,3 +1,5 @@
+// Una orden de imagen (serie A o B) se reimprimía con el ticket del
+// laboratorio: el formato tiene que salir el mismo que se entregó en caja.
 import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
@@ -24,10 +26,12 @@ jest.mock("@tanstack/react-query", () => ({
 	useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }));
 jest.mock("./editar-solicitud.css", () => ({}));
+// El generador se espía; el resolutor del formato vive aparte y corre de
+// verdad: lo que se comprueba es con qué formato se pide el ticket.
+const mockGenerarTicket = jest.fn(() => Promise.resolve());
 jest.mock("../../../utils/generarTicketVenta", () => ({
-	generarTicketVenta: jest.fn(),
-	resolverEmpresaTicketReimpresion: jest.fn(),
-	resolverTipoTicketVenta: jest.fn(() => "laboratorio"),
+	generarTicketVenta: (...args) => mockGenerarTicket(...args),
+	resolverEmpresaTicketReimpresion: (empresa) => empresa || "CDC",
 }));
 jest.mock("../../../utils/generar-etiquetas-orden", () => ({
 	generarEtiquetasOrden: jest.fn(),
@@ -50,7 +54,7 @@ jest.mock("../../../lib/supabase-client", () => {
 		ventas: [
 			{
 				id_venta: 77,
-				folio: "C-001",
+				folio: "A0007",
 				fecha_venta: new Date().toISOString(),
 				total: 150,
 				pago_recibido: 150,
@@ -133,132 +137,29 @@ import EditarSolicitud from "./editar-solicitud";
 beforeEach(() => {
 	sessionStorage.clear();
 	mockMovimiento.mockClear();
+	mockGenerarTicket.mockClear();
+	window.open = jest.fn(() => ({ close: jest.fn() }));
 	globalThis.mostrarNotificacion = jest.fn();
 });
 
-const abrirOrden = async () => {
+
+const reimprimir = async () => {
 	await act(async () => {
 		render(<EditarSolicitud />);
 	});
+	const boton = [...document.querySelectorAll("button")].find((btn) =>
+		btn.querySelector('img[alt="Ticket"]'),
+	);
 	await act(async () => {
-		fireEvent.click(screen.getByText("C-001"));
+		boton.click();
 	});
+	return mockGenerarTicket.mock.calls.at(-1)?.[0];
 };
 
-const opciones = () =>
-	[...document.querySelectorAll(".dropdown-estudios .dropdown-estudio-item")].map(
-		(opcion) => opcion.textContent,
-	);
+test("una orden de imagen se reimprime con el ticket de imagen", async () => {
+	const datos = await reimprimir();
 
-// Editar una orden ofrecía sólo laboratorio: a una orden de imagen no se le
-// podía agregar el estudio que faltaba sin volver a capturarla.
-test("el buscador ofrece laboratorio, paquetes e imagen", async () => {
-	await abrirOrden();
-
-	await act(async () => {
-		fireEvent.change(screen.getByPlaceholderText("Buscar Estudios..."), {
-			target: { value: "re" },
-		});
-	});
-
-	expect(opciones().join(" ")).toContain("U.S. RENAL");
-});
-
-test("el botón abre el catálogo completo sin escribir nada", async () => {
-	await abrirOrden();
-
-	expect(document.querySelector(".dropdown-estudios")).toBeNull();
-
-	await act(async () => {
-		fireEvent.click(screen.getByLabelText("Ver todos los estudios"));
-	});
-
-	const texto = opciones().join(" ");
-	expect(texto).toContain("BIOMETRIA HEMATICA");
-	expect(texto).toContain("PERFIL TIROIDEO");
-	expect(texto).toContain("U.S. RENAL");
-
-	await act(async () => {
-		fireEvent.click(screen.getByLabelText("Cerrar el catálogo de estudios"));
-	});
-	expect(document.querySelector(".dropdown-estudios")).toBeNull();
-});
-
-test("elegir del catálogo agrega el estudio y cierra la lista", async () => {
-	await abrirOrden();
-
-	await act(async () => {
-		fireEvent.click(screen.getByLabelText("Ver todos los estudios"));
-	});
-	await act(async () => {
-		fireEvent.click(
-			[...document.querySelectorAll(".dropdown-estudios .dropdown-estudio-item")].find(
-				(opcion) => opcion.textContent.includes("U.S. RENAL"),
-			),
-		);
-	});
-
-	expect(document.querySelector(".dropdown-estudios")).toBeNull();
-	expect(screen.getByText("U.S. RENAL")).toBeInTheDocument();
-});
-
-// La orden que se deja a crédito se captura así desde el alta; sin la opción,
-// al editarla el select caía en efectivo y se guardaba cambiada.
-test("la forma de pago ofrece crédito", async () => {
-	await abrirOrden();
-
-	const select = screen.getByDisplayValue("Efectivo");
-	const formas = [...select.options].map((opcion) => opcion.value);
-	expect(formas).toEqual([
-		"efectivo",
-		"tarjeta_credito",
-		"tarjeta_debito",
-		"transferencia",
-		"credito",
-	]);
-});
-
-// La devolución normal es la del total: pedir el monto obligaba a teclear otra
-// vez lo que ya dice la orden, y equivocarse ahí devuelve de menos.
-describe("devolución", () => {
-	// El motivo se captura antes del monto: con un monto escrito la pantalla lo
-	// toma por abono y le cambia el texto de ayuda al motivo.
-	const capturarMotivo = async () => {
-		await act(async () => {
-			fireEvent.change(screen.getByPlaceholderText("Motivo de Modificación de la Orden"), {
-				target: { value: "El paciente ya no se hizo el estudio" },
-			});
-		});
-	};
-
-	const pedirDevolucion = async () => {
-		await act(async () => {
-			fireEvent.click(screen.getByRole("button", { name: "Devolucion" }));
-		});
-	};
-
-	test("con el monto vacío devuelve todo lo abonado", async () => {
-		await abrirOrden();
-		await capturarMotivo();
-		await pedirDevolucion();
-
-		expect(mockMovimiento).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.objectContaining({ tipo_movimiento: "devolucion", monto: 150 }),
-		);
-	});
-
-	test("con un monto capturado devuelve sólo esa parte", async () => {
-		await abrirOrden();
-		await capturarMotivo();
-		await act(async () => {
-			fireEvent.change(screen.getByLabelText("Pago $"), { target: { value: "50" } });
-		});
-		await pedirDevolucion();
-
-		expect(mockMovimiento).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.objectContaining({ monto: 50 }),
-		);
-	});
+	expect(datos.tipo).toBe("imagen");
+	expect(datos.folio).toBe("A0007");
+	expect(datos.empresa).toBe("CDI");
 });

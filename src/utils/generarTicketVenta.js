@@ -3,6 +3,11 @@ import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { abrirPdfEnPestana } from './abrir-pdf-en-pestana';
 import { resolverEmpresaOperativaCatalogo } from './cita-nuevo-paciente';
+import {
+	TIPO_TICKET_IMAGEN,
+	TIPO_TICKET_LABORATORIO,
+	resolverTipoTicketVenta,
+} from './tipo-ticket-venta';
 import { crearUrlPortalResultados } from './portal-resultados';
 import {
 	calcularEdadPaciente,
@@ -618,9 +623,6 @@ const dibujarTicketImagenEnPdf = async (pdf, datosTicket) => {
 	});
 };
 
-export const TIPO_TICKET_IMAGEN = 'imagen';
-export const TIPO_TICKET_LABORATORIO = 'laboratorio';
-
 // Armar el documento se separa de abrirlo: al guardar una orden los
 // comprobantes se preparan primero y se abren desde el clic del usuario, que es
 // lo que evita que el navegador bloquee las pestañas.
@@ -653,6 +655,8 @@ export const generarTicketsVenta = async ({ tickets = [], ventana } = {}) => {
 
 	abrirPdfEnPestana({ ...documento, ventana });
 };
+
+export { TIPO_TICKET_IMAGEN, TIPO_TICKET_LABORATORIO, resolverTipoTicketVenta };
 
 export const generarTicketVenta = async (datosTicket = {}) =>
 	generarTicketsVenta({ tickets: [datosTicket], ventana: datosTicket.ventana });
