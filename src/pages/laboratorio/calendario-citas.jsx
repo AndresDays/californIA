@@ -68,17 +68,29 @@ const formatearHora = ({ hora, minuto }) => {
 	return `${hora % 12 || 12}:${String(minuto).padStart(2, "0")} ${periodo}`;
 };
 
-const obtenerTextoEstudio = (cita) =>
-	cita?.tipos_estudio?.nombre || cita?.tipo_estudio || "Sin estudio";
+// En la tarjeta va el estudio concreto: la columna ya dice de qué tipo es, y
+// repetir "Lab" en cada tarjeta no decía nada de lo que el paciente viene a
+// hacerse.
+const obtenerEstudioDeLaTarjeta = (cita) =>
+	cita?.tipo_estudio?.trim() || cita?.tipos_estudio?.nombre || "Sin estudio";
 
-const obtenerTipoCalendario = (cita) => {
-	const texto = normalizar(obtenerTextoEstudio(cita));
+const buscarTipoPorTexto = (texto) => {
+	const normalizado = normalizar(texto);
+	if (!normalizado) return null;
 	return (
 		TIPOS_ESTUDIO_CALENDARIO.find((tipo) =>
-			tipo.aliases.some((alias) => texto.includes(alias)),
-		) || TIPOS_ESTUDIO_CALENDARIO[TIPOS_ESTUDIO_CALENDARIO.length - 1]
+			tipo.aliases.some((alias) => normalizado.includes(alias)),
+		) || null
 	);
 };
+
+// Manda el tipo del catálogo; si la cita no lo trae -o no casa con ninguna
+// columna- se resuelve con el estudio escrito, que es lo que pasa con las citas
+// agendadas por teléfono.
+const obtenerTipoCalendario = (cita) =>
+	buscarTipoPorTexto(cita?.tipos_estudio?.nombre) ||
+	buscarTipoPorTexto(cita?.tipo_estudio) ||
+	TIPOS_ESTUDIO_CALENDARIO[TIPOS_ESTUDIO_CALENDARIO.length - 1];
 
 const obtenerHoraCita = (cita) => {
 	const fecha = new Date(cita.fecha_estudio);
@@ -279,7 +291,7 @@ const CalendarioCitas = () => {
 																		minute: "2-digit",
 																	})}
 																</div>
-																<strong>{obtenerTextoEstudio(cita)}</strong>
+																<strong>{obtenerEstudioDeLaTarjeta(cita)}</strong>
 																<span>{obtenerNombrePaciente(cita)}</span>
 																{cita.estado && <small>{cita.estado}</small>}
 															</button>
