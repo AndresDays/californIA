@@ -196,3 +196,68 @@ test("el hueco vacio abre la cita con el tipo de estudio de su columna", () => {
 
 	expect(screen.getByTestId("nueva-cita-modal")).toHaveTextContent("10:00 Laboratorio");
 });
+
+// La columna ya dice de qué tipo es la cita: en la tarjeta va el estudio
+// concreto que el paciente viene a hacerse.
+describe("la tarjeta dice el estudio, no el tipo", () => {
+	const citaDeLab = {
+		id_cita: 9,
+		fecha_estudio: "2026-06-23T08:00:00",
+		tipo_estudio: "BIOMETRIA HEMATICA",
+		tipos_estudio: { nombre: "Laboratorio" },
+		nombre_paciente: "Ana Ruiz",
+		estado: "pendiente",
+	};
+
+	test("muestra el estudio capturado en lugar del tipo", () => {
+		useCalendarioCitas.mockReturnValue({ data: [citaDeLab], isLoading: false, error: null });
+		const { container } = render(<CalendarioCitas />);
+
+		const tarjeta = container.querySelector(".cal-card");
+		expect(tarjeta).toHaveTextContent("BIOMETRIA HEMATICA");
+		expect(tarjeta.querySelector("strong").textContent).not.toBe("Laboratorio");
+	});
+
+	// El color de la tarjeta sale de la columna a la que pertenece.
+	test("la tarjeta lleva la clase de su columna", () => {
+		useCalendarioCitas.mockReturnValue({ data: [citaDeLab], isLoading: false, error: null });
+		const { container } = render(<CalendarioCitas />);
+
+		expect(container.querySelector(".cal-card.tipo-lab")).toBeInTheDocument();
+	});
+
+	// El tipo del catálogo manda sobre el texto libre: una tomografía agendada
+	// como "TAC DE CRANEO SIMPLE" va a su columna aunque el texto no se parezca
+	// al alias de la columna.
+	test("la columna la decide el tipo de estudio de la cita", () => {
+		useCalendarioCitas.mockReturnValue({
+			data: [
+				{
+					...citaDeLab,
+					tipo_estudio: "CRANEO SIMPLE",
+					tipos_estudio: { nombre: "TOMOGRAFIA" },
+				},
+			],
+			isLoading: false,
+			error: null,
+		});
+		const { container } = render(<CalendarioCitas />);
+
+		const tarjeta = container.querySelector(".cal-card.tipo-tac");
+		expect(tarjeta).toBeInTheDocument();
+		expect(tarjeta).toHaveTextContent("CRANEO SIMPLE");
+	});
+
+	// Una cita agendada por teléfono no trae tipo del catálogo: ahí el texto
+	// escrito es lo único que dice a qué columna va.
+	test("sin tipo del catálogo, el estudio escrito decide la columna", () => {
+		useCalendarioCitas.mockReturnValue({
+			data: [{ ...citaDeLab, tipo_estudio: "USG renal", tipos_estudio: null }],
+			isLoading: false,
+			error: null,
+		});
+		const { container } = render(<CalendarioCitas />);
+
+		expect(container.querySelector(".cal-card.tipo-ultrasonido")).toBeInTheDocument();
+	});
+});
