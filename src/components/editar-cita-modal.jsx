@@ -7,8 +7,11 @@ import editarIcono from '../assets/editarIcono.png';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
-
-const DEFAULT_PRECIO = 150;
+import {
+  construirEstudioCatalogoUnificado,
+  construirPaqueteCatalogoUnificado,
+  normalizarDescripcionEstudio,
+} from '../utils/cita-nuevo-paciente';
 
 const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
   const [formData, setFormData] = useState({
@@ -89,7 +92,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           (clientesData || []).find((c) => String(c.id_cliente) === idCliente)?.nombre?.trim() ||
           '';
 
-        await cargarEstudiosDeLaCitaConPrecios(nombreClienteInit);
+        await cargarEstudiosDeLaCitaConPrecios(nombreClienteInit, catalogoData);
 
       } catch (e) {
         console.error(e);
@@ -159,19 +162,61 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     return data || [];
   };
 
+  // Una cita se agenda para cualquiera de los dos módulos, así que el catálogo
+  // va unificado, igual que al agendarla: sólo con el de laboratorio, un
+  // estudio de imagen -una tomografía- no se encontraba, quedaba como "N/A" y
+  // se cotizaba al precio por defecto aunque su convenio sí lo tuviera pactado.
   const cargarEstudiosCatalogo = async () => {
-    const { data, error } = await supabase
+    const { data: estudiosLab, error } = await supabase
       .from('estudios_lab_catalogo')
-      .select('id, clave, descripcion, area')
+      .select('id, clave, descripcion, area, dias_proceso')
       .order('clave');
 
-    if (error) {
-      console.error('Error cargar catálogo estudios:', error);
-      setEstudiosCatalogo([]);
-      return [];
-    }
-    setEstudiosCatalogo(data || []);
-    return data || [];
+    if (error) console.error('Error cargar catálogo estudios:', error);
+
+    const catalogo = (estudiosLab || []).map((estudio) =>
+      construirEstudioCatalogoUnificado(estudio, 'laboratorio'),
+    );
+
+    const { data: paquetes, error: errorPaquetes } = await supabase
+      .from('paquetes')
+      .select('id, clave, descripcion, dias_proceso')
+      .order('clave');
+
+    if (errorPaquetes) console.warn('No se pudieron cargar los paquetes:', errorPaquetes);
+
+    const { data: estudiosImagen, error: errorImagen } = await supabase
+      .from('estudios_imagen_catalogo')
+      .select('id, id_empresa, clave, descripcion, empresa_operativa, modalidad, area, dias_proceso')
+      .eq('activo', true)
+      .order('clave');
+
+    // Sin catálogo de imagen se edita igual con lo de laboratorio: dejar la
+    // búsqueda vacía impediría corregir la cita.
+    if (errorImagen) console.warn('No se pudo cargar el catálogo de imagen:', errorImagen);
+
+    const unificado = [
+      ...catalogo,
+      ...(paquetes || []).map(construirPaqueteCatalogoUnificado),
+      ...(estudiosImagen || []).map((estudio) =>
+        construirEstudioCatalogoUnificado(estudio, 'imagen'),
+      ),
+    ];
+
+    setEstudiosCatalogo(unificado);
+    return unificado;
+  };
+
+  // El estudio guardado en la cita es texto: se casa con el catálogo por
+  // descripción para recuperar su clave y poder cotizarlo.
+  const buscarEnCatalogo = (descripcion, catalogo = []) => {
+    const buscada = normalizarDescripcionEstudio(descripcion);
+    if (!buscada) return null;
+    return (
+      catalogo.find((est) => normalizarDescripcionEstudio(est.descripcion) === buscada) ||
+      catalogo.find((est) => normalizarDescripcionEstudio(est.descripcion).includes(buscada)) ||
+      null
+    );
   };
 
   const cargarTiposEstudioPorEmpresa = async (idEmpresa) => {
@@ -207,7 +252,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     });
   };
 
-  const cargarEstudiosDeLaCitaConPrecios = async (nombreClienteSeguro) => {
+  const cargarEstudiosDeLaCitaConPrecios = async (nombreClienteSeguro, catalogo = []) => {
     const texto = (cita?.tipo_estudio || '').trim();
     if (!texto) {
       setEstudiosSeleccionados([]);
@@ -221,28 +266,18 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
     const conPrecios = await Promise.all(
       piezas.map(async (descripcion) => {
-        const { data: estudioData } = await supabase
-          .from('estudios_lab_catalogo')
-          .select('id, clave, descripcion')
-          .ilike('descripcion', `%${descripcion}%`)
-          .limit(1)
-          .maybeSingle();
-
-        if (!estudioData?.clave) {
-          return {
-            id: `tmp-${descripcion}`,
-            clave: 'N/A',
-            descripcion,
-            precio: DEFAULT_PRECIO,
-          };
-        }
-
-        const precio = await obtenerPrecioEstudio(estudioData, nombreClienteSeguro);
+        const delCatalogo = buscarEnCatalogo(descripcion, catalogo);
+        // Un estudio que no está en el catálogo -se escribió a mano al
+        // agendar- se cotiza igual por su descripción contra el tarifario del
+        // convenio, en vez de quedarse con un precio por defecto que no
+        // corresponde a nada.
+        const estudio = delCatalogo || { clave: '', descripcion };
+        const precio = await obtenerPrecioEstudio(estudio, nombreClienteSeguro);
 
         return {
-          id: estudioData.id,
-          clave: estudioData.clave,
-          descripcion: estudioData.descripcion,
+          id: delCatalogo?.id ?? `tmp-${descripcion}`,
+          clave: delCatalogo?.clave || 'N/A',
+          descripcion: delCatalogo?.descripcion || descripcion,
           precio,
         };
       })
@@ -251,11 +286,16 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     setEstudiosSeleccionados(conPrecios);
   };
 
+  // Al cambiar de convenio se recotiza todo, incluidos los renglones sin clave:
+  // saltarlos los dejaba pegados al precio por defecto por más que se eligiera
+  // el cliente, la empresa y el tipo de estudio.
   const recalcularPreciosSeleccionados = async (nombreClienteSeguro) => {
     const actualizados = await Promise.all(
       estudiosSeleccionados.map(async (est) => {
-        if (!est?.clave || est.clave === 'N/A') return est;
-        const precio = await obtenerPrecioEstudio(est, nombreClienteSeguro);
+        const precio = await obtenerPrecioEstudio(
+          { ...est, clave: est?.clave === 'N/A' ? '' : est?.clave },
+          nombreClienteSeguro,
+        );
         return { ...est, precio };
       })
     );
