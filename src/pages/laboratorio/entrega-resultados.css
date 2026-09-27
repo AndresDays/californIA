@@ -278,6 +278,12 @@
 	transition: padding-left 0.3s ease;
 }
 
+/* Sin esto la tabla ancha estira la columna del grid y el panel se sale de
+   la pantalla en celular en lugar de desplazarse dentro de su contenedor. */
+.entrega-content > * {
+	min-width: 0;
+}
+
 .panel-busqueda-nombre {
 	display: flex;
 	flex-direction: column;
@@ -349,6 +355,7 @@
 .tabla-pacientes-container {
 	flex: 1;
 	overflow-y: auto;
+	overflow-x: auto;
 	border: 1px solid var(--borde);
 	border-radius: 8px;
 }
@@ -961,6 +968,7 @@
 	.entrega-filtros-section,
 	.entrega-content {
 		padding-left: 1rem;
+		padding-right: 1rem;
 	}
 
 	.entrega-filtros-header {
