@@ -25,11 +25,11 @@ import {
 	agruparImagenesDicomPorSerie,
 	crearImagenDicomFallback,
 	esArchivoDicom,
-	normalizarStoragePathDicom,
 	obtenerPresetVentanaInicialSerie,
 	obtenerSerieFuenteMpr,
 	ordenarSeriesParaMpr,
 } from "../../../utils/dicom-series";
+import { firmarImagenesDicom } from "../../../utils/firmar-imagenes-dicom";
 import { crearColaInicialMpr } from "../../../utils/mpr-loader";
 import {
 	crearClaveImagenDicom,
@@ -3530,25 +3530,10 @@ const VisorDicom = () => {
 	}, [panelDerecho]);
 
 	const crearImagenesConUrlFirmada = async (imagenes = []) =>
-		Promise.all(
-			imagenes.map(async (imagen) => {
-				const bucket = imagen.bucket || "radiologia";
-				const storagePath = normalizarStoragePathDicom(imagen.storage_path, bucket);
-				const { data, error } = await supabase.storage
-					.from(bucket)
-					.createSignedUrl(storagePath, 900);
-				if (error || !data?.signedUrl) {
-					throw error || new Error("No se pudo autorizar la imagen del estudio");
-				}
-
-				return {
-					...imagen,
-					bucket,
-					storage_path: storagePath,
-					imageId: `wadouri:${data.signedUrl}`,
-				};
-			}),
-		);
+		(await firmarImagenesDicom(supabase.storage, imagenes)).map(({ url, ...imagen }) => ({
+			...imagen,
+			imageId: `wadouri:${url}`,
+		}));
 
 	const seleccionarSerieDicom = (serie, panelObjetivo = panelActivo) => {
 		if (!serie?.imageIds?.length) return;

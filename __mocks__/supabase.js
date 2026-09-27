@@ -32,6 +32,10 @@ export const supabase = {
         data: { signedUrl: 'http://example.com/signed-image.jpg' },
         error: null,
       }),
+      createSignedUrls: jest.fn((paths = []) => Promise.resolve({
+        data: paths.map((path) => ({ path, error: null, signedUrl: `http://example.com/signed/${path}` })),
+        error: null,
+      })),
       download: jest.fn().mockResolvedValue({ data: new Blob(), error: null }),
       remove: jest.fn().mockResolvedValue({ data: {}, error: null }),
     })),
