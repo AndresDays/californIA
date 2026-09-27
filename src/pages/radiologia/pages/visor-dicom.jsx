@@ -3583,11 +3583,15 @@ const VisorDicom = () => {
 	};
 
 	const guardarEstadoVista = async (imagen, estado) => {
+		// Los estudios que sólo traen `storage_path` usan una imagen de respaldo
+		// con id_imagen "fallback"; la columna es bigint y el texto hacía que
+		// Supabase respondiera 400 al guardar cualquier medición.
+		const idImagen = Number(imagen.id_imagen);
 		try {
 			const { error } = await supabase.from("estudio_dicom_estados_vista").upsert(
 				{
 					id_estudio: Number(estudioId || estudioData?.id),
-					id_imagen: imagen.id_imagen || null,
+					id_imagen: Number.isInteger(idImagen) && idImagen > 0 ? idImagen : null,
 					storage_path: crearClaveImagenDicom(imagen),
 					estado,
 				},
