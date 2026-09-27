@@ -271,6 +271,8 @@ export default function Mpr2dViewer({
 				y: event.clientY,
 				voi: cornerstone.getViewport(elemento)?.voi,
 			};
+			// Pointer events para que el W/L también responda al dedo en celular.
+			event.currentTarget.setPointerCapture?.(event.pointerId);
 			event.preventDefault();
 		} catch {}
 	};
@@ -310,7 +312,7 @@ export default function Mpr2dViewer({
 					const cruz = calcularPosicionCruzMpr(geometrias[panel], puntoAnatomico) || cruzProporcional;
 					const area = areasImagen[panel];
 					return (
-						<button type="button" key={id} ref={(elemento) => { panelRefs.current[id] = elemento; }} className={`mpr2d-panel ${panelActivo === panel ? "activo" : ""}`} onClick={() => onPanelSeleccionado(panel)} onMouseDown={(event) => iniciarWwwc(event, panel)} onMouseMove={moverWwwc} onMouseUp={terminarWwwc} onMouseLeave={terminarWwwc}>
+						<button type="button" key={id} ref={(elemento) => { panelRefs.current[id] = elemento; }} className={`mpr2d-panel ${panelActivo === panel ? "activo" : ""}`} onClick={() => onPanelSeleccionado(panel)} onPointerDown={(event) => iniciarWwwc(event, panel)} onPointerMove={moverWwwc} onPointerUp={terminarWwwc} onPointerCancel={terminarWwwc} onPointerLeave={terminarWwwc}>
 							<b>{etiqueta}</b>
 							<div className="mpr2d-paciente">{serie.label || "Serie"}<small>Ser: {series.findIndex((item) => item.id === serie.id) + 1} · Img: {indices[panel] + 1}/{serie.imageIds?.length || 1}</small></div>
 							<div className="mpr2d-canvas" ref={(elemento) => { refs.current[id] = elemento; }} />
