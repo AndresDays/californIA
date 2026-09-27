@@ -132,6 +132,7 @@ let mockEmpleadoVisor = null;
 let mockDicomImages = [];
 let mockEstadosVista = [];
 let mockEstudioId = '123';
+let mockStoragePathEstudio;
 const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
 const mockRpc = jest.fn(() => Promise.resolve({ error: null }));
 const mockUpdate = jest.fn();
@@ -180,7 +181,7 @@ jest.mock('../../../lib/supabase-client', () => ({
       limit:       jest.fn().mockReturnThis(),
       single:      jest.fn(() => Promise.resolve({
         data: table === 'estudios_radiologia'
-          ? { url_archivo: 'mock.dcm', id_doctor: mockEmpleadoVisor?.id_doctor || null }
+          ? { url_archivo: 'mock.dcm', storage_path: mockStoragePathEstudio, id_doctor: mockEmpleadoVisor?.id_doctor || null }
           : { url_archivo: 'mock.dcm' },
         error: null,
       })),
@@ -860,6 +861,34 @@ describe('VisorDicom — W/L inicial por serie', () => {
       expect.objectContaining({ storage_path: 'serie:dx-torax' }),
       { onConflict: 'id_estudio,storage_path' },
     ));
+  });
+  test('guarda las mediciones de un estudio con un solo archivo sin mandar id_imagen inválido', async () => {
+    mockEstudioId = 'estudio-archivo-unico';
+    mockDicomImages = [];
+    mockStoragePathEstudio = 'unico/torax.dcm';
+
+    try {
+      await renderVisor();
+      await waitFor(() => expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
+        'wadouri:https://mock.url/unico/torax.dcm',
+      ));
+
+      fireEvent.click(screen.getByTitle('Mover'));
+      const panel = document.querySelector('.panel-imagen.activo');
+      fireEvent.mouseDown(panel, { button: 0, clientX: 100, clientY: 100 });
+      fireEvent.mouseMove(panel, { buttons: 1, clientX: 120, clientY: 110 });
+      fireEvent.mouseUp(panel);
+
+      await waitFor(() => expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({ storage_path: 'unico/torax.dcm' }),
+        { onConflict: 'id_estudio,storage_path' },
+      ));
+      const guardado = mockUpsert.mock.calls.find(([fila]) => fila.storage_path === 'unico/torax.dcm')[0];
+      // La columna es bigint: el "fallback" de la imagen de respaldo daba 400.
+      expect(guardado.id_imagen).toBeNull();
+    } finally {
+      mockStoragePathEstudio = undefined;
+    }
   });
 });
 
