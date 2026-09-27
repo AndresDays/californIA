@@ -8,6 +8,7 @@ const CORS_HEADERS = {
 };
 const URL_EXPIRY_SECONDS = 60;
 const URL_IMAGEN_EXPIRY_SECONDS = 900;
+const LOTE_FIRMAS_DICOM = 100;
 
 const responder = (body: unknown, status = 200) =>
 	new Response(JSON.stringify(body), { status, headers: CORS_HEADERS });
@@ -139,13 +140,43 @@ Deno.serve(async (req) => {
 				}]
 				: [];
 
-		const imagenes = await Promise.all(origen.map(async (imagen: any) => {
+		// Un TAC trae cientos de cortes: firmar uno por uno y todos a la vez
+		// saturaba la base de Storage (544 "Database timeout"). Se firma por
+		// lotes con createSignedUrls, un lote a la vez y reintentando el 5xx.
+		const conRuta = origen.map((imagen: any) => {
 			const bucket = imagen.bucket || "radiologia";
-			const { data: signed } = await admin.storage
-				.from(bucket)
-				.createSignedUrl(normalizarPathDicom(imagen.storage_path, bucket), URL_IMAGEN_EXPIRY_SECONDS);
-			return signed?.signedUrl ? { ...imagen, bucket, url: signed.signedUrl } : null;
-		}));
+			return { ...imagen, bucket, ruta: normalizarPathDicom(imagen.storage_path, bucket) };
+		});
+		const firmas = new Map<string, string>();
+		const porBucket = new Map<string, string[]>();
+		for (const imagen of conRuta) {
+			const rutas = porBucket.get(imagen.bucket) || [];
+			if (!rutas.includes(imagen.ruta)) rutas.push(imagen.ruta);
+			porBucket.set(imagen.bucket, rutas);
+		}
+		for (const [bucket, rutas] of porBucket) {
+			for (let i = 0; i < rutas.length; i += LOTE_FIRMAS_DICOM) {
+				const lote = rutas.slice(i, i + LOTE_FIRMAS_DICOM);
+				for (let intento = 1; intento <= 3; intento++) {
+					const { data: firmadas, error } = await admin.storage
+						.from(bucket)
+						.createSignedUrls(lote, URL_IMAGEN_EXPIRY_SECONDS);
+					if (!error) {
+						for (const firma of firmadas || []) {
+							if (firma?.signedUrl && !firma.error) firmas.set(`${bucket}\n${firma.path}`, firma.signedUrl);
+						}
+						break;
+					}
+					const estado = Number((error as any)?.status ?? (error as any)?.statusCode);
+					if (estado && estado < 500) break;
+					if (intento < 3) await new Promise((r) => setTimeout(r, 400 * 2 ** (intento - 1)));
+				}
+			}
+		}
+		const imagenes = conRuta.map(({ ruta, ...imagen }: any) => {
+			const url = firmas.get(`${imagen.bucket}\n${ruta}`);
+			return url ? { ...imagen, url } : null;
+		});
 
 		return responder({
 			encontrado: true,
