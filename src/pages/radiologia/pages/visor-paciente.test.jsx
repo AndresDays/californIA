@@ -189,15 +189,19 @@ describe("VisorPaciente", () => {
 	test("carga cada imagen DICOM mediante una URL firmada", async () => {
 		const storage = {
 			getPublicUrl: jest.fn(() => ({ data: { publicUrl: "https://public.example/imagen.dcm" } })),
-			createSignedUrl: jest.fn().mockResolvedValue({ data: { signedUrl: "https://signed.example/imagen.dcm" }, error: null }),
+			createSignedUrls: jest.fn((paths) => Promise.resolve({
+				data: paths.map((path) => ({ path, error: null, signedUrl: `https://signed.example/${path}` })),
+				error: null,
+			})),
 		};
 		supabase.storage.from.mockReturnValue(storage);
 
 		renderVisor();
 		await screen.findAllByText("Serie AP");
 
-		expect(storage.createSignedUrl).toHaveBeenCalledWith("123/img-1.dcm", 900);
-		expect(storage.createSignedUrl).toHaveBeenCalledWith("123/img-2.dcm", 900);
+		// Todas las imágenes del estudio se firman en una sola petición por lote.
+		expect(storage.createSignedUrls).toHaveBeenCalledTimes(1);
+		expect(storage.createSignedUrls).toHaveBeenCalledWith(["123/img-1.dcm", "123/img-2.dcm"], 900);
 	});
 
 	test("muestra la toolbar simplificada de herramientas", async () => {
