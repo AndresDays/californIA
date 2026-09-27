@@ -1850,7 +1850,7 @@ const PanelDicom = ({
 	};
 
 	const onContextMenu = (e) => {
-		e.preventDefault();
+		e.preventDefault?.();
 		const pos = getCanvasPos(e);
 		const overlay = overlayRef.current;
 		const rect = overlay?.getBoundingClientRect();
@@ -1901,7 +1901,7 @@ const PanelDicom = ({
 			);
 			if (idx >= 0) {
 				setCtxMenu({ tipo: "linea", idx, screenX: sx, screenY: sy });
-				return;
+				return true;
 			}
 		}
 		{
@@ -1910,7 +1910,7 @@ const PanelDicom = ({
 			);
 			if (idx >= 0) {
 				setCtxMenu({ tipo: "anotacion", idx, screenX: sx, screenY: sy });
-				return;
+				return true;
 			}
 		}
 		{
@@ -1919,7 +1919,7 @@ const PanelDicom = ({
 			);
 			if (idx >= 0) {
 				setCtxMenu({ tipo: "angulo", idx, screenX: sx, screenY: sy });
-				return;
+				return true;
 			}
 		}
 		{
@@ -1928,7 +1928,7 @@ const PanelDicom = ({
 			);
 			if (idx >= 0) {
 				setCtxMenu({ tipo: "elipse", idx, screenX: sx, screenY: sy });
-				return;
+				return true;
 			}
 		}
 		{
@@ -1937,7 +1937,7 @@ const PanelDicom = ({
 			);
 			if (idx >= 0) {
 				setCtxMenu({ tipo: "rect", idx, screenX: sx, screenY: sy });
-				return;
+				return true;
 			}
 		}
 		{
@@ -1946,7 +1946,7 @@ const PanelDicom = ({
 			);
 			if (idx >= 0) {
 				setCtxMenu({ tipo: "bidi", idx, screenX: sx, screenY: sy });
-				return;
+				return true;
 			}
 		}
 	};
@@ -2305,6 +2305,194 @@ const PanelDicom = ({
 		}
 	};
 
+	// ── Táctil (celular / tablet) ───────────────────────────────────────
+	// El mouse sigue entrando por onMouseDown/Move/Up; aquí sólo se atienden
+	// punteros touch/pen, que antes no hacían nada porque el panel escuchaba
+	// eventos de mouse. Un dedo usa la herramienta activa (o recorre la serie
+	// si no hay herramienta fijada, porque en el celular no hay rueda), dos
+	// dedos hacen zoom con pellizco y desplazan la imagen, y mantener
+	// presionado sobre una medición abre su menú (equivale al clic derecho).
+	const punterosTactilesRef = useRef(new Map());
+	const gestoTactilRef = useRef(null);
+	const pulsacionLargaRef = useRef(null);
+	const punteroEsTactilRef = useRef(false);
+	const menuTactilSoltadoEnRef = useRef(0);
+
+	const esPunteroTactil = (e) => e.pointerType === "touch" || e.pointerType === "pen";
+	const herramientaDibujoActiva = () =>
+		lupaActivaRef.current ||
+		elipseActivaRef.current ||
+		rectActivaRef.current ||
+		bidiActivaRef.current;
+	const recorreSerieConDedo = () =>
+		esSerieNavegable() &&
+		!herramientaDibujoActiva() &&
+		(!herramientaFijadaRef.current || herramientaRef.current === "StackScroll");
+
+	const cancelarPulsacionLarga = () => {
+		clearTimeout(pulsacionLargaRef.current?.timer);
+		pulsacionLargaRef.current = null;
+	};
+
+	const cancelarTrazoTactil = (faseAnguloPrevia = 0) => {
+		dragRef.current.active = false;
+		arrastreEtiquetaRef.current = null;
+		medicionRef.current.dibujando = false;
+		medicionRef.current.dragging = false;
+		elipseRef.current.dibujando = false;
+		rectRef.current.dibujando = false;
+		bidiRef.current.dibujando = false;
+		if (faseAnguloPrevia === 0) anguloRef.current.fase = 0;
+		redibujarOverlay();
+	};
+
+	const iniciarGestoDosDedos = () => {
+		const [a, b] = [...punterosTactilesRef.current.values()];
+		gestoTactilRef.current = {
+			tipo: "pellizco",
+			distancia: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+			centroX: (a.x + b.x) / 2,
+			centroY: (a.y + b.y) / 2,
+		};
+	};
+
+	const aplicarGestoDosDedos = () => {
+		const gesto = gestoTactilRef.current;
+		const cs = csRef.current,
+			el = divRef.current;
+		if (!gesto || gesto.tipo !== "pellizco" || !cs || !el || !enabledRef.current) return;
+		const [a, b] = [...punterosTactilesRef.current.values()];
+		if (!a || !b) return;
+		const distancia = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+		const centroX = (a.x + b.x) / 2,
+			centroY = (a.y + b.y) / 2;
+		try {
+			const vp = cs.getViewport(el);
+			if (!vp) return;
+			const rect = el.getBoundingClientRect();
+			const fx = el.offsetWidth / rect.width,
+				fy = el.offsetHeight / rect.height;
+			// Punto focal (el centro de los dedos) relativo al centro del visor.
+			const focoX = (centroX - rect.left - rect.width / 2) * fx,
+				focoY = (centroY - rect.top - rect.height / 2) * fy;
+			const escalaPrevia = vp.scale;
+			const escala = Math.max(0.1, Math.min(escalaPrevia * (distancia / gesto.distancia), 10));
+			// Mantiene fijo bajo los dedos el punto de la imagen que se pellizca
+			// y suma el desplazamiento de ambos dedos (pan).
+			vp.translation.x += focoX / escala - focoX / escalaPrevia + ((centroX - gesto.centroX) * fx) / escala;
+			vp.translation.y += focoY / escala - focoY / escalaPrevia + ((centroY - gesto.centroY) * fy) / escala;
+			vp.scale = escala;
+			cs.setViewport(el, vp);
+			cs.updateImage(el);
+			redibujarOverlay();
+		} catch (err) {}
+		gesto.distancia = distancia;
+		gesto.centroX = centroX;
+		gesto.centroY = centroY;
+	};
+
+	const onPointerDown = (e) => {
+		if (!esPunteroTactil(e)) {
+			punteroEsTactilRef.current = false;
+			return;
+		}
+		// Los controles dentro del panel (barra de la serie, menús, inputs de
+		// etiquetas, botones) manejan su propio toque.
+		if (e.target !== e.currentTarget && e.target.closest?.("button, input, textarea, select, [role='slider'], .ctx-menu-medicion")) return;
+		punteroEsTactilRef.current = true;
+		e.preventDefault();
+		e.currentTarget.setPointerCapture?.(e.pointerId);
+		const punteros = punterosTactilesRef.current;
+		punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+		cancelarPulsacionLarga();
+
+		if (punteros.size === 2) {
+			const faseAngulo = gestoTactilRef.current?.faseAnguloPrevia ?? anguloRef.current.fase;
+			cancelarTrazoTactil(faseAngulo);
+			iniciarGestoDosDedos();
+			return;
+		}
+		if (punteros.size > 2 || gestoTactilRef.current) return;
+
+		if (recorreSerieConDedo()) {
+			gestoTactilRef.current = { tipo: "serie", ultimoY: e.clientY, acumulado: 0 };
+		} else {
+			const faseAnguloPrevia = anguloRef.current.fase;
+			onMouseDown(e);
+			gestoTactilRef.current = { tipo: "herramienta", faseAnguloPrevia };
+		}
+
+		const inicioX = e.clientX,
+			inicioY = e.clientY;
+		const faseAnguloPrevia = gestoTactilRef.current.faseAnguloPrevia ?? 0;
+		pulsacionLargaRef.current = {
+			x: inicioX,
+			y: inicioY,
+			timer: setTimeout(() => {
+				pulsacionLargaRef.current = null;
+				if (punterosTactilesRef.current.size !== 1) return;
+				const abrioMenu = onContextMenu({ clientX: inicioX, clientY: inicioY });
+				if (!abrioMenu) return;
+				cancelarTrazoTactil(faseAnguloPrevia);
+				gestoTactilRef.current = { tipo: "menu" };
+				navigator.vibrate?.(20);
+			}, 550),
+		};
+	};
+
+	const onPointerMove = (e) => {
+		if (!esPunteroTactil(e)) return;
+		const punteros = punterosTactilesRef.current;
+		if (!punteros.has(e.pointerId)) return;
+		punteros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+		const pulsacion = pulsacionLargaRef.current;
+		if (pulsacion && Math.hypot(e.clientX - pulsacion.x, e.clientY - pulsacion.y) > 10) cancelarPulsacionLarga();
+
+		const gesto = gestoTactilRef.current;
+		if (!gesto) return;
+		if (gesto.tipo === "pellizco") {
+			aplicarGestoDosDedos();
+			return;
+		}
+		if (gesto.tipo === "serie") {
+			gesto.acumulado += e.clientY - gesto.ultimoY;
+			gesto.ultimoY = e.clientY;
+			const paso = 18;
+			if (Math.abs(gesto.acumulado) >= paso) {
+				const pasos = Math.trunc(gesto.acumulado / paso);
+				gesto.acumulado -= pasos * paso;
+				onStackScroll?.(pasos > 0 ? 1 : -1);
+			}
+			return;
+		}
+		if (gesto.tipo === "herramienta") onMouseMove(e);
+	};
+
+	const terminarPunteroTactil = (e, confirmar) => {
+		if (!esPunteroTactil(e)) return;
+		const punteros = punterosTactilesRef.current;
+		if (!punteros.has(e.pointerId)) return;
+		punteros.delete(e.pointerId);
+		cancelarPulsacionLarga();
+		const gesto = gestoTactilRef.current;
+		if (gesto?.tipo === "menu") menuTactilSoltadoEnRef.current = Date.now();
+		if (gesto?.tipo === "herramienta" && punteros.size === 0) {
+			if (confirmar) onMouseUp(e);
+			else cancelarTrazoTactil(gesto.faseAnguloPrevia);
+		}
+		if (gesto?.tipo === "pellizco" && punteros.size === 1) {
+			// Al levantar un dedo del pellizco no se retoma la herramienta: se
+			// espera a que suelte el otro.
+			gestoTactilRef.current = { tipo: "fin" };
+		}
+		if (punteros.size === 0) gestoTactilRef.current = null;
+	};
+
+	const onPointerUp = (e) => terminarPunteroTactil(e, true);
+	const onPointerCancel = (e) => terminarPunteroTactil(e, false);
+
+	useEffect(() => () => clearTimeout(pulsacionLargaRef.current?.timer), []);
+
 	const handleWheel = (e) => {
 		e.preventDefault();
 		const zoomTemporalActivo = zoomTemporalRef.current && (e.buttons & 2) === 2;
@@ -2408,6 +2596,10 @@ const PanelDicom = ({
 			onMouseDown={onMouseDown}
 			onMouseMove={onMouseMove}
 			onMouseUp={onMouseUp}
+			onPointerDown={onPointerDown}
+			onPointerMove={onPointerMove}
+			onPointerUp={onPointerUp}
+			onPointerCancel={onPointerCancel}
 			onMouseLeave={() => {
 				if (zoomTemporalRef.current) {
 					zoomTemporalRef.current = false;
@@ -2420,7 +2612,15 @@ const PanelDicom = ({
 				redibujarOverlay();
 			}}
 			onWheel={handleWheel}
-			onContextMenu={onContextMenu}
+			onContextMenu={(e) => {
+				// En Android el toque largo también dispara contextmenu; ese caso
+				// ya lo resuelve la pulsación larga de los pointer events.
+				if (punteroEsTactilRef.current) {
+					e.preventDefault();
+					return;
+				}
+				onContextMenu(e);
+			}}
 			style={{ cursor: getCursor(herramienta) }}>
 			<div
 				ref={divRef}
@@ -2458,6 +2658,22 @@ const PanelDicom = ({
 								if (arrastrandoBarraRef.current) seleccionarImagenDesdeBarra(e);
 							}}
 							onMouseUp={(e) => {
+								arrastrandoBarraRef.current = false;
+								e.stopPropagation();
+							}}
+							onPointerDown={(e) => {
+								if (e.pointerType === "mouse") return;
+								e.preventDefault();
+								e.currentTarget.setPointerCapture?.(e.pointerId);
+								arrastrandoBarraRef.current = true;
+								seleccionarImagenDesdeBarra(e);
+							}}
+							onPointerMove={(e) => {
+								if (e.pointerType === "mouse" || !arrastrandoBarraRef.current) return;
+								seleccionarImagenDesdeBarra(e);
+							}}
+							onPointerUp={(e) => {
+								if (e.pointerType === "mouse") return;
 								arrastrandoBarraRef.current = false;
 								e.stopPropagation();
 							}}
@@ -2880,6 +3096,9 @@ const PanelDicom = ({
 				<div
 					className="ctx-menu-backdrop"
 					onClick={() => {
+						// El click que sigue a soltar el dedo tras la pulsación larga
+						// cae sobre este fondo y cerraba el menú recién abierto.
+						if (Date.now() - menuTactilSoltadoEnRef.current < 400) return;
 						cerrarMenu();
 						setLabelEdit(null);
 						setElipseLabelEdit(null);

@@ -578,3 +578,36 @@
 		position: static !important;
 	}
 }
+
+/* ── Celular ─────────────────────────────────────────────────────────
+   El logo va centrado con position:absolute; en pantallas angostas el grupo
+   de la izquierda (hamburguesa + campana) quedaba encimado sobre el logo.
+   Aquí el logo pasa a ocupar el hueco libre entre ambos lados. */
+@media (max-width: 640px) {
+	.dashboard-header {
+		padding: 0 0.75rem !important;
+		gap: 0.5rem;
+	}
+
+	.header-left {
+		gap: 0.5rem !important;
+	}
+
+	.header-center-logo {
+		position: static;
+		transform: none;
+		flex: 1 1 auto;
+		min-width: 0;
+		height: 56px;
+	}
+
+	.header-california-logo {
+		height: 28px;
+		max-width: 100%;
+	}
+
+	.dashboard-header .hamburger-btn {
+		width: 40px;
+		height: 40px;
+	}
+}

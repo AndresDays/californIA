@@ -732,6 +732,17 @@
 	.rv-metrics {
 		grid-template-columns: 1fr;
 	}
+
+	/* Los botones de la cabecera (área, copiar, Excel, PDF, imprimir) se
+	   salían de la pantalla en celular: se acomodan en renglones. */
+	.rv-header-actions {
+		flex-wrap: wrap;
+		width: 100%;
+	}
+
+	.rv-header-actions > * {
+		flex: 1 1 auto;
+	}
 }
 
 /* ── Detalle del folio ────────────────────────────────────────── */

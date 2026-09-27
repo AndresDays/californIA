@@ -11,6 +11,9 @@
 .vd-root {
 	width: 100vw;
 	height: 100vh;
+	/* En celular 100vh incluye la barra del navegador y recortaba la parte
+	   inferior del visor (barra de estado, botón de IA). */
+	height: 100dvh;
 	background: #0a0e1a;
 	display: flex;
 	flex-direction: column;
@@ -853,6 +856,12 @@
 	position: relative;
 	background: #000;
 	overflow: hidden;
+	/* Los gestos táctiles los maneja el visor (herramientas, pellizco); sin
+	   esto el navegador desplazaba o hacía zoom a la página completa. */
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
 	border: 1px solid rgba(73, 178, 212, 0.08);
 	cursor: crosshair;
 	transition: border-color 0.12s;
@@ -3184,4 +3193,157 @@ select.vd-ficha-input option {
 
 .vd-ficha-coment-item .vd-coment-meta {
 	font-size: 0.73rem;
+}
+
+/* ── Celular ────────────────────────────────────────────────────────────
+   La columna de series (100px) le quitaba casi un tercio del ancho a la
+   imagen. En pantallas angostas las series pasan a una tira horizontal
+   arriba del visor, que se puede contraer para dejar la imagen completa. */
+@media (max-width: 640px) {
+	.vd-toolbar {
+		height: 60px;
+		padding: 0.35rem 0.5rem;
+		gap: 0.4rem;
+	}
+
+	.vd-btn-back {
+		padding: 0.35rem 0.6rem;
+		white-space: nowrap;
+	}
+
+	.vd-tool-btn {
+		min-width: 40px;
+		min-height: 40px;
+	}
+
+	.vd-body {
+		flex-direction: column;
+	}
+
+	.vd-sidebar,
+	.vd-sidebar.contraida {
+		width: 100%;
+		flex-direction: row;
+		align-items: stretch;
+		border-right: none;
+		border-bottom: 1px solid rgba(73, 178, 212, 0.12);
+		max-height: 104px;
+	}
+
+	.vd-sidebar.contraida {
+		max-height: 40px;
+	}
+
+	.vd-sidebar-header,
+	.vd-sidebar.contraida .vd-sidebar-header {
+		flex-direction: column;
+		justify-content: center;
+		padding: 0.35rem 0.4rem;
+		border-bottom: none;
+		border-right: 1px solid rgba(73, 178, 212, 0.12);
+	}
+
+	.vd-sidebar-header div {
+		display: none;
+	}
+
+	.vd-sidebar-toggle {
+		width: 30px;
+		height: 30px;
+		transform: rotate(90deg);
+	}
+
+	.vd-sidebar.contraida .vd-serie-count {
+		display: inline-block;
+	}
+
+	.vd-sidebar.contraida .vd-miniaturas {
+		display: none;
+	}
+
+	.vd-miniaturas {
+		flex-direction: row;
+		overflow-x: auto;
+		overflow-y: hidden;
+		padding: 0.35rem;
+		gap: 0.4rem;
+		overscroll-behavior-x: contain;
+	}
+
+	.vd-serie-grupo {
+		flex: 0 0 auto;
+		width: 150px;
+	}
+
+	.vd-serie-titulo {
+		display: none;
+	}
+
+	.vd-serie-card {
+		display: flex;
+		align-items: stretch;
+		height: 88px;
+		border-radius: 10px;
+	}
+
+	.vd-serie-preview {
+		width: 70px;
+		aspect-ratio: auto;
+		flex-shrink: 0;
+	}
+
+	.vd-serie-card-info {
+		padding: 0.35rem 0.45rem;
+		align-content: center;
+		min-width: 0;
+	}
+
+	.vd-miniatura {
+		flex: 0 0 auto;
+		width: 88px;
+	}
+
+	.vd-viewer {
+		min-height: 0;
+	}
+
+	.vd-side-panel {
+		width: 100%;
+	}
+
+	/* El botón de IA se encimaba con la barra de estado. */
+	.vd-ia-float,
+	.vd-ia-float.activo {
+		right: 0.6rem;
+		bottom: 0.6rem;
+		padding: 0.3rem;
+		gap: 0;
+	}
+
+	.vd-ia-float-text {
+		display: none;
+	}
+
+	.vd-status-strip {
+		left: 0.5rem;
+		right: 3.8rem;
+		bottom: 0.6rem;
+		gap: 0.3rem;
+	}
+
+	.vd-status-strip span {
+		font-size: 0.62rem;
+		padding: 0.2rem 0.35rem;
+	}
+
+	/* Área de toque más ancha para la barra de la serie. */
+	.vd-stack-slider {
+		width: 1.6rem;
+		right: 0;
+	}
+
+	.vd-stack-slider-thumb {
+		left: auto;
+		right: 0.35rem;
+	}
 }

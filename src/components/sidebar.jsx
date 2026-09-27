@@ -4,8 +4,18 @@ import californIA from "../assets/CalifornIA.png";
 import { useAuth } from "../context/auth-context";
 import { guardarRolCacheado, obtenerRolCacheado } from "../utils/role-cache";
 import { esRadiologoClinicoPermisos, filtrarMenuPorRol } from "../utils/role-permissions";
+import { VERSION_APP } from "../utils/version-app";
 import { sidebarItems } from "./sidebar-menu";
 import "./sidebar.css";
+
+// En el build de producción Vite incrusta los PNG pequeños (<4 KB) como
+// `data:image/png;base64,...`, así que no basta con buscar ".png" en la ruta:
+// el icono se pintaba como texto base64 en el menú del celular.
+const ANIO_ACTUAL = new Date().getFullYear();
+
+const esRutaImagen = (icono) =>
+	typeof icono === "string" &&
+	(icono.startsWith("data:image/") || /\.(png|jpe?g|svg|webp|gif)(\?.*)?$/i.test(icono));
 
 const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 	const navigate = useNavigate();
@@ -21,12 +31,16 @@ const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 
 	const handleNavigate = (path) => {
 		navigate(path);
-		if (window.innerWidth < 1024) setIsOpen(false);
+		if (window.innerWidth <= 968) setIsOpen(false);
 	};
 
 	const isActive = (path) => location.pathname === path;
 	const isSubmenuActive = (submenu) =>
 		submenu?.some((item) => location.pathname.startsWith(item.path));
+	// Un grupo con submenú sólo se marca por sus hijos: "Recepción" comparte
+	// la ruta /dashboard con "Inicio" y aparecía activo al entrar a la app.
+	const isItemActive = (item) =>
+		item.hasSubmenu ? isSubmenuActive(item.submenu) : isActive(item.path);
 
 	useEffect(() => {
 		setExpandedMenus({});
@@ -52,16 +66,16 @@ const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 					{menuItems.map((item) => (
 						<div key={item.id} className="sidebar-item-wrapper">
 							<button
-								className={`sidebar-item ${isActive(item.path) || isSubmenuActive(item.submenu) ? "active" : ""}`}
+								className={`sidebar-item ${isItemActive(item) ? "active" : ""}`}
 								onClick={() => {
 									if (item.hasSubmenu) toggleSubmenu(item.id);
 									else handleNavigate(item.path);
 								}}>
 								<span className="sidebar-icon">
-									{typeof item.icon === "string" && item.icon.includes(".png") ? (
+									{esRutaImagen(item.icon) ? (
 										<img
 											src={item.icon}
-											alt={item.label}
+											alt=""
 											className="sidebar-icon-img"
 										/>
 									) : (
@@ -97,8 +111,8 @@ const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 					))}
 				</nav>
 				<div className="sidebar-footer">
-					<p className="sidebar-version">CalifornIA v1.0</p>
-					<p className="sidebar-copyright">© 2024</p>
+					<p className="sidebar-version">CalifornIA v{VERSION_APP}</p>
+					<p className="sidebar-copyright">© {ANIO_ACTUAL}</p>
 				</div>
 			</aside>
 		</>
