@@ -4,12 +4,15 @@ import californIA from "../assets/CalifornIA.png";
 import { useAuth } from "../context/auth-context";
 import { guardarRolCacheado, obtenerRolCacheado } from "../utils/role-cache";
 import { esRadiologoClinicoPermisos, filtrarMenuPorRol } from "../utils/role-permissions";
+import { VERSION_APP } from "../utils/version-app";
 import { sidebarItems } from "./sidebar-menu";
 import "./sidebar.css";
 
 // En el build de producción Vite incrusta los PNG pequeños (<4 KB) como
 // `data:image/png;base64,...`, así que no basta con buscar ".png" en la ruta:
 // el icono se pintaba como texto base64 en el menú del celular.
+const ANIO_ACTUAL = new Date().getFullYear();
+
 const esRutaImagen = (icono) =>
 	typeof icono === "string" &&
 	(icono.startsWith("data:image/") || /\.(png|jpe?g|svg|webp|gif)(\?.*)?$/i.test(icono));
@@ -108,8 +111,8 @@ const Sidebar = ({ isOpen, setIsOpen, empleadoData: empleadoDataProp }) => {
 					))}
 				</nav>
 				<div className="sidebar-footer">
-					<p className="sidebar-version">CalifornIA v1.0</p>
-					<p className="sidebar-copyright">© 2024</p>
+					<p className="sidebar-version">CalifornIA v{VERSION_APP}</p>
+					<p className="sidebar-copyright">© {ANIO_ACTUAL}</p>
 				</div>
 			</aside>
 		</>

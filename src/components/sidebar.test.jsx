@@ -42,3 +42,13 @@ describe('Sidebar (menú de celular)', () => {
     expect(screen.getByRole('button', { name: /Recepción/ })).not.toHaveClass('active');
   });
 });
+
+describe('Sidebar (pie del menú)', () => {
+  test('muestra la versión de la app y el año actual', () => {
+    const { container } = render(<Sidebar isOpen setIsOpen={jest.fn()} />);
+    const pie = container.querySelector('.sidebar-footer').textContent;
+
+    expect(pie).not.toContain('v1.0');
+    expect(pie).toContain(`© ${new Date().getFullYear()}`);
+  });
+});
