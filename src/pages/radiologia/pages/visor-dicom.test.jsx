@@ -89,6 +89,10 @@ jest.mock('../../../utils/reporte-pdf', () => ({
   crearNombreArchivoReporte: jest.fn(() => 'reporte_test.pdf'),
 }));
 
+jest.mock('../../../utils/docx-a-html', () => ({
+  convertirDocxAHtml: jest.fn(() => Promise.resolve('<p style="text-align:center"><span style="font-weight:bold">HALLAZGOS DEL WORD</span></p>')),
+}));
+
 // Mock de Assets
 jest.mock('../../../assets/anguloIcono.png',      () => 'mock-img');
 jest.mock('../../../assets/anotarIcono.png',      () => 'mock-img');
@@ -133,6 +137,7 @@ let mockDicomImages = [];
 let mockEstadosVista = [];
 let mockEstudioId = '123';
 let mockStoragePathEstudio;
+let mockPlantillas = [];
 const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
 const mockRpc = jest.fn(() => Promise.resolve({ error: null }));
 const mockUpdate = jest.fn();
@@ -175,7 +180,9 @@ jest.mock('../../../lib/supabase-client', () => ({
           ? mockDicomImages
           : table === 'estudio_dicom_estados_vista'
             ? mockEstadosVista
-            : [],
+            : table === 'plantillas_radiologia'
+              ? mockPlantillas
+              : [],
         error: null,
       })),
       limit:       jest.fn().mockReturnThis(),
@@ -402,6 +409,59 @@ describe('VisorDicom — Toolbar acciones', () => {
     await act(async () => { fireEvent.click(screen.getByTitle('Usar plantilla')); });
 
     expect(screen.getByRole('dialog', { name: 'Elegir plantilla' })).toBeInTheDocument();
+  });
+
+  test('la plantilla elegida (Odile) sustituye al membrete CDC y viaja al reporte impreso', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
+    mockPlantillas = [{
+      id: 42,
+      nombre: 'Odile',
+      archivo_url: 'https://mock.url/odile.docx',
+      mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      membrete_base64: 'data:image/png;base64,ODILE',
+    }];
+    window.open = jest.fn();
+    await renderVisor();
+
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Usar plantilla')); });
+    await act(async () => { fireEvent.click(await screen.findByText('Odile')); });
+
+    await waitFor(() => expect(screen.getAllByAltText('membrete')[0]).toHaveAttribute('src', 'data:image/png;base64,ODILE'));
+
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Imprimir reporte')); });
+    expect(window.open).toHaveBeenCalledWith(expect.stringMatching(/plantilla=42/), '_blank');
+    mockPlantillas = [];
+  });
+
+  test('Cargar Word pone el texto del .docx en el reporte con su formato', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+
+    expect(screen.getByRole('button', { name: 'Cargar Word' })).toBeInTheDocument();
+    const archivo = new File(['docx'], 'odile.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    archivo.arrayBuffer = () => Promise.resolve(new ArrayBuffer(4));
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('input-word-reporte'), { target: { files: [archivo] } });
+    });
+
+    const editor = screen.getByRole('textbox', { name: 'Editor de interpretación radiológica' });
+    await waitFor(() => expect(editor).toHaveTextContent('HALLAZGOS DEL WORD'));
+    expect(editor.querySelector('p').style.textAlign).toBe('center');
+    expect(editor.querySelector('span').style.fontWeight).toBe('bold');
+  });
+
+  test('Cargar Word rechaza archivos que no son .docx', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
+    await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('input-word-reporte'), { target: { files: [new File(['x'], 'reporte.pdf')] } });
+    });
+    expect(await screen.findByText('Selecciona un documento de Word (.docx)')).toBeInTheDocument();
   });
 
   test('el selector muestra sólo plantillas compartidas', async () => {

@@ -21,7 +21,12 @@ import {
 	omitirPaginasVacias,
 } from "../../../utils/reporte-radiologia-paginado";
 import imprimirIcon from "../../../assets/imprimirIcono.png";
-import { MEMBRETE_FALLBACK, cargarMembreteCdc } from "../../../utils/membrete-cdc";
+import {
+	MEMBRETE_FALLBACK,
+	cargarMembreteCdc,
+	precargarImagen,
+	resolverMembretePlantilla,
+} from "../../../utils/membrete-cdc";
 import "./ReporteRadiologia.css";
 
 let _supabase = null;
@@ -108,6 +113,7 @@ const ReporteRadiologia = () => {
 	const folio = searchParams.get("folio") || "";
 	const telefono = searchParams.get("telefono") || "";
 	const imprimirAlAbrir = searchParams.get("imprimir") === "1";
+	const idPlantilla = searchParams.get("plantilla") || "";
 
 	const [plantillaActual, setPlantillaActual] = useState("Plantillas");
 	const [guardando, setGuardando] = useState(false);
@@ -182,7 +188,26 @@ const ReporteRadiologia = () => {
 
 	useEffect(() => {
 		let cancelado = false;
-		cargarMembreteCdc().then((src) => {
+		// Si en el visor eligieron otra plantilla (p. ej. la de Odile), su membrete
+		// sustituye al de CDC; sin plantilla, o si no se puede leer, queda el CDC.
+		const cargarMembrete = async () => {
+			if (idPlantilla) {
+				try {
+					const { data, error } = await getSupabase()
+						.from("plantillas_radiologia")
+						.select("id, archivo_url, mime_type, membrete_base64")
+						.eq("id", idPlantilla)
+						.maybeSingle();
+					if (error) throw error;
+					const src = await resolverMembretePlantilla(data);
+					if (src) return precargarImagen(src);
+				} catch (error) {
+					console.error("No fue posible cargar la plantilla del reporte:", error);
+				}
+			}
+			return cargarMembreteCdc();
+		};
+		cargarMembrete().then((src) => {
 			if (cancelado) return;
 			setMembreteSrc(src);
 			setMembreteListo(true);
@@ -190,7 +215,7 @@ const ReporteRadiologia = () => {
 		return () => {
 			cancelado = true;
 		};
-	}, []);
+	}, [idPlantilla]);
 
 	const showNotif = (msg, tipo = "ok") => {
 		setNotif({ msg, tipo });
