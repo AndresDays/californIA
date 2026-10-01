@@ -139,3 +139,25 @@ describe("crearFirmadorDicom", () => {
 		expect(mala.status).toBe("rejected");
 	});
 });
+
+describe("crearFirmadorDicom con prioridad", () => {
+	test("la imagen prioritaria se firma en el primer lote aunque haya cientos en fila", async () => {
+		const storage = crearStorage(firmasOk);
+		const firmar = crearFirmadorDicom(storage, { esperar: sinEspera, tamanoLote: 10 });
+
+		const precarga = Array.from({ length: 50 }, (_, i) => firmar("radiologia", `tac/${i}.dcm`));
+		const visible = firmar("radiologia", "tac/45.dcm", { prioritaria: true });
+		await Promise.all([...precarga, visible]);
+
+		expect(storage.createSignedUrls.mock.calls[0][0][0]).toBe("tac/45.dcm");
+	});
+
+	test("olvidar obliga a volver a firmar", async () => {
+		const storage = crearStorage(firmasOk);
+		const firmar = crearFirmadorDicom(storage, { esperar: sinEspera });
+		await firmar("radiologia", "a.dcm");
+		firmar.olvidar("radiologia", "a.dcm");
+		await firmar("radiologia", "a.dcm");
+		expect(storage.createSignedUrls).toHaveBeenCalledTimes(2);
+	});
+});
