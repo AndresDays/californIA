@@ -134,15 +134,25 @@ export const crearFirmadorDicom = (
 		}
 	};
 
-	return (bucketOriginal, rutaOriginal) => {
+	// `prioritaria`: la imagen que se va a pintar ahora salta la fila de la
+	// precarga, que puede traer cientos de cortes pendientes por firmar.
+	const firmar = (bucketOriginal, rutaOriginal, { prioritaria = false } = {}) => {
 		const bucket = bucketOriginal || "radiologia";
 		const ruta = normalizarStoragePathDicom(rutaOriginal, bucket);
 		const clave = `${bucket}\n${ruta}`;
 		const vigente = firmadas.get(clave);
 		if (vigente && vigente.vence > ahora()) return Promise.resolve(vigente.url);
-		if (pendientes.has(clave)) return pendientes.get(clave);
+		if (pendientes.has(clave)) {
+			if (prioritaria) {
+				const indice = cola.findIndex((pedido) => pedido.clave === clave);
+				if (indice > 0) cola.unshift(...cola.splice(indice, 1));
+			}
+			return pendientes.get(clave);
+		}
 		const promesa = new Promise((resolver, rechazar) => {
-			cola.push({ bucket, ruta, clave, resolver, rechazar });
+			const pedido = { bucket, ruta, clave, resolver, rechazar };
+			if (prioritaria) cola.unshift(pedido);
+			else cola.push(pedido);
 		});
 		pendientes.set(clave, promesa);
 		// Se espera al siguiente ciclo para juntar en un lote todo lo que se
@@ -153,6 +163,13 @@ export const crearFirmadorDicom = (
 		}
 		return promesa;
 	};
+	// Cuando Storage rechaza una URL (venció antes de tiempo), se olvida para
+	// volver a firmarla.
+	firmar.olvidar = (bucketOriginal, rutaOriginal) => {
+		const bucket = bucketOriginal || "radiologia";
+		firmadas.delete(`${bucket}\n${normalizarStoragePathDicom(rutaOriginal, bucket)}`);
+	};
+	return firmar;
 };
 
 export const ESQUEMA_DICOM_FIRMADO = "dicomsb";

@@ -4,6 +4,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { supabase } from "../../../lib/supabase-client";
 import { generarReportePdf } from "../../../utils/reporte-pdf";
 import VisorPaciente from "./visor-paciente";
+import { reiniciarFirmadoresDicom } from "../../../utils/cargador-dicom-firmado";
+import cornerstone from "cornerstone-core";
 
 // Polyfills
 import { TextEncoder, TextDecoder } from "util";
@@ -28,6 +30,7 @@ jest.mock("cornerstone-core", () => ({
 	resize: jest.fn(),
 	getEnabledElement: jest.fn(() => ({ canvas: {} })),
 	events: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
+	registerImageLoader: jest.fn(),
 }));
 
 jest.mock("cornerstone-wado-image-loader", () => ({
@@ -140,9 +143,9 @@ const configurarSupabase = ({ estudio = ESTUDIO, imagenes = IMAGENES } = {}) => 
 	});
 };
 
-const renderVisor = () =>
+const renderVisor = (ruta = "/visor-paciente/123") =>
 	render(
-		<MemoryRouter initialEntries={["/visor-paciente/123"]}>
+		<MemoryRouter initialEntries={[ruta]}>
 			<Routes>
 				<Route path="/visor-paciente/:estudioId" element={<VisorPaciente />} />
 			</Routes>
@@ -186,7 +189,8 @@ describe("VisorPaciente", () => {
 		expect(screen.getAllByText(/2 imágenes/).length).toBeGreaterThan(0);
 	});
 
-	test("carga cada imagen DICOM mediante una URL firmada", async () => {
+	test("abre el estudio firmando sólo la primera imagen; el resto se firma al cargarla", async () => {
+		reiniciarFirmadoresDicom();
 		const storage = {
 			getPublicUrl: jest.fn(() => ({ data: { publicUrl: "https://public.example/imagen.dcm" } })),
 			createSignedUrls: jest.fn((paths) => Promise.resolve({
@@ -199,9 +203,43 @@ describe("VisorPaciente", () => {
 		renderVisor();
 		await screen.findAllByText("Serie AP");
 
-		// Todas las imágenes del estudio se firman en una sola petición por lote.
 		expect(storage.createSignedUrls).toHaveBeenCalledTimes(1);
-		expect(storage.createSignedUrls).toHaveBeenCalledWith(["123/img-1.dcm", "123/img-2.dcm"], 900);
+		expect(storage.createSignedUrls).toHaveBeenCalledWith(["123/img-1.dcm"], 900);
+		await waitFor(() =>
+			expect(cornerstone.loadAndCacheImage).toHaveBeenCalledWith("dicomsb:radiologia/123/img-1.dcm"),
+		);
+	});
+
+	test("sin sesión, el portal entrega un pase y cada corte se firma con él", async () => {
+		reiniciarFirmadoresDicom();
+		supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+		supabase.functions = {
+			invoke: jest.fn((nombre, { body }) => Promise.resolve(
+				body.p_pase
+					? { data: { firmas: body.p_imagenes.map((id) => ({ id_imagen: id, url: `https://portal.example/${id}.dcm` })) }, error: null }
+					: {
+						data: {
+							pase: "123.9999999999.firma",
+							estudio: { id_estudio: 123, tipo_estudio: "RX", descripcion: "Torax" },
+							imagenes: [
+								{ id_imagen: 1, series_description: "Serie AP", instance_number: 1 },
+								{ id_imagen: 2, series_description: "Serie AP", instance_number: 2 },
+							],
+						},
+						error: null,
+					},
+			)),
+		};
+
+		renderVisor("/visor-paciente/123?folio=B1&telefono=5551234567");
+		await screen.findAllByText("Serie AP");
+
+		const llamadas = supabase.functions.invoke.mock.calls.map(([, { body }]) => body);
+		expect(llamadas[0]).toMatchObject({ p_telefono: "5551234567", p_id_estudio: "123", p_bajo_demanda: true });
+		expect(llamadas[1]).toEqual({ p_pase: "123.9999999999.firma", p_imagenes: ["1"] });
+		await waitFor(() =>
+			expect(cornerstone.loadAndCacheImage).toHaveBeenCalledWith("dicomportal:123/1"),
+		);
 	});
 
 	test("muestra la toolbar simplificada de herramientas", async () => {

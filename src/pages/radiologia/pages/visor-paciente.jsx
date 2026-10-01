@@ -6,7 +6,13 @@ import {
 	agruparImagenesDicomPorSerie,
 	crearImagenDicomFallback,
 } from "../../../utils/dicom-series";
-import { firmarImagenesDicom } from "../../../utils/firmar-imagenes-dicom";
+import { crearImageIdDicomFirmado, leerImageIdDicomFirmado } from "../../../utils/firmar-imagenes-dicom";
+import {
+	configurarFirmadorPortal,
+	crearImageIdDicomPortal,
+	registrarCargadoresDicom,
+	resolverUrlImagenDicom,
+} from "../../../utils/cargador-dicom-firmado";
 import {
 	crearNombreArchivoReporte,
 	generarReportePdf,
@@ -54,6 +60,7 @@ const initCornerstone = () => {
 			useWebWorkers: false,
 			decodeConfig: { convertFloatPixelDataToInt: false, use16BitDataType: true },
 		});
+		registrarCargadoresDicom(cornerstone, cornerstoneWADO);
 		csModules = { cornerstone };
 		return csModules;
 	})();
@@ -179,25 +186,37 @@ const VisorPaciente = () => {
 		document.title = "Estudio · CalifornIA";
 	}, []);
 
-	const crearImagenesConUrlFirmada = async (imagenes = []) =>
-		(await firmarImagenesDicom(supabase.storage, imagenes)).map(({ url, ...imagen }) => ({
-			...imagen,
-			imageId: `wadouri:${url}`,
-		}));
+	// Cada corte se firma cuando se va a cargar (ver cargador-dicom-firmado):
+	// un TAC ya no espera a que se firme completo antes de enseñar la primera
+	// imagen.
+	const crearImagenesBajoDemanda = (imagenes = []) =>
+		imagenes.map((imagen) => {
+			const imageId = crearImageIdDicomFirmado(imagen);
+			const { bucket, ruta } = leerImageIdDicomFirmado(imageId);
+			return { ...imagen, bucket, storage_path: ruta, imageId };
+		});
 
 	// El paciente llega sin sesión (QR o portal) y las políticas de la base sólo
 	// permiten leer estudios a personal autenticado. En ese caso los datos se
 	// piden al portal, que valida folio y teléfono y firma las imágenes.
 	const cargarDesdePortal = async () => {
 		const { data, error } = await supabase.functions.invoke("portal-resultados", {
-			body: { p_folio: folioPortal, p_telefono: telefonoPortal, p_id_estudio: estudioId },
+			body: { p_folio: folioPortal, p_telefono: telefonoPortal, p_id_estudio: estudioId, p_bajo_demanda: true },
 		});
 		if (error || data?.error) throw new Error(data?.error || "No encontramos el estudio solicitado");
+		// Con el pase, el portal firma cada corte cuando se va a cargar. Si la
+		// función todavía es la anterior, llegan todas las imágenes firmadas.
+		if (data.pase) configurarFirmadorPortal(estudioId, data.pase);
 		return {
 			estudio: data.estudio,
 			paciente: data.paciente,
 			radiologo: data.radiologo,
-			imagenes: (data.imagenes || []).map((imagen) => ({ ...imagen, imageId: `wadouri:${imagen.url}` })),
+			imagenes: (data.imagenes || []).map((imagen) => ({
+				...imagen,
+				imageId: data.pase
+					? crearImageIdDicomPortal(estudioId, imagen.id_imagen)
+					: `wadouri:${imagen.url}`,
+			})),
 		};
 	};
 
@@ -297,12 +316,16 @@ const VisorPaciente = () => {
 						imagenesDicom = [crearImagenDicomFallback(est.storage_path, est)];
 					}
 					if (imagenesDicom.length === 0) throw new Error("Este estudio no tiene imagenes disponibles");
-					imagenesConUrl = await crearImagenesConUrlFirmada(imagenesDicom);
+					imagenesConUrl = crearImagenesBajoDemanda(imagenesDicom);
 				}
 
 				setEstudio(est);
 				if (imagenesConUrl.length === 0) throw new Error("Este estudio no tiene imagenes disponibles");
 				const seriesAgrupadas = agruparImagenesDicomPorSerie(imagenesConUrl, est);
+				// Firmar la primera imagen de una vez confirma el acceso: si no lo
+				// hay se avisa, en vez de dejar el visor en blanco.
+				const primerImageId = seriesAgrupadas[0]?.imageIds?.[0];
+				if (primerImageId) await resolverUrlImagenDicom(primerImageId);
 				if (cancelado) return;
 				setSeries(seriesAgrupadas);
 				setSerieActiva(seriesAgrupadas[0]);
@@ -449,10 +472,16 @@ const VisorPaciente = () => {
 		}
 	};
 
-	const descargarImagen = () => {
+	const descargarImagen = async () => {
 		const imagen = serieActiva?.imagenes?.[indiceRef.current];
 		if (!imagen?.imageId) return;
-		const url = imagen.imageId.replace(/^wadouri:/, "");
+		let url;
+		try {
+			url = await resolverUrlImagenDicom(imagen.imageId);
+		} catch (err) {
+			console.error("[VisorPaciente] descargarImagen:", err);
+			return;
+		}
 		const link = document.createElement("a");
 		link.href = url;
 		link.download = imagen.file_name || "imagen.dcm";
