@@ -988,7 +988,7 @@
 
 .vd-doc-topbar {
 	display: grid;
-	grid-template-columns: max-content minmax(180px, 1fr) max-content max-content;
+	grid-template-columns: max-content minmax(180px, 1fr) max-content max-content max-content;
 	align-items: center;
 	gap: 0.65rem;
 	padding: 0.7rem 0.9rem;
@@ -998,7 +998,7 @@
 }
 
 .vd-side-panel-reporte .vd-doc-topbar {
-	grid-template-columns: max-content minmax(160px, 1fr) max-content max-content;
+	grid-template-columns: minmax(160px, 1fr) max-content max-content max-content;
 	gap: 0.55rem;
 	padding: 0.65rem 0.75rem;
 	background: #02070b;

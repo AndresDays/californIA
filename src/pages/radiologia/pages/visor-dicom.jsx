@@ -60,6 +60,7 @@ import {
 	cargarMembreteCdc,
 	resolverMembretePlantilla,
 } from "../../../utils/membrete-cdc";
+import { convertirDocxAHtml } from "../../../utils/docx-a-html";
 import "./ReporteRadiologia.css";
 import "./VisorDicom.css";
 
@@ -3277,6 +3278,7 @@ const VisorDicom = () => {
 	const reporteButtonRef = useRef(null);
 	const reporteMenuRef = useRef(null);
 	const reporteEditorRef = useRef(null);
+	const inputWordReporteRef = useRef(null);
 	const reporteAdjuntoInputRef = useRef(null);
 	const detalleButtonRef = useRef(null);
 	const sidePanelRef = useRef(null);
@@ -4971,6 +4973,32 @@ const VisorDicom = () => {
 		if (plantillasReporte.length === 0) cargarPlantillasReporte();
 	};
 
+	// Carga el texto de un Word en el editor del reporte con el formato que trae
+	// (fuentes, tamaños, alineación, listas, tablas...).
+	const cargarWordEnReporte = async (event) => {
+		const archivo = event.target.files?.[0];
+		event.target.value = "";
+		if (!archivo) return;
+		if (!/\.docx$/i.test(archivo.name)) {
+			showNotif("Selecciona un documento de Word (.docx)", "error");
+			return;
+		}
+		const textoActual = reporteEditorRef.current?.textContent?.trim();
+		if (textoActual && !window.confirm("El reporte ya tiene texto. ¿Reemplazarlo con el contenido del Word?")) return;
+		try {
+			const contenido = normalizarHtmlReporteRadiologia(await convertirDocxAHtml(await archivo.arrayBuffer()));
+			setReporteTexto(contenido);
+			if (reporteEditorRef.current) {
+				reporteEditorRef.current.innerHTML = contenido;
+				reporteEditorRef.current.focus();
+			}
+			showNotif(`Se cargó "${archivo.name}" en el reporte`, "exito");
+		} catch (error) {
+			console.error("No fue posible leer el documento de Word:", error);
+			showNotif("No fue posible leer el documento de Word", "error");
+		}
+	};
+
 	const aplicarPlantillaSubida = (plantilla) => {
 		setPlantillaSeleccionada(plantilla);
 		plantillaMembreteRef.current = plantilla.id;
@@ -5605,6 +5633,21 @@ const VisorDicom = () => {
 										onClick={abrirSelectorPlantillas}>
 										{plantillaSeleccionada?.nombre || "Buscar Plantilla"}
 									</button>
+									<button
+										type="button"
+										className="vd-doc-ghost"
+										title="Cargar el texto de un documento de Word"
+										onClick={() => inputWordReporteRef.current?.click()}>
+										Cargar Word
+									</button>
+									<input
+										ref={inputWordReporteRef}
+										type="file"
+										accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+										hidden
+										data-testid="input-word-reporte"
+										onChange={cargarWordEnReporte}
+									/>
 									<button
 										type="button"
 										className="vd-doc-ghost"
