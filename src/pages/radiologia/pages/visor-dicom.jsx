@@ -55,9 +55,12 @@ import useSidebar from "../../../utils/use-sidebar";
 import ModalAsignar from "../componentes/ModalAsignar";
 import Mpr2dViewer from "../componentes/Mpr2dViewer";
 import PanelIA from "./Panelia";
-import { MEMBRETE_B64 } from "./reporte-radiologia-template";
-import JSZip from "jszip";
-import cdcPlantillaUrl from "../../../assets/CDC Plantilla.docx?url";
+import {
+	MEMBRETE_FALLBACK,
+	cargarMembreteCdc,
+	resolverMembretePlantilla,
+} from "../../../utils/membrete-cdc";
+import { convertirDocxAHtml } from "../../../utils/docx-a-html";
 import "./ReporteRadiologia.css";
 import "./VisorDicom.css";
 
@@ -3221,23 +3224,18 @@ const VisorDicom = () => {
 	const [plantillaReporteBusqueda, setPlantillaReporteBusqueda] = useState("");
 	const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
 	const [reporteQrUrl, setReporteQrUrl] = useState("");
-	const [membreteReporteSrc, setMembreteReporteSrc] = useState(
-		`data:image/jpeg;base64,${MEMBRETE_B64}`,
-	);
+	const [membreteReporteSrc, setMembreteReporteSrc] = useState(MEMBRETE_FALLBACK);
+	// La plantilla CDC carga en segundo plano; si el radiólogo ya eligió otra
+	// plantilla (p. ej. la de Odile), el CDC no debe pisarla al terminar.
+	const plantillaMembreteRef = useRef(null);
 	useEffect(() => {
-		const cargarMembreteCdc = async () => {
-			try {
-				const archivo = await fetch(cdcPlantillaUrl);
-				const zip = await JSZip.loadAsync(await archivo.arrayBuffer());
-				const imagen = zip.file("word/media/image1.jpg");
-				if (!imagen) return;
-				const base64 = await imagen.async("base64");
-				setMembreteReporteSrc(`data:image/jpeg;base64,${base64}`);
-			} catch (err) {
-				console.error("No fue posible cargar la plantilla CDC:", err);
-			}
+		let cancelado = false;
+		cargarMembreteCdc().then((src) => {
+			if (!cancelado && !plantillaMembreteRef.current) setMembreteReporteSrc(src);
+		});
+		return () => {
+			cancelado = true;
 		};
-		cargarMembreteCdc();
 	}, []);
 	const [panelDerecho, setPanelDerecho] = useState(null);
 	const [reporteExpandido, setReporteExpandido] = useState(false);
@@ -3280,6 +3278,7 @@ const VisorDicom = () => {
 	const reporteButtonRef = useRef(null);
 	const reporteMenuRef = useRef(null);
 	const reporteEditorRef = useRef(null);
+	const inputWordReporteRef = useRef(null);
 	const reporteAdjuntoInputRef = useRef(null);
 	const detalleButtonRef = useRef(null);
 	const sidePanelRef = useRef(null);
@@ -4677,6 +4676,7 @@ const VisorDicom = () => {
 			especialidad: especialidadRadiologo || "",
 			firmaUrl: firmaEmpleadoUrl,
 			ajusteFirma: JSON.stringify(ajusteFirma),
+			...(plantillaSeleccionada?.id ? { plantilla: String(plantillaSeleccionada.id) } : {}),
 			...(imprimir ? { imprimir: "1" } : {}),
 		});
 		window.open(`/reporte?${params.toString()}`, "_blank");
@@ -4973,18 +4973,47 @@ const VisorDicom = () => {
 		if (plantillasReporte.length === 0) cargarPlantillasReporte();
 	};
 
+	// Carga el texto de un Word en el editor del reporte con el formato que trae
+	// (fuentes, tamaños, alineación, listas, tablas...).
+	const cargarWordEnReporte = async (event) => {
+		const archivo = event.target.files?.[0];
+		event.target.value = "";
+		if (!archivo) return;
+		if (!/\.docx$/i.test(archivo.name)) {
+			showNotif("Selecciona un documento de Word (.docx)", "error");
+			return;
+		}
+		const textoActual = reporteEditorRef.current?.textContent?.trim();
+		if (textoActual && !window.confirm("El reporte ya tiene texto. ¿Reemplazarlo con el contenido del Word?")) return;
+		try {
+			const contenido = normalizarHtmlReporteRadiologia(await convertirDocxAHtml(await archivo.arrayBuffer()));
+			setReporteTexto(contenido);
+			if (reporteEditorRef.current) {
+				reporteEditorRef.current.innerHTML = contenido;
+				reporteEditorRef.current.focus();
+			}
+			showNotif(`Se cargó "${archivo.name}" en el reporte`, "exito");
+		} catch (error) {
+			console.error("No fue posible leer el documento de Word:", error);
+			showNotif("No fue posible leer el documento de Word", "error");
+		}
+	};
+
 	const aplicarPlantillaSubida = (plantilla) => {
 		setPlantillaSeleccionada(plantilla);
+		plantillaMembreteRef.current = plantilla.id;
 
-		const extensionImagen = /\.(png|jpe?g|webp)(\?|#|$)/i.test(plantilla.archivo_url || "");
-
-		if (plantilla.membrete_base64?.startsWith("data:image/")) {
-			setMembreteReporteSrc(plantilla.membrete_base64);
-		} else if (plantilla.archivo_url && (plantilla.mime_type?.startsWith("image/") || extensionImagen)) {
-			setMembreteReporteSrc(plantilla.archivo_url);
-		} else {
-			setMembreteReporteSrc(`data:image/jpeg;base64,${MEMBRETE_B64}`);
-		}
+		resolverMembretePlantilla(plantilla).then(async (src) => {
+			// Si mientras tanto eligieron otra plantilla, ésta ya no aplica.
+			if (plantillaMembreteRef.current !== plantilla.id) return;
+			if (src) {
+				setMembreteReporteSrc(src);
+				return;
+			}
+			showNotif(`La plantilla "${plantilla.nombre}" no tiene una imagen de membrete; se usa la de CDC`, "advertencia");
+			const cdc = await cargarMembreteCdc();
+			if (plantillaMembreteRef.current === plantilla.id) setMembreteReporteSrc(cdc);
+		});
 
 		const contenido = plantilla.contenido_html || "";
 		if (contenido) {
@@ -5604,6 +5633,21 @@ const VisorDicom = () => {
 										onClick={abrirSelectorPlantillas}>
 										{plantillaSeleccionada?.nombre || "Buscar Plantilla"}
 									</button>
+									<button
+										type="button"
+										className="vd-doc-ghost"
+										title="Cargar el texto de un documento de Word"
+										onClick={() => inputWordReporteRef.current?.click()}>
+										Cargar Word
+									</button>
+									<input
+										ref={inputWordReporteRef}
+										type="file"
+										accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+										hidden
+										data-testid="input-word-reporte"
+										onChange={cargarWordEnReporte}
+									/>
 									<button
 										type="button"
 										className="vd-doc-ghost"
