@@ -3,6 +3,7 @@ import { createContext, useState, useEffect, useContext } from 'react'
 import { supabase } from '../lib/supabase-client'
 import { useSessionStore } from '../store/session-store'
 import { rutaInicialPorRol } from '../utils/role-permissions'
+import { borrarCacheDicom } from '../utils/cache-dicom-local'
 
 const AuthContext = createContext({});
 
@@ -142,6 +143,9 @@ export const AuthProvider = ({ children }) => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       clearSession();
+      // Los estudios guardados en la computadora para abrir rápido no deben
+      // quedar al alcance de quien use el equipo después.
+      void borrarCacheDicom();
     } catch (error) {
       setError(error.message);
     }

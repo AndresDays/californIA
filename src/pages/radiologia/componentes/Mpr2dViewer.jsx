@@ -73,7 +73,7 @@ export default function Mpr2dViewer({
 		cola.forEach((imageId) => precargasPendientesRef.current.add(imageId));
 		colaPrecargasRef.current.push(...cola);
 		const procesarCola = () => {
-			while (precargasActivasRef.current < 3 && colaPrecargasRef.current.length) {
+			while (precargasActivasRef.current < 6 && colaPrecargasRef.current.length) {
 				const imageId = colaPrecargasRef.current.shift();
 				precargasActivasRef.current += 1;
 				cornerstone.loadAndCacheImage(imageId)
