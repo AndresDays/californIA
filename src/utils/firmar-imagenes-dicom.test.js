@@ -1,4 +1,4 @@
-import { firmarImagenesDicom } from "./firmar-imagenes-dicom";
+import { crearFirmadorDicom, firmarImagenesDicom } from "./firmar-imagenes-dicom";
 
 const crearStorage = (responder) => {
 	const createSignedUrls = jest.fn(responder);
@@ -78,5 +78,64 @@ describe("firmarImagenesDicom", () => {
 		await expect(firmarImagenesDicom(storage, imagenesTac(2), { esperar: sinEspera })).rejects.toThrow(
 			"No se pudo autorizar la imagen del estudio",
 		);
+	});
+});
+
+describe("crearFirmadorDicom", () => {
+	test("agrupa en un lote lo que se pide a la vez y no repite rutas", async () => {
+		const storage = crearStorage(firmasOk);
+		const firmar = crearFirmadorDicom(storage, { esperar: sinEspera });
+
+		const urls = await Promise.all([
+			firmar("radiologia", "tac/1.dcm"),
+			firmar("radiologia", "tac/2.dcm"),
+			firmar("radiologia", "tac/1.dcm"),
+		]);
+
+		expect(urls).toEqual(["https://firmada/tac/1.dcm", "https://firmada/tac/2.dcm", "https://firmada/tac/1.dcm"]);
+		expect(storage.createSignedUrls).toHaveBeenCalledTimes(1);
+		expect(storage.createSignedUrls).toHaveBeenCalledWith(["tac/1.dcm", "tac/2.dcm"], 900);
+	});
+
+	test("reutiliza la URL mientras sigue vigente y la renueva antes de que expire", async () => {
+		let reloj = 0;
+		const storage = crearStorage(firmasOk);
+		const firmar = crearFirmadorDicom(storage, { esperar: sinEspera, ahora: () => reloj });
+
+		await firmar("radiologia", "tac/1.dcm");
+		reloj = 10 * 60 * 1000;
+		await firmar("radiologia", "tac/1.dcm");
+		expect(storage.createSignedUrls).toHaveBeenCalledTimes(1);
+
+		reloj = 15 * 60 * 1000;
+		await firmar("radiologia", "tac/1.dcm");
+		expect(storage.createSignedUrls).toHaveBeenCalledTimes(2);
+	});
+
+	test("firma primero lo que se pidió primero, en lotes del tamaño indicado", async () => {
+		const storage = crearStorage(firmasOk);
+		const firmar = crearFirmadorDicom(storage, { esperar: sinEspera, tamanoLote: 2 });
+
+		await Promise.all(["a", "b", "c", "d", "e"].map((nombre) => firmar("radiologia", `${nombre}.dcm`)));
+
+		expect(storage.createSignedUrls.mock.calls.map(([rutas]) => rutas)).toEqual([
+			["a.dcm", "b.dcm"],
+			["c.dcm", "d.dcm"],
+			["e.dcm"],
+		]);
+	});
+
+	test("rechaza sólo la imagen que no se pudo firmar", async () => {
+		const storage = crearStorage((paths) =>
+			Promise.resolve({
+				data: paths.map((path) => ({ path, error: path === "mala.dcm" ? "not found" : null, signedUrl: path === "mala.dcm" ? null : `https://firmada/${path}` })),
+				error: null,
+			}),
+		);
+		const firmar = crearFirmadorDicom(storage, { esperar: sinEspera });
+
+		const [buena, mala] = await Promise.allSettled([firmar("radiologia", "buena.dcm"), firmar("radiologia", "mala.dcm")]);
+		expect(buena).toEqual({ status: "fulfilled", value: "https://firmada/buena.dcm" });
+		expect(mala.status).toBe("rejected");
 	});
 });

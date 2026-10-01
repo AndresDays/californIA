@@ -29,7 +29,12 @@ import {
 	obtenerSerieFuenteMpr,
 	ordenarSeriesParaMpr,
 } from "../../../utils/dicom-series";
-import { firmarImagenesDicom } from "../../../utils/firmar-imagenes-dicom";
+import {
+	ESQUEMA_DICOM_FIRMADO,
+	crearFirmadorDicom,
+	crearImageIdDicomFirmado,
+	leerImageIdDicomFirmado,
+} from "../../../utils/firmar-imagenes-dicom";
 import { crearColaInicialMpr } from "../../../utils/mpr-loader";
 import {
 	crearClaveImagenDicom,
@@ -183,6 +188,41 @@ const descripcionesCoinciden = (a = "", b = "") => {
 	return textoA === textoB || textoA.includes(textoB) || textoB.includes(textoA);
 };
 
+// Un solo firmador para todo el visor: las URLs firmadas se reutilizan entre
+// paneles, el MPR y al volver a abrir el estudio en la misma sesión.
+let firmadorDicom = null;
+const firmarImagenDicom = (bucket, ruta) => {
+	firmadorDicom ||= crearFirmadorDicom(supabase.storage);
+	return firmadorDicom(bucket, ruta);
+};
+const imageIdsWadoPorFirmado = new Map();
+
+// Las imágenes del bucket se identifican por su ruta (dicomsb:bucket/ruta) y no
+// por una URL firmada: así el estudio abre sin esperar a firmar miles de cortes,
+// y cada corte se firma -por lotes- justo cuando se va a cargar.
+const registrarCargadorDicomFirmado = (cornerstone, cornerstoneWADO) => {
+	cornerstone.registerImageLoader(ESQUEMA_DICOM_FIRMADO, (imageId) => {
+		const { bucket, ruta } = leerImageIdDicomFirmado(imageId);
+		const promise = firmarImagenDicom(bucket, ruta)
+			.then((url) => {
+				const imageIdWado = `wadouri:${url}`;
+				imageIdsWadoPorFirmado.set(imageId, imageIdWado);
+				return cornerstoneWADO.wadouri.loadImage(imageIdWado).promise;
+			})
+			.then((imagen) => {
+				// Las herramientas guardan sus trazos por imageId; debe ser el
+				// estable y no la URL firmada, que cambia al volver a firmar.
+				imagen.imageId = imageId;
+				return imagen;
+			});
+		return { promise };
+	});
+	cornerstone.metaData?.addProvider?.((tipo, imageId) => {
+		const imageIdWado = imageIdsWadoPorFirmado.get(imageId);
+		return imageIdWado ? cornerstoneWADO.wadouri.metaData.metaDataProvider(tipo, imageIdWado) : undefined;
+	});
+};
+
 const initCornerstone = () => {
 	if (csModules) return Promise.resolve(csModules);
 	if (csInitPromise) return csInitPromise;
@@ -200,6 +240,7 @@ const initCornerstone = () => {
 			useWebWorkers: false,
 			decodeConfig: { convertFloatPixelDataToInt: false, use16BitDataType: true },
 		});
+		registrarCargadorDicomFirmado(cornerstone, cornerstoneWADO);
 		csModules = { cornerstone, cornerstoneWADO, cornerstoneTools };
 		return csModules;
 	})();
@@ -3528,11 +3569,12 @@ const VisorDicom = () => {
 		reporteEditorRef.current.innerHTML = htmlReporteRadiologiaParaEditor(reporteTexto);
 	}, [panelDerecho]);
 
-	const crearImagenesConUrlFirmada = async (imagenes = []) =>
-		(await firmarImagenesDicom(supabase.storage, imagenes)).map(({ url, ...imagen }) => ({
-			...imagen,
-			imageId: `wadouri:${url}`,
-		}));
+	const crearImagenesDicomBajoDemanda = (imagenes = []) =>
+		imagenes.map((imagen) => {
+			const imageId = crearImageIdDicomFirmado(imagen);
+			const { bucket, ruta } = leerImageIdDicomFirmado(imageId);
+			return { ...imagen, bucket, storage_path: ruta, imageId };
+		});
 
 	const seleccionarSerieDicom = (serie, panelObjetivo = panelActivo) => {
 		if (!serie?.imageIds?.length) return;
@@ -3760,7 +3802,7 @@ const VisorDicom = () => {
 					.filter((fila) => String(fila.storage_path || "").startsWith("serie:"))
 					.map((fila) => [fila.storage_path, leerEstadoVentanaSerieDicom(fila.estado)]),
 			);
-			const imagenesConUrl = (await crearImagenesConUrlFirmada(imagenesDicom)).map(
+			const imagenesConUrl = crearImagenesDicomBajoDemanda(imagenesDicom).map(
 				(imagen) => ({
 					...imagen,
 					estadoVista: estadosPorRuta.get(imagen.storage_path) || null,
@@ -3781,6 +3823,13 @@ const VisorDicom = () => {
 				setPresetsVentanaPorSerie((prev) => ({ ...prev, [primeraSerie.id]: presetPrimeraSerie }));
 			}
 			const primerImageId = primeraSerie?.imageIds?.[0] || null;
+			// Firmar la primera imagen de una vez confirma el permiso -si no hay,
+			// se avisa en lugar de dejar el visor en blanco- y la deja lista para
+			// pintarse.
+			if (primerImageId?.startsWith(`${ESQUEMA_DICOM_FIRMADO}:`)) {
+				const { bucket, ruta } = leerImageIdDicomFirmado(primerImageId);
+				await firmarImagenDicom(bucket, ruta);
+			}
 			const panelesIniciales = Array(6).fill(null);
 			panelesIniciales[0] = primerImageId;
 			cacheSesionVisorDicom.set(String(idEstudio), {
@@ -4584,9 +4633,19 @@ const VisorDicom = () => {
 		setCineActivo(true);
 	};
 
-	const descargarArchivo = () => {
-		const url = (panelImageIds[panelActivo] || imageIds[0])?.replace("wadouri:", "");
-		if (!url) return;
+	const descargarArchivo = async () => {
+		const imageId = panelImageIds[panelActivo] || imageIds[0];
+		if (!imageId) return;
+		let url = imageId.replace("wadouri:", "");
+		if (imageId.startsWith(`${ESQUEMA_DICOM_FIRMADO}:`)) {
+			const { bucket, ruta } = leerImageIdDicomFirmado(imageId);
+			try {
+				url = await firmarImagenDicom(bucket, ruta);
+			} catch {
+				showNotif("No se pudo descargar la imagen", "error");
+				return;
+			}
+		}
 		const a = document.createElement("a");
 		a.href = url;
 		a.download = "estudio.dcm";

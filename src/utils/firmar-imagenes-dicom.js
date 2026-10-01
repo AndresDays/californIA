@@ -76,3 +76,94 @@ export const firmarImagenesDicom = async (
 	}
 	return firmadas;
 };
+
+// Firmar todo el estudio antes de enseñar la primera imagen hacía esperar a un
+// TAC o una resonancia de miles de cortes a que terminaran decenas de lotes.
+// El firmador bajo demanda firma cada corte cuando de verdad se va a cargar:
+// las peticiones que llegan juntas se agrupan en un solo lote, se atienden en
+// el orden en que se pidieron (la imagen en pantalla primero, luego las
+// vecinas) y la URL se reutiliza mientras no esté por expirar.
+export const crearFirmadorDicom = (
+	storage,
+	{ expiraEn = 900, tamanoLote = TAMANO_LOTE_FIRMAS, esperar = esperarMs, ahora = () => Date.now() } = {},
+) => {
+	const firmadas = new Map();
+	const pendientes = new Map();
+	const cola = [];
+	let lotesEnVuelo = 0;
+	let programado = false;
+	// Se vuelve a firmar con un minuto de margen antes de que expire.
+	const vigenciaMs = Math.max(0, expiraEn - 60) * 1000;
+
+	const despachar = () => {
+		programado = false;
+		while (lotesEnVuelo < LOTES_SIMULTANEOS && cola.length) {
+			const bucket = cola[0].bucket;
+			const lote = [];
+			for (let i = 0; i < cola.length && lote.length < tamanoLote; ) {
+				if (cola[i].bucket === bucket) lote.push(...cola.splice(i, 1));
+				else i += 1;
+			}
+			lotesEnVuelo += 1;
+			firmarLote(storage, bucket, lote.map(({ ruta }) => ruta), expiraEn, esperar)
+				.then((respuesta) => {
+					const porRuta = new Map(
+						respuesta.filter((firma) => firma?.signedUrl && !firma.error).map((firma) => [firma.path, firma.signedUrl]),
+					);
+					lote.forEach(({ clave, ruta, resolver, rechazar }) => {
+						pendientes.delete(clave);
+						const url = porRuta.get(ruta);
+						if (url) {
+							firmadas.set(clave, { url, vence: ahora() + vigenciaMs });
+							resolver(url);
+						} else {
+							rechazar(new Error("No se pudo autorizar la imagen del estudio"));
+						}
+					});
+				})
+				.catch((error) =>
+					lote.forEach(({ clave, rechazar }) => {
+						pendientes.delete(clave);
+						rechazar(error);
+					}),
+				)
+				.finally(() => {
+					lotesEnVuelo -= 1;
+					despachar();
+				});
+		}
+	};
+
+	return (bucketOriginal, rutaOriginal) => {
+		const bucket = bucketOriginal || "radiologia";
+		const ruta = normalizarStoragePathDicom(rutaOriginal, bucket);
+		const clave = `${bucket}\n${ruta}`;
+		const vigente = firmadas.get(clave);
+		if (vigente && vigente.vence > ahora()) return Promise.resolve(vigente.url);
+		if (pendientes.has(clave)) return pendientes.get(clave);
+		const promesa = new Promise((resolver, rechazar) => {
+			cola.push({ bucket, ruta, clave, resolver, rechazar });
+		});
+		pendientes.set(clave, promesa);
+		// Se espera al siguiente ciclo para juntar en un lote todo lo que se
+		// pidió a la vez (la imagen visible y su precarga).
+		if (!programado) {
+			programado = true;
+			setTimeout(despachar, 0);
+		}
+		return promesa;
+	};
+};
+
+export const ESQUEMA_DICOM_FIRMADO = "dicomsb";
+
+export const crearImageIdDicomFirmado = (imagen) => {
+	const bucket = imagen.bucket || "radiologia";
+	return `${ESQUEMA_DICOM_FIRMADO}:${bucket}/${normalizarStoragePathDicom(imagen.storage_path, bucket)}`;
+};
+
+export const leerImageIdDicomFirmado = (imageId = "") => {
+	const resto = String(imageId).slice(ESQUEMA_DICOM_FIRMADO.length + 1);
+	const separador = resto.indexOf("/");
+	return { bucket: resto.slice(0, separador), ruta: resto.slice(separador + 1) };
+};

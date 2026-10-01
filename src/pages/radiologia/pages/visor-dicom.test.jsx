@@ -141,6 +141,10 @@ let mockPlantillas = [];
 const mockUpsert = jest.fn(() => Promise.resolve({ error: null }));
 const mockRpc = jest.fn(() => Promise.resolve({ error: null }));
 const mockUpdate = jest.fn();
+const mockCreateSignedUrls = jest.fn((paths) => Promise.resolve({
+  data: paths.map((path) => ({ path, error: null, signedUrl: `https://mock.url/${path}` })),
+  error: null,
+}));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
@@ -210,10 +214,7 @@ jest.mock('../../../lib/supabase-client', () => ({
         upload:       jest.fn(() => Promise.resolve({ error: null })),
         getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://mock.url/file.dcm' } })),
         createSignedUrl: jest.fn((path) => Promise.resolve({ data: { signedUrl: `https://mock.url/${path}` }, error: null })),
-        createSignedUrls: jest.fn((paths) => Promise.resolve({
-          data: paths.map((path) => ({ path, error: null, signedUrl: `https://mock.url/${path}` })),
-          error: null,
-        })),
+        createSignedUrls: (...args) => mockCreateSignedUrls(...args),
       })),
     },
   },
@@ -580,7 +581,7 @@ describe('VisorDicom — Scroll de serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
 
@@ -589,9 +590,28 @@ describe('VisorDicom — Scroll de serie', () => {
 
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenLastCalledWith(
-        'wadouri:https://mock.url/serie/2.dcm',
+        'dicomsb:radiologia/serie/2.dcm',
       ),
     );
+  });
+
+  test('un TAC de 1500 cortes abre sin firmar todo el estudio por adelantado', async () => {
+    mockEstudioId = 'tac-1500';
+    mockDicomImages = Array.from({ length: 1500 }, (_, i) => ({
+      id_imagen: i + 1,
+      storage_path: `tac/${i + 1}.dcm`,
+      series_instance_uid: 'tac-1',
+      instance_number: i + 1,
+    }));
+    await renderVisor();
+
+    await waitFor(() =>
+      expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith('dicomsb:radiologia/tac/1.dcm'),
+    );
+    // Antes de pintar sólo se firma la primera imagen; el resto se firma cuando
+    // se va a cargar, no 15 lotes antes de abrir.
+    expect(mockCreateSignedUrls).toHaveBeenCalledTimes(1);
+    expect(mockCreateSignedUrls.mock.calls[0][0]).toEqual(['tac/1.dcm']);
   });
 
   test('Scroll registra una captura nativa no pasiva de la rueda', async () => {
@@ -627,7 +647,7 @@ describe('VisorDicom — Scroll de serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
     const panel = document.querySelector('.panel-imagen.activo');
@@ -653,7 +673,7 @@ describe('VisorDicom — Scroll de serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
     const panel = document.querySelector('.panel-imagen.activo');
@@ -678,7 +698,7 @@ describe('VisorDicom — Scroll de serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
     const panel = document.querySelector('.panel-imagen.activo');
@@ -702,7 +722,7 @@ describe('VisorDicom — Scroll de serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
 
@@ -720,7 +740,7 @@ describe('VisorDicom — Scroll de serie', () => {
     });
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenLastCalledWith(
-        'wadouri:https://mock.url/serie/2.dcm',
+        'dicomsb:radiologia/serie/2.dcm',
       ),
     );
 
@@ -730,7 +750,7 @@ describe('VisorDicom — Scroll de serie', () => {
     });
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenLastCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
   });
@@ -739,7 +759,7 @@ describe('VisorDicom — Scroll de serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/serie/1.dcm',
+        'dicomsb:radiologia/serie/1.dcm',
       ),
     );
     mockCornerstone.setViewport.mockClear();
@@ -838,7 +858,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/scout/1.dcm',
+        'dicomsb:radiologia/scout/1.dcm',
       ),
     );
 
@@ -864,7 +884,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/dx/torax.dcm',
+        'dicomsb:radiologia/dx/torax.dcm',
       ),
     );
 
@@ -892,7 +912,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
     await renderVisor();
     await waitFor(() =>
       expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/dx/torax.dcm',
+        'dicomsb:radiologia/dx/torax.dcm',
       ),
     );
 
@@ -912,7 +932,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
 
     await renderVisor();
     await waitFor(() => expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-      'wadouri:https://mock.url/dx/torax.dcm',
+      'dicomsb:radiologia/dx/torax.dcm',
     ));
 
     fireEvent.click(screen.getByTitle('W/L'));
@@ -934,7 +954,7 @@ describe('VisorDicom — W/L inicial por serie', () => {
     try {
       await renderVisor();
       await waitFor(() => expect(mockCornerstone.loadAndCacheImage).toHaveBeenCalledWith(
-        'wadouri:https://mock.url/unico/torax.dcm',
+        'dicomsb:radiologia/unico/torax.dcm',
       ));
 
       fireEvent.click(screen.getByTitle('Mover'));
