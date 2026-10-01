@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { useGuardarVisita } from "../../../hooks/use-visitas-medicas";
 import { nombreDoctor } from "../../../utils/comisiones-medicos";
+import CapturaVisita, { contenidoDeCaptura, useCapturaVisita } from "./captura-visita";
 import "../visitadora.css";
-
-// Los valores que más se repiten en su Excel. Es una guía, no una lista cerrada:
-// en el archivo real hay convenios descritos en un párrafo completo.
-const CONVENIOS_SUGERIDOS = ["MIXTO", "PUNTOS", "N/A", "PENDIENTE", "Descuento para Pacientes"];
 
 const VACIA = {
 	fecha: "",
@@ -39,6 +36,9 @@ const ModalVisita = ({
 			? { ...VACIA, ...visita, id_doctor: visita.id_doctor ?? "" }
 			: { ...VACIA, fecha: semana?.desde ?? "" },
 	);
+	// Lo que pasó en la visita se captura igual que al registrarla desde la
+	// agenda: de corrido, con «Acomodar con IA», o campo por campo.
+	const captura = useCapturaVisita(visita);
 	const guardarVisita = useGuardarVisita();
 
 	if (!isOpen) return null;
@@ -65,9 +65,17 @@ const ModalVisita = ({
 			onError?.("La visita necesita fecha y médico.");
 			return;
 		}
+		const { contenido, hayContenido, captura_libre } = contenidoDeCaptura(captura, campos);
+		if (!hayContenido) {
+			onError?.("Escribe al menos las actividades de la visita.");
+			return;
+		}
 		try {
 			await guardarVisita.mutateAsync({
 				...campos,
+				...contenido,
+				tipo_convenio: contenido.tipo_convenio || campos.tipo_convenio,
+				captura_libre,
 				id_doctor: campos.id_doctor === "" ? null : Number(campos.id_doctor),
 				id_empleado: visita?.id_empleado ?? idEmpleado ?? null,
 			});
@@ -76,13 +84,6 @@ const ModalVisita = ({
 			onError?.(fallo.message || "No se pudo guardar la visita.");
 		}
 	};
-
-	const campoLargo = (id, etiqueta, campo) => (
-		<>
-			<label htmlFor={id}>{etiqueta}</label>
-			<textarea id={id} rows={3} value={campos[campo] ?? ""} onChange={cambiar(campo)} />
-		</>
-	);
 
 	return (
 		<div className="visitadora-modal-fondo" role="dialog" aria-modal="true">
@@ -144,24 +145,19 @@ const ModalVisita = ({
 						</div>
 					</div>
 
-					{campoLargo("visita-actividades", "Actividades", "actividades")}
-					{campoLargo("visita-comentarios", "Comentarios del médico", "comentarios_medico")}
-					{campoLargo("visita-observaciones", "Observaciones", "observaciones")}
-					{campoLargo("visita-seguimiento", "Seguimiento", "seguimiento")}
-
-					<label htmlFor="visita-convenio">Tipo de convenio</label>
-					<input
-						id="visita-convenio"
-						type="text"
-						list="convenios-sugeridos"
-						value={campos.tipo_convenio ?? ""}
-						onChange={cambiar("tipo_convenio")}
+					<CapturaVisita
+						captura={captura}
+						campos={campos}
+						setCampos={setCampos}
+						ids={{
+							libre: "visita-libre",
+							actividades: "visita-actividades",
+							comentarios: "visita-comentarios",
+							observaciones: "visita-observaciones",
+							seguimiento: "visita-seguimiento",
+							convenio: "visita-convenio",
+						}}
 					/>
-					<datalist id="convenios-sugeridos">
-						{CONVENIOS_SUGERIDOS.map((convenio) => (
-							<option key={convenio} value={convenio} />
-						))}
-					</datalist>
 
 					<div className="visitadora-modal-acciones">
 						<button type="button" onClick={onClose}>
