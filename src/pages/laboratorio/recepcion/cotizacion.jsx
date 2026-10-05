@@ -7,6 +7,10 @@ import {
 	crearArchivoPdf,
 	descargarArchivo,
 } from "../../../utils/compartir-archivo";
+import {
+	agregarEnlaceAlMensaje,
+	subirTicketCotizacion,
+} from "../../../utils/ticket-cotizacion-enlace";
 import guardarBtn from "../../../assets/guardarBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import ModalNotificacion from "../../../components/ModalNotificacion";
@@ -590,13 +594,24 @@ const Cotizacion = () => {
 			.join("\n");
 	};
 
-	const enlaceWhatsAppCotizacion = (cotizacion) =>
-		`https://wa.me/?text=${encodeURIComponent(construirMensajeCotizacion(cotizacion))}`;
+	const enlaceWhatsAppCotizacion = (cotizacion, mensaje) =>
+		`https://wa.me/?text=${encodeURIComponent(
+			mensaje ?? construirMensajeCotizacion(cotizacion),
+		)}`;
 
-	const enlaceCorreoCotizacion = (cotizacion) =>
+	const enlaceCorreoCotizacion = (cotizacion, mensaje) =>
 		`mailto:?subject=${encodeURIComponent(
 			`Cotización ${cotizacion.numero_cotizacion}`,
-		)}&body=${encodeURIComponent(construirMensajeCotizacion(cotizacion))}`;
+		)}&body=${encodeURIComponent(mensaje ?? construirMensajeCotizacion(cotizacion))}`;
+
+	const abrirCanal = (canal, cotizacion, mensaje, ventana) => {
+		const url =
+			canal === "whatsapp"
+				? enlaceWhatsAppCotizacion(cotizacion, mensaje)
+				: enlaceCorreoCotizacion(cotizacion, mensaje);
+		if (ventana) ventana.location.href = url;
+		else window.open(url, "_blank");
+	};
 
 	// Lo que se manda es el ticket, no un resumen escrito: se arma el PDF y se
 	// entrega por el menú de compartir del sistema, que es lo único que acepta
@@ -622,8 +637,21 @@ const Cotizacion = () => {
 				return;
 			}
 
-			// Sin menú de compartir el adjunto no se puede poner solo: el ticket se
-			// descarga y se abre la conversación con el mensaje, para adjuntarlo.
+			// En el mostrador no hay menú de compartir y `wa.me` sólo lleva texto:
+			// el ticket se sube y lo que viaja en el mensaje es su enlace, para que
+			// el paciente abra el mismo PDF.
+			const enlaceTicket = await subirTicketCotizacion(supabase, {
+				blob: pdf,
+				numeroCotizacion: cotizacion.numero_cotizacion,
+			});
+
+			if (enlaceTicket) {
+				abrirCanal(canal, cotizacion, agregarEnlaceAlMensaje(texto, enlaceTicket), ventana);
+				return;
+			}
+
+			// Sin enlace tampoco se puede adjuntar solo: el ticket se descarga y se
+			// abre la conversación con el mensaje, para adjuntarlo a mano.
 			descargarArchivo(pdf, nombreArchivo);
 			mostrarNotificacion(
 				`Se descargó "${nombreArchivo}": adjúntalo en el mensaje que se abrió.`,
@@ -634,12 +662,7 @@ const Cotizacion = () => {
 			mostrarNotificacion("No se pudo generar el PDF de la cotización", "error");
 		}
 
-		const url =
-			canal === "whatsapp"
-				? enlaceWhatsAppCotizacion(cotizacion)
-				: enlaceCorreoCotizacion(cotizacion);
-		if (ventana) ventana.location.href = url;
-		else window.open(url, "_blank");
+		abrirCanal(canal, cotizacion, texto, ventana);
 	};
 
 	const handleEnviarWhatsAppCotizacion = (cotizacion) =>
