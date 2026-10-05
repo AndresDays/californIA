@@ -13,7 +13,7 @@ jest.mock("../../components/ModalConfirmarEliminacion", () => ({
 	__esModule: true,
 	default: ({ isOpen, nombreElemento }) => (isOpen ? <div>Eliminar {nombreElemento}</div> : null),
 }));
-jest.mock("./componentes/modal-visita", () => ({
+jest.mock("./componentes/modal-registro-visita", () => ({
 	__esModule: true,
 	default: ({ isOpen }) => (isOpen ? <div>Formulario de visita</div> : null),
 }));
