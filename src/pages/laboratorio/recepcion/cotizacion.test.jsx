@@ -113,33 +113,33 @@ describe('Cotizacion — Validaciones', () => {
 });
 
 // Cotizacion — Envío por WhatsApp / correo
-describe('Cotizacion — Envío', () => {
-  let ventana;
-  let openSpy;
+// Ya no se abre una pestaña por adelantado: el ticket se arma primero y el
+// envío sale del clic del aviso, que es lo que deja abrir el menú de compartir
+// del sistema -lo único que manda el PDF adjunto-.
+describe("Cotizacion — Envío", () => {
+	let openSpy;
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    ventana = { location: { href: '' }, close: jest.fn() };
-    openSpy = jest.spyOn(window, 'open').mockReturnValue(ventana);
-  });
+	beforeEach(() => {
+		jest.clearAllMocks();
+		openSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+	});
 
-  afterEach(() => openSpy.mockRestore());
+	afterEach(() => openSpy.mockRestore());
 
-  test.each([
-    ['WhatsApp'],
-    ['Correo'],
-  ])('el botón de %s valida antes de guardar y cierra la pestaña', async (alt) => {
-    await renderCotizacion();
+	test.each([
+		["WhatsApp"],
+		["Correo"],
+	])("el botón de %s valida antes de guardar y no abre nada", async (alt) => {
+		await renderCotizacion();
 
-    await act(async () => {
-      fireEvent.click(screen.getByAltText(alt));
-    });
+		await act(async () => {
+			fireEvent.click(screen.getByAltText(alt));
+		});
 
-    expect(openSpy).toHaveBeenCalledWith('', '_blank');
-    expect(screen.getByRole('alert')).toHaveTextContent(/Por favor/);
-    expect(ventana.close).toHaveBeenCalled();
-    expect(ventana.location.href).toBe('');
-  });
+		expect(screen.getByRole("alert")).toHaveTextContent(/Por favor/);
+		expect(openSpy).not.toHaveBeenCalled();
+		expect(screen.queryByRole("dialog", { name: "Enviar ticket" })).not.toBeInTheDocument();
+	});
 });
 
 // Cotizacion — Interacción

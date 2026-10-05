@@ -74,6 +74,16 @@ const renderCotizacion = async () => {
 	});
 };
 
+// El ticket se arma primero y el envío sale del clic del aviso: el navegador
+// sólo abre el menú de compartir -lo único que adjunta el PDF- desde un clic, y
+// guardar la cotización y armar el ticket se llevaban por delante el del botón.
+const botonDelAviso = async (nombre) => {
+	const boton = await screen.findByRole("button", { name: nombre });
+	await act(async () => {
+		fireEvent.click(boton);
+	});
+};
+
 describe("Enviar una cotización", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -97,6 +107,7 @@ describe("Enviar una cotización", () => {
 		await act(async () => {
 			fireEvent.click(enviarWhatsApp);
 		});
+		await botonDelAviso("Enviar por WhatsApp");
 
 		await waitFor(() => expect(compartir).toHaveBeenCalledTimes(1));
 		const compartido = compartir.mock.calls[0][0];
@@ -124,6 +135,7 @@ describe("Enviar una cotización", () => {
 		await act(async () => {
 			fireEvent.click(enviarWhatsApp);
 		});
+		await botonDelAviso("Enviar por WhatsApp");
 
 		await waitFor(() =>
 			expect(window.open).toHaveBeenCalledWith(
@@ -148,6 +160,7 @@ describe("Enviar una cotización", () => {
 			});
 
 			await waitFor(() => expect(supabase.__almacen.upload).toHaveBeenCalled());
+			await botonDelAviso("Enviar por WhatsApp");
 			const [ruta, blob, opciones] = supabase.__almacen.upload.mock.calls[0];
 			expect(ruta).toBe("COT-01.pdf");
 			expect(blob).toBe(pdfFalso);
@@ -165,6 +178,7 @@ describe("Enviar una cotización", () => {
 			await act(async () => {
 				fireEvent.click(botones[1]);
 			});
+			await botonDelAviso("Enviar por correo");
 
 			await waitFor(() => expect(window.open).toHaveBeenCalled());
 			const [url] = window.open.mock.calls.at(-1);
@@ -187,7 +201,12 @@ describe("Enviar una cotización", () => {
 				fireEvent.click(enviarWhatsApp);
 			});
 
+			// El aviso dice que hay que adjuntarlo a mano y ofrece descargarlo.
+			expect(await screen.findByText(/descarga el ticket/i)).toBeInTheDocument();
+			await botonDelAviso("Descargar PDF");
 			await waitFor(() => expect(clic).toHaveBeenCalled());
+
+			await botonDelAviso("Enviar por WhatsApp");
 			expect(window.open).toHaveBeenCalledWith(
 				expect.stringContaining("https://wa.me/"),
 				"_blank",
@@ -195,3 +214,72 @@ describe("Enviar una cotización", () => {
 			clic.mockRestore();
 		});
 	});
+
+// Era el bug: `navigator.share` sólo abre el menú del sistema mientras el clic
+// de quien envía sigue "vivo", y guardar la cotización y armar el PDF se lo
+// llevaban por delante. El envío se caía al texto aunque el equipo sí pudiera
+// adjuntar. Ahora el ticket se arma antes y se comparte desde el clic del aviso.
+describe("el menú de compartir se abre desde el clic, no después de los awaits", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		generarPDFCotizacion.mockResolvedValue(pdfFalso);
+		window.open = jest.fn(() => ({ location: { href: "" }, close: jest.fn() }));
+	});
+
+	afterEach(() => {
+		delete navigator.share;
+		delete navigator.canShare;
+	});
+
+	test("no se comparte nada hasta que se presiona el aviso", async () => {
+		const compartir = jest.fn().mockResolvedValue(undefined);
+		navigator.canShare = () => true;
+		navigator.share = compartir;
+
+		await renderCotizacion();
+		const [enviarWhatsApp] = await screen.findAllByRole("button", { name: "Enviar" });
+		await act(async () => {
+			fireEvent.click(enviarWhatsApp);
+		});
+
+		// El ticket ya está armado, pero todavía no se mandó nada.
+		expect(await screen.findByText("Ticket listo")).toBeInTheDocument();
+		expect(compartir).not.toHaveBeenCalled();
+
+		await botonDelAviso("Enviar por WhatsApp");
+		expect(compartir).toHaveBeenCalledTimes(1);
+	});
+
+	// Si el equipo puede adjuntar, el ticket no se sube a ningún lado: el PDF
+	// viaja en el mensaje y no hace falta dejarlo publicado.
+	test("pudiendo adjuntar no se sube el ticket", async () => {
+		navigator.canShare = () => true;
+		navigator.share = jest.fn().mockResolvedValue(undefined);
+
+		await renderCotizacion();
+		const [enviarWhatsApp] = await screen.findAllByRole("button", { name: "Enviar" });
+		await act(async () => {
+			fireEvent.click(enviarWhatsApp);
+		});
+		await botonDelAviso("Enviar por WhatsApp");
+
+		expect(supabase.__almacen.upload).not.toHaveBeenCalled();
+		expect(window.open).not.toHaveBeenCalled();
+	});
+
+	test("cancelar el aviso no manda nada", async () => {
+		navigator.canShare = () => true;
+		navigator.share = jest.fn().mockResolvedValue(undefined);
+
+		await renderCotizacion();
+		const [enviarWhatsApp] = await screen.findAllByRole("button", { name: "Enviar" });
+		await act(async () => {
+			fireEvent.click(enviarWhatsApp);
+		});
+		await botonDelAviso("Cancelar");
+
+		expect(navigator.share).not.toHaveBeenCalled();
+		expect(screen.queryByText("Ticket listo")).not.toBeInTheDocument();
+	});
+});
+
