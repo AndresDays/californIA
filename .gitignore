@@ -21,7 +21,11 @@ dist-ssr
 *.sln
 *.sw?
 .env
-.claude
+# Lo de .claude es local -ajustes, hooks, caché- salvo las skills, que son
+# instrucciones compartidas: se versionan para que estén en cualquier sesión y
+# para el resto del equipo.
+.claude/*
+!.claude/skills/
 supabase/.temp
 
 # Terraform local state and runtime secrets
