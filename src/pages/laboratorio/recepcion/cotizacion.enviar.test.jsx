@@ -45,7 +45,21 @@ jest.mock("../../../lib/supabase-client", () => {
 		single: jest.fn().mockResolvedValue({ data: {}, error: null }),
 		order: jest.fn(),
 	};
-	return { supabase: { from: jest.fn(() => cadena), __cadena: cadena } };
+	const almacen = {
+		upload: jest.fn().mockResolvedValue({ error: null }),
+		createSignedUrl: jest.fn().mockResolvedValue({
+			data: { signedUrl: "https://supabase.test/ticket-firmado.pdf" },
+			error: null,
+		}),
+	};
+	return {
+		supabase: {
+			from: jest.fn(() => cadena),
+			storage: { from: jest.fn(() => almacen) },
+			__cadena: cadena,
+			__almacen: almacen,
+		},
+	};
 });
 
 import Cotizacion from "./cotizacion";
@@ -96,9 +110,9 @@ describe("Enviar una cotización", () => {
 		expect(window.open).not.toHaveBeenCalled();
 	});
 
-	// Sin menú de compartir -escritorio- el adjunto no se puede poner solo: el
-	// ticket se descarga y se abre la conversación para adjuntarlo.
-	test("sin menu de compartir se descarga el PDF y se abre WhatsApp", async () => {
+	// Sin menú de compartir -escritorio- el adjunto no se puede poner solo, pero
+	// tampoco hace falta descargarlo: el ticket se sube y viaja como enlace.
+	test("sin menu de compartir no se descarga nada: se manda el enlace", async () => {
 		const clic = jest
 			.spyOn(HTMLAnchorElement.prototype, "click")
 			.mockImplementation(() => {});
@@ -111,11 +125,73 @@ describe("Enviar una cotización", () => {
 			fireEvent.click(enviarWhatsApp);
 		});
 
-		await waitFor(() => expect(clic).toHaveBeenCalled());
-		expect(window.open).toHaveBeenCalledWith(
-			expect.stringContaining("https://wa.me/"),
-			"_blank",
+		await waitFor(() =>
+			expect(window.open).toHaveBeenCalledWith(
+				expect.stringContaining("https://wa.me/"),
+				"_blank",
+			),
 		);
+		expect(clic).not.toHaveBeenCalled();
 		clic.mockRestore();
 	});
 });
+
+	// En el mostrador no hay menú de compartir y `wa.me` sólo lleva texto: el
+	// ticket se sube y el mensaje lleva su enlace, para que el paciente abra el
+	// mismo PDF que se le habría adjuntado.
+	describe("sin menu de compartir, el ticket viaja como enlace", () => {
+		test("sube el PDF y manda su enlace por WhatsApp", async () => {
+			await renderCotizacion();
+			const [enviarWhatsApp] = await screen.findAllByRole("button", { name: "Enviar" });
+			await act(async () => {
+				fireEvent.click(enviarWhatsApp);
+			});
+
+			await waitFor(() => expect(supabase.__almacen.upload).toHaveBeenCalled());
+			const [ruta, blob, opciones] = supabase.__almacen.upload.mock.calls[0];
+			expect(ruta).toBe("COT-01.pdf");
+			expect(blob).toBe(pdfFalso);
+			expect(opciones).toMatchObject({ contentType: "application/pdf", upsert: true });
+
+			await waitFor(() => expect(window.open).toHaveBeenCalled());
+			const [url] = window.open.mock.calls.at(-1);
+			expect(url).toContain("https://wa.me/");
+			expect(decodeURIComponent(url)).toContain("https://supabase.test/ticket-firmado.pdf");
+		});
+
+		test("el correo también lleva el enlace del ticket", async () => {
+			await renderCotizacion();
+			const botones = await screen.findAllByRole("button", { name: "Enviar" });
+			await act(async () => {
+				fireEvent.click(botones[1]);
+			});
+
+			await waitFor(() => expect(window.open).toHaveBeenCalled());
+			const [url] = window.open.mock.calls.at(-1);
+			expect(url).toContain("mailto:");
+			expect(decodeURIComponent(url)).toContain("https://supabase.test/ticket-firmado.pdf");
+		});
+
+		// Una base sin el bucket no deja a recepción sin mandar la cotización.
+		test("si no se puede subir, se descarga el ticket como antes", async () => {
+			supabase.__almacen.upload.mockResolvedValueOnce({ error: { message: "Bucket not found" } });
+			const clic = jest
+				.spyOn(HTMLAnchorElement.prototype, "click")
+				.mockImplementation(() => {});
+			URL.createObjectURL = jest.fn(() => "blob:x");
+			URL.revokeObjectURL = jest.fn();
+
+			await renderCotizacion();
+			const [enviarWhatsApp] = await screen.findAllByRole("button", { name: "Enviar" });
+			await act(async () => {
+				fireEvent.click(enviarWhatsApp);
+			});
+
+			await waitFor(() => expect(clic).toHaveBeenCalled());
+			expect(window.open).toHaveBeenCalledWith(
+				expect.stringContaining("https://wa.me/"),
+				"_blank",
+			);
+			clic.mockRestore();
+		});
+	});

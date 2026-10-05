@@ -82,7 +82,7 @@ describe("Registro rápido de visita", () => {
 	test("nace con la fecha de hoy y el médico ya puesto", async () => {
 		await mostrar();
 		expect(screen.getByLabelText("Fecha")).toHaveValue("2026-09-19");
-		expect(screen.getByLabelText("Médico")).toHaveValue("Ramón Pérez");
+		expect(screen.getByLabelText("Médico / Empresa")).toHaveValue("Ramón Pérez");
 	});
 
 	// Los campos son los del informe semanal, que es el reporte que ella
@@ -288,7 +288,7 @@ describe("Objetivo, actividades y nombre del médico", () => {
 
 	test("el nombre del médico se puede corregir y se guarda corregido", async () => {
 		await mostrar();
-		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "Ramón Pérez Gómez" } });
+		fireEvent.change(screen.getByLabelText("Médico / Empresa"), { target: { value: "Ramón Pérez Gómez" } });
 		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Se presentaron servicios" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
@@ -304,7 +304,7 @@ describe("Objetivo, actividades y nombre del médico", () => {
 
 	test("sin nombre no guarda la visita", async () => {
 		const { onError } = await mostrar();
-		fireEvent.change(screen.getByLabelText("Médico"), { target: { value: "  " } });
+		fireEvent.change(screen.getByLabelText("Médico / Empresa"), { target: { value: "  " } });
 		fireEvent.change(screen.getByLabelText("Actividades"), { target: { value: "Algo" } });
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
