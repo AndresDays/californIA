@@ -21,7 +21,7 @@ import {
 	semanaDesplazada,
 } from "../../utils/semanas-visitadora";
 import { nombreDoctor } from "../../utils/comisiones-medicos";
-import ModalVisita from "./componentes/modal-visita";
+import ModalRegistroVisita from "./componentes/modal-registro-visita";
 import "./visitadora.css";
 
 // La fecha, la especialidad y la ubicación siguen capturándose y siguen en el
@@ -354,7 +354,7 @@ const InformeVisitas = () => {
 				)}
 
 				{modalAbierto && (
-				<ModalVisita
+				<ModalRegistroVisita
 					key={visitaEditar?.id_visita ?? "nueva"}
 					isOpen={modalAbierto}
 					visita={visitaEditar}

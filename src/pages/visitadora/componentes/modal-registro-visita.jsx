@@ -4,6 +4,7 @@ import { useGuardarTarea } from "../../../hooks/use-tareas-seguimiento";
 import { useGuardarAgenda } from "../../../hooks/use-agenda-visitas";
 import { useActualizarContactoMedico } from "../../../hooks/use-directorio-medicos";
 import { TIPOS_VISITA } from "../../../utils/crm-visitadora";
+import { nombreDoctor } from "../../../utils/comisiones-medicos";
 import CapturaVisita, { contenidoDeCaptura, useCapturaVisita } from "./captura-visita";
 import CampoFechaNacimiento from "./campo-fecha-nacimiento";
 import { hoyEnMexico, sumarDias } from "../../../utils/semanas-visitadora";
@@ -12,11 +13,17 @@ import "../visitadora.css";
 // Esto es lo que ella abre saliendo del consultorio, con el celular. Por eso
 // nace con la fecha de hoy y el médico ya puesto: lo único que queda es dictar
 // qué pasó.
+// También es el modal del informe de visitas, donde no se sale de un
+// consultorio sino que se captura una visita suelta: ahí no llega un médico y
+// por eso se puede elegir del catálogo. Los campos son los mismos en los dos
+// lados, que es lo que se pide del reporte.
 const ModalRegistroVisita = ({
 	isOpen,
 	medico,
 	cita,
 	visita,
+	doctores = [],
+	semana,
 	idEmpleado,
 	onClose,
 	onGuardado,
@@ -27,7 +34,12 @@ const ModalRegistroVisita = ({
 	// que ella entrega y con el que lleva años trabajando: capturar con otras
 	// palabras obligaba a traducir cada renglón al llenar el informe.
 	const [campos, setCampos] = useState(() => ({
-		fecha: hoyEnMexico(),
+		// Capturando desde el informe la fecha arranca en la semana que se está
+		// llenando; saliendo del consultorio, hoy.
+		fecha: semana?.desde ?? hoyEnMexico(),
+		// Sin médico de la agenda se liga con el catálogo, que es lo que hace que
+		// la visita cuente para el concentrado de comisiones.
+		id_doctor: medico?.id_doctor ?? visita?.id_doctor ?? "",
 		tipo_visita: cita?.tipo_visita ?? "seguimiento",
 		// El nombre se puede corregir aquí: viene escrito de la agenda y a veces
 		// quedó mal tecleado entre consultorios.
@@ -53,6 +65,7 @@ const ModalRegistroVisita = ({
 			? Object.fromEntries(
 					Object.entries({
 						fecha: visita.fecha,
+						id_doctor: visita.id_doctor ?? "",
 						tipo_visita: visita.tipo_visita,
 						medico_nombre: visita.medico_nombre,
 						especialidad: visita.especialidad,
@@ -79,6 +92,26 @@ const ModalRegistroVisita = ({
 	const cambiar = (campo) => (evento) =>
 		setCampos((previos) => ({ ...previos, [campo]: evento.target.value }));
 
+	// Elegir un doctor del catálogo copia su nombre y su especialidad, para no
+	// volver a teclearlos.
+	const elegirDoctor = (evento) => {
+		const id = evento.target.value;
+		const doctor = doctores.find((candidato) => String(candidato.id_doctor) === id);
+		setCampos((previos) => ({
+			...previos,
+			id_doctor: id,
+			medico_nombre: doctor ? nombreDoctor(doctor) : previos.medico_nombre,
+			especialidad: doctor?.especialidad || previos.especialidad,
+		}));
+	};
+
+	const idDoctorDeLaVisita = () => {
+		if (medico?.id_doctor) return medico.id_doctor;
+		return campos.id_doctor === "" || campos.id_doctor === null
+			? null
+			: Number(campos.id_doctor);
+	};
+
 	const guardar = async (evento) => {
 		evento.preventDefault();
 		if (!campos.medico_nombre.trim()) {
@@ -94,10 +127,10 @@ const ModalRegistroVisita = ({
 			await guardarVisita.mutateAsync({
 				...(visita?.id_visita ? { id_visita: visita.id_visita } : {}),
 				fecha: campos.fecha,
-				id_doctor: medico?.id_doctor ?? null,
+				id_doctor: idDoctorDeLaVisita(),
 				medico_nombre: campos.medico_nombre.trim(),
 				especialidad: campos.especialidad || null,
-				zona: medico?.zona ?? null,
+				zona: medico?.zona ?? visita?.zona ?? null,
 				ubicacion: campos.ubicacion || null,
 				// Éstas son las columnas del informe semanal y de su exportación a
 				// Excel: lo capturado aquí sale tal cual en el reporte que entrega.
@@ -118,7 +151,7 @@ const ModalRegistroVisita = ({
 			// visita vieja no se vuelve a crear: ya existe.
 			if (campos.fecha_seguimiento && !visita) {
 				await guardarTarea.mutateAsync({
-					id_doctor: medico?.id_doctor ?? null,
+					id_doctor: idDoctorDeLaVisita(),
 					medico_nombre: campos.medico_nombre.trim(),
 					tipo: "seguimiento",
 					descripcion: contenido.seguimiento || "Dar seguimiento a la visita",
@@ -174,7 +207,26 @@ const ModalRegistroVisita = ({
 					</div>
 				)}
 				<form onSubmit={guardar}>
-					<label htmlFor="registro-medico">Médico</label>
+					{/* El catálogo sólo se ofrece cuando no se viene de la agenda: ahí
+					    el médico ya está dado y el select sobraría. */}
+					{!medico && doctores.length > 0 && (
+						<>
+							<label htmlFor="registro-doctor">Doctor del catálogo</label>
+							<select
+								id="registro-doctor"
+								value={campos.id_doctor ?? ""}
+								onChange={elegirDoctor}>
+								<option value="">Sin ligar (empresa o médico no dado de alta)</option>
+								{doctores.map((doctor) => (
+									<option key={doctor.id_doctor} value={doctor.id_doctor}>
+										{nombreDoctor(doctor)}
+									</option>
+								))}
+							</select>
+						</>
+					)}
+
+					<label htmlFor="registro-medico">Médico / Empresa</label>
 					<input
 						id="registro-medico"
 						type="text"
