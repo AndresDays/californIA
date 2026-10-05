@@ -708,3 +708,68 @@
 	color: #2e7d32;
 	font-weight: 700;
 }
+
+/* El aviso con el ticket ya armado: su botón es el clic que abre el menú de
+   compartir del sistema, que es lo único que manda el PDF adjunto. */
+.modal-overlay-cot {
+	position: fixed;
+	inset: 0;
+	z-index: 1200;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	background: rgba(18, 41, 61, 0.35);
+	backdrop-filter: blur(4px);
+}
+
+.modal-envio-cot {
+	width: 100%;
+	max-width: 420px;
+	padding: 1.25rem;
+	border-radius: 14px;
+	border: 1px solid var(--borde);
+	background: var(--superficie);
+	box-shadow: 0 20px 60px rgba(18, 41, 61, 0.18);
+	color: var(--texto);
+}
+
+.modal-envio-cot h3 {
+	margin: 0 0 0.5rem;
+	font-size: 1.05rem;
+}
+
+.modal-envio-cot p {
+	margin: 0 0 0.4rem;
+	font-size: 0.88rem;
+}
+
+.modal-envio-nota-cot {
+	color: var(--texto-suave);
+	font-size: 0.8rem !important;
+}
+
+.modal-envio-acciones-cot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.modal-envio-acciones-cot button {
+	padding: 0.5rem 0.85rem;
+	border-radius: 8px;
+	border: 1px solid var(--borde);
+	background: var(--superficie-2);
+	color: var(--texto);
+	font-family: 'Codec Pro', sans-serif;
+	font-size: 0.85rem;
+	cursor: pointer;
+}
+
+.modal-envio-acciones-cot .btn-envio-primario-cot {
+	background: var(--azul-claro);
+	border-color: var(--borde-fuerte);
+	font-weight: 800;
+}
