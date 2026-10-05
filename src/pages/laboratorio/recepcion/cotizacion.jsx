@@ -6,6 +6,7 @@ import {
 	compartirArchivo,
 	crearArchivoPdf,
 	descargarArchivo,
+	puedeCompartirArchivo,
 } from "../../../utils/compartir-archivo";
 import {
 	agregarEnlaceAlMensaje,
@@ -85,6 +86,8 @@ const Cotizacion = () => {
 	// corregir algo. Esto es lo que quedó guardado, para no duplicar la
 	// cotización si se vuelve a presionar guardar sin cambiar nada.
 	const [cotizacionGuardada, setCotizacionGuardada] = useState(null);
+	// El ticket armado, esperando el clic que lo manda.
+	const [envioPendiente, setEnvioPendiente] = useState(null);
 	// Con qué porcentaje se calculó el descuento la vuelta anterior: es lo que
 	// permite distinguir "el cliente ya no tiene descuento" de "lo capturaron a
 	// mano en pesos".
@@ -604,85 +607,97 @@ const Cotizacion = () => {
 			`Cotización ${cotizacion.numero_cotizacion}`,
 		)}&body=${encodeURIComponent(mensaje ?? construirMensajeCotizacion(cotizacion))}`;
 
-	const abrirCanal = (canal, cotizacion, mensaje, ventana) => {
+	const abrirCanal = (canal, cotizacion, mensaje) => {
 		const url =
 			canal === "whatsapp"
 				? enlaceWhatsAppCotizacion(cotizacion, mensaje)
 				: enlaceCorreoCotizacion(cotizacion, mensaje);
-		if (ventana) ventana.location.href = url;
-		else window.open(url, "_blank");
+		window.open(url, "_blank");
 	};
 
-	// Lo que se manda es el ticket, no un resumen escrito: se arma el PDF y se
-	// entrega por el menú de compartir del sistema, que es lo único que acepta
-	// adjuntos. `wa.me` y `mailto:` sólo llevan texto.
-	const enviarCotizacion = async (cotizacion, canal, ventana = null) => {
+	// El ticket se manda por el menú de compartir del sistema, que es lo único
+	// que acepta adjuntos: en Windows ahí aparece WhatsApp y el PDF llega como
+	// archivo, no como un resumen escrito.
+	//
+	// El navegador sólo abre ese menú desde el clic de quien envía, y guardar la
+	// cotización y armar el PDF lleva sus consultas: para cuando terminaban, el
+	// clic ya se había consumido y el envío se caía al texto. Por eso el ticket
+	// se prepara primero y el envío sale de un segundo clic, el de este aviso.
+	const prepararEnvio = async (cotizacion, canal) => {
 		const nombreArchivo = crearNombreArchivoCotizacion(cotizacion.numero_cotizacion);
 		const texto = construirMensajeCotizacion(cotizacion);
+		const titulo = `Cotización ${cotizacion.numero_cotizacion}`;
 
 		try {
 			const pdf = await generarPDFCotizacion(datosTicketCotizacion(cotizacion), {
 				salida: "blob",
 			});
 			const archivo = crearArchivoPdf(pdf, nombreArchivo);
+			const sePuedeAdjuntar = puedeCompartirArchivo(archivo);
 
-			if (
-				await compartirArchivo({
-					archivo,
-					titulo: `Cotización ${cotizacion.numero_cotizacion}`,
-					texto,
-				})
-			) {
-				ventana?.close();
-				return;
-			}
+			// Sin menú de compartir el adjunto no se puede poner solo: el ticket se
+			// sube y lo que viaja en el mensaje es su enlace, para que el paciente
+			// abra el mismo PDF.
+			const enlaceTicket = sePuedeAdjuntar
+				? null
+				: await subirTicketCotizacion(supabase, {
+						blob: pdf,
+						numeroCotizacion: cotizacion.numero_cotizacion,
+					});
 
-			// En el mostrador no hay menú de compartir y `wa.me` sólo lleva texto:
-			// el ticket se sube y lo que viaja en el mensaje es su enlace, para que
-			// el paciente abra el mismo PDF.
-			const enlaceTicket = await subirTicketCotizacion(supabase, {
-				blob: pdf,
-				numeroCotizacion: cotizacion.numero_cotizacion,
+			setEnvioPendiente({
+				cotizacion,
+				canal,
+				archivo,
+				pdf,
+				nombreArchivo,
+				texto,
+				titulo,
+				sePuedeAdjuntar,
+				enlaceTicket,
 			});
-
-			if (enlaceTicket) {
-				abrirCanal(canal, cotizacion, agregarEnlaceAlMensaje(texto, enlaceTicket), ventana);
-				return;
-			}
-
-			// Sin enlace tampoco se puede adjuntar solo: el ticket se descarga y se
-			// abre la conversación con el mensaje, para adjuntarlo a mano.
-			descargarArchivo(pdf, nombreArchivo);
-			mostrarNotificacion(
-				`Se descargó "${nombreArchivo}": adjúntalo en el mensaje que se abrió.`,
-				"advertencia",
-			);
 		} catch (error) {
 			console.error("No se pudo preparar el PDF de la cotización:", error);
 			mostrarNotificacion("No se pudo generar el PDF de la cotización", "error");
 		}
+	};
 
-		abrirCanal(canal, cotizacion, texto, ventana);
+	// Este es el clic que manda: `navigator.share` se llama aquí, sin nada en
+	// medio, que es lo que el navegador exige para abrir el menú del sistema.
+	const enviarTicketPreparado = async () => {
+		if (!envioPendiente) return;
+		const { archivo, titulo, texto, canal, cotizacion, enlaceTicket, sePuedeAdjuntar } =
+			envioPendiente;
+
+		if (sePuedeAdjuntar) {
+			const compartido = await compartirArchivo({ archivo, titulo, texto });
+			setEnvioPendiente(null);
+			if (compartido) return;
+			// El menú no quiso abrirse: queda el camino de siempre.
+			abrirCanal(canal, cotizacion, texto);
+			return;
+		}
+
+		abrirCanal(canal, cotizacion, agregarEnlaceAlMensaje(texto, enlaceTicket));
+		setEnvioPendiente(null);
+	};
+
+	const descargarTicketPreparado = () => {
+		if (!envioPendiente) return;
+		descargarArchivo(envioPendiente.pdf, envioPendiente.nombreArchivo);
 	};
 
 	const handleEnviarWhatsAppCotizacion = (cotizacion) =>
-		enviarCotizacion(cotizacion, "whatsapp");
+		prepararEnvio(cotizacion, "whatsapp");
 
 	const handleEnviarCorreoCotizacion = (cotizacion) =>
-		enviarCotizacion(cotizacion, "correo");
+		prepararEnvio(cotizacion, "correo");
 
-	// Guarda la cotización en segundo plano y manda su ticket por WhatsApp o
-	// correo.
+	// Guarda la cotización en segundo plano y deja su ticket listo para mandar.
 	const guardarYEnviar = async (canal) => {
-		// La ventana se abre antes del await para que el navegador no la bloquee;
-		// si el ticket sale por el menú de compartir, se cierra sin usarse.
-		const ventana = window.open("", "_blank");
 		const cotizacion = await guardarCotizacion({ abrirPDF: false });
-		if (!cotizacion) {
-			ventana?.close();
-			return;
-		}
-		await enviarCotizacion(cotizacion, canal, ventana);
+		if (!cotizacion) return;
+		await prepararEnvio(cotizacion, canal);
 	};
 
 	const empresaActual = empresas.find(
@@ -1138,6 +1153,44 @@ const Cotizacion = () => {
 					estudio={estudioDetalle}
 					onClose={() => setEstudioDetalle(null)}
 				/>
+
+				{/* El envío sale de este clic: el navegador sólo abre el menú de
+				    compartir del sistema -el que adjunta el PDF- desde un clic, y
+				    armar el ticket se lleva por delante el del botón de enviar. */}
+				{envioPendiente && (
+					<div className="modal-overlay-cot" role="dialog" aria-label="Enviar ticket">
+						<div className="modal-envio-cot">
+							<h3>Ticket listo</h3>
+							<p>
+								Cotización {envioPendiente.cotizacion.numero_cotizacion} de{" "}
+								{envioPendiente.cotizacion.nombre_paciente}.
+							</p>
+							<p className="modal-envio-nota-cot">
+								{envioPendiente.sePuedeAdjuntar
+									? "Se abrirá el menú de compartir para mandar el PDF adjunto."
+									: envioPendiente.enlaceTicket
+										? "Este equipo no puede adjuntar archivos: el mensaje lleva el enlace al ticket."
+										: "Este equipo no puede adjuntar archivos: descarga el ticket y adjúntalo en el mensaje."}
+							</p>
+							<div className="modal-envio-acciones-cot">
+								<button type="button" onClick={() => setEnvioPendiente(null)}>
+									Cancelar
+								</button>
+								<button type="button" onClick={descargarTicketPreparado}>
+									Descargar PDF
+								</button>
+								<button
+									type="button"
+									className="btn-envio-primario-cot"
+									onClick={enviarTicketPreparado}>
+									{envioPendiente.canal === "whatsapp"
+										? "Enviar por WhatsApp"
+										: "Enviar por correo"}
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
 
 				<ModalNotificacion
 					isOpen={notificacion.isOpen}
