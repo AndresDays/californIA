@@ -66,15 +66,15 @@ const InformeVisitas = () => {
 	const eliminarVisita = useEliminarVisita();
 	const importarVisitas = useImportarVisitas();
 
-	// La zona no está en el catálogo de doctores sino en su ficha comercial:
-	// sin cruzarla, la visita capturada aquí se guardaba sin zona y el reporte
-	// la dejaba en blanco.
+	// La ubicación no está en el catálogo de doctores sino en su ficha
+	// comercial: se cruza para que elegir al médico la proponga.
 	const { medicos } = useDirectorioMedicos();
 	const doctores = useMemo(() => {
-		const zonaPorDoctor = new Map(medicos.map((medico) => [medico.id_doctor, medico.zona]));
+		const fichaPorDoctor = new Map(medicos.map((medico) => [medico.id_doctor, medico]));
 		return (doctoresResult?.data ?? []).map((doctor) => ({
 			...doctor,
-			zona: zonaPorDoctor.get(doctor.id_doctor) ?? null,
+			zona: fichaPorDoctor.get(doctor.id_doctor)?.zona ?? null,
+			ubicacion: fichaPorDoctor.get(doctor.id_doctor)?.ubicacion ?? null,
 		}));
 	}, [doctoresResult, medicos]);
 

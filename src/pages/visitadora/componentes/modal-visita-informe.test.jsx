@@ -187,9 +187,9 @@ describe("los campos del informe son los de la agenda", () => {
 		);
 	});
 
-	// El reporte filtra y agrupa por zona: la visita capturada desde el informe
-	// se guardaba sin ella porque el informe no le pasa médico al modal.
-	test("el doctor elegido le pone su zona a la visita", async () => {
+	// El reporte filtra y agrupa por zona, y para ella la zona es la ubicación:
+	// la visita capturada desde el informe se guardaba sin zona.
+	test("el doctor elegido propone su zona como ubicación", async () => {
 		render(
 			<ModalRegistroVisita
 				{...props}
@@ -200,7 +200,8 @@ describe("los campos del informe son los de la agenda", () => {
 		fireEvent.change(screen.getByLabelText("Doctor del catálogo"), {
 			target: { value: "3" },
 		});
-		expect(screen.getByLabelText("Zona")).toHaveValue("Centro");
+		expect(screen.getByLabelText("Ubicación")).toHaveValue("Centro");
+		expect(screen.queryByLabelText("Zona")).not.toBeInTheDocument();
 
 		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
 			target: { value: "Entrega de órdenes" },
@@ -210,16 +211,15 @@ describe("los campos del informe son los de la agenda", () => {
 		});
 
 		expect(mockGuardarVisita).toHaveBeenCalledWith(
-			expect.objectContaining({ id_doctor: 3, zona: "Centro" }),
+			expect.objectContaining({ id_doctor: 3, ubicacion: "Centro", zona: "Centro" }),
 		);
 	});
 
-	test("sin zona en la ficha se puede escribir a mano", async () => {
+	test("la ubicación escrita se guarda también como zona", async () => {
 		render(<ModalRegistroVisita {...props} doctores={[]} />);
 
 		fireEvent.change(screen.getByLabelText("Médico / Empresa"), { target: { value: "Dr. Ruiz" } });
-		fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Hospital Amerimed" } });
-		fireEvent.change(screen.getByLabelText("Zona"), { target: { value: "Marina" } });
+		fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Marina" } });
 		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
 			target: { value: "Entrega de órdenes" },
 		});
@@ -228,7 +228,7 @@ describe("los campos del informe son los de la agenda", () => {
 		});
 
 		expect(mockGuardarVisita).toHaveBeenCalledWith(
-			expect.objectContaining({ ubicacion: "Hospital Amerimed", zona: "Marina" }),
+			expect.objectContaining({ ubicacion: "Marina", zona: "Marina" }),
 		);
 	});
 

@@ -46,9 +46,6 @@ const ModalRegistroVisita = ({
 		medico_nombre: medico?.nombre_completo ?? medico?.nombre ?? cita?.medico_nombre ?? "",
 		especialidad: medico?.especialidad ?? "",
 		ubicacion: medico?.hospital ?? medico?.direccion_consultorio ?? "",
-		// La zona es la columna por la que se filtra el reporte: sale de la ficha
-		// del médico o de la cita, y se puede escribir cuando ninguna la trae.
-		zona: medico?.zona ?? cita?.zona ?? "",
 		// Las actividades nacen en blanco: son lo que pasó en la visita, no lo que
 		// se pensaba hacer.
 		actividades: "",
@@ -73,7 +70,6 @@ const ModalRegistroVisita = ({
 						medico_nombre: visita.medico_nombre,
 						especialidad: visita.especialidad,
 						ubicacion: visita.ubicacion,
-						zona: visita.zona,
 						actividades: visita.actividades ?? visita.objetivo,
 						comentarios_medico: visita.comentarios_medico,
 						observaciones: visita.observaciones ?? visita.resultado,
@@ -106,7 +102,9 @@ const ModalRegistroVisita = ({
 			id_doctor: id,
 			medico_nombre: doctor ? nombreDoctor(doctor) : previos.medico_nombre,
 			especialidad: doctor?.especialidad || previos.especialidad,
-			zona: doctor?.zona || previos.zona,
+			// La ubicación es la zona del reporte: si no se ha escrito, se toma de
+			// la ficha del médico elegido.
+			ubicacion: previos.ubicacion || doctor?.zona || doctor?.ubicacion || "",
 		}));
 	};
 
@@ -135,7 +133,9 @@ const ModalRegistroVisita = ({
 				id_doctor: idDoctorDeLaVisita(),
 				medico_nombre: campos.medico_nombre.trim(),
 				especialidad: campos.especialidad || null,
-				zona: campos.zona?.trim() || null,
+				// Ubicación y zona son lo mismo para ella: lo que escribe como
+				// ubicación es lo que el reporte muestra y filtra como zona.
+				zona: campos.ubicacion?.trim() || medico?.zona || cita?.zona || null,
 				ubicacion: campos.ubicacion || null,
 				// Éstas son las columnas del informe semanal y de su exportación a
 				// Excel: lo capturado aquí sale tal cual en el reporte que entrega.
@@ -300,15 +300,6 @@ const ModalRegistroVisita = ({
 								type="text"
 								value={campos.ubicacion}
 								onChange={cambiar("ubicacion")}
-							/>
-						</div>
-						<div>
-							<label htmlFor="registro-zona">Zona</label>
-							<input
-								id="registro-zona"
-								type="text"
-								value={campos.zona}
-								onChange={cambiar("zona")}
 							/>
 						</div>
 					</div>
