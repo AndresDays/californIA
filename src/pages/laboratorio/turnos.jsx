@@ -8,6 +8,7 @@ import { useCitasHoy, useTurnos } from "../../hooks/use-turnos";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	generarCodigoTurno,
+	nombreCortoPaciente,
 	obtenerNombrePrivado,
 	obtenerRangoDiaLocalISO,
 	ordenarTurnosPorCola,
@@ -105,7 +106,7 @@ const Turnos = () => {
 
 			const query = supabase
 				.from("pacientes")
-				.select("id_paciente, nombre, telefono")
+				.select("id_paciente, nombre, primer_nombre, apellido_paterno, telefono")
 				.limit(8);
 			const { data, error } = !Number.isNaN(Number(termino))
 				? await query.or(`id_paciente.eq.${termino},telefono.ilike.%${termino}%`)
@@ -134,9 +135,14 @@ const Turnos = () => {
 		]);
 
 	const crearTurno = async ({ cita = null } = {}) => {
+		// La sala de espera es pública y no puede leer la tabla de pacientes:
+		// el turno guarda ya el primer nombre y el primer apellido. Sólo un
+		// nombre escrito a mano se guarda tal cual.
 		const pacienteNombre =
+			nombreCortoPaciente(cita?.pacientes) ||
 			cita?.pacientes?.nombre ||
 			cita?.nombre_paciente ||
+			nombreCortoPaciente(pacienteSeleccionado) ||
 			pacienteSeleccionado?.nombre ||
 			nombreManual;
 

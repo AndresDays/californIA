@@ -37,7 +37,7 @@ export const useCitasHoy = () => {
 			const { data, error } = await supabase
 				.from('citas')
 				.select(
-					'id_cita, fecha_estudio, tipo_estudio, nombre_paciente, pacientes(id_paciente, nombre)',
+					'id_cita, fecha_estudio, tipo_estudio, nombre_paciente, pacientes(id_paciente, nombre, primer_nombre, apellido_paterno)',
 				)
 				.gte('fecha_estudio', rango.inicio)
 				.lt('fecha_estudio', rango.fin)

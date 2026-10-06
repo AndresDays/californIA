@@ -2,6 +2,7 @@ import {
 	esTurnoActivo,
 	generarCodigoTurno,
 	obtenerRangoDiaLocalISO,
+	nombreCortoPaciente,
 	obtenerNombrePrivado,
 	ordenarTurnosPorCola,
 	resolverDestinoTurnoDesdeEstudios,
@@ -15,9 +16,29 @@ describe("turnos-pacientes", () => {
 	});
 
 	it("privatiza nombres completos para pantalla publica", () => {
-		expect(obtenerNombrePrivado("Maria Fernanda Lopez")).toBe("Maria F.");
+		expect(obtenerNombrePrivado("Maria Lopez Garcia")).toBe("Maria Lopez");
+		expect(obtenerNombrePrivado("Maria Fernanda Lopez Garcia")).toBe("Maria Lopez");
+		expect(obtenerNombrePrivado("Juan De la Cruz Perez")).toBe("Juan De la Cruz");
+		expect(obtenerNombrePrivado("Maria Lopez")).toBe("Maria Lopez");
 		expect(obtenerNombrePrivado("Luis")).toBe("Luis");
 		expect(obtenerNombrePrivado("")).toBe("Paciente");
+	});
+
+	// El nombre completo se guarda con los apellidos primero: el corto sale de
+	// los campos separados.
+	it("arma el primer nombre y el primer apellido del paciente", () => {
+		expect(
+			nombreCortoPaciente({
+				nombre: "Lopez Garcia Maria Fernanda",
+				primer_nombre: "Maria",
+				apellido_paterno: "Lopez",
+			}),
+		).toBe("Maria Lopez");
+		expect(nombreCortoPaciente({ primer_nombre: "Maria Fernanda", apellido_paterno: "Del Rio" })).toBe(
+			"Maria Del Rio",
+		);
+		expect(nombreCortoPaciente({ nombre: "Lopez Garcia Maria" })).toBeNull();
+		expect(nombreCortoPaciente(null)).toBeNull();
 	});
 
 	it("ordena por prioridad y hora programada", () => {

@@ -102,7 +102,12 @@ describe("Turnos", () => {
 				fecha_estudio: `${fechaHoy}T18:00:00`,
 				tipo_estudio: "QUIMICA SANGUINEA DE 3 ELEMENTOS",
 				nombre_paciente: "Juan Andres Diaz Rodriguez",
-				pacientes: { id_paciente: 7, nombre: "Juan Andres Diaz Rodriguez" },
+				pacientes: {
+					id_paciente: 7,
+					nombre: "Juan Andres Diaz Rodriguez",
+					primer_nombre: "Juan Andres",
+					apellido_paterno: "Diaz",
+				},
 			},
 		];
 	});
@@ -129,7 +134,9 @@ describe("Turnos", () => {
 			expect.objectContaining({
 				id_paciente: 7,
 				id_cita: 10,
-				nombre_paciente: "Juan Andres Diaz Rodriguez",
+				// El turno sale a la sala de espera con el primer nombre y el
+				// primer apellido.
+				nombre_paciente: "Juan Diaz",
 				area: "Tomografía 1",
 				destino: "Tomografía 1",
 			}),
@@ -157,11 +164,11 @@ describe("Turnos", () => {
 
 		renderTurnos();
 
-		expect(await screen.findByText("Maria L.")).toBeInTheDocument();
+		expect(await screen.findByText("Maria Lopez")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Llamar" }));
 
 		await waitFor(() => {
-			expect(screen.getByText(/Sin llamados activos|Maria L\./)).toBeInTheDocument();
+			expect(screen.getByText(/Sin llamados activos|Maria Lopez/)).toBeInTheDocument();
 		});
 		expect(turnosData[0].estado).toBe("llamado");
 		expect(turnosData[0].llamado_en).toBeTruthy();

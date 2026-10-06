@@ -31,11 +31,44 @@ export const TURNO_DESTINOS = [
 export const normalizarNombrePaciente = (nombre = "") =>
 	String(nombre).trim().replace(/\s+/g, " ");
 
+// "De la Cruz" o "Del Río" son un solo apellido: las partículas se pegan a la
+// palabra que sigue para que no cuenten como nombres sueltos.
+const PARTICULAS = new Set(["de", "del", "la", "las", "los", "y", "san", "van", "von", "mc"]);
+
+const agruparPalabras = (nombre = "") => {
+	const palabras = normalizarNombrePaciente(nombre).split(" ").filter(Boolean);
+	const grupos = [];
+	let pendiente = [];
+	for (const palabra of palabras) {
+		pendiente.push(palabra);
+		if (!PARTICULAS.has(palabra.toLowerCase())) {
+			grupos.push(pendiente.join(" "));
+			pendiente = [];
+		}
+	}
+	if (pendiente.length) grupos.push(pendiente.join(" "));
+	return grupos;
+};
+
+// En turnos y en la sala de espera va el primer nombre y el primer apellido.
+// Un nombre escrito a mano llega como "Nombre(s) Paterno Materno": con tres
+// palabras el apellido es la segunda; con cuatro o más, la penúltima.
 export const obtenerNombrePrivado = (nombre = "") => {
-	const partes = normalizarNombrePaciente(nombre).split(" ").filter(Boolean);
+	const partes = agruparPalabras(nombre);
 	if (partes.length === 0) return "Paciente";
-	if (partes.length === 1) return partes[0];
-	return `${partes[0]} ${partes[1].charAt(0)}.`;
+	if (partes.length <= 2) return partes.join(" ");
+	if (partes.length === 3) return `${partes[0]} ${partes[1]}`;
+	return `${partes[0]} ${partes[partes.length - 2]}`;
+};
+
+// El nombre completo del paciente se guarda con los apellidos primero, así que
+// no sirve para sacar el primer nombre: se arma con los campos separados.
+// Devuelve null cuando el paciente no los tiene capturados.
+export const nombreCortoPaciente = (paciente) => {
+	const primerNombre = normalizarNombrePaciente(paciente?.primer_nombre).split(" ")[0];
+	const apellido = normalizarNombrePaciente(paciente?.apellido_paterno);
+	if (!primerNombre || !apellido) return null;
+	return `${primerNombre} ${apellido}`;
 };
 
 export const generarCodigoTurno = (consecutivo = 1, prefijo = "A") => {
