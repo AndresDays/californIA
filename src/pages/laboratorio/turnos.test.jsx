@@ -102,12 +102,7 @@ describe("Turnos", () => {
 				fecha_estudio: `${fechaHoy}T18:00:00`,
 				tipo_estudio: "QUIMICA SANGUINEA DE 3 ELEMENTOS",
 				nombre_paciente: "Juan Andres Diaz Rodriguez",
-				pacientes: {
-					id_paciente: 7,
-					nombre: "Juan Andres Diaz Rodriguez",
-					primer_nombre: "Juan Andres",
-					apellido_paterno: "Diaz",
-				},
+				pacientes: { id_paciente: 7, nombre: "Juan Andres Diaz Rodriguez" },
 			},
 		];
 	});
@@ -134,9 +129,7 @@ describe("Turnos", () => {
 			expect.objectContaining({
 				id_paciente: 7,
 				id_cita: 10,
-				// El turno sale a la sala de espera con el primer nombre y el
-				// primer apellido.
-				nombre_paciente: "Juan Diaz",
+				nombre_paciente: "Juan Andres Diaz Rodriguez",
 				area: "Tomografía 1",
 				destino: "Tomografía 1",
 			}),

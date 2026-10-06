@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase-client";
 import {
-	obtenerNombrePrivado,
+	obtenerNombreTurno,
 	obtenerRangoDiaLocalISO,
 	TURNO_ESTADOS,
 } from "../utils/turnos-pacientes";
@@ -113,7 +113,7 @@ const SalaEspera = () => {
 					<>
 						<p className="sala-kicker">Es turno de</p>
 						<div className="sala-turn-code">{turnoActual.codigo_turno}</div>
-						<h1>{obtenerNombrePrivado(turnoActual.nombre_paciente)}</h1>
+						<h1>{obtenerNombreTurno(turnoActual.nombre_paciente)}</h1>
 						<p className="sala-destination">Pase a {turnoActual.destino || "recepcion"}</p>
 					</>
 				) : (

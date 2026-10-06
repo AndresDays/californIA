@@ -7,7 +7,7 @@ const turnosPublicos = [
 	{
 		id_turno: 1,
 		codigo_turno: "A-010",
-		nombre_paciente: "Maria Fernanda Lopez Garcia",
+		nombre_paciente: "Maria Fernanda Lopez",
 		destino: "Ultrasonido 1",
 		estado: "llamado",
 		fecha_programada: ahora,
@@ -55,7 +55,7 @@ describe("SalaEspera", () => {
 		render(<SalaEspera />);
 
 		expect(await screen.findByText("A-010")).toBeInTheDocument();
-		expect(screen.getByText("Maria Lopez")).toBeInTheDocument();
+		expect(screen.getByText("Maria Fernanda Lopez")).toBeInTheDocument();
 		expect(screen.getByText(/Pase a Ultrasonido 1/i)).toBeInTheDocument();
 		expect(screen.getByText("A-009")).toBeInTheDocument();
 		expect(screen.getByText("Laboratorio")).toBeInTheDocument();
