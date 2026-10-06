@@ -7,8 +7,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #080d18;
-	border-bottom: 1px solid rgba(73, 178, 212, 0.15);
+	background: var(--superficie);
+	border-bottom: 1px solid var(--borde);
 }
 
 .vp-logo {
@@ -57,7 +57,7 @@
 	position: absolute;
 	inset: 0;
 	overflow: auto;
-	background: #080f14;
+	background: var(--superficie);
 }
 
 .vp-reporte-scroll .rr-page,
@@ -153,7 +153,7 @@
 		width: 100%;
 		flex-shrink: 0;
 		border-right: none;
-		border-top: 1px solid rgba(73, 178, 212, 0.12);
+		border-top: 1px solid var(--borde);
 		max-height: 132px;
 	}
 
