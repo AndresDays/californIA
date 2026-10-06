@@ -187,6 +187,51 @@ describe("los campos del informe son los de la agenda", () => {
 		);
 	});
 
+	// El reporte filtra y agrupa por zona: la visita capturada desde el informe
+	// se guardaba sin ella porque el informe no le pasa médico al modal.
+	test("el doctor elegido le pone su zona a la visita", async () => {
+		render(
+			<ModalRegistroVisita
+				{...props}
+				doctores={[{ id_doctor: 3, nombre: "Saúl Ruiz", zona: "Centro" }]}
+			/>,
+		);
+
+		fireEvent.change(screen.getByLabelText("Doctor del catálogo"), {
+			target: { value: "3" },
+		});
+		expect(screen.getByLabelText("Zona")).toHaveValue("Centro");
+
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Entrega de órdenes" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ id_doctor: 3, zona: "Centro" }),
+		);
+	});
+
+	test("sin zona en la ficha se puede escribir a mano", async () => {
+		render(<ModalRegistroVisita {...props} doctores={[]} />);
+
+		fireEvent.change(screen.getByLabelText("Médico / Empresa"), { target: { value: "Dr. Ruiz" } });
+		fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Hospital Amerimed" } });
+		fireEvent.change(screen.getByLabelText("Zona"), { target: { value: "Marina" } });
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Entrega de órdenes" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ ubicacion: "Hospital Amerimed", zona: "Marina" }),
+		);
+	});
+
 	// Saliendo del consultorio el médico ya está dado: el select sobra.
 	test("desde la agenda no se ofrece el catálogo", () => {
 		render(

@@ -49,10 +49,21 @@ const Reportes = () => {
 	const { medicos } = useDirectorioMedicos();
 	// El histórico completo hace falta para dos cosas: saber si un médico es
 	// nuevo (su primera visita de siempre) y llenar los filtros de convenio.
-	const { data: historico = [], isLoading, error } = useVisitasMedicas({
+	const { data: visitasGuardadas = [], isLoading, error } = useVisitasMedicas({
 		desde: "2000-01-01",
 		hasta: "2100-01-01",
 	});
+	// Las visitas capturadas desde el informe se guardaban sin zona. Para que
+	// no salgan en blanco -ni se escapen del filtro de zona- toman la de la
+	// ficha del médico cuando no traen una propia.
+	const historico = useMemo(() => {
+		const zonaPorDoctor = new Map(medicos.map((medico) => [medico.id_doctor, medico.zona]));
+		return visitasGuardadas.map((visita) =>
+			visita.zona || !zonaPorDoctor.get(visita.id_doctor)
+				? visita
+				: { ...visita, zona: zonaPorDoctor.get(visita.id_doctor) },
+		);
+	}, [visitasGuardadas, medicos]);
 	const { data: tareas = [] } = useTareasSeguimiento({});
 	const { data: ordenes = [] } = useOrdenesEntregadas({});
 

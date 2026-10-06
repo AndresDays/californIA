@@ -185,7 +185,7 @@
 
 .cal-grid {
 	display: grid;
-	grid-template-columns: 78px repeat(8, minmax(188px, 1fr));
+	grid-template-columns: 78px repeat(6, minmax(188px, 1fr));
 	min-width: 1582px;
 }
 
@@ -337,19 +337,9 @@
    columna y las tarjetas que cuelgan de ella: antes la tarjeta tomaba el color
    del texto -azul para casi todas- y no se podía saber de un vistazo a qué
    columna pertenecía la que se estaba mirando. */
-.cal-study-header.tipo-lab,
-.cal-card.tipo-lab {
-	--cal-color: #10b981;
-}
-
 .cal-study-header.tipo-ultrasonido,
 .cal-card.tipo-ultrasonido {
 	--cal-color: #eab308;
-}
-
-.cal-study-header.tipo-rayos-x,
-.cal-card.tipo-rayos-x {
-	--cal-color: #0284c7;
 }
 
 .cal-study-header.tipo-tac,
