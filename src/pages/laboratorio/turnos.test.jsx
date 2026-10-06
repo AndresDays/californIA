@@ -157,11 +157,11 @@ describe("Turnos", () => {
 
 		renderTurnos();
 
-		expect(await screen.findByText("Maria L.")).toBeInTheDocument();
+		expect(await screen.findByText("Maria Lopez")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Llamar" }));
 
 		await waitFor(() => {
-			expect(screen.getByText(/Sin llamados activos|Maria L\./)).toBeInTheDocument();
+			expect(screen.getByText(/Sin llamados activos|Maria Lopez/)).toBeInTheDocument();
 		});
 		expect(turnosData[0].estado).toBe("llamado");
 		expect(turnosData[0].llamado_en).toBeTruthy();

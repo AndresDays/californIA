@@ -8,7 +8,7 @@ import { useCitasHoy, useTurnos } from "../../hooks/use-turnos";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import {
 	generarCodigoTurno,
-	obtenerNombrePrivado,
+	obtenerNombreTurno,
 	obtenerRangoDiaLocalISO,
 	ordenarTurnosPorCola,
 	resolverDestinoTurnoDesdeEstudios,
@@ -165,7 +165,7 @@ const Turnos = () => {
 			return;
 		}
 
-		setMensaje(`Turno ${payload.codigo_turno} creado para ${obtenerNombrePrivado(payload.nombre_paciente)}.`);
+		setMensaje(`Turno ${payload.codigo_turno} creado para ${obtenerNombreTurno(payload.nombre_paciente)}.`);
 		setBusquedaPaciente("");
 		setPacienteSeleccionado(null);
 		setNombreManual("");
@@ -341,7 +341,7 @@ const Turnos = () => {
 									<div className="turno-card-main">
 										<span className="turno-code">{turno.codigo_turno}</span>
 										<div>
-											<strong>{obtenerNombrePrivado(turno.nombre_paciente)}</strong>
+											<strong>{obtenerNombreTurno(turno.nombre_paciente)}</strong>
 											<span>{turno.area} - {formatHora(turno.fecha_programada)}</span>
 										</div>
 									</div>
@@ -376,7 +376,7 @@ const Turnos = () => {
 									<div className="turno-card-main">
 										<span className="turno-code">{turno.codigo_turno}</span>
 										<div>
-											<strong>{obtenerNombrePrivado(turno.nombre_paciente)}</strong>
+											<strong>{obtenerNombreTurno(turno.nombre_paciente)}</strong>
 											<span>{turno.destino || "Sin destino"} - {formatHora(turno.llamado_en)}</span>
 										</div>
 									</div>

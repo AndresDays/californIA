@@ -102,6 +102,9 @@ const ModalRegistroVisita = ({
 			id_doctor: id,
 			medico_nombre: doctor ? nombreDoctor(doctor) : previos.medico_nombre,
 			especialidad: doctor?.especialidad || previos.especialidad,
+			// La ubicación es la zona del reporte: si no se ha escrito, se toma de
+			// la ficha del médico elegido.
+			ubicacion: previos.ubicacion || doctor?.zona || doctor?.ubicacion || "",
 		}));
 	};
 
@@ -130,7 +133,9 @@ const ModalRegistroVisita = ({
 				id_doctor: idDoctorDeLaVisita(),
 				medico_nombre: campos.medico_nombre.trim(),
 				especialidad: campos.especialidad || null,
-				zona: medico?.zona ?? visita?.zona ?? null,
+				// Ubicación y zona son lo mismo para ella: lo que escribe como
+				// ubicación es lo que el reporte muestra y filtra como zona.
+				zona: campos.ubicacion?.trim() || medico?.zona || cita?.zona || null,
 				ubicacion: campos.ubicacion || null,
 				// Éstas son las columnas del informe semanal y de su exportación a
 				// Excel: lo capturado aquí sale tal cual en el reporte que entrega.

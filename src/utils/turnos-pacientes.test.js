@@ -2,7 +2,7 @@ import {
 	esTurnoActivo,
 	generarCodigoTurno,
 	obtenerRangoDiaLocalISO,
-	obtenerNombrePrivado,
+	obtenerNombreTurno,
 	ordenarTurnosPorCola,
 	resolverDestinoTurnoDesdeEstudios,
 	TURNO_ESTADOS,
@@ -15,9 +15,9 @@ describe("turnos-pacientes", () => {
 	});
 
 	it("privatiza nombres completos para pantalla publica", () => {
-		expect(obtenerNombrePrivado("Maria Fernanda Lopez")).toBe("Maria F.");
-		expect(obtenerNombrePrivado("Luis")).toBe("Luis");
-		expect(obtenerNombrePrivado("")).toBe("Paciente");
+		expect(obtenerNombreTurno("Lopez  Garcia Maria Fernanda")).toBe("Lopez Garcia Maria Fernanda");
+		expect(obtenerNombreTurno("Luis")).toBe("Luis");
+		expect(obtenerNombreTurno("")).toBe("Paciente");
 	});
 
 	it("ordena por prioridad y hora programada", () => {

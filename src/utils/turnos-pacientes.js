@@ -31,12 +31,11 @@ export const TURNO_DESTINOS = [
 export const normalizarNombrePaciente = (nombre = "") =>
 	String(nombre).trim().replace(/\s+/g, " ");
 
-export const obtenerNombrePrivado = (nombre = "") => {
-	const partes = normalizarNombrePaciente(nombre).split(" ").filter(Boolean);
-	if (partes.length === 0) return "Paciente";
-	if (partes.length === 1) return partes[0];
-	return `${partes[0]} ${partes[1].charAt(0)}.`;
-};
+// En turnos y en la sala de espera va el nombre completo: recortado al nombre
+// y una inicial no se sabía a quién se llamaba, porque el nombre se guarda con
+// los apellidos primero y salía "Lopez G.".
+export const obtenerNombreTurno = (nombre = "") =>
+	normalizarNombrePaciente(nombre) || "Paciente";
 
 export const generarCodigoTurno = (consecutivo = 1, prefijo = "A") => {
 	const numero = Number.isFinite(Number(consecutivo)) ? Number(consecutivo) : 1;

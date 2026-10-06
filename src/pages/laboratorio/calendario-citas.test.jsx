@@ -81,11 +81,13 @@ test("muestra agenda diaria por horas y columnas de tipo de estudio", () => {
 	expect(screen.getByRole("rowheader", { name: "7:30 PM" })).toBeInTheDocument();
 	expect(screen.queryByRole("rowheader", { name: "8:00 PM" })).not.toBeInTheDocument();
 
-	expect(screen.getByRole("columnheader", { name: /lab/i })).toBeInTheDocument();
 	expect(screen.getByRole("columnheader", { name: /ultrasonido/i })).toBeInTheDocument();
-	expect(screen.getByRole("columnheader", { name: /rayos x/i })).toBeInTheDocument();
 	expect(screen.getByRole("columnheader", { name: /tac/i })).toBeInTheDocument();
 	expect(screen.getByRole("columnheader", { name: /resonancia/i })).toBeInTheDocument();
+
+	// Laboratorio y Rayos X no se agendan por horario: no llevan columna.
+	expect(screen.queryByRole("columnheader", { name: /lab/i })).not.toBeInTheDocument();
+	expect(screen.queryByRole("columnheader", { name: /rayos x/i })).not.toBeInTheDocument();
 
 	expect(screen.getByText(/TAC abdomen/i)).toBeInTheDocument();
 	expect(screen.getByText(/Lucia Root/i)).toBeInTheDocument();
@@ -149,7 +151,7 @@ test("el buscador ignora acentos y avisa cuando no hay coincidencias", () => {
 	).toBeInTheDocument();
 });
 
-// Filtrar la agenda no basta: entre 26 horarios y ocho columnas la cita sigue
+// Filtrar la agenda no basta: entre 26 horarios y seis columnas la cita sigue
 // costando de encontrar, así que se dice a qué hora quedó.
 test("el buscador dice a que hora es la cita encontrada", () => {
 	render(<CalendarioCitas />);
@@ -191,10 +193,10 @@ test("el hueco vacio abre la cita con el tipo de estudio de su columna", () => {
 	render(<CalendarioCitas />);
 
 	fireEvent.click(
-		screen.getByRole("button", { name: /Crear cita de Lab .* a las 10:00/i }),
+		screen.getByRole("button", { name: /Crear cita de Resonancia .* a las 10:00/i }),
 	);
 
-	expect(screen.getByTestId("nueva-cita-modal")).toHaveTextContent("10:00 Laboratorio");
+	expect(screen.getByTestId("nueva-cita-modal")).toHaveTextContent("10:00 Resonancia");
 });
 
 // La columna ya dice de qué tipo es la cita: en la tarjeta va el estudio
@@ -218,12 +220,14 @@ describe("la tarjeta dice el estudio, no el tipo", () => {
 		expect(tarjeta.querySelector("strong").textContent).not.toBe("Laboratorio");
 	});
 
-	// El color de la tarjeta sale de la columna a la que pertenece.
+	// El color de la tarjeta sale de la columna a la que pertenece. Laboratorio
+	// ya no tiene columna, así que su cita no se pierde: cae en "Otros".
 	test("la tarjeta lleva la clase de su columna", () => {
 		useCalendarioCitas.mockReturnValue({ data: [citaDeLab], isLoading: false, error: null });
 		const { container } = render(<CalendarioCitas />);
 
-		expect(container.querySelector(".cal-card.tipo-lab")).toBeInTheDocument();
+		expect(container.querySelector(".cal-card.tipo-otros")).toBeInTheDocument();
+		expect(container.querySelector(".cal-card.tipo-lab")).not.toBeInTheDocument();
 	});
 
 	// El tipo del catálogo manda sobre el texto libre: una tomografía agendada

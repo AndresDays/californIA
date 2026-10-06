@@ -18,10 +18,10 @@ import "./calendario-citas.css";
 // `tipoEstudio` es lo que se le pone a la cita nueva abierta desde esa columna:
 // el clic en el hueco ya dijo de qué es el estudio, así que el modal no vuelve
 // a preguntarlo. "Otros" no nombra ningún tipo y por eso no propone ninguno.
+// Laboratorio y Rayos X no llevan columna: no se agendan por horario, y una
+// cita de esos estudios que sí se agende cae en "Otros" en vez de perderse.
 const TIPOS_ESTUDIO_CALENDARIO = [
-	{ id: "lab", label: "Lab", tipoEstudio: "Laboratorio", aliases: ["lab", "laboratorio", "biometria", "quimica", "perfil", "glucosa"] },
 	{ id: "ultrasonido", tipoEstudio: "Ultrasonido", label: "Ultrasonido", aliases: ["ultrasonido", "ultrasonidos", "usg", "eco", "ecocardiograma"] },
-	{ id: "rayos-x", tipoEstudio: "Rayos X", label: "Rayos X", aliases: ["rayos x", "rayos-x", "rx", "radiografia", "radiografias"] },
 	{ id: "tac", tipoEstudio: "Tomografia", label: "TAC", aliases: ["tac", "tomografia", "tomografias"] },
 	{ id: "resonancia", tipoEstudio: "Resonancia", label: "Resonancia", aliases: ["resonancia", "resonancias", "rm", "irm"] },
 	{ id: "mastografia", tipoEstudio: "Mastografia", label: "Mastografia", aliases: ["mastografia", "mastografias", "mamografia", "mamario"] },
@@ -116,7 +116,7 @@ const CalendarioCitas = () => {
 	const { data: sucursales = [] } = useSucursales();
 	const { data: citasDelDia = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada, sucursalCalendario);
 
-	// Buscar al paciente a ojo en una rejilla de 26 renglones por ocho columnas
+	// Buscar al paciente a ojo en una rejilla de 26 renglones por seis columnas
 	// no es práctico: el buscador acota la agenda del día al paciente capturado,
 	// sin tocar la fecha ni la sucursal consultadas.
 	const [busquedaPaciente, setBusquedaPaciente] = useState("");
@@ -128,7 +128,7 @@ const CalendarioCitas = () => {
 		);
 	}, [citasDelDia, busquedaPaciente]);
 
-	// Con la agenda filtrada, dar con el renglón entre 26 horarios y ocho
+	// Con la agenda filtrada, dar con el renglón entre 26 horarios y seis
 	// columnas sigue costando: se dice de una vez a qué hora y en qué estudio
 	// quedó cada coincidencia, y su tarjeta se resalta.
 	const coincidencias = useMemo(() => {

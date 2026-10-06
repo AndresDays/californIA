@@ -11,6 +11,7 @@ import {
 	useVisitasMedicas,
 } from "../../hooks/use-visitas-medicas";
 import { useDoctores } from "../../hooks/use-doctores";
+import { useDirectorioMedicos } from "../../hooks/use-directorio-medicos";
 import { leerInformeVisitas } from "../../utils/importar-informe-visitas";
 import { exportarInformeVisitas } from "../../utils/exportar-informe-visitas";
 import {
@@ -65,7 +66,17 @@ const InformeVisitas = () => {
 	const eliminarVisita = useEliminarVisita();
 	const importarVisitas = useImportarVisitas();
 
-	const doctores = useMemo(() => doctoresResult?.data ?? [], [doctoresResult]);
+	// La ubicación no está en el catálogo de doctores sino en su ficha
+	// comercial: se cruza para que elegir al médico la proponga.
+	const { medicos } = useDirectorioMedicos();
+	const doctores = useMemo(() => {
+		const fichaPorDoctor = new Map(medicos.map((medico) => [medico.id_doctor, medico]));
+		return (doctoresResult?.data ?? []).map((doctor) => ({
+			...doctor,
+			zona: fichaPorDoctor.get(doctor.id_doctor)?.zona ?? null,
+			ubicacion: fichaPorDoctor.get(doctor.id_doctor)?.ubicacion ?? null,
+		}));
+	}, [doctoresResult, medicos]);
 
 	const doctoresPorNombre = useMemo(() => {
 		const mapa = new Map();
