@@ -11,9 +11,11 @@
  * día que cambie la identidad se cambia en un solo lugar, que es justo lo que
  * no se pudo hacer con el tema oscuro.
  *
- * El visor DICOM y el lienzo de imágenes son la excepción deliberada y siguen
- * oscuros: sobre fondo blanco el ojo pierde rango en las escalas de grises y
- * los estudios se leen peor. Sus tokens son los `--visor-*`.
+ * El visor DICOM también va en claro: barra, series, paneles y modales usan
+ * los mismos tokens que el resto. Lo único que se queda negro es el lienzo
+ * donde se dibuja el estudio y lo que va encima de él (datos del paciente,
+ * medidas, barra de la serie): sobre blanco el ojo pierde rango en las
+ * escalas de grises y los estudios se leen peor.
  */
 
 :root {
@@ -98,13 +100,6 @@
 	--icono-tinte: brightness(0) opacity(0.68);
 	--icono-tinte-azul: brightness(0) saturate(100%) invert(31%) sepia(85%) saturate(1200%) hue-rotate(174deg);
 
-	/* ── Visor DICOM: la excepción oscura ────────────────────── */
-	--visor-fondo: #0a1016;
-	--visor-superficie: #141c25;
-	--visor-borde: rgba(255, 255, 255, 0.14);
-	--visor-texto: #e8eef4;
-	--visor-texto-suave: rgba(232, 238, 244, 0.65);
-	--visor-acento: #53b9db;
 }
 
 html {

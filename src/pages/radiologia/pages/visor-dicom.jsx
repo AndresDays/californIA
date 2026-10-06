@@ -5955,7 +5955,7 @@ const VisorDicom = () => {
 														fill="currentColor"
 														opacity="0.95"
 													/>
-													<path d="M14 3v5h5" stroke="#06111d" strokeWidth="1.5" />
+													<path d="M14 3v5h5" stroke="#fff" strokeWidth="1.5" />
 												</svg>
 											)}
 										</span>
