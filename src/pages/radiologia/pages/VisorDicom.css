@@ -245,10 +245,10 @@
 }
 
 .vd-wl-preset-menu {
-	position: absolute;
-	top: calc(100% + 0.45rem);
-	left: 0;
-	z-index: 300;
+	/* Fija y no absoluta: dentro de la barra, que se recorre de lado, quedaba
+	   recortada. La posición la pone el botón al abrirla. */
+	position: fixed;
+	z-index: 1000;
 	min-width: 235px;
 	padding: 0.35rem;
 	border: 1px solid var(--azul);

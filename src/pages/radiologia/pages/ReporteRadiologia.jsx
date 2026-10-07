@@ -59,7 +59,9 @@ const PLANTILLAS = [
 	},
 ];
 
-const AJUSTE_FIRMA_POR_DEFECTO = { firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 };
+// `ocultarDatos` en 1 deja sólo la rúbrica: el reporte vino de un Word que ya
+// trae escrito el nombre del radiólogo.
+const AJUSTE_FIRMA_POR_DEFECTO = { firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1, ocultarDatos: 0 };
 
 const leerAjusteFirma = (valor) => {
 	try {
@@ -159,13 +161,15 @@ const ReporteRadiologia = () => {
 					<div className="rr-firma-placeholder" />
 				)}
 			</div>
-			<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px`, transform: `scale(${ajusteFirma.datosEscala})` }}>
-				<p className="rr-firma-nombre">{firmaNombre}</p>
-				{firmaEspecialidad && (
-					<p className="rr-firma-dato">{firmaEspecialidad.toUpperCase()}</p>
-				)}
-				{cedula && <p className="rr-firma-dato">CE {cedula}</p>}
-			</div>
+			{!ajusteFirma.ocultarDatos && (
+				<div className="rr-firma-datos-elemento" onPointerDown={iniciarArrastre("datos")} onPointerMove={moverArrastre} onPointerUp={terminarArrastre} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px`, transform: `scale(${ajusteFirma.datosEscala})` }}>
+					<p className="rr-firma-nombre">{firmaNombre}</p>
+					{firmaEspecialidad && (
+						<p className="rr-firma-dato">{firmaEspecialidad.toUpperCase()}</p>
+					)}
+					{cedula && <p className="rr-firma-dato">CE {cedula}</p>}
+				</div>
+			)}
 			{qrUrl && <img className="rr-qr" src={qrUrl} alt="Código QR del reporte" />}
 		</div>
 	);

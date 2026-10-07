@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
 
 		const { data: estudio, error: estudioError } = await admin
 			.from("estudios_radiologia")
-			.select("id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo")
+			.select("id_estudio, storage_path, reporte, reporte_encabezado, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo")
 			.eq("id_estudio", p_id_estudio)
 			.maybeSingle();
 		if (estudioError) return responder({ error: estudioError.message }, 500);
@@ -231,6 +231,9 @@ Deno.serve(async (req) => {
 					cedula: empleado.cedula || "",
 					especialidad: empleado.especialidad || "",
 					firmaUrl: empleado.firma_digital || empleado.firma_url || "",
+					// Reporte cargado de Word: el nombre ya va en el texto y al pie
+					// sólo queda la rúbrica.
+					ocultarDatos: Boolean(Number(estudio.reporte_encabezado?.ajusteFirma?.ocultarDatos)),
 				};
 			}
 		}

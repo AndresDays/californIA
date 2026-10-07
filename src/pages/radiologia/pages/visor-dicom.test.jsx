@@ -455,6 +455,30 @@ describe('VisorDicom — Toolbar acciones', () => {
     expect(editor.querySelector('span').style.fontWeight).toBe('bold');
   });
 
+  // El Word ya trae escrito el nombre del radiólogo: bajo la firma sólo queda
+  // la rúbrica, y la hoja impresa recibe la misma instrucción.
+  test('Cargar Word quita el nombre de bajo la firma y deja sólo la rúbrica', async () => {
+    mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
+    window.open = jest.fn();
+    const { container } = await renderVisor();
+    await act(async () => { fireEvent.click(screen.getByTitle('Abrir reporte')); });
+    expect(container.querySelector('.rr-firma-datos-elemento')).toHaveTextContent('Dra. Prueba');
+
+    const archivo = new File(['docx'], 'odile.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    archivo.arrayBuffer = () => Promise.resolve(new ArrayBuffer(4));
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('input-word-reporte'), { target: { files: [archivo] } });
+    });
+
+    await waitFor(() => expect(container.querySelector('.rr-firma-datos-elemento')).not.toBeInTheDocument());
+    expect(container.querySelector('.rr-firma-elemento')).toBeInTheDocument();
+
+    await act(async () => { fireEvent.click(screen.getByTitle('Opciones de reporte')); });
+    await act(async () => { fireEvent.click(screen.getByTitle('Imprimir reporte')); });
+    const url = new URL(window.open.mock.calls.at(-1)[0], 'http://localhost');
+    expect(JSON.parse(url.searchParams.get('ajusteFirma'))).toEqual(expect.objectContaining({ ocultarDatos: 1 }));
+  });
+
   test('Cargar Word rechaza archivos que no son .docx', async () => {
     mockEmpleadoVisor = { rol: 'radiologo', nombre: 'Dra. Prueba' };
     await renderVisor();
