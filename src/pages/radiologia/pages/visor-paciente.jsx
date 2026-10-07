@@ -265,7 +265,7 @@ const VisorPaciente = () => {
 					({ data: est, error: errEst } = await supabase
 						.from("estudios_radiologia")
 						.select(`
-							id_estudio, storage_path, reporte, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo,
+							id_estudio, storage_path, reporte, reporte_encabezado, tipo_estudio, descripcion, fecha_estudio, id_paciente, id_radiologo,
 							doctor:doctores!estudios_radiologia_id_doctor_fkey(nombre)
 						`)
 						.eq("id_estudio", estudioId)
@@ -292,6 +292,7 @@ const VisorPaciente = () => {
 								cedula: empleado.cedula || "",
 								especialidad: empleado.especialidad || "",
 								firmaUrl: empleado.firma_digital || empleado.firma_url || "",
+								ocultarDatos: Boolean(Number(est?.reporte_encabezado?.ajusteFirma?.ocultarDatos)),
 							});
 						}
 					}
@@ -784,10 +785,15 @@ const VisorPaciente = () => {
 													) : (
 														<div className="vp-firma-linea" />
 													)}
-													<p className="vp-firma-nombre">{radiologo?.nombre}</p>
-													<p className="vp-firma-dato">{LEYENDA_FIRMA}</p>
-													{radiologo?.cedula && (
-														<p className="vp-firma-dato">CE {radiologo.cedula}</p>
+													{/* Un reporte cargado de Word ya trae el nombre escrito: sólo va la firma. */}
+													{!radiologo?.ocultarDatos && (
+														<>
+															<p className="vp-firma-nombre">{radiologo?.nombre}</p>
+															<p className="vp-firma-dato">{LEYENDA_FIRMA}</p>
+															{radiologo?.cedula && (
+																<p className="vp-firma-dato">CE {radiologo.cedula}</p>
+															)}
+														</>
 													)}
 												</div>
 											)}

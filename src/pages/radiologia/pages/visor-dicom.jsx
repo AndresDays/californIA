@@ -3183,7 +3183,10 @@ const VisorDicom = () => {
 		radiologoNombre: "",
 	});
 	const arrastreFirmaRef = useRef(null);
-	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1 });
+	// `ocultarDatos` (0/1) quita el nombre, la especialidad y la cédula bajo la
+	// firma: un Word cargado ya los trae escritos y salían repetidos. Va dentro
+	// del ajuste porque éste ya se guarda con el reporte y viaja a la impresión.
+	const [ajusteFirma, setAjusteFirma] = useState({ firmaX: 0, firmaY: 0, firmaEscala: 1.18, datosX: 0, datosY: 0, datosEscala: 1, ocultarDatos: 0 });
 	const [panelImageIds, setPanelImageIds] = useState(Array(6).fill(null));
 	const [herramienta, setHerramienta] = useState("Wwwc");
 	const [herramientaFijada, setHerramientaFijada] = useState(false);
@@ -3217,6 +3220,10 @@ const VisorDicom = () => {
 	}, [estudioId, estudioData?.id, mprActivo, mprPanelActivo, mprSeries, mprGrosorCorte, mprIndices, mprModoReconstruccion]);
 	const [mostrarFormatos, setMostrarFormatos] = useState(false);
 	const [mostrarPresetsVentana, setMostrarPresetsVentana] = useState(false);
+	// La barra de herramientas se recorre de lado (overflow) y recortaba el menú
+	// de presets, que quedaba tapado bajo la imagen. Se abre con posición fija,
+	// anclado al botón, para que salga por encima de todo.
+	const [posicionPresetsVentana, setPosicionPresetsVentana] = useState({ top: 0, left: 0 });
 	const [presetsVentanaPorSerie, setPresetsVentanaPorSerie] = useState({});
 	const [mostrarMas, setMostrarMas] = useState(false);
 	const [mostrarDetalle, setMostrarDetalle] = useState(false);
@@ -5032,6 +5039,9 @@ const VisorDicom = () => {
 		try {
 			const contenido = normalizarHtmlReporteRadiologia(await convertirDocxAHtml(await archivo.arrayBuffer()));
 			setReporteTexto(contenido);
+			// El Word ya trae el nombre del radiólogo: bajo la firma sólo queda la
+			// rúbrica, que se puede mover a donde haga falta.
+			setAjusteFirma((actual) => ({ ...actual, ocultarDatos: 1 }));
 			if (reporteEditorRef.current) {
 				reporteEditorRef.current.innerHTML = contenido;
 				reporteEditorRef.current.focus();
@@ -5062,6 +5072,8 @@ const VisorDicom = () => {
 		const contenido = plantilla.contenido_html || "";
 		if (contenido) {
 			setReporteTexto(contenido);
+			// Con una plantilla propia vuelven el nombre y los datos bajo la firma.
+			setAjusteFirma((actual) => ({ ...actual, ocultarDatos: 0 }));
 			if (reporteEditorRef.current) {
 				reporteEditorRef.current.innerHTML = contenido;
 				reporteEditorRef.current.focus();
@@ -5082,6 +5094,7 @@ const VisorDicom = () => {
 
 		const contenido = plantillas[tipo] ?? "";
 		setReporteTexto(contenido);
+		setAjusteFirma((actual) => ({ ...actual, ocultarDatos: 0 }));
 		if (reporteEditorRef.current) {
 			reporteEditorRef.current.innerHTML = contenido.replace(/\n/g, "<br>");
 			reporteEditorRef.current.focus();
@@ -5265,11 +5278,19 @@ const VisorDicom = () => {
 										className="vd-wl-preset-toggle"
 										title="Presets de ventana"
 										aria-label="Presets de ventana"
-										onClick={() => setMostrarPresetsVentana((visible) => !visible)}>
+										onClick={(evento) => {
+											const rect = evento.currentTarget.parentElement.getBoundingClientRect();
+											setPosicionPresetsVentana({ top: rect.bottom + 6, left: rect.left });
+											setMostrarPresetsVentana((visible) => !visible);
+										}}>
 										<KeyboardArrowDownIcon fontSize="small" />
 									</button>
 									{mostrarPresetsVentana && (
-										<div className="vd-wl-preset-menu" role="menu" aria-label="Vistas de ventana">
+										<div
+											className="vd-wl-preset-menu"
+											role="menu"
+											aria-label="Vistas de ventana"
+											style={{ top: posicionPresetsVentana.top, left: posicionPresetsVentana.left }}>
 											{presetsVentanaDisponibles.map((preset, indice) => (
 												<button key={preset.id} type="button" role="menuitem" onClick={() => aplicarPresetVentana(preset)}>
 													{indice + 1} - {preset.label}
@@ -5792,6 +5813,7 @@ const VisorDicom = () => {
 															<div className="rr-firma-placeholder" />
 														)}
 													</div>
+													{!ajusteFirma.ocultarDatos && (
 													<div className="rr-firma-datos-elemento" onPointerDown={puedeEditarReporte ? (e) => iniciarArrastreFirma("datos", e) : undefined} onPointerMove={moverArrastreFirma} onPointerUp={terminarArrastreFirma} style={{ left: `calc(50% - 165px + ${ajusteFirma.datosX}px)`, top: `${154 + ajusteFirma.datosY}px` }}>
 														<p className="rr-firma-nombre">{nombreRadiologo}</p>
 														<p className="rr-firma-dato">
@@ -5803,6 +5825,7 @@ const VisorDicom = () => {
 															</p>
 														)}
 													</div>
+													)}
 													{reporteQrUrl && (
 														<img
 															className="rr-qr"
