@@ -17,6 +17,22 @@
 	min-height: 72px;
 }
 
+/* Los navegadores no dejan sonar el timbre hasta que alguien toca la página:
+   este aviso queda a la vista hasta que se activa. */
+.sala-activar-sonido {
+	align-self: center;
+	margin: 0 auto;
+	padding: 0.7rem 1.4rem;
+	border: 2px solid var(--naranja);
+	border-radius: 999px;
+	background: var(--naranja-palido);
+	color: var(--naranja);
+	font: inherit;
+	font-size: 1.1rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
 .sala-espera-topbar img {
 	width: min(250px, 38vw);
 	height: auto;
