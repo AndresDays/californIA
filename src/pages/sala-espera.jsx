@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase-client";
 import {
 	obtenerNombreTurno,
 	obtenerRangoDiaLocalISO,
 	TURNO_ESTADOS,
 } from "../utils/turnos-pacientes";
+import { activarSonido, sonidoBloqueado, tocarTimbreTurno } from "../utils/timbre-turno";
 import logoCalifornIA from "../assets/logoCalifornIA.png";
 import "./sala-espera.css";
 
@@ -23,6 +24,7 @@ const formatHora = (fecha) =>
 
 const SalaEspera = () => {
 	const [turnos, setTurnos] = useState([]);
+	const [turnosCargados, setTurnosCargados] = useState(false);
 	const [hora, setHora] = useState(new Date());
 
 	const llamadosActivos = useMemo(
@@ -35,6 +37,34 @@ const SalaEspera = () => {
 		[turnos],
 	);
 	const turnoActual = llamadosActivos[0] || null;
+
+	// Suena el timbre cada que aparece un turno en pantalla, también cuando se
+	// vuelve a llamar al mismo (cambia la hora del llamado). Al abrir la
+	// pantalla no suena por el turno que ya estaba.
+	const [sonidoPendiente, setSonidoPendiente] = useState(() => sonidoBloqueado());
+	const llamadoMostradoRef = useRef(undefined);
+	const llaveLlamado = turnoActual ? `${turnoActual.id_turno}:${turnoActual.llamado_en || ""}` : null;
+	useEffect(() => {
+		if (!turnosCargados) return;
+		const anterior = llamadoMostradoRef.current;
+		llamadoMostradoRef.current = llaveLlamado;
+		if (anterior === undefined || !llaveLlamado || llaveLlamado === anterior) return;
+		tocarTimbreTurno();
+	}, [llaveLlamado, turnosCargados]);
+
+	// Cualquier toque o tecla en la pantalla habilita el sonido.
+	useEffect(() => {
+		if (!sonidoPendiente) return undefined;
+		const habilitar = async () => {
+			if (await activarSonido()) setSonidoPendiente(false);
+		};
+		window.addEventListener("pointerdown", habilitar);
+		window.addEventListener("keydown", habilitar);
+		return () => {
+			window.removeEventListener("pointerdown", habilitar);
+			window.removeEventListener("keydown", habilitar);
+		};
+	}, [sonidoPendiente]);
 	const ultimos = useMemo(
 		() =>
 			turnos
@@ -88,7 +118,10 @@ const SalaEspera = () => {
 			.order("llamado_en", { ascending: false })
 			.limit(8);
 
-		if (!error) setTurnos(data || []);
+		if (!error) {
+			setTurnos(data || []);
+			setTurnosCargados(true);
+		}
 	};
 
 	return (
@@ -107,6 +140,20 @@ const SalaEspera = () => {
 					</span>
 				</div>
 			</header>
+
+			{sonidoPendiente && (
+				<button
+					type="button"
+					className="sala-activar-sonido"
+					onClick={async () => {
+						if (await activarSonido()) {
+							setSonidoPendiente(false);
+							tocarTimbreTurno();
+						}
+					}}>
+					🔔 Activar sonido de turnos
+				</button>
+			)}
 
 			<section className={`sala-current ${turnoActual ? "has-call" : ""}`}>
 				{turnoActual ? (

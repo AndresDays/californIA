@@ -602,6 +602,29 @@
 .vd-serie-card-info strong { font-size: 0.82rem; color: var(--texto-azul); }
 .vd-serie-card-info span, .vd-serie-card-info small { font-size: 0.72rem; color: var(--texto-azul); }
 
+/* Mientras la serie baja, la tarjeta dice cuánto lleva; al completarse se
+   quita. Va pegada abajo para no tapar la miniatura. */
+.vd-serie-card { position: relative; }
+.vd-serie-carga {
+	padding: 0 0.65rem 0.55rem;
+	display: grid;
+	gap: 0.22rem;
+	font-size: 0.68rem;
+	font-weight: 600;
+	color: var(--texto-suave);
+}
+.vd-serie-carga-barra {
+	height: 4px;
+	border-radius: 999px;
+	background: var(--azul-palido);
+	overflow: hidden;
+}
+.vd-serie-carga-barra > div {
+	height: 100%;
+	background: var(--azul);
+	transition: width 0.25s ease;
+}
+
 .vd-mini-img {
 	width: 100%;
 	aspect-ratio: 1;
@@ -3321,6 +3344,15 @@ select.vd-ficha-input option {
 		padding: 0.35rem 0.45rem;
 		align-content: center;
 		min-width: 0;
+	}
+
+	.vd-serie-carga {
+		position: absolute;
+		left: 70px;
+		right: 0;
+		bottom: 0;
+		padding: 0 0.45rem 0.3rem;
+		font-size: 0.6rem;
 	}
 
 	.vd-miniatura {

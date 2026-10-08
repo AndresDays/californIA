@@ -37,10 +37,12 @@ import {
 import {
 	detenerPrecargaDicom,
 	pedirImagenDicomPrioritaria,
+	porcentajeCargaDicom,
 	precargarEstudioDicom,
 	priorizarPrecargaDicom,
 	registrarCargadoresDicom,
 	resolverUrlImagenDicom,
+	suscribirProgresoDicom,
 } from "../../../utils/cargador-dicom-firmado";
 import { crearColaInicialMpr } from "../../../utils/mpr-loader";
 import {
@@ -392,6 +394,9 @@ const PanelDicom = ({
 	const guardadoTimerRef = useRef(null);
 	const etiquetasMedicionRef = useRef([]);
 	const arrastreEtiquetaRef = useRef(null);
+	// Punto de una medición (o una anotación entera) que se está deslizando:
+	// guarda cómo aplicar la nueva posición a la figura que lo contiene.
+	const arrastrePuntoRef = useRef(null);
 	const lupaActivaRef = useRef(false);
 	const medicionRef = useRef({
 		dibujando: false,
@@ -1639,6 +1644,113 @@ const PanelDicom = ({
 		onShortcutTool?.(tool);
 	};
 
+	// Las mediciones ya puestas se corrigen deslizando sus puntos: los extremos
+	// de una línea, los vértices de un ángulo, las esquinas de un rectángulo,
+	// los extremos de la bidimensional y el centro de la elipse. La anotación se
+	// mueve completa. Mientras se arrastra, la medida se recalcula.
+	const RADIO_PUNTO = 9;
+	const cerca = (pos, x, y) => Math.hypot(pos.x - x, pos.y - y) <= RADIO_PUNTO;
+	const dibujandoFigura = () =>
+		medicionRef.current.dibujando ||
+		anguloRef.current.fase !== 0 ||
+		elipseRef.current.dibujando ||
+		rectRef.current.dibujando ||
+		bidiRef.current.dibujando;
+	const buscarPuntoArrastrable = (pos) => {
+		const aPixel = (p) => canvasToPixel(p.x, p.y);
+		for (const linea of [...medicionRef.current.lineas].reverse()) {
+			for (const extremo of [1, 2]) {
+				const c = pixelToCanvas(linea[`px${extremo}`], linea[`py${extremo}`]);
+				if (!cerca(pos, c.cx, c.cy)) continue;
+				return (p) => {
+					const d = aPixel(p);
+					linea[`px${extremo}`] = d.px;
+					linea[`py${extremo}`] = d.py;
+					const c1 = pixelToCanvas(linea.px1, linea.py1),
+						c2 = pixelToCanvas(linea.px2, linea.py2);
+					linea.dist = distanciaMM(c1.cx, c1.cy, c2.cx, c2.cy);
+				};
+			}
+		}
+		for (const angulo of [...anguloRef.current.angulos].reverse()) {
+			for (const vertice of [1, 2, 3]) {
+				const c = pixelToCanvas(angulo[`pp${vertice}x`], angulo[`pp${vertice}y`]);
+				if (!cerca(pos, c.cx, c.cy)) continue;
+				return (p) => {
+					const d = aPixel(p);
+					angulo[`pp${vertice}x`] = d.px;
+					angulo[`pp${vertice}y`] = d.py;
+					const c1 = pixelToCanvas(angulo.pp1x, angulo.pp1y),
+						c2 = pixelToCanvas(angulo.pp2x, angulo.pp2y),
+						c3 = pixelToCanvas(angulo.pp3x, angulo.pp3y);
+					angulo.grados = calcularAngulo(c1.cx, c1.cy, c2.cx, c2.cy, c3.cx, c3.cy);
+				};
+			}
+		}
+		for (const rect of [...rectRef.current.rects].reverse()) {
+			const c1 = pixelToCanvas(rect.px1, rect.py1),
+				c2 = pixelToCanvas(rect.px2, rect.py2);
+			// Cualquiera de las cuatro esquinas: la opuesta se queda fija.
+			const esquinas = [
+				{ x: c1.cx, y: c1.cy, mx: "px1", my: "py1" },
+				{ x: c2.cx, y: c1.cy, mx: "px2", my: "py1" },
+				{ x: c1.cx, y: c2.cy, mx: "px1", my: "py2" },
+				{ x: c2.cx, y: c2.cy, mx: "px2", my: "py2" },
+			];
+			const esquina = esquinas.find((item) => cerca(pos, item.x, item.y));
+			if (!esquina) continue;
+			return (p) => {
+				const d = aPixel(p);
+				rect[esquina.mx] = d.px;
+				rect[esquina.my] = d.py;
+				const r1 = pixelToCanvas(rect.px1, rect.py1),
+					r2 = pixelToCanvas(rect.px2, rect.py2);
+				rect.stats = calcularEstadisticasRect(r1.cx, r1.cy, r2.cx, r2.cy);
+			};
+		}
+		for (const bidi of [...bidiRef.current.bidis].reverse()) {
+			for (const [mx, my] of [["pcx", "pcy"], ["pex", "pey"]]) {
+				const c = pixelToCanvas(bidi[mx], bidi[my]);
+				if (!cerca(pos, c.cx, c.cy)) continue;
+				return (p) => {
+					const d = aPixel(p);
+					bidi[mx] = d.px;
+					bidi[my] = d.py;
+				};
+			}
+		}
+		for (const elipse of [...elipseRef.current.elipses].reverse()) {
+			const c = pixelToCanvas(elipse.pcx, elipse.pcy);
+			if (!cerca(pos, c.cx, c.cy)) continue;
+			return (p) => {
+				const d = aPixel(p);
+				elipse.pcx = d.px;
+				elipse.pcy = d.py;
+				const sc = getVp()?.vp.scale ?? 1;
+				elipse.stats = calcularEstadisticasElipse(p.x, p.y, elipse.prx * sc, elipse.pry * sc);
+			};
+		}
+		for (const anotacion of [...anotacionRef.current.anotaciones].reverse()) {
+			const c = pixelToCanvas(anotacion.px, anotacion.py);
+			// Se toma de la punta de la flecha o del texto, que va arriba a la
+			// derecha de ella; se mueve completa conservando dónde se agarró.
+			const enAnotacion =
+				pos.x >= c.cx - RADIO_PUNTO &&
+				pos.x <= c.cx + 30 + (anotacion.texto?.length || 0) * 8 &&
+				pos.y >= c.cy - 30 &&
+				pos.y <= c.cy + RADIO_PUNTO;
+			if (!enAnotacion) continue;
+			const desfaseX = pos.x - c.cx,
+				desfaseY = pos.y - c.cy;
+			return (p) => {
+				const d = aPixel({ x: p.x - desfaseX, y: p.y - desfaseY });
+				anotacion.px = d.px;
+				anotacion.py = d.py;
+			};
+		}
+		return null;
+	};
+
 	const onMouseDown = (e) => {
 		if (esSerieNavegable() && e.button === 2) {
 			e.preventDefault();
@@ -1661,6 +1773,12 @@ const PanelDicom = ({
 			if (etiqueta) {
 				e.preventDefault();
 				arrastreEtiquetaRef.current = etiqueta;
+				return;
+			}
+			const aplicar = dibujandoFigura() ? null : buscarPuntoArrastrable(pos);
+			if (aplicar) {
+				e.preventDefault();
+				arrastrePuntoRef.current = aplicar;
 				return;
 			}
 		}
@@ -1979,6 +2097,16 @@ const PanelDicom = ({
 	const onMouseMove = (e) => {
 		const tool = herramientaRef.current;
 		const pos = getCanvasPos(e);
+		if (arrastrePuntoRef.current) {
+			arrastrePuntoRef.current(pos);
+			redibujarOverlay();
+			return;
+		}
+		// Sobre un punto que se puede deslizar el cursor lo avisa.
+		if (e.currentTarget?.style) {
+			const sobrePunto = !dibujandoFigura() && !e.buttons && buscarPuntoArrastrable(pos);
+			e.currentTarget.style.cursor = sobrePunto ? "move" : getCursor();
+		}
 		const etiquetaArrastrada = arrastreEtiquetaRef.current;
 		if (etiquetaArrastrada) {
 			const { medicion, anchorX, anchorY, escala } = etiquetaArrastrada;
@@ -2178,8 +2306,9 @@ const PanelDicom = ({
 			} else activarAtajo("StackScroll");
 			return;
 		}
-		if (arrastreEtiquetaRef.current) {
+		if (arrastreEtiquetaRef.current || arrastrePuntoRef.current) {
 			arrastreEtiquetaRef.current = null;
+			arrastrePuntoRef.current = null;
 			dragRef.current.active = false;
 			redibujarOverlay();
 			guardarEstadoActual(true);
@@ -2361,6 +2490,7 @@ const PanelDicom = ({
 	const cancelarTrazoTactil = (faseAnguloPrevia = 0) => {
 		dragRef.current.active = false;
 		arrastreEtiquetaRef.current = null;
+		arrastrePuntoRef.current = null;
 		medicionRef.current.dibujando = false;
 		medicionRef.current.dragging = false;
 		elipseRef.current.dibujando = false;
@@ -2630,6 +2760,11 @@ const PanelDicom = ({
 					activarAtajo("StackScroll");
 				}
 				dragRef.current.active = false;
+				// Soltar fuera del panel termina el arrastre donde quedó.
+				if (arrastrePuntoRef.current) {
+					arrastrePuntoRef.current = null;
+					guardarEstadoActual(true);
+				}
 				medicionRef.current.hoveredIdx = -1;
 				anotacionRef.current.hoveredIdx = -1;
 				anguloRef.current.hoveredIdx = -1;
@@ -3220,6 +3355,10 @@ const VisorDicom = () => {
 	}, [estudioId, estudioData?.id, mprActivo, mprPanelActivo, mprSeries, mprGrosorCorte, mprIndices, mprModoReconstruccion]);
 	const [mostrarFormatos, setMostrarFormatos] = useState(false);
 	const [mostrarPresetsVentana, setMostrarPresetsVentana] = useState(false);
+	// Cada que el cargador avisa que bajaron más cortes se vuelve a dibujar la
+	// columna de series con el porcentaje de carga de cada una.
+	const [, setVersionCargaSeries] = useState(0);
+	useEffect(() => suscribirProgresoDicom(() => setVersionCargaSeries((version) => version + 1)), []);
 	// La barra de herramientas se recorre de lado (overflow) y recortaba el menú
 	// de presets, que quedaba tapado bajo la imagen. Se abre con posición fija,
 	// anclado al botón, para que salga por encima de todo.
@@ -5487,6 +5626,16 @@ const VisorDicom = () => {
 									<button type="button" className={`vd-serie-card ${mprActivo ? mprSeries[mprPanelActivo] === serie.id : serieActivaId === serie.id ? "activa" : ""}`} onClick={() => mprActivo ? seleccionarSerieMpr(serie) : seleccionarSerieDicom(serie)}>
 										<MiniaturaSerieDicom imageId={serie.imageIds[0]} label={serie.label} />
 										<div className="vd-serie-card-info"><strong>{serie.label || `Serie ${serieIndex + 1}`}</strong><span>S: {serieIndex + 1}</span><small>{serie.imagenes.length} imágenes</small></div>
+										{(() => {
+											const porcentaje = porcentajeCargaDicom(serie.imageIds);
+											if (porcentaje >= 100) return null;
+											return (
+												<div className="vd-serie-carga" role="progressbar" aria-label={`Carga de ${serie.label || `la serie ${serieIndex + 1}`}`} aria-valuenow={porcentaje} aria-valuemin={0} aria-valuemax={100}>
+													<span>Cargando {porcentaje}%</span>
+													<div className="vd-serie-carga-barra"><div style={{ width: `${porcentaje}%` }} /></div>
+												</div>
+											);
+										})()}
 									</button>
 								</div>
 							))

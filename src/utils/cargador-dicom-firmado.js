@@ -107,6 +107,36 @@ const descargar = async (url) => {
 	return respuesta.arrayBuffer();
 };
 
+// Cortes que ya están en esta computadora (en disco o recién descargados): con
+// ellos el visor muestra cuánto lleva cargado cada serie. Los avisos se juntan
+// para no redibujar la pantalla con cada uno de los miles de cortes.
+const imagenesListas = new Set();
+const escuchasProgreso = new Set();
+let avisoProgresoPendiente = null;
+const avisarProgreso = () => {
+	if (avisoProgresoPendiente) return;
+	avisoProgresoPendiente = setTimeout(() => {
+		avisoProgresoPendiente = null;
+		escuchasProgreso.forEach((escucha) => escucha());
+	}, 250);
+};
+const marcarImagenLista = (imageId) => {
+	if (imagenesListas.has(imageId)) return;
+	imagenesListas.add(imageId);
+	avisarProgreso();
+};
+export const imagenDicomLista = (imageId) => imagenesListas.has(imageId);
+export const suscribirProgresoDicom = (escucha) => {
+	escuchasProgreso.add(escucha);
+	return () => escuchasProgreso.delete(escucha);
+};
+// Porcentaje (0-100) de los cortes de una serie que ya están listos.
+export const porcentajeCargaDicom = (imageIds = []) => {
+	if (!imageIds.length) return 100;
+	const listas = imageIds.filter((imageId) => imagenesListas.has(imageId)).length;
+	return Math.floor((listas / imageIds.length) * 100);
+};
+
 // Imágenes que se van a pintar ya: se firman y descargan antes que la precarga.
 const prioritarias = new Set();
 export const pedirImagenDicomPrioritaria = (imageId) => {
@@ -139,7 +169,12 @@ export const obtenerBytesDicom = (imageId, { prioritaria = false } = {}) => {
 		}
 		if (enDisco) void guardarDicomLocal(enDisco.bucket, enDisco.ruta, contenido);
 		return contenido;
-	})().finally(() => enVuelo.delete(imageId));
+	})()
+		.then((contenido) => {
+			marcarImagenLista(imageId);
+			return contenido;
+		})
+		.finally(() => enVuelo.delete(imageId));
 	enVuelo.set(imageId, promesa);
 	return promesa;
 };
@@ -249,6 +284,7 @@ export const precargarEstudioDicom = (imageIds = []) => {
 				pendientes.forEach((imageId, indice) => {
 					if (enDisco[indice]) {
 						quitarDeCola(imageId);
+						marcarImagenLista(imageId);
 					} else {
 						precarga.listas.add(imageId);
 						void firmarImageId(imageId).catch(() => {});
@@ -317,4 +353,8 @@ export const reiniciarFirmadoresDicom = () => {
 	imageIdsWado.clear();
 	enVuelo.clear();
 	prioritarias.clear();
+	imagenesListas.clear();
+	escuchasProgreso.clear();
+	clearTimeout(avisoProgresoPendiente);
+	avisoProgresoPendiente = null;
 };

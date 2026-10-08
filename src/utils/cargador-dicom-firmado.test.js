@@ -8,8 +8,10 @@ jest.mock("../lib/supabase-client", () => ({
 
 import {
 	obtenerBytesDicom,
+	porcentajeCargaDicom,
 	precargarEstudioDicom,
 	reiniciarFirmadoresDicom,
+	suscribirProgresoDicom,
 } from "./cargador-dicom-firmado";
 import { crearImageIdDicomFirmado } from "./firmar-imagenes-dicom";
 import { borrarCacheDicom } from "./cache-dicom-local";
@@ -100,5 +102,29 @@ describe("precargarEstudioDicom", () => {
 
 		expect(global.fetch).not.toHaveBeenCalled();
 		expect(mockCreateSignedUrls).not.toHaveBeenCalled();
+	});
+});
+
+// La columna de series dice cuánto lleva cargado cada una.
+describe("porcentajeCargaDicom", () => {
+	test("cuenta los cortes de la serie que ya bajaron y avisa del avance", async () => {
+		const serie = ids(4, "p");
+		const aviso = jest.fn();
+		const quitar = suscribirProgresoDicom(aviso);
+		expect(porcentajeCargaDicom(serie)).toBe(0);
+
+		await obtenerBytesDicom(serie[0]);
+		expect(porcentajeCargaDicom(serie)).toBe(25);
+
+		precargarEstudioDicom(serie);
+		await esperarA(() => porcentajeCargaDicom(serie) === 100);
+		expect(porcentajeCargaDicom(serie)).toBe(100);
+		await esperarA(() => aviso.mock.calls.length > 0);
+		expect(aviso).toHaveBeenCalled();
+		quitar();
+	});
+
+	test("una serie sin cortes cuenta como completa", () => {
+		expect(porcentajeCargaDicom([])).toBe(100);
 	});
 });
