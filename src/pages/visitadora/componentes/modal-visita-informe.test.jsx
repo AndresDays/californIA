@@ -232,6 +232,24 @@ describe("los campos del informe son los de la agenda", () => {
 		);
 	});
 
+	test("se puede registrar una entrega de comisiones", async () => {
+		render(<ModalRegistroVisita {...props} doctores={[]} />);
+
+		fireEvent.change(screen.getByLabelText("Médico / Empresa"), { target: { value: "Dr. Ruiz" } });
+		fireEvent.change(screen.getByLabelText("Tipo de visita"), { target: { value: "entrega_comisiones" } });
+		expect(screen.getByRole("option", { name: "Entrega de comisiones" })).toBeInTheDocument();
+		fireEvent.change(screen.getByLabelText("Lo que pasó en la visita"), {
+			target: { value: "Se entregaron las comisiones de septiembre" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Guardar visita" }));
+		});
+
+		expect(mockGuardarVisita).toHaveBeenCalledWith(
+			expect.objectContaining({ tipo_visita: "entrega_comisiones" }),
+		);
+	});
+
 	// Saliendo del consultorio el médico ya está dado: el select sobra.
 	test("desde la agenda no se ofrece el catálogo", () => {
 		render(
