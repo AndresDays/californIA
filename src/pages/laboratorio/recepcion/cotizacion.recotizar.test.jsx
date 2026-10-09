@@ -48,6 +48,13 @@ jest.mock("../../../lib/supabase-client", () => {
 				area: "Hematologia",
 				dias_proceso: 1,
 			},
+			{
+				id: 31,
+				clave: "QS",
+				descripcion: "QUIMICA SANGUINEA",
+				area: "Quimica",
+				dias_proceso: 1,
+			},
 		],
 		estudios_imagen_catalogo: [],
 		cotizaciones: [],
@@ -55,6 +62,7 @@ jest.mock("../../../lib/supabase-client", () => {
 			{ cliente: "IMSS", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 80 },
 			{ cliente: "ISSSTE", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 200 },
 			{ cliente: "Particular", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 100 },
+			{ cliente: "IMSS", clave: "QS", descripcion: "QUIMICA SANGUINEA", precio: 120 },
 		],
 	};
 
@@ -126,7 +134,8 @@ const renglonEstudio = () =>
 		fila.textContent.includes("BH"),
 	);
 
-const precioMostrado = () => renglonEstudio()?.querySelectorAll("td")[3]?.textContent;
+// Columnas: clave, descripción, tipo, cantidad, precio, días, borrar.
+const precioMostrado = () => renglonEstudio()?.querySelectorAll("td")[4]?.textContent;
 
 const cotizarConIMSS = async () => {
 	await act(async () => {
@@ -226,5 +235,71 @@ describe("Cotización — el campo de Total sigue a la tabla", () => {
 		expect(precioMostrado()).toBe("$80.00");
 		expect(totalCampo()).toBe("$80.00");
 		expect(document.querySelector(".input-total-final-cot")?.value).toBe("$80.00");
+	});
+});
+
+// Varios estudios en la tabla y cantidad por renglón, igual que Nuevo paciente.
+describe("Cotización — varios estudios y cantidad", () => {
+	const agregarPorBusqueda = async (texto) => {
+		await act(async () => {
+			fireEvent.change(screen.getByPlaceholderText(/Busca estudios aquí/i), {
+				target: { value: texto },
+			});
+		});
+		await act(async () => {
+			fireEvent.click(document.querySelector(".search-results-estudios-cot .search-result-item-cot"));
+		});
+	};
+	const filas = () => [...document.querySelectorAll(".tabla-estudios-cot tbody tr")];
+	const fila = (clave) => filas().find((tr) => tr.textContent.includes(clave));
+	const totalCampo = () => document.querySelector(".input-total-cot")?.value;
+
+	test("agregar un segundo estudio no borra el primero", async () => {
+		await cotizarConIMSS();
+		await agregarPorBusqueda("quim");
+
+		expect(filas()).toHaveLength(2);
+		expect(fila("BH")).toBeTruthy();
+		expect(fila("QS")).toBeTruthy();
+		expect(totalCampo()).toBe("$200.00");
+	});
+
+	test("volver a agregar un estudio sube su cantidad y el importe", async () => {
+		await cotizarConIMSS();
+		await agregarPorBusqueda("bio");
+
+		expect(filas()).toHaveLength(1);
+		expect(fila("BH").querySelector(".cantidad-valor-cot")).toHaveTextContent("2");
+		expect(precioMostrado()).toContain("$160.00");
+		expect(precioMostrado()).toContain("$80.00 c/u");
+		expect(totalCampo()).toBe("$160.00");
+	});
+
+	test("los botones + y − cambian la cantidad", async () => {
+		await cotizarConIMSS();
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Aumentar cantidad de BH" }));
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Aumentar cantidad de BH" }));
+		});
+		expect(fila("BH").querySelector(".cantidad-valor-cot")).toHaveTextContent("3");
+		expect(totalCampo()).toBe("$240.00");
+
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Disminuir cantidad de BH" }));
+		});
+		expect(totalCampo()).toBe("$160.00");
+	});
+
+	test("borrar un estudio deja los demás", async () => {
+		await cotizarConIMSS();
+		await agregarPorBusqueda("quim");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Eliminar estudio BH" }));
+		});
+
+		expect(filas()).toHaveLength(1);
+		expect(fila("QS")).toBeTruthy();
 	});
 });

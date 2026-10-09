@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import empresaIcono from "../../../assets/empresaIcono.png";
 import enviarEmailBtn from "../../../assets/enviarEmailBtn.png";
 import enviarWppBtn from "../../../assets/enviarWppBtn.png";
@@ -26,8 +26,12 @@ import {
 import { useNavegacionLista } from "../../../hooks/use-navegacion-lista";
 import ModalDetalleEstudio from "../componentes/modal-detalle-estudio";
 import { crearNombreArchivoCotizacion, generarPDFCotizacion } from "../../../utils/generar-pdf-cotizacion";
-import { sumarPreciosFinales } from "../../../utils/precio-final";
-import { aplicarDescuentoPorcentaje } from "../../../utils/nuevo-paciente-totales";
+import { redondearPrecioFinal, sumarPreciosFinales } from "../../../utils/precio-final";
+import {
+	CANTIDAD_MAXIMA_ESTUDIO,
+	aplicarDescuentoPorcentaje,
+	normalizarCantidadEstudio,
+} from "../../../utils/nuevo-paciente-totales";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import {
 	construirEstudioCatalogoUnificado,
@@ -71,7 +75,17 @@ const Cotizacion = () => {
 	const [tiposEstudio, setTiposEstudio] = useState([]);
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("cotizacion:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
-	const [estudiosSeleccionados, setEstudiosSeleccionados] = useCampoPersistente(`${BORRADOR}estudios`, []);
+	const [estudiosGuardados, setEstudiosSeleccionados] = useCampoPersistente(`${BORRADOR}estudios`, []);
+	// Un borrador de antes de que el renglón tuviera cantidad se lee como una
+	// pieza por estudio, igual que en Nuevo paciente.
+	const estudiosSeleccionados = useMemo(
+		() =>
+			(Array.isArray(estudiosGuardados) ? estudiosGuardados : []).map((estudio) => ({
+				...estudio,
+				cantidad: normalizarCantidadEstudio(estudio?.cantidad),
+			})),
+		[estudiosGuardados],
+	);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	const [total, setTotal] = useState(0);
@@ -359,9 +373,45 @@ const Cotizacion = () => {
 			"advertencia",
 		);
 
+	// El +/- ajusta sobre el estado más reciente: el mismo renglón puede recibir
+	// varios clicks seguidos antes de que React repinte.
+	const cambiarCantidadEstudio = (id, delta) => {
+		setEstudiosSeleccionados((actuales) =>
+			actuales.map((estudio) =>
+				estudio.id === id
+					? {
+							...estudio,
+							cantidad: normalizarCantidadEstudio(
+								normalizarCantidadEstudio(estudio.cantidad) + delta,
+							),
+						}
+					: estudio,
+			),
+		);
+	};
+
+	// Funciona como en Nuevo paciente: volver a agregar un estudio que ya está
+	// sube su cantidad en vez de rechazarlo, y el renglón nuevo se agrega sobre
+	// la lista más reciente (antes se armaba con la copia de antes de pedir el
+	// precio y, al agregar varios seguidos, unos borraban a otros).
 	const agregarEstudio = async (estudio) => {
-		if (estudiosSeleccionados.find((e) => e.id === estudio.id)) {
-			mostrarNotificacion("Este estudio ya fue agregado", "advertencia");
+		const yaSeleccionado = estudiosSeleccionados.find((e) => e.clave === estudio.clave);
+		if (yaSeleccionado) {
+			const cantidadActual = normalizarCantidadEstudio(yaSeleccionado.cantidad);
+			if (cantidadActual >= CANTIDAD_MAXIMA_ESTUDIO) {
+				mostrarNotificacion(
+					`Este estudio ya fue agregado ${CANTIDAD_MAXIMA_ESTUDIO} veces, que es el máximo por cotización`,
+					"advertencia",
+				);
+				return;
+			}
+			cambiarCantidadEstudio(yaSeleccionado.id, 1);
+			mostrarNotificacion(
+				`Este estudio ya fue agregado: ahora va con cantidad ${cantidadActual + 1}`,
+				"advertencia",
+			);
+			setBuscarEstudio("");
+			setShowBusquedaEstudios(false);
 			return;
 		}
 		const clienteObj = clientes.find(
@@ -375,26 +425,38 @@ const Cotizacion = () => {
 		if (origen === ORIGEN_PRECIO.DEFECTO) {
 			avisarPrecioPorDefecto(estudio, clienteObj?.nombre || "");
 		}
-		setEstudiosSeleccionados([
-			...estudiosSeleccionados,
-			{
-				...estudio,
-				precio: precioEstudio,
-				tipo: estudio.area || estudio.modalidad || "Laboratorio",
-				diasProceso: estudio.diasProceso || 1,
-			},
-		]);
+		const estudioConPrecio = {
+			...estudio,
+			precio: precioEstudio,
+			cantidad: 1,
+			tipo: estudio.area || estudio.modalidad || "Laboratorio",
+			diasProceso: estudio.diasProceso || 1,
+		};
+		setEstudiosSeleccionados((actuales) =>
+			// Si mientras llegaba el precio se agregó el mismo estudio, suma pieza.
+			actuales.some((e) => e.clave === estudio.clave)
+				? actuales.map((e) =>
+						e.clave === estudio.clave
+							? { ...e, cantidad: normalizarCantidadEstudio(normalizarCantidadEstudio(e.cantidad) + 1) }
+							: e,
+					)
+				: [...actuales, estudioConPrecio],
+		);
 		setBuscarEstudio("");
 		setShowBusquedaEstudios(false);
 	};
 
 	const eliminarEstudio = (id) =>
-		setEstudiosSeleccionados(estudiosSeleccionados.filter((e) => e.id !== id));
+		setEstudiosSeleccionados((actuales) => actuales.filter((e) => e.id !== id));
+
+	// Importe del renglón: precio por cantidad, cerrado a pesos.
+	const importeEstudio = (estudio) =>
+		(parseFloat(estudio.precio) || 0) * normalizarCantidadEstudio(estudio.cantidad);
 
 	// La cotización cobra como la orden: a pesos cerrados, renglón por renglón,
 	// para que lo cotizado sea exactamente lo que se le va a cobrar.
 	const calcularTotales = () => {
-		const importes = estudiosSeleccionados.map((est) => parseFloat(est.precio) || 0);
+		const importes = estudiosSeleccionados.map(importeEstudio);
 		const subtotal = sumarPreciosFinales(importes);
 		setTotal(subtotal);
 		if (descuentoPorcentaje > 0) {
@@ -474,7 +536,7 @@ const Cotizacion = () => {
 			clienteSeleccionado,
 			condicionesPaciente,
 			descuentoPorcentaje,
-			estudios: estudiosSeleccionados.map((est) => [est.clave, est.precio]),
+			estudios: estudiosSeleccionados.map((est) => [est.clave, est.precio, est.cantidad]),
 		});
 
 	// Guarda la cotización actual y devuelve el registro creado (o null si falla).
@@ -515,6 +577,7 @@ const Cotizacion = () => {
 							clave: est.clave,
 							descripcion: est.descripcion,
 							precio: est.precio,
+							cantidad: normalizarCantidadEstudio(est.cantidad),
 						})),
 						subtotal: total,
 						descuento,
@@ -585,7 +648,11 @@ const Cotizacion = () => {
 				? JSON.parse(cotizacion.estudios)
 				: cotizacion.estudios || [];
 		const listado = estudios
-			.map((est) => `• ${est.descripcion} - $${Number(est.precio || 0).toFixed(2)}`)
+			.map((est) => {
+				const cantidad = normalizarCantidadEstudio(est.cantidad);
+				const importe = Number(est.precio || 0) * cantidad;
+				return `• ${cantidad > 1 ? `${cantidad} x ` : ""}${est.descripcion} - $${importe.toFixed(2)}`;
+			})
 			.join("\n");
 		return [
 			`Cotización ${cotizacion.numero_cotizacion}`,
@@ -719,7 +786,7 @@ const Cotizacion = () => {
 	// cuadraba con lo que decía la tabla ni con el total final.
 	const totalDeRenglones = sumarPreciosFinales(
 		estudiosSeleccionados.map((est) =>
-			aplicarDescuentoPorcentaje(parseFloat(est.precio) || 0, descuentoPorcentaje),
+			aplicarDescuentoPorcentaje(importeEstudio(est), descuentoPorcentaje),
 		),
 	);
 
@@ -1007,6 +1074,7 @@ const Cotizacion = () => {
 											<th>Clave</th>
 											<th>Descripcion</th>
 											<th>Tipo</th>
+											<th>Cantidad</th>
 											<th>
 												{hayDescuentoPorRenglon
 													? `Precio (−${Number(descuentoPorcentaje)}%)`
@@ -1019,13 +1087,15 @@ const Cotizacion = () => {
 									<tbody>
 										{estudiosSeleccionados.length === 0 ? (
 											<tr>
-												<td colSpan="6" className="sin-estudios-cot">
+												<td colSpan="7" className="sin-estudios-cot">
 													No hay estudios agregados
 												</td>
 											</tr>
 										) : (
-											estudiosSeleccionados.map((estudio, index) => (
-												<tr key={index}>
+											estudiosSeleccionados.map((estudio) => {
+												const cantidad = normalizarCantidadEstudio(estudio.cantidad);
+												return (
+												<tr key={estudio.id ?? estudio.clave}>
 													<td>{estudio.clave}</td>
 													<td>
 														<button
@@ -1038,6 +1108,30 @@ const Cotizacion = () => {
 													</td>
 													<td>{estudio.tipo}</td>
 													<td>
+														<div
+															className="cantidad-control-cot"
+															role="group"
+															aria-label={`Cantidad de ${estudio.clave}`}>
+															<button
+																type="button"
+																className="btn-cantidad-cot"
+																aria-label={`Disminuir cantidad de ${estudio.clave}`}
+																disabled={cantidad <= 1}
+																onClick={() => cambiarCantidadEstudio(estudio.id, -1)}>
+																−
+															</button>
+															<span className="cantidad-valor-cot">{cantidad}</span>
+															<button
+																type="button"
+																className="btn-cantidad-cot"
+																aria-label={`Aumentar cantidad de ${estudio.clave}`}
+																disabled={cantidad >= CANTIDAD_MAXIMA_ESTUDIO}
+																onClick={() => cambiarCantidadEstudio(estudio.id, 1)}>
+																+
+															</button>
+														</div>
+													</td>
+													<td>
 													{/* Con un cliente de porcentaje el renglón muestra
 													    directamente lo que se va a cobrar; el encabezado
 													    dice qué descuento se aplicó. */}
@@ -1046,22 +1140,36 @@ const Cotizacion = () => {
 															hayDescuentoPorRenglon ? "precio-con-descuento-cot" : undefined
 														}>
 														$
-														{aplicarDescuentoPorcentaje(
-															estudio.precio,
-															descuentoPorcentaje,
+														{(hayDescuentoPorRenglon
+															? redondearPrecioFinal(
+																	aplicarDescuentoPorcentaje(importeEstudio(estudio), descuentoPorcentaje),
+																)
+															: importeEstudio(estudio)
 														).toFixed(2)}
 													</span>
+													{cantidad > 1 && (
+														<span className="precio-unitario-cot">
+															$
+															{aplicarDescuentoPorcentaje(
+																parseFloat(estudio.precio) || 0,
+																descuentoPorcentaje,
+															).toFixed(2)}{" "}
+															c/u
+														</span>
+													)}
 												</td>
 													<td>{estudio.diasProceso}</td>
 													<td>
 														<button
 															className="btn-borrar-estudio-cot"
+															aria-label={`Eliminar estudio ${estudio.clave}`}
 															onClick={() => eliminarEstudio(estudio.id)}>
 															✖
 														</button>
 													</td>
 												</tr>
-											))
+												);
+											})
 										)}
 									</tbody>
 								</table>

@@ -128,8 +128,12 @@ export const generarPDFCotizacion = async (datosTicket, { salida = "abrir" } = {
 	pdf.setFontSize(8);
 
 	estudios.forEach((estudio) => {
-		const descripcion = estudio.descripcion.toUpperCase();
-		const precio = `$ ${estudio.precio.toFixed(2)}`;
+		// Como el ticket de la orden: "cantidad x descripción" y el importe del
+		// renglón ya multiplicado. Las cotizaciones guardadas antes de la
+		// cantidad cuentan como una pieza.
+		const cantidad = Math.max(1, Math.trunc(Number(estudio.cantidad) || 1));
+		const descripcion = `${cantidad > 1 ? `${cantidad} x ` : ''}${String(estudio.descripcion || '').toUpperCase()}`;
+		const precio = `$ ${((Number(estudio.precio) || 0) * cantidad).toFixed(2)}`;
 
 		const maxWidth = 50;
 		const lines = pdf.splitTextToSize(descripcion, maxWidth);
