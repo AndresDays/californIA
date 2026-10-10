@@ -773,3 +773,47 @@
 	border-color: var(--borde-fuerte);
 	font-weight: 800;
 }
+
+/* Cantidad por renglón, igual que en Nuevo paciente: dos biometrías son un
+   renglón con cantidad 2, no dos renglones. */
+.cantidad-control-cot {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.btn-cantidad-cot {
+	width: 26px;
+	height: 26px;
+	background: transparent;
+	border: 1px solid var(--borde);
+	border-radius: 6px;
+	color: var(--texto);
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.btn-cantidad-cot:hover:not(:disabled) {
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
+}
+
+/* En cantidad 1 el "−" queda inerte: para quitar el estudio está el borrar. */
+.btn-cantidad-cot:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.cantidad-valor-cot {
+	min-width: 1.5rem;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+.precio-unitario-cot {
+	display: block;
+	font-size: 0.72rem;
+	color: var(--texto-suave);
+}

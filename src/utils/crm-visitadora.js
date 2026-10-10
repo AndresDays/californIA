@@ -23,6 +23,7 @@ export const TIPOS_VISITA = [
 	{ valor: "seguimiento", etiqueta: "Seguimiento" },
 	{ valor: "prospeccion", etiqueta: "Prospección" },
 	{ valor: "entrega_ordenes", etiqueta: "Entrega de órdenes" },
+	{ valor: "entrega_comisiones", etiqueta: "Entrega de comisiones" },
 	{ valor: "reactivacion_convenio", etiqueta: "Reactivación de convenio" },
 	{ valor: "presentacion_servicios", etiqueta: "Presentación de servicios" },
 	{ valor: "cobranza", etiqueta: "Cobranza" },
