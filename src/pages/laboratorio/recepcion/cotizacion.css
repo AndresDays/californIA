@@ -402,10 +402,68 @@
 	max-height: 240px;
 }
 
+/* Anchos fijos como en nuevo paciente: con una descripción larga en una sola
+   línea la tabla se estiraba y la columna de borrar quedaba fuera de vista,
+   detrás del scroll horizontal. */
 .tabla-estudios-cot {
 	width: 100%;
 	border-collapse: collapse;
-	min-width: 400px;
+	min-width: 600px;
+	table-layout: fixed;
+}
+
+.tabla-estudios-cot th:nth-child(1),
+.tabla-estudios-cot td:nth-child(1) {
+	width: 65px;
+}
+
+.tabla-estudios-cot th:nth-child(3),
+.tabla-estudios-cot td:nth-child(3) {
+	width: 75px;
+}
+
+.tabla-estudios-cot th:nth-child(4),
+.tabla-estudios-cot td:nth-child(4) {
+	width: 85px;
+	text-align: center;
+	overflow: visible;
+}
+
+.tabla-estudios-cot th:nth-child(5),
+.tabla-estudios-cot td:nth-child(5) {
+	width: 85px;
+	white-space: normal;
+}
+
+.tabla-estudios-cot th:nth-child(6),
+.tabla-estudios-cot td:nth-child(6) {
+	width: 36px;
+	text-align: center;
+}
+
+.tabla-estudios-cot th:last-child,
+.tabla-estudios-cot td:last-child {
+	width: 40px;
+	text-align: center;
+}
+
+/* Si aun así el panel es más angosto que la tabla, la columna de borrar se
+   queda pegada a la orilla derecha mientras se recorre el resto. */
+.tabla-estudios-cot td:last-child {
+	position: sticky;
+	right: 0;
+	background: var(--superficie);
+}
+
+.tabla-estudios-cot thead th:last-child {
+	position: sticky;
+	right: 0;
+	z-index: 11;
+	background: var(--superficie);
+}
+
+.tabla-estudios-cot tbody tr:hover td:last-child {
+	background: var(--superficie-hover);
 }
 
 .tabla-estudios-cot thead {
@@ -416,7 +474,10 @@
 }
 
 .tabla-estudios-cot th {
-	padding: 0.7rem 0.6rem;
+	padding: 0.7rem 0.4rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	text-align: left;
 	font-weight: 500;
 	color: var(--texto);
@@ -436,9 +497,28 @@
 }
 
 .tabla-estudios-cot td {
-	padding: 0.7rem 0.6rem;
+	padding: 0.7rem 0.4rem;
 	color: var(--texto);
 	font-size: 0.875rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* La descripción puede bajar a otro renglón: en el panel angosto así se lee
+   completa sin empujar las demás columnas. */
+.tabla-estudios-cot td:nth-child(2),
+.tabla-estudios-cot td:nth-child(2) .btn-detalle-estudio-cot {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+/* La fila de "No hay estudios agregados" ocupa toda la tabla: no lleva los
+   anchos, el recorte ni la orilla fija de las columnas. */
+.tabla-estudios-cot td.sin-estudios-cot {
+	position: static;
+	width: auto;
+	white-space: normal;
 }
 
 .sin-estudios-cot {
