@@ -897,3 +897,14 @@
 	font-size: 0.72rem;
 	color: var(--texto-suave);
 }
+
+/* Con qué cliente quedó el precio del renglón: cambiar de cliente ya no
+   recotiza lo agregado, así que cada renglón dice de dónde salió su precio. */
+.cliente-precio-cot {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.7rem;
+	color: var(--texto-suave);
+}

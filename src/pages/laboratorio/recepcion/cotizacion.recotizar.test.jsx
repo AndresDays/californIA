@@ -156,103 +156,147 @@ const cotizarConIMSS = async () => {
 	});
 };
 
-test("cambiar de cliente recotiza los estudios ya capturados", async () => {
-	await cotizarConIMSS();
-	expect(precioMostrado()).toBe("$80.00");
-
-	await elegir("IMSS", "2");
-
-	expect(precioMostrado()).toBe("$200.00");
-	expect(screen.getByRole("alert")).toHaveTextContent("ISSSTE");
-});
-
-test("volver al cliente anterior devuelve su precio", async () => {
-	await cotizarConIMSS();
-
-	await elegir("IMSS", "2");
-	expect(precioMostrado()).toBe("$200.00");
-
-	await elegir("ISSSTE", "1");
-	expect(precioMostrado()).toBe("$80.00");
-});
-
-// Un cliente de porcentaje cotiza con la lista de particular y su descuento va
-// encima: el renglón tiene que mostrar el precio final, y al volver a un
-// cliente sin descuento el monto en pesos tiene que irse con el porcentaje.
-describe("Cotización — descuento de mostrador", () => {
-	const campoPorValor = (selector) => document.querySelector(selector)?.value;
-	const totalFinal = () => campoPorValor(".input-total-final-cot");
-	const descuentoMonto = () => campoPorValor(".input-descuento-cot");
-	const descuentoPct = () => campoPorValor(".input-descuento-pct-cot");
-
-	test("el renglón, el descuento y el total final siguen al porcentaje", async () => {
-		await cotizarConIMSS();
-
-		// "20%" cotiza con la lista de particular ($100) y descuenta encima.
-		await elegir("IMSS", "3");
-
-		expect(precioMostrado()).toBe("$80.00");
-		expect(descuentoPct()).toBe("20");
-		expect(descuentoMonto()).toBe("20");
-		expect(totalFinal()).toBe("$80.00");
+const agregarPorBusqueda = async (texto) => {
+	await act(async () => {
+		fireEvent.change(screen.getByPlaceholderText(/Busca estudios aquí/i), {
+			target: { value: texto },
+		});
 	});
-
-	test("volver a un cliente sin descuento limpia el monto, no sólo el porcentaje", async () => {
-		await cotizarConIMSS();
-
-		await elegir("IMSS", "3");
-		expect(descuentoMonto()).toBe("20");
-
-		await elegir("20%", "4");
-
-		expect(descuentoPct()).toBe("0");
-		expect(descuentoMonto()).toBe("0");
-		expect(totalFinal()).toBe("$100.00");
-		expect(precioMostrado()).toBe("$100.00");
+	await act(async () => {
+		fireEvent.click(document.querySelector(".search-results-estudios-cot .search-result-item-cot"));
 	});
-});
+};
+const filaDe = (clave) =>
+	[...document.querySelectorAll(".tabla-estudios-cot tbody tr")].find((tr) =>
+		tr.textContent.includes(clave),
+	);
+const precioDe = (clave) => filaDe(clave)?.querySelectorAll("td")[4];
+const campoPorValor = (selector) => document.querySelector(selector)?.value;
+const totalCampo = () => campoPorValor(".input-total-cot");
+const totalFinal = () => campoPorValor(".input-total-final-cot");
+const descuentoMonto = () => campoPorValor(".input-descuento-cot");
+const descuentoPct = () => campoPorValor(".input-descuento-pct-cot");
 
-// El campo de Total tiene que cuadrar con lo que muestra la tabla: se quedaba
-// con el precio de lista al cambiar de cliente o al aplicar un descuento.
-describe("Cotización — el campo de Total sigue a la tabla", () => {
-	const totalCampo = () => document.querySelector(".input-total-cot")?.value;
-
-	test("cambiar de convenio actualiza el total", async () => {
+// Cada renglón se queda con el precio del cliente con que se agregó: cambiar
+// de cliente sólo cambia el precio de lo que se agregue después.
+describe("Cotización — el precio se queda con su cliente", () => {
+	test("cambiar de cliente no recotiza lo ya agregado", async () => {
 		await cotizarConIMSS();
-		expect(totalCampo()).toBe("$80.00");
+		expect(precioMostrado()).toContain("$80.00");
 
 		await elegir("IMSS", "2");
 
-		expect(precioMostrado()).toBe("$200.00");
-		expect(totalCampo()).toBe("$200.00");
+		expect(precioMostrado()).toContain("$80.00");
+		expect(totalCampo()).toBe("$80.00");
 	});
 
-	test("con un cliente de porcentaje el total ya trae el descuento", async () => {
+	test("bajo el precio sale el cliente con que quedó", async () => {
+		await cotizarConIMSS();
+		expect(precioDe("BH").querySelector(".cliente-precio-cot")).toHaveTextContent("IMSS");
+
+		await elegir("IMSS", "4");
+		await agregarPorBusqueda("quim");
+
+		expect(precioDe("BH").querySelector(".cliente-precio-cot")).toHaveTextContent("IMSS");
+		expect(precioDe("QS").querySelector(".cliente-precio-cot")).toHaveTextContent("Particular");
+	});
+
+	test("el mismo estudio con otro cliente no se suma al renglón", async () => {
+		await cotizarConIMSS();
+		await elegir("IMSS", "2");
+		await agregarPorBusqueda("bio");
+
+		expect(filaDe("BH").querySelector(".cantidad-valor-cot")).toHaveTextContent("1");
+		expect(precioMostrado()).toContain("$80.00");
+		expect(screen.getByRole("alert")).toHaveTextContent("ya está agregado con el precio de IMSS");
+	});
+});
+
+// Un cliente de porcentaje cotiza con la lista de particular y su descuento va
+// encima, sólo en los renglones que se agregaron con él.
+describe("Cotización — descuento de mostrador", () => {
+	const cotizarCon20 = async () => {
+		await act(async () => {
+			render(<Cotizacion />);
+		});
+		await elegir("Selecciona una Empresa", "2");
+		await elegir("Selecciona un Cliente", "3");
+		await elegir("Selecciona tipo de estudio", "7");
+		await agregarPorBusqueda("bio");
+	};
+
+	test("el renglón, el descuento y el total final llevan el porcentaje", async () => {
+		await cotizarCon20();
+
+		expect(precioMostrado()).toContain("$80.00");
+		expect(descuentoPct()).toBe("20");
+		expect(descuentoMonto()).toBe("20");
+		expect(totalCampo()).toBe("$80.00");
+		expect(totalFinal()).toBe("$80.00");
+	});
+
+	test("cambiar a particular deja el 20% en lo ya agregado y no en lo nuevo", async () => {
+		await cotizarCon20();
+
+		await elegir("20%", "4");
+		expect(descuentoPct()).toBe("0");
+		expect(precioMostrado()).toContain("$80.00");
+		expect(precioDe("BH").querySelector(".cliente-precio-cot")).toHaveTextContent("20%");
+
+		await agregarPorBusqueda("bio");
+		expect(filaDe("BH").querySelector(".cantidad-valor-cot")).toHaveTextContent("1");
+		expect(precioMostrado()).toContain("$80.00");
+	});
+
+	test("mezclar clientes suma cada renglón con su precio", async () => {
+		await act(async () => {
+			render(<Cotizacion />);
+		});
+		await elegir("Selecciona una Empresa", "2");
+		await elegir("Selecciona un Cliente", "3");
+		await elegir("Selecciona tipo de estudio", "7");
+		await agregarPorBusqueda("bio");
+
+		// QS sólo tiene precio con IMSS ($120).
+		await elegir("20%", "1");
+		await agregarPorBusqueda("quim");
+
+		expect(precioDe("BH")).toHaveTextContent("$80.00");
+		expect(precioDe("QS")).toHaveTextContent("$120.00");
+		expect(totalCampo()).toBe("$200.00");
+		expect(descuentoMonto()).toBe("20");
+		expect(totalFinal()).toBe("$200.00");
+	});
+
+	test("quitar el último renglón con porcentaje limpia el monto", async () => {
+		await cotizarCon20();
+		expect(descuentoMonto()).toBe("20");
+
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Eliminar estudio BH" }));
+		});
+
+		expect(descuentoMonto()).toBe("0");
+	});
+
+	test("capturar el porcentaje a mano lo aplica a toda la cotización", async () => {
 		await cotizarConIMSS();
 
-		await elegir("IMSS", "3");
+		await act(async () => {
+			fireEvent.change(document.querySelector(".input-descuento-pct-cot"), {
+				target: { value: "50" },
+			});
+		});
 
-		expect(precioMostrado()).toBe("$80.00");
-		expect(totalCampo()).toBe("$80.00");
-		expect(document.querySelector(".input-total-final-cot")?.value).toBe("$80.00");
+		expect(precioMostrado()).toContain("$40.00");
+		expect(totalFinal()).toBe("$40.00");
 	});
 });
 
 // Varios estudios en la tabla y cantidad por renglón, igual que Nuevo paciente.
 describe("Cotización — varios estudios y cantidad", () => {
-	const agregarPorBusqueda = async (texto) => {
-		await act(async () => {
-			fireEvent.change(screen.getByPlaceholderText(/Busca estudios aquí/i), {
-				target: { value: texto },
-			});
-		});
-		await act(async () => {
-			fireEvent.click(document.querySelector(".search-results-estudios-cot .search-result-item-cot"));
-		});
-	};
 	const filas = () => [...document.querySelectorAll(".tabla-estudios-cot tbody tr")];
-	const fila = (clave) => filas().find((tr) => tr.textContent.includes(clave));
-	const totalCampo = () => document.querySelector(".input-total-cot")?.value;
+	const fila = filaDe;
 
 	test("agregar un segundo estudio no borra el primero", async () => {
 		await cotizarConIMSS();
