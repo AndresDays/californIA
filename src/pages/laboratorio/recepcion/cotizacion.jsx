@@ -76,21 +76,25 @@ const Cotizacion = () => {
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("cotizacion:estudio");
 	const [estudiosDisponibles, setEstudiosDisponibles] = useState([]);
 	const [estudiosGuardados, setEstudiosSeleccionados] = useCampoPersistente(`${BORRADOR}estudios`, []);
+	const [descuentoPorcentaje, setDescuentoPorcentaje] = useCampoPersistente(`${BORRADOR}descuentoPorcentaje`, 0);
 	// Un borrador de antes de que el renglón tuviera cantidad se lee como una
-	// pieza por estudio, igual que en Nuevo paciente.
+	// pieza por estudio, igual que en Nuevo paciente. Cada renglón se queda con
+	// el cliente y el porcentaje con que se agregó; un borrador de antes de eso
+	// toma el porcentaje que está puesto.
 	const estudiosSeleccionados = useMemo(
 		() =>
 			(Array.isArray(estudiosGuardados) ? estudiosGuardados : []).map((estudio) => ({
 				...estudio,
 				cantidad: normalizarCantidadEstudio(estudio?.cantidad),
+				descuentoPorcentaje:
+					Number(estudio?.descuentoPorcentaje ?? descuentoPorcentaje) || 0,
 			})),
-		[estudiosGuardados],
+		[estudiosGuardados, descuentoPorcentaje],
 	);
 	const [showBusquedaEstudios, setShowBusquedaEstudios] = useState(false);
 	const [estudioDetalle, setEstudioDetalle] = useState(null);
 	const [total, setTotal] = useState(0);
 	const [descuento, setDescuento] = useCampoPersistente(`${BORRADOR}descuento`, 0);
-	const [descuentoPorcentaje, setDescuentoPorcentaje] = useCampoPersistente(`${BORRADOR}descuentoPorcentaje`, 0);
 	const [notificacion, setNotificacion] = useState({
 		isOpen: false,
 		mensaje: "",
@@ -102,10 +106,10 @@ const Cotizacion = () => {
 	const [cotizacionGuardada, setCotizacionGuardada] = useState(null);
 	// El ticket armado, esperando el clic que lo manda.
 	const [envioPendiente, setEnvioPendiente] = useState(null);
-	// Con qué porcentaje se calculó el descuento la vuelta anterior: es lo que
-	// permite distinguir "el cliente ya no tiene descuento" de "lo capturaron a
-	// mano en pesos".
-	const porcentajePrevioRef = useRef(descuentoPorcentaje);
+	// Si la vuelta anterior algún renglón traía porcentaje: es lo que permite
+	// distinguir "ya no queda descuento de cliente" de "lo capturaron a mano en
+	// pesos".
+	const porcentajePrevioRef = useRef(Number(descuentoPorcentaje) > 0);
 	const guardandoRef = useRef(false);
 	const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
 
@@ -139,8 +143,9 @@ const Cotizacion = () => {
 		if (empresaSeleccionada) cargarTiposEstudio(empresaSeleccionada);
 		else setTiposEstudio([]);
 	}, [empresaSeleccionada, reglasConvenio, empresas]);
-	// Clientes como 10%, 20% o 30% son un descuento de mostrador: al elegirlos la
-	// cotización aplica su porcentaje, y al cambiar de cliente vuelve a cero.
+	// Clientes como 10%, 20% o 30% son un descuento de mostrador: al elegirlos
+	// los estudios que se agreguen llevan su porcentaje, y al cambiar a otro
+	// cliente los siguientes van sin él. Lo ya agregado no cambia.
 	useEffect(() => {
 		const nombreCliente = clientes.find(
 			(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
@@ -176,69 +181,9 @@ const Cotizacion = () => {
 			cancelado = true;
 		};
 	}, [clienteSeleccionado, clientes]);
-	// Cambiar de cliente recotiza lo ya capturado: el renglón tiene que mostrar
-	// el precio del convenio elegido, no el del anterior.
-	//
-	// La primera vuelta —y el borrador que se retoma, que ya trae su precio—
-	// sólo deja anotado con qué cliente quedó cotizado, sin volver a pedir
-	// precios.
-	const estudiosParaRecotizarRef = useRef(estudiosSeleccionados);
-	useEffect(() => {
-		estudiosParaRecotizarRef.current = estudiosSeleccionados;
-	}, [estudiosSeleccionados]);
-
-	const clienteCotizadoRef = useRef(null);
-	const saltarRecotizacionRef = useRef(true);
-
-	useEffect(() => {
-		const nombreCliente =
-			clientes.find(
-				(cli) => cli.id_cliente?.toString() === clienteSeleccionado?.toString(),
-			)?.nombre || "";
-		// Con el catálogo de clientes todavía sin cargar no se sabe a qué cliente
-		// corresponde el id: recotizar aquí dejaría todo a precio de particular.
-		if (clienteSeleccionado && !nombreCliente) return undefined;
-
-		if (saltarRecotizacionRef.current || clienteCotizadoRef.current === nombreCliente) {
-			saltarRecotizacionRef.current = false;
-			clienteCotizadoRef.current = nombreCliente;
-			return undefined;
-		}
-		clienteCotizadoRef.current = nombreCliente;
-
-		const estudios = estudiosParaRecotizarRef.current;
-		if (estudios.length === 0) return undefined;
-
-		let cancelado = false;
-		Promise.all(
-			estudios.map(async (estudio) => ({
-				...estudio,
-				precio: await obtenerPrecioEstudio(estudio, nombreCliente),
-			})),
-		).then((recotizados) => {
-			if (cancelado) return;
-			const porId = new Map(recotizados.map((estudio) => [estudio.id, estudio]));
-			setEstudiosSeleccionados((actuales) =>
-				actuales.map((estudio) => porId.get(estudio.id) ?? estudio),
-			);
-			const cambioAlgunPrecio = estudios.some(
-				(estudio) => Number(porId.get(estudio.id)?.precio) !== Number(estudio.precio),
-			);
-			if (cambioAlgunPrecio) {
-				mostrarNotificacion(
-					`Los precios se actualizaron para ${nombreCliente || "particular"}`,
-				);
-			}
-		});
-
-		return () => {
-			cancelado = true;
-		};
-	}, [clienteSeleccionado, clientes]);
-
 	useEffect(() => {
 		calcularTotales();
-	}, [estudiosSeleccionados, descuento, descuentoPorcentaje]);
+	}, [estudiosSeleccionados, descuento]);
 
 	const mostrarNotificacion = (mensaje, tipo = "exito") =>
 		setNotificacion({ isOpen: true, mensaje, tipo });
@@ -359,9 +304,6 @@ const Cotizacion = () => {
 			cliente: clienteParaPrecios(nombreClienteOrden),
 		});
 
-	const obtenerPrecioEstudio = async (estudio, nombreClienteOrden) =>
-		(await obtenerPrecioConOrigen(estudio, nombreClienteOrden)).precio;
-
 	// Un estudio que entra al precio por defecto es un hueco del tarifario, no
 	// un precio: cotizarlo así en silencio se descubre hasta que el paciente
 	// llega a pagar.
@@ -395,7 +337,23 @@ const Cotizacion = () => {
 	// la lista más reciente (antes se armaba con la copia de antes de pedir el
 	// precio y, al agregar varios seguidos, unos borraban a otros).
 	const agregarEstudio = async (estudio) => {
+		const clienteObj = clientes.find(
+			(cliente) =>
+				cliente.id_cliente.toString() === clienteSeleccionado.toString(),
+		);
+		const nombreCliente = clienteObj?.nombre || "";
 		const yaSeleccionado = estudiosSeleccionados.find((e) => e.clave === estudio.clave);
+		// El renglón se queda con el precio del cliente con que se agregó: sumarle
+		// una pieza con otro cliente mezclaría dos precios en el mismo renglón.
+		if (yaSeleccionado && (yaSeleccionado.cliente ?? nombreCliente) !== nombreCliente) {
+			mostrarNotificacion(
+				`${estudio.clave} ya está agregado con el precio de ${
+					yaSeleccionado.cliente || "particular"
+				}. Quítelo de la tabla para cotizarlo con ${nombreCliente || "particular"}.`,
+				"advertencia",
+			);
+			return;
+		}
 		if (yaSeleccionado) {
 			const cantidadActual = normalizarCantidadEstudio(yaSeleccionado.cantidad);
 			if (cantidadActual >= CANTIDAD_MAXIMA_ESTUDIO) {
@@ -414,21 +372,19 @@ const Cotizacion = () => {
 			setShowBusquedaEstudios(false);
 			return;
 		}
-		const clienteObj = clientes.find(
-			(cliente) =>
-				cliente.id_cliente.toString() === clienteSeleccionado.toString(),
-		);
 		const { precio: precioEstudio, origen } = await obtenerPrecioConOrigen(
 			estudio,
-			clienteObj?.nombre || "",
+			nombreCliente,
 		);
 		if (origen === ORIGEN_PRECIO.DEFECTO) {
-			avisarPrecioPorDefecto(estudio, clienteObj?.nombre || "");
+			avisarPrecioPorDefecto(estudio, nombreCliente);
 		}
 		const estudioConPrecio = {
 			...estudio,
 			precio: precioEstudio,
 			cantidad: 1,
+			cliente: nombreCliente,
+			descuentoPorcentaje: Number(descuentoPorcentaje) || 0,
 			tipo: estudio.area || estudio.modalidad || "Laboratorio",
 			diasProceso: estudio.diasProceso || 1,
 		};
@@ -453,25 +409,37 @@ const Cotizacion = () => {
 	const importeEstudio = (estudio) =>
 		(parseFloat(estudio.precio) || 0) * normalizarCantidadEstudio(estudio.cantidad);
 
+	// El importe ya con el porcentaje del cliente con que se agregó el renglón.
+	const importeConDescuento = (estudio) =>
+		aplicarDescuentoPorcentaje(importeEstudio(estudio), estudio.descuentoPorcentaje);
+
 	// La cotización cobra como la orden: a pesos cerrados, renglón por renglón,
 	// para que lo cotizado sea exactamente lo que se le va a cobrar.
 	const calcularTotales = () => {
-		const importes = estudiosSeleccionados.map(importeEstudio);
-		const subtotal = sumarPreciosFinales(importes);
+		const subtotal = sumarPreciosFinales(estudiosSeleccionados.map(importeEstudio));
 		setTotal(subtotal);
-		if (descuentoPorcentaje > 0) {
-			const conDescuento = sumarPreciosFinales(
-				importes.map((importe) => importe - importe * (descuentoPorcentaje / 100)),
-			);
-			setDescuento(subtotal - conDescuento);
-		} else if (porcentajePrevioRef.current > 0) {
-			// Al pasar de un cliente de porcentaje a uno sin descuento, el monto se
-			// quedaba pegado: el porcentaje bajaba a cero pero el descuento en pesos
-			// seguía aplicándose. Un descuento capturado a mano con 0% sí se
-			// respeta, por eso sólo se limpia cuando venía de un porcentaje.
+		const hayPorcentaje = estudiosSeleccionados.some(
+			(estudio) => Number(estudio.descuentoPorcentaje) > 0,
+		);
+		if (hayPorcentaje) {
+			setDescuento(subtotal - sumarPreciosFinales(estudiosSeleccionados.map(importeConDescuento)));
+		} else if (porcentajePrevioRef.current) {
+			// Al quitar el último renglón con porcentaje el monto se quedaba
+			// pegado. Un descuento capturado a mano sin porcentaje sí se respeta,
+			// por eso sólo se limpia cuando venía de un porcentaje.
 			setDescuento(0);
 		}
-		porcentajePrevioRef.current = descuentoPorcentaje;
+		porcentajePrevioRef.current = hayPorcentaje;
+	};
+
+	// Capturar el porcentaje a mano lo aplica a toda la cotización; elegir un
+	// cliente de porcentaje sólo cambia lo que se agregue después.
+	const cambiarDescuentoPorcentajeManual = (valor) => {
+		const porcentaje = parseFloat(valor) || 0;
+		setDescuentoPorcentaje(porcentaje);
+		setEstudiosSeleccionados((actuales) =>
+			actuales.map((estudio) => ({ ...estudio, descuentoPorcentaje: porcentaje })),
+		);
 	};
 
 	const generarNumeroCotizacion = async () => {
@@ -536,7 +504,13 @@ const Cotizacion = () => {
 			clienteSeleccionado,
 			condicionesPaciente,
 			descuentoPorcentaje,
-			estudios: estudiosSeleccionados.map((est) => [est.clave, est.precio, est.cantidad]),
+			estudios: estudiosSeleccionados.map((est) => [
+				est.clave,
+				est.precio,
+				est.cantidad,
+				est.cliente,
+				est.descuentoPorcentaje,
+			]),
 		});
 
 	// Guarda la cotización actual y devuelve el registro creado (o null si falla).
@@ -565,6 +539,13 @@ const Cotizacion = () => {
 		try {
 			const numeroCotizacion = await generarNumeroCotizacion();
 			const totalFinal = total - descuento;
+			// La cotización lleva un solo porcentaje cuando todos los renglones
+			// comparten el mismo; si se mezclaron clientes, el de cada uno va en su
+			// renglón y el descuento en pesos ya los suma.
+			const porcentajes = new Set(
+				estudiosSeleccionados.map((est) => Number(est.descuentoPorcentaje) || 0),
+			);
+			const porcentajeComun = porcentajes.size === 1 ? [...porcentajes][0] : 0;
 			const { data, error } = await supabase
 				.from("cotizaciones")
 				.insert([
@@ -578,10 +559,12 @@ const Cotizacion = () => {
 							descripcion: est.descripcion,
 							precio: est.precio,
 							cantidad: normalizarCantidadEstudio(est.cantidad),
+							cliente: est.cliente ?? null,
+							descuento_porcentaje: est.descuentoPorcentaje,
 						})),
 						subtotal: total,
 						descuento,
-						descuento_porcentaje: descuentoPorcentaje,
+						descuento_porcentaje: porcentajeComun,
 						total: totalFinal,
 					},
 				])
@@ -780,15 +763,30 @@ const Cotizacion = () => {
 	// Un cliente de porcentaje (10%, 20%, 30%) cotiza con la lista de particular
 	// y su descuento se aplica encima: el renglón muestra ya el precio con
 	// descuento, igual que en la captura de la orden.
-	const hayDescuentoPorRenglon = Number(descuentoPorcentaje) > 0;
+	const hayDescuentoPorRenglon = estudiosSeleccionados.some(
+		(est) => Number(est.descuentoPorcentaje) > 0,
+	);
+	// El encabezado dice el porcentaje sólo si todos los renglones llevan el
+	// mismo; si se mezclaron clientes, cada renglón dice el suyo.
+	const porcentajesRenglones = [
+		...new Set(estudiosSeleccionados.map((est) => Number(est.descuentoPorcentaje) || 0)),
+	];
+	const porcentajeEncabezado =
+		porcentajesRenglones.length === 1 ? porcentajesRenglones[0] : 0;
 	// El campo de Total suma los renglones tal como se ven en la tabla: con el
 	// descuento del cliente ya aplicado. Se quedaba con el precio de lista y no
 	// cuadraba con lo que decía la tabla ni con el total final.
-	const totalDeRenglones = sumarPreciosFinales(
-		estudiosSeleccionados.map((est) =>
-			aplicarDescuentoPorcentaje(importeEstudio(est), descuentoPorcentaje),
-		),
-	);
+	const totalDeRenglones = sumarPreciosFinales(estudiosSeleccionados.map(importeConDescuento));
+	// Lo que va en chiquito bajo el precio: con qué cliente quedó cotizado y,
+	// si el nombre no lo dice ya, el porcentaje que lleva.
+	const etiquetaClienteRenglon = (estudio) => {
+		if (estudio.cliente === undefined) return "";
+		const nombre = estudio.cliente || "Particular";
+		const porcentaje = Number(estudio.descuentoPorcentaje) || 0;
+		return porcentaje > 0 && !nombre.includes(`${porcentaje}%`)
+			? `${nombre} · −${porcentaje}%`
+			: nombre;
+	};
 
 	const clavesConPrecio = resolverClavesConPrecio(
 		preciosCliente,
@@ -1076,8 +1074,8 @@ const Cotizacion = () => {
 											<th>Tipo</th>
 											<th>Cantidad</th>
 											<th>
-												{hayDescuentoPorRenglon
-													? `Precio (−${Number(descuentoPorcentaje)}%)`
+												{porcentajeEncabezado > 0
+													? `Precio (−${porcentajeEncabezado}%)`
 													: "Precio"}
 											</th>
 											<th>Días</th>
@@ -1133,17 +1131,15 @@ const Cotizacion = () => {
 													</td>
 													<td>
 													{/* Con un cliente de porcentaje el renglón muestra
-													    directamente lo que se va a cobrar; el encabezado
-													    dice qué descuento se aplicó. */}
+													    directamente lo que se va a cobrar; abajo, en
+													    chiquito, el cliente con que quedó ese precio. */}
 													<span
 														className={
-															hayDescuentoPorRenglon ? "precio-con-descuento-cot" : undefined
+															estudio.descuentoPorcentaje > 0 ? "precio-con-descuento-cot" : undefined
 														}>
 														$
-														{(hayDescuentoPorRenglon
-															? redondearPrecioFinal(
-																	aplicarDescuentoPorcentaje(importeEstudio(estudio), descuentoPorcentaje),
-																)
+														{(estudio.descuentoPorcentaje > 0
+															? redondearPrecioFinal(importeConDescuento(estudio))
 															: importeEstudio(estudio)
 														).toFixed(2)}
 													</span>
@@ -1152,9 +1148,14 @@ const Cotizacion = () => {
 															$
 															{aplicarDescuentoPorcentaje(
 																parseFloat(estudio.precio) || 0,
-																descuentoPorcentaje,
+																estudio.descuentoPorcentaje,
 															).toFixed(2)}{" "}
 															c/u
+														</span>
+													)}
+													{etiquetaClienteRenglon(estudio) && (
+														<span className="cliente-precio-cot">
+															{etiquetaClienteRenglon(estudio)}
 														</span>
 													)}
 												</td>
@@ -1199,9 +1200,7 @@ const Cotizacion = () => {
 									<input
 										type="number"
 										value={descuentoPorcentaje}
-										onChange={(e) =>
-											setDescuentoPorcentaje(parseFloat(e.target.value) || 0)
-										}
+										onChange={(e) => cambiarDescuentoPorcentajeManual(e.target.value)}
 										className="input-descuento-pct-cot"
 									/>
 								</div>
