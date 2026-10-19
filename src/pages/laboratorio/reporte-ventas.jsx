@@ -229,6 +229,18 @@ const ReporteVentas = () => {
 		[ventasFiltradas, areaSalidaSeleccionada, areaSeleccionada, buscarEstudio],
 	);
 
+	// La tabla se lee como bitácora: la venta más vieja arriba y las nuevas
+	// hacia abajo. Las descargas y el copiado salen en el mismo orden. La
+	// consulta las trae de la más nueva a la más vieja porque Cortes del día
+	// la comparte, así que aquí sólo se voltea.
+	const ventasEnOrden = useMemo(
+		() =>
+			[...ventasDelArea].sort(
+				(a, b) => new Date(a.fecha_venta || 0) - new Date(b.fecha_venta || 0),
+			),
+		[ventasDelArea],
+	);
+
 	const metricas = useMemo(
 		() => calcularMetricasVentas(ventasDelArea),
 		[ventasDelArea],
@@ -343,7 +355,7 @@ const ReporteVentas = () => {
 				fechaFinal: hasta,
 				usuario: empleadoData?.nombre || getPrimerNombre(),
 				columnas: COLUMNAS_TABLA_VENTAS,
-				filas: filasVentas(ventasDelArea),
+				filas: filasVentas(ventasEnOrden),
 				metricas,
 				filtros: {
 					Sucursal: nombreDe(sucursales, sucursalSeleccionada, "id_sucursal", "nombre"),
@@ -368,7 +380,7 @@ const ReporteVentas = () => {
 	// selector dentro del reparto por área y, si ese grupo venía vacío, la
 	// descarga se cancelaba sin decir nada: el botón parecía descompuesto.
 	const descargarExcel = () => {
-		const filas = filasVentas(ventasDelArea);
+		const filas = filasVentas(ventasEnOrden);
 		if (filas.length === 0) {
 			mostrarNotificacion("No hay ventas que exportar con los filtros seleccionados", "advertencia");
 			return;
@@ -383,7 +395,7 @@ const ReporteVentas = () => {
 	};
 
 	const descargarPDF = () => {
-		const filas = filasVentas(ventasDelArea);
+		const filas = filasVentas(ventasEnOrden);
 		if (filas.length === 0) {
 			mostrarNotificacion("No hay ventas que exportar con los filtros seleccionados", "advertencia");
 			return;
@@ -474,7 +486,7 @@ const ReporteVentas = () => {
 						</tr>
 					</thead>
 					<tbody>
-						{ventasDelArea.map((venta) => {
+						{ventasEnOrden.map((venta) => {
 							// El folio se pinta como botón para abrir el detalle; el resto del
 							// renglón sale de la misma definición que se copia y se exporta.
 							const [, ...celdas] = filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta });
@@ -532,7 +544,7 @@ const ReporteVentas = () => {
 	// arrastra los saltos de renglón: se copia con tabuladores para que al pegar
 	// en Excel cada dato caiga en su celda.
 	const copiarTabla = async () => {
-		const texto = tablaVentasComoTexto(ventasDelArea, { nombreDoctor: nombreDoctorVenta });
+		const texto = tablaVentasComoTexto(ventasEnOrden, { nombreDoctor: nombreDoctorVenta });
 		const copiado = await copiarTextoAlPortapapeles(texto);
 		mostrarNotificacion(
 			copiado
