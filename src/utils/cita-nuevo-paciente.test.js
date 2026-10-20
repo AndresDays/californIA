@@ -437,3 +437,35 @@ describe("paquetes de laboratorio", () => {
 		expect(resultado).toEqual([]);
 	});
 });
+
+// En la orden y la cotización el tipo va antes que la búsqueda: sin tipo no se
+// ofrece nada y con tipo sólo lo de ese tipo.
+describe("filtrarEstudiosCatalogo con tipo obligatorio", () => {
+	const ESTUDIOS = [
+		{ clave: "BH", descripcion: "BIOMETRIA", modulo: "laboratorio", modalidad: "laboratorio" },
+		{ clave: "US-BIO", descripcion: "BIOPSIA GUIADA", modulo: "imagen", modalidad: "ultrasonido" },
+	];
+
+	test("sin tipo de estudio no se ofrece nada", () => {
+		expect(filtrarEstudiosCatalogo({ estudios: ESTUDIOS, busqueda: "bio", exigirTipo: true })).toEqual([]);
+	});
+
+	test("con tipo sólo salen los estudios de ese tipo", () => {
+		expect(
+			filtrarEstudiosCatalogo({
+				estudios: ESTUDIOS,
+				busqueda: "bio",
+				tipoNombre: "Laboratorio",
+				exigirTipo: true,
+			}).map((e) => e.clave),
+		).toEqual(["BH"]);
+		expect(
+			filtrarEstudiosCatalogo({
+				estudios: ESTUDIOS,
+				busqueda: "bio",
+				tipoNombre: "Ultrasonido",
+				exigirTipo: true,
+			}).map((e) => e.clave),
+		).toEqual(["US-BIO"]);
+	});
+});

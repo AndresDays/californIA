@@ -1,4 +1,8 @@
-import { resolverEmpresaOperativaCatalogo, resolverModalidadDesdeTipo } from "./cita-nuevo-paciente";
+import {
+	filtrarEstudiosCatalogo,
+	resolverEmpresaOperativaCatalogo,
+	resolverModalidadDesdeTipo,
+} from "./cita-nuevo-paciente";
 import { MODALIDAD_TODAS, MODALIDADES_FUERA_DE_CONVENIO } from "./folios";
 
 // Los tipos de estudio se dan de alta por empresa, pero un paciente de convenio
@@ -77,5 +81,38 @@ export const resolverTiposEstudioConvenio = ({
 
 	return [...tipos.values()].sort((uno, otro) =>
 		String(uno.nombre || "").localeCompare(String(otro.nombre || "")),
+	);
+};
+
+// Las reglas del convenio dicen qué modalidades factura cada empresa, pero un
+// "toda su imagen" abre todos los tipos aunque el cliente sólo tenga precio en
+// algunos: con CDI e ISSSTE salían todos los tipos de imagen. Aquí se queda
+// cada tipo sólo si el cliente tiene al menos un estudio con precio en él, con
+// la misma búsqueda que después ofrece los estudios. Los paquetes no cuentan,
+// porque se ofrecen a todos sin importar el tarifario.
+//
+// Sin tarifario que cruce con el catálogo (o mientras carga) no se recorta
+// nada, para no dejar el select vacío.
+export const filtrarTiposConEstudiosConPrecio = ({
+	tipos = [],
+	estudios = [],
+	clavesConPrecio = null,
+	empresaId = "",
+	empresaNombre = "",
+	reglasConvenio = null,
+} = {}) => {
+	if (!(clavesConPrecio instanceof Set) || clavesConPrecio.size === 0) return tipos;
+	const estudiosSinPaquetes = estudios.filter((estudio) => !estudio.es_paquete);
+
+	return tipos.filter(
+		(tipo) =>
+			filtrarEstudiosCatalogo({
+				estudios: estudiosSinPaquetes,
+				empresaId,
+				empresaNombre,
+				tipoNombre: tipo.nombre || "",
+				clavesConPrecio,
+				reglasConvenio,
+			}).length > 0,
 	);
 };

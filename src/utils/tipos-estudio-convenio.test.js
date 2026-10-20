@@ -1,4 +1,4 @@
-import { resolverTiposEstudioConvenio } from "./tipos-estudio-convenio";
+import { filtrarTiposConEstudiosConPrecio, resolverTiposEstudioConvenio } from "./tipos-estudio-convenio";
 
 const EMPRESAS = [
 	{ id_empresa: 1, nombre: "Central Diagnostica California" },
@@ -137,5 +137,63 @@ describe("un convenio con laboratorio propio", () => {
 	// La veterinaria no se le abre de pasada: sigue fuera del convenio.
 	test("la veterinaria no se cuela con la regla de laboratorio", () => {
 		expect(tiposDe(1, ISSSTE_CON_LABORATORIO)).not.toContain("Veterinaria");
+	});
+});
+
+// "Toda su imagen" por CDI abría todos los tipos de imagen aunque ISSSTE sólo
+// tenga precio en algunos: el select tiene que quedarse con los que sí cubre,
+// igual que con CDC sólo sale laboratorio.
+describe("tipos con estudios con precio del cliente", () => {
+	const estudio = (clave, modalidad, modulo = "imagen") => ({
+		clave,
+		descripcion: clave,
+		modulo,
+		modalidad,
+		id_empresa: modulo === "imagen" ? 2 : null,
+		empresa_operativa: modulo === "imagen" ? "CDI" : "",
+	});
+	const ESTUDIOS = [
+		estudio("US-RENAL", "ultrasonido"),
+		estudio("RX-TORAX", "radiografia"),
+		estudio("TAC-CRANEO", "tomografia"),
+		estudio("BH", "laboratorio", "laboratorio"),
+		{ ...estudio("PAQ1", "laboratorio", "laboratorio"), es_paquete: true },
+	];
+	const TIPOS_CDI = [
+		{ id_tipo_estudio: 3, nombre: "Ultrasonido" },
+		{ id_tipo_estudio: 4, nombre: "Rayos X" },
+		{ id_tipo_estudio: 5, nombre: "Tomografía" },
+	];
+	const REGLAS_ISSSTE = [{ modalidad: "*", criterio: "", empresa: "CDI" }];
+
+	test("CDI con ISSSTE ofrece sólo los tipos donde tiene precio", () => {
+		const tipos = filtrarTiposConEstudiosConPrecio({
+			tipos: TIPOS_CDI,
+			estudios: ESTUDIOS,
+			clavesConPrecio: new Set(["US-RENAL", "RX-TORAX"]),
+			empresaId: 2,
+			empresaNombre: "Centro Diagnóstico por Imagen",
+			reglasConvenio: REGLAS_ISSSTE,
+		});
+
+		expect(tipos.map((t) => t.nombre)).toEqual(["Ultrasonido", "Rayos X"]);
+	});
+
+	test("los paquetes no bastan para ofrecer laboratorio", () => {
+		const tipos = filtrarTiposConEstudiosConPrecio({
+			tipos: [{ id_tipo_estudio: 1, nombre: "Laboratorio" }],
+			estudios: ESTUDIOS,
+			clavesConPrecio: new Set(["US-RENAL"]),
+			empresaId: 1,
+			empresaNombre: "Central Diagnostica California",
+		});
+
+		expect(tipos).toEqual([]);
+	});
+
+	test("sin tarifario que cruce con el catálogo no se recorta nada", () => {
+		expect(
+			filtrarTiposConEstudiosConPrecio({ tipos: TIPOS_CDI, estudios: ESTUDIOS, clavesConPrecio: null }),
+		).toEqual(TIPOS_CDI);
 	});
 });
