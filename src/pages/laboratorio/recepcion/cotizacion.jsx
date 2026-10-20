@@ -38,7 +38,10 @@ import {
 	filtrarEstudiosCatalogo,
 } from "../../../utils/cita-nuevo-paciente";
 import { cargarReglasConvenio } from "../../../utils/convenios-facturacion";
-import { resolverTiposEstudioConvenio } from "../../../utils/tipos-estudio-convenio";
+import {
+	filtrarTiposConEstudiosConPrecio,
+	resolverTiposEstudioConvenio,
+} from "../../../utils/tipos-estudio-convenio";
 import {
 	clienteParaPrecios,
 	descuentoDeCliente,
@@ -753,13 +756,35 @@ const Cotizacion = () => {
 	const empresaActual = empresas.find(
 		(empresa) => empresa.id_empresa?.toString() === empresaSeleccionada?.toString(),
 	);
-	const tipoEstudioActual = tiposEstudio.find(
+	const clavesConPrecio = resolverClavesConPrecio(
+		preciosCliente,
+		estudiosDisponibles,
+	);
+	// El select ofrece sólo los tipos en los que el cliente tiene estudios con
+	// precio: con CDI e ISSSTE salían todos los de imagen aunque su convenio
+	// sólo cubra algunos.
+	const tiposEstudioVisibles = filtrarTiposConEstudiosConPrecio({
+		tipos: tiposEstudio,
+		estudios: estudiosDisponibles,
+		clavesConPrecio,
+		empresaId: empresaSeleccionada,
+		empresaNombre: empresaActual?.nombre || "",
+		reglasConvenio,
+	});
+	const tipoEstudioActual = tiposEstudioVisibles.find(
 		(tipo) =>
 			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
 	);
 	const puedeBuscarEstudios = Boolean(
-		clienteSeleccionado && empresaSeleccionada && tipoEstudioSeleccionado,
+		clienteSeleccionado && empresaSeleccionada && tipoEstudioActual,
 	);
+	// Si el tipo elegido deja de ofrecerse (otro cliente, otra empresa), se
+	// limpia para no buscar con un tipo que ya no está en la lista.
+	const tipoEstudioYaNoSeOfrece =
+		Boolean(tipoEstudioSeleccionado) && tiposEstudio.length > 0 && !tipoEstudioActual;
+	useEffect(() => {
+		if (tipoEstudioYaNoSeOfrece) setTipoEstudioSeleccionado("");
+	}, [tipoEstudioYaNoSeOfrece]);
 	// Un cliente de porcentaje (10%, 20%, 30%) cotiza con la lista de particular
 	// y su descuento se aplica encima: el renglón muestra ya el precio con
 	// descuento, igual que en la captura de la orden.
@@ -788,10 +813,6 @@ const Cotizacion = () => {
 			: nombre;
 	};
 
-	const clavesConPrecio = resolverClavesConPrecio(
-		preciosCliente,
-		estudiosDisponibles,
-	);
 	const filtrosCatalogo = {
 		estudios: estudiosDisponibles,
 		busqueda: buscarEstudio,
@@ -799,6 +820,7 @@ const Cotizacion = () => {
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
 		reglasConvenio,
+		exigirTipo: true,
 	};
 	const estudiosConPrecio = filtrarEstudiosCatalogo({
 		...filtrosCatalogo,
@@ -922,7 +944,7 @@ const Cotizacion = () => {
 											? "Selecciona tipo de estudio"
 											: "Primero selecciona una Empresa"}
 									</option>
-									{tiposEstudio.map((tipo) => (
+									{tiposEstudioVisibles.map((tipo) => (
 										<option key={tipo.id_tipo_estudio} value={tipo.id_tipo_estudio}>
 											{tipo.nombre}
 										</option>

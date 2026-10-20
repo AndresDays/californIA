@@ -25,7 +25,7 @@ import {
 import { clientesParaFiltro } from "../../utils/clientes-seleccionables";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
-import { resolverRangoReporteVentas } from "../../utils/permisos-rol";
+import { resolverRangoReporteVentas, resolverVendedorReporteVentas } from "../../utils/permisos-rol";
 import {
 	agruparEstudiosVendidos,
 	agruparVentasPorDia,
@@ -35,13 +35,12 @@ import {
 	calcularSaldoVentaReporte,
 	filtrarVentasReporte,
 	formatoMonedaReporte,
-	GRUPOS_REPORTE_POR_AREA,
 	obtenerIdSucursalVenta,
-	partirVentasPorArea,
 	SERIES_FOLIO,
 	SIN_SUCURSAL_REPORTE,
 } from "../../utils/reporte-ventas";
 import { exportarExcel, exportarPDF } from "../../utils/exportar-tabla";
+import { FORMA_PAGO_MIXTO, FORMAS_PAGO } from "../../utils/pagos-mixtos";
 import { construirDocumentoReporteVentas } from "../../utils/reporte-ventas-print";
 import {
 	COLUMNAS_TABLA_VENTAS,
@@ -60,13 +59,6 @@ const inicioMesMexico = () => {
 	return fecha.toISOString().split("T")[0];
 };
 
-// El grupo por defecto del encabezado: sin recortar por área. Vive aquí y no en
-// GRUPOS_REPORTE_POR_AREA porque los cortes del día sí exigen elegir un grupo.
-const GRUPO_TODAS_LAS_AREAS = {
-	id: "",
-	nombre: "Todas las áreas",
-	archivo: "todas-las-areas",
-};
 
 const ReporteVentas = () => {
 	const [fechaInicial, setFechaInicial] = useFechaPersistente("reporte-ventas:inicio", inicioMesMexico());
@@ -90,7 +82,6 @@ const ReporteVentas = () => {
 	const [seccionesAbiertas, setSeccionesAbiertas] = useState({ grafica: false, rankings: false });
 	const alternarSeccion = (seccion) =>
 		setSeccionesAbiertas((actuales) => ({ ...actuales, [seccion]: !actuales[seccion] }));
-	const [areaSalidaSeleccionada, setAreaSalidaSeleccionada] = useState(GRUPO_TODAS_LAS_AREAS.id);
 	const [ventaDetalle, setVentaDetalle] = useState(null);
 	const [montoAbono, setMontoAbono] = useState("");
 	const [formaPagoAbono, setFormaPagoAbono] = useState("efectivo");
@@ -115,6 +106,13 @@ const ReporteVentas = () => {
 		fechaInicial,
 		fechaFinal,
 		hoy: hoyMexico(),
+	});
+	// Y ve sólo lo que registró ella: el turno de la mañana y el de la tarde
+	// entregan cada uno su corte.
+	const { vendedor: vendedorReporte, fijo: vendedorFijo } = resolverVendedorReporteVentas({
+		rol: empleadoData?.rol,
+		idEmpleado: empleadoData?.id_empleado,
+		vendedorSeleccionado,
 	});
 
 	const {
@@ -167,7 +165,7 @@ const ReporteVentas = () => {
 		() =>
 			filtrarVentasReporte(ventas, {
 				sucursal: sucursalSeleccionada,
-				vendedor: vendedorSeleccionado,
+				vendedor: vendedorReporte,
 				formaPago: formaPagoSeleccionada,
 				area: areaSeleccionada,
 				cliente: empresaSeleccionada,
@@ -180,7 +178,7 @@ const ReporteVentas = () => {
 		[
 			ventas,
 			sucursalSeleccionada,
-			vendedorSeleccionado,
+			vendedorReporte,
 			formaPagoSeleccionada,
 			areaSeleccionada,
 			empresaSeleccionada,
@@ -192,42 +190,9 @@ const ReporteVentas = () => {
 		],
 	);
 
-	// El grupo de área del encabezado recorta TODO el reporte —métricas, gráfica,
-	// tabla, copiado y descargas— y no sólo el archivo que se bajaba: antes en
-	// pantalla no se notaba y parecía un control muerto. "Todas las áreas" deja
-	// las ventas tal como salen de los filtros de abajo, sin pasar por el reparto
-	// por área, que descarta las ventas cuyos estudios no traen área y ahí sí se
-	// perderían renglones.
-	const ventasDelArea = useMemo(
-		() => {
-			if (!areaSalidaSeleccionada) return ventasFiltradas;
-
-			const estudioBuscado = buscarEstudio.trim().toLowerCase();
-			// Al partir la venta, cada fragmento se queda sólo con los estudios de su
-			// grupo: el área y la búsqueda se vuelven a revisar contra ese fragmento
-			// porque la venta pudo entrar al filtro por un estudio de otro grupo.
-			return (partirVentasPorArea(ventasFiltradas)[areaSalidaSeleccionada] || []).filter(
-				(venta) => {
-					if (
-						areaSeleccionada &&
-						!venta.estudios_venta?.some((estudio) => estudio.area === areaSeleccionada)
-					) return false;
-					if (
-						estudioBuscado &&
-						!venta.estudios_venta?.some((estudio) =>
-							[estudio.clave_estudio, estudio.descripcion_estudio]
-								.filter(Boolean)
-								.join(" ")
-								.toLowerCase()
-								.includes(estudioBuscado),
-						)
-					) return false;
-					return true;
-				},
-			);
-		},
-		[ventasFiltradas, areaSalidaSeleccionada, areaSeleccionada, buscarEstudio],
-	);
+	// La empresa del encabezado (CDC, CDI o ambas) ya recorta en el filtro de
+	// arriba: el reporte trabaja con lo filtrado tal cual.
+	const ventasDelArea = ventasFiltradas;
 
 	// La tabla se lee como bitácora: la venta más vieja arriba y las nuevas
 	// hacia abajo. Las descargas y el copiado salen en el mismo orden. La
@@ -253,7 +218,7 @@ const ReporteVentas = () => {
 		() =>
 			filtrarVentasReporte(ventasCanceladas, {
 				sucursal: sucursalSeleccionada,
-				vendedor: vendedorSeleccionado,
+				vendedor: vendedorReporte,
 				formaPago: formaPagoSeleccionada,
 				area: areaSeleccionada,
 				cliente: empresaSeleccionada,
@@ -266,7 +231,7 @@ const ReporteVentas = () => {
 		[
 			ventasCanceladas,
 			sucursalSeleccionada,
-			vendedorSeleccionado,
+			vendedorReporte,
 			formaPagoSeleccionada,
 			areaSeleccionada,
 			empresaSeleccionada,
@@ -327,11 +292,10 @@ const ReporteVentas = () => {
 	const filasVentas = (ventasAExportar) =>
 		ventasAExportar.map((venta) => filaTablaVenta(venta, { nombreDoctor: nombreDoctorVenta }));
 
-	// El grupo elegido también nombra el archivo que se descarga.
-	const grupoSalida =
-		GRUPOS_REPORTE_POR_AREA.find((grupo) => grupo.id === areaSalidaSeleccionada) ||
-		GRUPO_TODAS_LAS_AREAS;
-	const nombreArchivoSalida = `reporte-ventas-${desde}-${hasta}-${grupoSalida.archivo}`;
+	// La empresa elegida también nombra el archivo que se descarga.
+	const nombreArchivoSalida = `reporte-ventas-${desde}-${hasta}-${
+		empresaFacturaSeleccionada ? empresaFacturaSeleccionada.toLowerCase() : "cdc-y-cdi"
+	}`;
 
 	// La impresión sale con el formato del corte de caja: hoja apaisada, blanco y
 	// negro y tablas cuadriculadas. Antes se mandaba la pantalla tal cual, con su
@@ -364,8 +328,6 @@ const ReporteVentas = () => {
 					Empresa: empresaFacturaSeleccionada,
 					Serie: serieSeleccionada,
 					Area: areaSeleccionada,
-					// El impreso también dice por qué grupo está recortado el reporte.
-					Grupo: areaSalidaSeleccionada ? grupoSalida.nombre : "",
 					"Forma de pago": formaPagoSeleccionada,
 					Estudio: buscarEstudio,
 				},
@@ -402,7 +364,7 @@ const ReporteVentas = () => {
 		}
 		try {
 			exportarPDF(
-				`Reporte de Ventas ${desde} – ${hasta} — ${grupoSalida.nombre}`,
+				`Reporte de Ventas ${desde} – ${hasta} — ${empresaFacturaSeleccionada || "CDC y CDI"}`,
 				colsVentas,
 				filas,
 				nombreArchivoSalida,
@@ -414,8 +376,51 @@ const ReporteVentas = () => {
 		}
 	};
 
+	// Las canceladas tienen su propio apartado: no cuentan en la tabla ni en
+	// los totales de ventas, pero hay que poder ver cuáles fueron y por qué.
+	const renderCanceladas = () => {
+		if (canceladasFiltradas.length === 0) {
+			return <div className="rv-empty-state">No hay órdenes canceladas para los filtros seleccionados.</div>;
+		}
+		const canceladasEnOrden = [...canceladasFiltradas].sort(
+			(a, b) => new Date(a.fecha_venta || 0) - new Date(b.fecha_venta || 0),
+		);
+		const fecha = (valor) => (valor ? new Date(valor).toLocaleString("es-MX") : "—");
+		return (
+			<div className="rv-table-wrap">
+				<table className="rv-table rv-table-canceladas">
+					<thead>
+						<tr>
+							<th>Folio</th>
+							<th>Paciente</th>
+							<th>Fecha de la orden</th>
+							<th>Total</th>
+							<th>Registró</th>
+							<th>Cancelada</th>
+							<th>Motivo</th>
+						</tr>
+					</thead>
+					<tbody>
+						{canceladasEnOrden.map((venta) => (
+							<tr key={venta.id_venta}>
+								<td>{venta.folio}</td>
+								<td>{venta.pacientes?.nombre || "—"}</td>
+								<td>{fecha(venta.fecha_venta)}</td>
+								<td>{formatoMonedaReporte(venta.total)}</td>
+								<td>{venta.empleados?.nombre || "—"}</td>
+								<td>{fecha(venta.cancelada_en)}</td>
+								<td>{venta.motivo_cancelacion || "—"}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		);
+	};
+
 	const renderReporte = () => {
 		if (cargando) return <div className="rv-empty-state">Cargando reporte...</div>;
+		if (tipoReporte === "canceladas") return renderCanceladas();
 		if (ventasDelArea.length === 0) {
 			return <div className="rv-empty-state">No hay ventas para los filtros seleccionados.</div>;
 		}
@@ -622,14 +627,17 @@ const ReporteVentas = () => {
 				<div className="rv-header">
 					<h1 className="rv-title">Reporte de Ventas</h1>
 					<div className="rv-header-actions">
+						{/* La empresa que factura recorta todo el reporte: métricas,
+						    tabla, canceladas, copiado y descargas. */}
 						<select
-							value={areaSalidaSeleccionada}
-							onChange={(e) => setAreaSalidaSeleccionada(e.target.value)}
+							value={empresaFacturaSeleccionada}
+							onChange={(e) => setEmpresaFacturaSeleccionada(e.target.value)}
 							className="rv-btn-sm"
-							title="Filtrar todo el reporte por grupo de área"
-							aria-label="Grupo de área">
-							<option value={GRUPO_TODAS_LAS_AREAS.id}>{GRUPO_TODAS_LAS_AREAS.nombre}</option>
-							{GRUPOS_REPORTE_POR_AREA.map((grupo) => <option key={grupo.id} value={grupo.id}>{grupo.nombre}</option>)}
+							title="Filtrar todo el reporte por empresa"
+							aria-label="Empresa">
+							<option value="">CDC y CDI</option>
+							<option value="CDC">CDC</option>
+							<option value="CDI">CDI</option>
 						</select>
 						<button className="rv-btn-sm" onClick={copiarTabla}>
 							Copiar tabla
@@ -813,7 +821,9 @@ const ReporteVentas = () => {
 						    por qué, para que no se lea como que la pantalla falla. */}
 						{rangoFijo && (
 							<p className="rv-filter-aviso">
-								Este reporte muestra sólo los movimientos de hoy.
+								{vendedorFijo
+									? "Este reporte muestra sólo tus ventas de hoy."
+									: "Este reporte muestra sólo los movimientos de hoy."}
 							</p>
 						)}
 						<div className="rv-filter-row">
@@ -870,15 +880,24 @@ const ReporteVentas = () => {
 								<label htmlFor="rv-vendedor">Vendedor</label>
 								<select
 									id="rv-vendedor"
-									value={vendedorSeleccionado}
+									value={vendedorReporte}
 									onChange={(e) => setVendedorSeleccionado(e.target.value)}
-									className="rv-select">
-									<option value="">Todos</option>
-									{vendedores.map((vendedor) => (
-										<option key={vendedor.id_empleado} value={vendedor.id_empleado}>
-											{vendedor.nombre}
+									className="rv-select"
+									disabled={vendedorFijo}>
+									{vendedorFijo ? (
+										<option value={vendedorReporte}>
+											{empleadoData?.nombre || "Mis ventas"}
 										</option>
-									))}
+									) : (
+										<>
+											<option value="">Todos</option>
+											{vendedores.map((vendedor) => (
+												<option key={vendedor.id_empleado} value={vendedor.id_empleado}>
+													{vendedor.nombre}
+												</option>
+											))}
+										</>
+									)}
 								</select>
 							</div>
 							<div className="rv-filter-group">
@@ -889,9 +908,14 @@ const ReporteVentas = () => {
 									onChange={(e) => setFormaPagoSeleccionada(e.target.value)}
 									className="rv-select">
 									<option value="">Todas</option>
-									<option value="efectivo">Efectivo</option>
-									<option value="tarjeta">Tarjeta</option>
-									<option value="transferencia">Transferencia</option>
+									{/* Las mismas formas con que se cobra la orden: "tarjeta"
+									    no coincidía con ninguna y faltaba crédito. */}
+									{FORMAS_PAGO.map((forma) => (
+										<option key={forma.valor} value={forma.valor}>
+											{forma.etiqueta}
+										</option>
+									))}
+									<option value={FORMA_PAGO_MIXTO}>Mixto</option>
 								</select>
 							</div>
 							<div className="rv-filter-group">
@@ -943,18 +967,6 @@ const ReporteVentas = () => {
 								</select>
 							</div>
 							<div className="rv-filter-group">
-								<label htmlFor="rv-empresa">Empresa</label>
-								<select
-									id="rv-empresa"
-									value={empresaFacturaSeleccionada}
-									onChange={(e) => setEmpresaFacturaSeleccionada(e.target.value)}
-									className="rv-select">
-									<option value="">Todas</option>
-									<option value="CDC">CDC</option>
-									<option value="CDI">CDI</option>
-								</select>
-							</div>
-							<div className="rv-filter-group">
 								<label htmlFor="rv-serie">Serie</label>
 								<select
 									id="rv-serie"
@@ -1003,6 +1015,12 @@ const ReporteVentas = () => {
 								onClick={() => setTipoReporte("sumatoria")}>
 								<span className="rv-report-icon">∑</span>
 								Sumatoria
+							</button>
+							<button
+								className={`rv-report-btn ${tipoReporte === "canceladas" ? "active" : ""}`}
+								onClick={() => setTipoReporte("canceladas")}>
+								<span className="rv-report-icon">✕</span>
+								Canceladas ({canceladasFiltradas.length})
 							</button>
 						</div>
 					</div>

@@ -65,7 +65,9 @@ jest.mock("../../../lib/supabase-client", () => {
 				estado: "activa",
 				id_cliente: 1,
 				id_empresa: 2,
+				id_empleado: 3,
 				empresas: { id_empresa: 2, nombre: "CDI" },
+				empleados: { id_empleado: 3, nombre: "Blanca Avila" },
 				pacientes: { id_paciente: 9, nombre: "JUAN PEREZ" },
 				estudios_venta: [
 					{
@@ -162,4 +164,12 @@ test("una orden de imagen se reimprime con el ticket de imagen", async () => {
 	expect(datos.tipo).toBe("imagen");
 	expect(datos.folio).toBe("A0007");
 	expect(datos.empresa).toBe("CDI");
+});
+
+// Quien registra es quien capturó la orden: salía el nombre de quien tenía la
+// sesión abierta al picarle al ticket.
+test("el ticket reimpreso dice quién registró la orden, no quién lo abre", async () => {
+	const datos = await reimprimir();
+
+	expect(datos.vendedor).toBe("Blanca Avila");
 });

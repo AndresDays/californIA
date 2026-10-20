@@ -1,6 +1,7 @@
 import {
 	esRolReporteSoloHoy,
 	resolverRangoReporteVentas,
+	resolverVendedorReporteVentas,
 	esEstudioLaboratorio,
 	esRolSoloLaboratorio,
 	filtrarEstudiosSoloLaboratorio,
@@ -115,5 +116,27 @@ describe("rango del reporte de ventas por rol", () => {
 		expect(
 			resolverRangoReporteVentas({ rol: "recepcionista", fechaInicial: "2026-09-01", fechaFinal: "2026-09-02" }),
 		).toEqual({ fechaInicial: "2026-09-01", fechaFinal: "2026-09-02", fijo: false });
+	});
+});
+
+// Mañana y tarde entregan cada una su corte: recepción ve sólo sus ventas.
+describe("vendedor del reporte de ventas", () => {
+	test("recepción queda fija en sus propias ventas", () => {
+		expect(
+			resolverVendedorReporteVentas({ rol: "Recepción", idEmpleado: 7, vendedorSeleccionado: "3" }),
+		).toEqual({ vendedor: "7", fijo: true });
+	});
+
+	test("los demás roles conservan el vendedor que eligieron", () => {
+		expect(
+			resolverVendedorReporteVentas({ rol: "administrador", idEmpleado: 1, vendedorSeleccionado: "3" }),
+		).toEqual({ vendedor: "3", fijo: false });
+	});
+
+	// Mientras carga la sesión no se fija nada, para no dejar el reporte vacío.
+	test("sin empleado identificado no se fija el vendedor", () => {
+		expect(
+			resolverVendedorReporteVentas({ rol: "recepcionista", vendedorSeleccionado: "" }),
+		).toEqual({ vendedor: "", fijo: false });
 	});
 });

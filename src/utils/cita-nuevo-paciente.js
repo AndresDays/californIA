@@ -82,7 +82,12 @@ export const filtrarEstudiosCatalogo = ({
 	tipoNombre = "",
 	clavesConPrecio = null,
 	reglasConvenio = null,
+	exigirTipo = false,
 }) => {
+	// En la captura de la orden y en la cotización el tipo de estudio va antes
+	// que la búsqueda: sin él no se ofrece nada, para que no se cuele un estudio
+	// de otro tipo (laboratorio con el tipo en blanco, por ejemplo).
+	if (exigirTipo && !normalizarTexto(tipoNombre)) return [];
 	const termino = normalizarTexto(busqueda);
 	const clavesPermitidas =
 		clavesConPrecio instanceof Set

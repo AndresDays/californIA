@@ -55,6 +55,11 @@ jest.mock("../../lib/supabase-client", () => {
 				id_tipo_estudio: 7,
 				tipos_estudio: { id_tipo_estudio: 7, nombre: "Laboratorio" },
 			},
+			{
+				id_empresa: 2,
+				id_tipo_estudio: 8,
+				tipos_estudio: { id_tipo_estudio: 8, nombre: "Ultrasonido" },
+			},
 		],
 		estudios_lab_catalogo: [
 			{ id: 30, clave: "BH", descripcion: "BIOMETRIA HEMATICA", area: "Hematologia", dias_proceso: 1 },
@@ -117,6 +122,11 @@ test("seleccionar un paciente limpia empresa, cliente y el cobro de la orden ant
 	await act(async () => {
 		fireEvent.change(selectCliente, { target: { value: "1" } });
 	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona Tipo de Estudio"), {
+			target: { value: "7" },
+		});
+	});
 	// pago recibido
 	const pago = screen.getByPlaceholderText(/Paga con/i);
 	await act(async () => {
@@ -158,6 +168,11 @@ test("al remontar la pantalla el borrador restaura la captura", async () => {
 	const selectCliente = screen.getByDisplayValue("Selecciona un Cliente");
 	await act(async () => {
 		fireEvent.change(selectCliente, { target: { value: "1" } });
+	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona Tipo de Estudio"), {
+			target: { value: "7" },
+		});
 	});
 	const pago = screen.getByPlaceholderText(/Paga con/i);
 	await act(async () => {
@@ -258,6 +273,11 @@ test("una orden con laboratorio e imagen ofrece cobrar por serie", async () => {
 			target: { value: "1" },
 		});
 	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona Tipo de Estudio"), {
+			target: { value: "7" },
+		});
+	});
 
 	const buscarEstudio = screen.getByPlaceholderText(/Buscar Estudios/i);
 	await act(async () => {
@@ -265,6 +285,12 @@ test("una orden con laboratorio e imagen ofrece cobrar por serie", async () => {
 	});
 	await act(async () => {
 		fireEvent.click(screen.getByText(/BIOMETRIA HEMATICA/i));
+	});
+	// El ultrasonido se busca con su propio tipo: con Laboratorio no se ofrece.
+	await act(async () => {
+		fireEvent.change(document.querySelector('option[value="8"]').closest("select"), {
+			target: { value: "8" },
+		});
 	});
 	await act(async () => {
 		fireEvent.change(buscarEstudio, { target: { value: "renal" } });

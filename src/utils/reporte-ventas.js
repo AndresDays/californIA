@@ -296,6 +296,14 @@ export const empresaFacturaVenta = (venta = {}, nombreEmpresa = "") => {
 	return "";
 };
 
+// Una venta cobrada con dos formas queda como "mixto" y el reparto va en su
+// desglose: filtrar por tarjeta tiene que encontrarla también por ahí.
+export const ventaTieneFormaPago = (venta = {}, formaPago = "") => {
+	if (!formaPago) return true;
+	if (venta.forma_pago === formaPago) return true;
+	return leerDesglosePagos(venta.pagos_desglose).some((pago) => pago.forma_pago === formaPago);
+};
+
 export const filtrarVentasReporte = (ventas = [], filtros = {}) => {
 	const estudio = (filtros.estudio || "").trim().toLowerCase();
 
@@ -316,7 +324,7 @@ export const filtrarVentasReporte = (ventas = [], filtros = {}) => {
 		if (filtros.vendedor && String(venta.id_empleado || "") !== String(filtros.vendedor)) {
 			return false;
 		}
-		if (filtros.formaPago && venta.forma_pago !== filtros.formaPago) return false;
+		if (filtros.formaPago && !ventaTieneFormaPago(venta, filtros.formaPago)) return false;
 		if (filtros.cliente && String(venta.id_cliente || "") !== String(filtros.cliente)) {
 			return false;
 		}

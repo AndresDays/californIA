@@ -102,6 +102,11 @@ const capturarEmpresaYCliente = async () => {
 			target: { value: "1" },
 		});
 	});
+	await act(async () => {
+		fireEvent.change(screen.getByDisplayValue("Selecciona Tipo de Estudio"), {
+			target: { value: "7" },
+		});
+	});
 };
 
 const opciones = () =>

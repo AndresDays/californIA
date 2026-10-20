@@ -45,7 +45,10 @@ import { obtenerColumnaSchemaCacheFaltante } from "../../utils/supabase-errors";
 import { cargarReglasConvenio } from "../../utils/convenios-facturacion";
 import { normalizarNombre } from "../../utils/catalogo-por-nombre";
 import { redondearPrecioFinal } from "../../utils/precio-final";
-import { resolverTiposEstudioConvenio } from "../../utils/tipos-estudio-convenio";
+import {
+	filtrarTiposConEstudiosConPrecio,
+	resolverTiposEstudioConvenio,
+} from "../../utils/tipos-estudio-convenio";
 import {
 	ORIGEN_PRECIO,
 	PRECIO_POR_DEFECTO,
@@ -2083,10 +2086,6 @@ const NuevoPaciente = () => {
 	const empresaActual = empresas.find(
 		(emp) => emp.id_empresa?.toString() === empresaSeleccionada?.toString(),
 	);
-	const tipoEstudioActual = tiposEstudio.find(
-		(tipo) =>
-			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
-	);
 	// Se resuelve contra el catálogo cargado: si el tarifario del cliente no
 	// cruza con ninguna clave, no se filtra nada en lugar de dejar la búsqueda
 	// vacía.
@@ -2094,6 +2093,24 @@ const NuevoPaciente = () => {
 		preciosCliente,
 		estudiosDisponibles,
 	);
+	// El select ofrece sólo los tipos en los que el cliente tiene estudios con
+	// precio: con CDI e ISSSTE salían todos los de imagen aunque su convenio
+	// sólo cubra algunos.
+	const tiposEstudioVisibles = filtrarTiposConEstudiosConPrecio({
+		tipos: tiposEstudio,
+		estudios: estudiosDisponibles,
+		clavesConPrecio,
+		empresaId: empresaSeleccionada,
+		empresaNombre: empresaActual?.nombre || "",
+		reglasConvenio,
+	});
+	const tipoEstudioActual = tiposEstudioVisibles.find(
+		(tipo) =>
+			tipo.id_tipo_estudio?.toString() === tipoEstudioSeleccionado?.toString(),
+	);
+	// Sin cliente ni tipo de estudio no se busca: el tipo acota lo que se puede
+	// agregar a la orden.
+	const puedeBuscarEstudios = Boolean(clienteSeleccionado && tipoEstudioActual);
 	const filtrosCatalogo = {
 		estudios: estudiosDisponibles,
 		busqueda: buscarEstudio,
@@ -2101,6 +2118,7 @@ const NuevoPaciente = () => {
 		empresaNombre: empresaActual?.nombre || "",
 		tipoNombre: tipoEstudioActual?.nombre || "",
 		reglasConvenio,
+		exigirTipo: true,
 	};
 	const estudiosConPrecio = filtrarEstudiosCatalogo({
 		...filtrosCatalogo,
@@ -2131,6 +2149,16 @@ const NuevoPaciente = () => {
 		tipoEstudioSeleccionado,
 		estudiosFiltrados.length,
 	]);
+
+	// Si el tipo elegido deja de ofrecerse (otro cliente, otra empresa), se
+	// limpia en vez de quedarse "recuperando" un tipo que ya no está en la lista.
+	const tipoEstudioYaNoSeOfrece =
+		Boolean(tipoEstudioSeleccionado) &&
+		tiposEstudio.length > 0 &&
+		!tipoEstudioActual;
+	useEffect(() => {
+		if (tipoEstudioYaNoSeOfrece) setTipoEstudioSeleccionado("");
+	}, [tipoEstudioYaNoSeOfrece]);
 
 	const resumenPago = obtenerResumenPagoNuevoPaciente(granTotal, totalPagado);
 	const limpiarPacienteSeleccionado = () => {
@@ -2481,10 +2509,10 @@ const NuevoPaciente = () => {
 										</option>
 										{opcionPendiente(
 											tipoEstudioSeleccionado,
-											tiposEstudio,
+											tiposEstudioVisibles,
 											"id_tipo_estudio",
 										)}
-										{tiposEstudio.map((tipo) => (
+										{tiposEstudioVisibles.map((tipo) => (
 											<option
 												key={tipo.id_tipo_estudio}
 												value={tipo.id_tipo_estudio}>
@@ -2501,7 +2529,7 @@ const NuevoPaciente = () => {
 									<span>{totalPiezasEstudios} seleccionados</span>
 								</div>
 
-								{!clienteSeleccionado && (
+								{!puedeBuscarEstudios && (
 									<div className="alert-empresa-requerida">
 										<img
 											src={warningV1}
@@ -2509,9 +2537,11 @@ const NuevoPaciente = () => {
 											className="warning-icon"
 										/>
 										<span>
-											{empresaSeleccionada
-												? "Primero selecciona un cliente para buscar estudios"
-												: "Primero selecciona una empresa y un cliente para buscar estudios"}
+											{!empresaSeleccionada
+												? "Primero selecciona una empresa y un cliente para buscar estudios"
+												: !clienteSeleccionado
+													? "Primero selecciona un cliente para buscar estudios"
+													: "Selecciona el tipo de estudio para buscar estudios"}
 										</span>
 									</div>
 								)}
@@ -2533,13 +2563,15 @@ const NuevoPaciente = () => {
 									<input
 										type="text"
 										placeholder={
-											clienteSeleccionado
+											puedeBuscarEstudios
 												? "Buscar Estudios..."
-												: "Selecciona un cliente primero"
+												: clienteSeleccionado
+													? "Selecciona el tipo de estudio primero"
+													: "Selecciona un cliente primero"
 										}
 										value={buscarEstudio}
 										onChange={(e) => {
-											if (clienteSeleccionado) {
+											if (puedeBuscarEstudios) {
 												setBuscarEstudio(e.target.value);
 												filtrarEstudios(e.target.value);
 											}
@@ -2549,7 +2581,7 @@ const NuevoPaciente = () => {
 										aria-expanded={listaEstudiosAbierta}
 										aria-autocomplete="list"
 										className="search-input-full search-input-con-catalogo"
-										disabled={!clienteSeleccionado}
+										disabled={!puedeBuscarEstudios}
 									/>
 
 									<button
@@ -2562,9 +2594,9 @@ const NuevoPaciente = () => {
 										}
 										aria-expanded={catalogoEstudiosAbierto}
 										title="Ver todos los estudios"
-										disabled={!clienteSeleccionado}
+										disabled={!puedeBuscarEstudios}
 										onClick={() => {
-											if (!clienteSeleccionado) return;
+											if (!puedeBuscarEstudios) return;
 											// Abrir el catálogo no borra lo escrito: si ya hay texto, la
 											// lista sale acotada a eso, que es lo que se estaba buscando.
 											setCatalogoEstudiosAbierto((abierto) => !abierto);

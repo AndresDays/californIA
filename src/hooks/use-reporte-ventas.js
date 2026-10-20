@@ -158,15 +158,40 @@ export const useReporteVentas = ({ fechaInicial, fechaFinal }) =>
     staleTime: 1000 * 60 * 3,
   });
 
+// El apartado de canceladas dice por qué y cuándo se canceló cada orden. Son
+// columnas posteriores al resto de la venta, así que van en su propia consulta:
+// una base sin migrar sigue mostrando las canceladas, sólo sin el motivo.
+export const completarDatosCancelacion = async (ventas = []) => {
+  const ids = ventas.map((venta) => venta.id_venta).filter(Boolean);
+  if (ids.length === 0) return ventas;
+
+  const { data, error } = await supabase
+    .from('ventas')
+    .select('id_venta, motivo_cancelacion, cancelada_en')
+    .in('id_venta', ids);
+  if (error) return ventas;
+
+  const porVenta = new Map((data || []).map((venta) => [venta.id_venta, venta]));
+  return ventas.map((venta) => ({
+    ...venta,
+    motivo_cancelacion: porVenta.get(venta.id_venta)?.motivo_cancelacion ?? null,
+    cancelada_en: porVenta.get(venta.id_venta)?.cancelada_en ?? null,
+  }));
+};
+
 // Las canceladas van en su propia consulta y no mezcladas con las activas: el
 // reporte entero -tabla, gráficas, totales, descargas- cuenta ventas activas, y
-// meterlas en la misma lista inflaría todo. Aquí sólo se cuentan, y como traen
-// la misma forma pasan por los mismos filtros de la pantalla, así que el número
-// respeta la sucursal, el cliente y lo demás que esté puesto.
+// meterlas en la misma lista inflaría todo. Aquí se cuentan y se listan en su
+// propio apartado, y como traen la misma forma pasan por los mismos filtros de
+// la pantalla, así que respetan la sucursal, el cliente y lo demás que esté
+// puesto.
 export const useVentasCanceladas = ({ fechaInicial, fechaFinal }) =>
   useQuery({
     queryKey: ['reporte-ventas-canceladas', fechaInicial, fechaFinal],
-    queryFn: () => fetchVentasConFallback({ fechaInicial, fechaFinal, estado: 'cancelado' }),
+    queryFn: async () =>
+      completarDatosCancelacion(
+        await fetchVentasConFallback({ fechaInicial, fechaFinal, estado: 'cancelado' }),
+      ),
     enabled: !!(fechaInicial && fechaFinal),
     staleTime: 1000 * 60 * 3,
   });

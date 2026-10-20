@@ -53,3 +53,19 @@ export const resolverRangoReporteVentas = ({
 	}
 	return { fechaInicial, fechaFinal, fijo: false };
 };
+
+// Recepción cuadra su turno, no el del compañero: en el mismo día pueden pasar
+// dos recepcionistas (mañana y tarde) y cada una entrega su propio corte. Por
+// eso el reporte se queda con las ventas que registró quien tiene la sesión.
+// Sin empleado identificado no se fija nada, para no dejar el reporte en blanco
+// mientras carga la sesión.
+export const resolverVendedorReporteVentas = ({
+	rol = "",
+	idEmpleado = "",
+	vendedorSeleccionado = "",
+} = {}) => {
+	if (esRolReporteSoloHoy(rol) && idEmpleado) {
+		return { vendedor: String(idEmpleado), fijo: true };
+	}
+	return { vendedor: vendedorSeleccionado, fijo: false };
+};

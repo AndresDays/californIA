@@ -211,8 +211,9 @@ const EditarSolicitud = () => {
 				.from("ventas")
 				.select(
 					`
-				id_venta, folio, fecha_venta, total, pago_recibido, subtotal, iva, descuento, forma_pago, observaciones, estado, id_cliente, id_empresa, id_doctor,
+				id_venta, folio, fecha_venta, total, pago_recibido, subtotal, iva, descuento, forma_pago, observaciones, estado, id_cliente, id_empresa, id_doctor, id_empleado,
 				empresas (id_empresa, nombre),
+				empleados (id_empleado, nombre),
 				pacientes (id_paciente, nombre, fecha_nacimiento, sexo, telefono, email, rfc),
 				estudios_venta (id_estudio_venta, clave_estudio, descripcion_estudio, precio, area, muestra_pendiente)
 			`,
@@ -1003,7 +1004,9 @@ const EditarSolicitud = () => {
 				pagoRecibido: pagoNum,
 				cambio: 0,
 				formaPago: orden.forma_pago || "efectivo",
-				vendedor,
+				// "Registra" es quien capturó la orden, no quien la está viendo:
+				// salía el nombre de cualquiera que le picara al ticket.
+				vendedor: orden.empleados?.nombre || "",
 				ventana: ventanaTicket,
 			});
 			// Las etiquetas no salen de aquí: tienen su propio botón, y sacarlas
