@@ -18,17 +18,38 @@ jest.mock("../../assets/calendarioIcono.png", () => "calendarioIcono.png");
 jest.mock("../../context/auth-context", () => ({
 	useAuth: () => ({
 		user: { id: "user-recepcion", email: "recepcion@test.com" },
-		empleadoData: { nombre: "Ana Ruiz", rol: "recepcionista", id_sucursal: 1 },
+		empleadoData: { id_empleado: 7, nombre: "Ana Ruiz", rol: "recepcionista", id_sucursal: 1 },
 	}),
 }));
 
 // El rango que se consulta se observa aquí: es lo que decide qué ventas se
 // piden a la base.
 const rangosConsultados = [];
+// El turno de la mañana (Blanca, id 3) y el de la tarde (Ana, id 7) el mismo día.
+const mockVentasDelDia = [
+	{
+		id_venta: 1,
+		folio: "FOLIO-MANANA",
+		fecha_venta: new Date().toISOString(),
+		id_empleado: 3,
+		empleados: { nombre: "Blanca Avila" },
+		total: 2450,
+		estudios_venta: [],
+	},
+	{
+		id_venta: 2,
+		folio: "FOLIO-TARDE",
+		fecha_venta: new Date().toISOString(),
+		id_empleado: 7,
+		empleados: { nombre: "Ana Ruiz" },
+		total: 1000,
+		estudios_venta: [],
+	},
+];
 jest.mock("../../hooks/use-reporte-ventas", () => ({
 	useReporteVentas: (rango) => {
 		rangosConsultados.push(rango);
-		return { data: [], isLoading: false, error: null, refetch: jest.fn() };
+		return { data: mockVentasDelDia, isLoading: false, error: null, refetch: jest.fn() };
 	},
 	useVentasCanceladas: () => ({ data: [] }),
 	usePagosCancelados: () => ({ data: 0 }),
@@ -93,6 +114,23 @@ describe("Reporte de ventas con rol de recepción", () => {
 
 	test("se avisa por qué el periodo no se puede mover", async () => {
 		await renderReporte();
-		expect(screen.getByText(/sólo los movimientos de hoy/i)).toBeInTheDocument();
+		expect(screen.getByText(/sólo tus ventas de hoy/i)).toBeInTheDocument();
+	});
+
+	// Mañana y tarde entregan cada una su corte: la recepcionista sólo ve lo
+	// que registró ella, no lo del turno anterior.
+	test("sólo salen las ventas que registró quien tiene la sesión", async () => {
+		await renderReporte();
+
+		expect(screen.getAllByText("FOLIO-TARDE").length).toBeGreaterThan(0);
+		expect(screen.queryByText("FOLIO-MANANA")).not.toBeInTheDocument();
+	});
+
+	test("el vendedor queda fijo en ella", async () => {
+		await renderReporte();
+
+		const vendedor = screen.getByLabelText("Vendedor");
+		expect(vendedor).toBeDisabled();
+		expect(vendedor).toHaveDisplayValue("Ana Ruiz");
 	});
 });

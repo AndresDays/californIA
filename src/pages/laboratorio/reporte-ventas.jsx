@@ -25,7 +25,7 @@ import {
 import { clientesParaFiltro } from "../../utils/clientes-seleccionables";
 import { useBusquedaPersistente } from "../../hooks/use-busqueda-persistente";
 import { useFechaPersistente } from "../../hooks/use-fecha-persistente";
-import { resolverRangoReporteVentas } from "../../utils/permisos-rol";
+import { resolverRangoReporteVentas, resolverVendedorReporteVentas } from "../../utils/permisos-rol";
 import {
 	agruparEstudiosVendidos,
 	agruparVentasPorDia,
@@ -116,6 +116,13 @@ const ReporteVentas = () => {
 		fechaFinal,
 		hoy: hoyMexico(),
 	});
+	// Y ve sólo lo que registró ella: el turno de la mañana y el de la tarde
+	// entregan cada uno su corte.
+	const { vendedor: vendedorReporte, fijo: vendedorFijo } = resolverVendedorReporteVentas({
+		rol: empleadoData?.rol,
+		idEmpleado: empleadoData?.id_empleado,
+		vendedorSeleccionado,
+	});
 
 	const {
 		data: ventas = [],
@@ -167,7 +174,7 @@ const ReporteVentas = () => {
 		() =>
 			filtrarVentasReporte(ventas, {
 				sucursal: sucursalSeleccionada,
-				vendedor: vendedorSeleccionado,
+				vendedor: vendedorReporte,
 				formaPago: formaPagoSeleccionada,
 				area: areaSeleccionada,
 				cliente: empresaSeleccionada,
@@ -180,7 +187,7 @@ const ReporteVentas = () => {
 		[
 			ventas,
 			sucursalSeleccionada,
-			vendedorSeleccionado,
+			vendedorReporte,
 			formaPagoSeleccionada,
 			areaSeleccionada,
 			empresaSeleccionada,
@@ -253,7 +260,7 @@ const ReporteVentas = () => {
 		() =>
 			filtrarVentasReporte(ventasCanceladas, {
 				sucursal: sucursalSeleccionada,
-				vendedor: vendedorSeleccionado,
+				vendedor: vendedorReporte,
 				formaPago: formaPagoSeleccionada,
 				area: areaSeleccionada,
 				cliente: empresaSeleccionada,
@@ -266,7 +273,7 @@ const ReporteVentas = () => {
 		[
 			ventasCanceladas,
 			sucursalSeleccionada,
-			vendedorSeleccionado,
+			vendedorReporte,
 			formaPagoSeleccionada,
 			areaSeleccionada,
 			empresaSeleccionada,
@@ -813,7 +820,9 @@ const ReporteVentas = () => {
 						    por qué, para que no se lea como que la pantalla falla. */}
 						{rangoFijo && (
 							<p className="rv-filter-aviso">
-								Este reporte muestra sólo los movimientos de hoy.
+								{vendedorFijo
+									? "Este reporte muestra sólo tus ventas de hoy."
+									: "Este reporte muestra sólo los movimientos de hoy."}
 							</p>
 						)}
 						<div className="rv-filter-row">
@@ -870,15 +879,24 @@ const ReporteVentas = () => {
 								<label htmlFor="rv-vendedor">Vendedor</label>
 								<select
 									id="rv-vendedor"
-									value={vendedorSeleccionado}
+									value={vendedorReporte}
 									onChange={(e) => setVendedorSeleccionado(e.target.value)}
-									className="rv-select">
-									<option value="">Todos</option>
-									{vendedores.map((vendedor) => (
-										<option key={vendedor.id_empleado} value={vendedor.id_empleado}>
-											{vendedor.nombre}
+									className="rv-select"
+									disabled={vendedorFijo}>
+									{vendedorFijo ? (
+										<option value={vendedorReporte}>
+											{empleadoData?.nombre || "Mis ventas"}
 										</option>
-									))}
+									) : (
+										<>
+											<option value="">Todos</option>
+											{vendedores.map((vendedor) => (
+												<option key={vendedor.id_empleado} value={vendedor.id_empleado}>
+													{vendedor.nombre}
+												</option>
+											))}
+										</>
+									)}
 								</select>
 							</div>
 							<div className="rv-filter-group">
