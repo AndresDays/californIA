@@ -316,3 +316,29 @@ describe("filtrarVentasReporte: empresa y serie", () => {
 		expect(filtrarVentasReporte(VENTAS, {})).toHaveLength(4);
 	});
 });
+
+// Una venta mixta se encuentra por cualquiera de las formas de su desglose.
+describe("filtro por forma de pago", () => {
+	const VENTAS = [
+		{ id_venta: 1, forma_pago: "credito" },
+		{ id_venta: 2, forma_pago: "tarjeta_debito" },
+		{
+			id_venta: 3,
+			forma_pago: "mixto",
+			pagos_desglose: [
+				{ forma_pago: "efectivo", monto: 100 },
+				{ forma_pago: "tarjeta_debito", monto: 50 },
+			],
+		},
+	];
+
+	test("crédito encuentra las ventas a crédito", () => {
+		expect(filtrarVentasReporte(VENTAS, { formaPago: "credito" }).map((v) => v.id_venta)).toEqual([1]);
+	});
+
+	test("una forma del desglose encuentra la venta mixta", () => {
+		expect(
+			filtrarVentasReporte(VENTAS, { formaPago: "tarjeta_debito" }).map((v) => v.id_venta),
+		).toEqual([2, 3]);
+	});
+});

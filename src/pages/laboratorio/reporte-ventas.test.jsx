@@ -84,9 +84,9 @@ describe('ReporteVentas — Renderizado', () => {
     expect(screen.getByText('PDF')).toBeInTheDocument();
   });
 
-  test('el selector de área arranca en Todas las áreas', async () => {
+  test('el selector de empresa arranca en CDC y CDI', async () => {
     await renderReporte();
-    expect(screen.getByLabelText('Grupo de área')).toHaveValue('');
+    expect(screen.getByLabelText('Empresa')).toHaveValue('');
   });
 });
 

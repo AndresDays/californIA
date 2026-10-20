@@ -20,9 +20,9 @@ jest.mock("../../utils/exportar-tabla", () => ({
 	exportarExcel: jest.fn(),
 }));
 
-// Tres ventas que cubren los casos que se cruzan en el encabezado: una de puro
-// laboratorio, una de pura imagen y una cuyos estudios no traen área, que es la
-// que el reparto por grupo descarta.
+// Tres ventas que cubren los casos que se cruzan en el encabezado: una de CDC
+// (serie C), una de CDI (serie A) y una vieja, sin serie ni empresa, que sólo
+// sale con "CDC y CDI".
 const mockVentas = [
 	{
 		id_venta: 1,
@@ -38,7 +38,7 @@ const mockVentas = [
 	},
 	{
 		id_venta: 2,
-		folio: "B0002",
+		folio: "A0002",
 		fecha_venta: "2026-08-11T10:00:00.000Z",
 		total: 800,
 		pago_recibido: 800,
@@ -60,10 +60,27 @@ const mockVentas = [
 	},
 ];
 
+const mockCanceladas = [
+	{
+		id_venta: 9,
+		folio: "C0009",
+		fecha_venta: "2026-08-10T12:00:00.000Z",
+		total: 350,
+		pago_recibido: 0,
+		forma_pago: "efectivo",
+		estado: "cancelado",
+		pacientes: { nombre: "Paciente Cancelado" },
+		empleados: { nombre: "Blanca Avila" },
+		motivo_cancelacion: "Solicitud duplicada",
+		cancelada_en: "2026-08-10T13:00:00.000Z",
+		estudios_venta: [],
+	},
+];
+
 jest.mock("../../hooks/use-reporte-ventas", () => ({
 	// El corte del periodo cuenta las canceladas y los pagos cancelados
 	// aparte; estas pruebas no los ejercitan, asi que van vacios.
-	useVentasCanceladas: () => ({ data: [] }),
+	useVentasCanceladas: () => ({ data: mockCanceladas }),
 	usePagosCancelados: () => ({ data: 0 }),
 	useReporteVentas: () => ({
 		data: mockVentas,
@@ -88,6 +105,12 @@ import { exportarExcel } from "../../utils/exportar-tabla";
 import ReporteVentas from "./reporte-ventas";
 import { conQueryClient } from "../../../__mocks__/con-query-client";
 
+// El buscador de estudio se recuerda entre visitas: cada prueba arranca limpia.
+beforeEach(() => {
+	sessionStorage.clear();
+	localStorage.clear();
+});
+
 // El total del período es la primera tarjeta de métricas; el mismo importe sale
 // en la columna Precio de la tabla, así que se lee de la tarjeta y no por texto.
 const totalDelPeriodo = () => document.querySelectorAll(".rv-metric-value")[0].textContent;
@@ -97,9 +120,9 @@ const foliosEnTabla = () =>
 		(fila) => fila.querySelector("td").textContent,
 	);
 
-const elegirGrupo = (nombre) =>
-	fireEvent.change(screen.getByLabelText("Grupo de área"), {
-		target: { value: nombre },
+const elegirEmpresa = (empresa) =>
+	fireEvent.change(screen.getByLabelText("Empresa"), {
+		target: { value: empresa },
 	});
 
 // Los rankings arrancan plegados, así que hay que abrirlos para leerlos.
@@ -112,22 +135,25 @@ const ventasFiltradas = () =>
 		.find((fila) => fila.textContent.includes("Ventas filtradas"))
 		?.querySelector("strong").textContent;
 
-describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
+describe("ReporteVentas: la empresa del encabezado filtra todo el reporte", () => {
 	beforeEach(() => jest.clearAllMocks());
 
-	test("arranca en Todas las áreas y no pierde ninguna venta", () => {
+	test("arranca en CDC y CDI y no pierde ninguna venta", () => {
 		render(conQueryClient(<ReporteVentas />));
 
-		expect(screen.getByLabelText("Grupo de área")).toHaveValue("");
+		expect(screen.getByLabelText("Empresa")).toHaveValue("");
+		expect(
+			[...screen.getByLabelText("Empresa").options].map((opcion) => opcion.textContent),
+		).toEqual(["CDC y CDI", "CDC", "CDI"]);
 		expect(totalDelPeriodo()).toBe("$1,500.00");
-		expect(foliosEnTabla()).toEqual(["C0001", "B0002", "2608260003"]);
+		expect(foliosEnTabla()).toEqual(["C0001", "A0002", "2608260003"]);
 		expect(ventasFiltradas()).toBe("3 de 3 cargadas");
 	});
 
-	test("al elegir un grupo recorta métricas, tabla y estudios más vendidos", () => {
+	test("al elegir una empresa recorta métricas, tabla y estudios más vendidos", () => {
 		render(conQueryClient(<ReporteVentas />));
 
-		elegirGrupo("laboratorio");
+		elegirEmpresa("CDC");
 
 		expect(totalDelPeriodo()).toBe("$500.00");
 		expect(foliosEnTabla()).toEqual(["C0001"]);
@@ -154,10 +180,20 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 		expect(document.querySelectorAll(".rv-side-card")).toHaveLength(2);
 	});
 
-	test("un grupo sin ventas deja el reporte vacío", () => {
+	test("CDI deja sólo sus ventas", () => {
 		render(conQueryClient(<ReporteVentas />));
 
-		elegirGrupo("resonancias_veterinaria");
+		elegirEmpresa("CDI");
+
+		expect(totalDelPeriodo()).toBe("$800.00");
+		expect(foliosEnTabla()).toEqual(["A0002"]);
+	});
+
+	test("si nada coincide el reporte queda vacío", () => {
+		render(conQueryClient(<ReporteVentas />));
+
+		elegirEmpresa("CDI");
+		fireEvent.change(screen.getByPlaceholderText("Buscar..."), { target: { value: "zzz" } });
 
 		expect(totalDelPeriodo()).toBe("$0.00");
 		expect(screen.getByText("No hay ventas para los filtros seleccionados.")).toBeInTheDocument();
@@ -167,7 +203,7 @@ describe("ReporteVentas: el grupo de área filtra todo el reporte", () => {
 describe("ReporteVentas: descarga de Excel", () => {
 	beforeEach(() => jest.clearAllMocks());
 
-	test("con Todas las áreas exporta las mismas ventas que se ven", () => {
+	test("con CDC y CDI exporta las mismas ventas que se ven", () => {
 		render(conQueryClient(<ReporteVentas />));
 
 		fireEvent.click(screen.getByText("Excel"));
@@ -175,25 +211,26 @@ describe("ReporteVentas: descarga de Excel", () => {
 		expect(exportarExcel).toHaveBeenCalledTimes(1);
 		const [, filas, nombreArchivo] = exportarExcel.mock.calls[0];
 		expect(filas).toHaveLength(3);
-		expect(filas.map((fila) => fila[0])).toEqual(["C0001", "B0002", "2608260003"]);
-		expect(nombreArchivo).toContain("todas-las-areas");
+		expect(filas.map((fila) => fila[0])).toEqual(["C0001", "A0002", "2608260003"]);
+		expect(nombreArchivo).toContain("cdc-y-cdi");
 	});
 
-	test("con un grupo elegido exporta sólo ese grupo", () => {
+	test("con una empresa elegida exporta sólo esa empresa", () => {
 		render(conQueryClient(<ReporteVentas />));
 
-		elegirGrupo("laboratorio");
+		elegirEmpresa("CDC");
 		fireEvent.click(screen.getByText("Excel"));
 
 		const [, filas, nombreArchivo] = exportarExcel.mock.calls[0];
 		expect(filas.map((fila) => fila[0])).toEqual(["C0001"]);
-		expect(nombreArchivo).toContain("laboratorio");
+		expect(nombreArchivo).toContain("cdc");
 	});
 
 	test("avisa en vez de quedarse callado cuando no hay filas que exportar", () => {
 		render(conQueryClient(<ReporteVentas />));
 
-		elegirGrupo("resonancias_veterinaria");
+		elegirEmpresa("CDI");
+		fireEvent.change(screen.getByPlaceholderText("Buscar..."), { target: { value: "zzz" } });
 		fireEvent.click(screen.getByText("Excel"));
 
 		expect(exportarExcel).not.toHaveBeenCalled();
@@ -212,5 +249,47 @@ describe("ReporteVentas: descarga de Excel", () => {
 		fireEvent.click(screen.getByText("Excel"));
 
 		expect(screen.getByText("No se pudo escribir el archivo")).toBeInTheDocument();
+	});
+});
+
+// Las canceladas no cuentan en la tabla ni en los totales, pero tienen su
+// propio apartado con quién la registró, cuándo se canceló y por qué.
+describe("ReporteVentas: apartado de órdenes canceladas", () => {
+	test("lista las canceladas con su motivo", () => {
+		render(conQueryClient(<ReporteVentas />));
+
+		fireEvent.click(screen.getByRole("button", { name: /Canceladas \(1\)/ }));
+
+		const tabla = within(document.querySelector(".rv-table-canceladas"));
+		expect(tabla.getByText("C0009")).toBeInTheDocument();
+		expect(tabla.getByText("Paciente Cancelado")).toBeInTheDocument();
+		expect(tabla.getByText("Blanca Avila")).toBeInTheDocument();
+		expect(tabla.getByText("Solicitud duplicada")).toBeInTheDocument();
+	});
+
+	test("respeta la empresa elegida", () => {
+		render(conQueryClient(<ReporteVentas />));
+
+		elegirEmpresa("CDI");
+		fireEvent.click(screen.getByRole("button", { name: /Canceladas \(0\)/ }));
+
+		expect(
+			screen.getByText("No hay órdenes canceladas para los filtros seleccionados."),
+		).toBeInTheDocument();
+	});
+});
+
+// El filtro de forma de pago ofrece las mismas formas con que se cobra: faltaba
+// crédito y "tarjeta" no coincidía con ninguna venta.
+describe("ReporteVentas: filtro de forma de pago", () => {
+	test("ofrece crédito y las tarjetas por separado", () => {
+		render(conQueryClient(<ReporteVentas />));
+
+		const opciones = [...screen.getByLabelText("Forma de pago").options].map(
+			(opcion) => opcion.textContent,
+		);
+		expect(opciones).toEqual(
+			expect.arrayContaining(["Crédito", "Tarjeta Debito", "Tarjeta Credito", "Mixto"]),
+		);
 	});
 });
