@@ -63,6 +63,7 @@ jest.mock("../../../lib/supabase-client", () => {
 			{ cliente: "ISSSTE", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 200 },
 			{ cliente: "Particular", clave: "BH", descripcion: "BIOMETRIA HEMATICA", precio: 100 },
 			{ cliente: "IMSS", clave: "QS", descripcion: "QUIMICA SANGUINEA", precio: 120 },
+			{ cliente: "Particular", clave: "QS", descripcion: "QUIMICA SANGUINEA", precio: 150 },
 		],
 	};
 
@@ -346,4 +347,27 @@ describe("Cotización — varios estudios y cantidad", () => {
 		expect(filas()).toHaveLength(1);
 		expect(fila("QS")).toBeTruthy();
 	});
+});
+
+// El buscador ofrece sólo lo que el convenio tiene con precio: antes, si lo
+// buscado no estaba en su tarifario, salía el catálogo a precio por defecto.
+test("un estudio sin precio en el convenio no se ofrece", async () => {
+	await act(async () => {
+		render(<Cotizacion />);
+	});
+	await elegir("Selecciona una Empresa", "2");
+	await elegir("Selecciona un Cliente", "2");
+	await elegir("Selecciona tipo de estudio", "7");
+
+	// ISSSTE sólo tiene precio para la biometría.
+	await act(async () => {
+		fireEvent.change(screen.getByPlaceholderText(/Busca estudios aquí/i), {
+			target: { value: "quim" },
+		});
+	});
+
+	expect(document.querySelector(".search-results-estudios-cot")).toHaveTextContent(
+		"No se encontraron estudios",
+	);
+	expect(screen.queryByText(/QUIMICA SANGUINEA/)).not.toBeInTheDocument();
 });
