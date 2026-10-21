@@ -197,3 +197,26 @@ describe("tipos con estudios con precio del cliente", () => {
 		).toEqual(TIPOS_CDI);
 	});
 });
+
+// Las urgencias no entran con "toda su imagen": sólo con regla propia, que
+// tienen los convenios que las traen en su lista (SSA y Medisim).
+describe("urgencias en el convenio", () => {
+	const FILAS_CON_URGENCIAS = [...FILAS, tipo(9, "Urgencias y otros", 2)];
+	const tiposConUrgencias = (reglasConvenio) =>
+		resolverTiposEstudioConvenio({
+			filas: FILAS_CON_URGENCIAS,
+			empresas: EMPRESAS,
+			idEmpresaSeleccionada: 2,
+			reglasConvenio,
+		}).map((t) => t.nombre);
+
+	test("con toda su imagen no se ofrecen urgencias", () => {
+		expect(tiposConUrgencias(ISSSTE)).not.toContain("Urgencias y otros");
+	});
+
+	test("con su regla de urgencias, SSA las ve en CDI", () => {
+		expect(
+			tiposConUrgencias([...SSA, { modalidad: "urgencias_otros", criterio: "", empresa: "CDI" }]),
+		).toContain("Urgencias y otros");
+	});
+});

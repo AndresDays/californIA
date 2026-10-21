@@ -77,8 +77,9 @@ export const MODALIDAD_TODAS = "*";
 
 // Una regla de "toda la imagen" del convenio no arrastra el laboratorio, la
 // veterinaria ni las urgencias: eso se cobra como particular salvo que el
-// convenio los tenga pactados con su propia regla. Ningún convenio trae
-// urgencias, así que ofrecerlas con el comodín las metía a todos.
+// convenio los tenga pactados con su propia regla. Las urgencias van con regla
+// propia sólo en los convenios que las traen en su lista (SSA y Medisim);
+// ofrecerlas con el comodín las metía a todos.
 export const MODALIDADES_FUERA_DE_CONVENIO = [
 	"laboratorio",
 	"veterinaria",
