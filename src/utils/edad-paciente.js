@@ -2,9 +2,24 @@
 // las imprime, y cada copia decidía distinto qué hacer sin fecha. Aquí queda
 // una sola versión para los tickets.
 
+// Una fecha de nacimiento es un día del calendario, no un instante: leída con
+// new Date("1994-10-24") queda a medianoche UTC, que en México todavía es el
+// 23, y el ticket salía con un día menos. Se toma el año, el mes y el día tal
+// como vienen y se arma la fecha en hora local.
+export const leerFechaCalendario = (valor) => {
+	if (!valor) return new Date(Number.NaN);
+	if (valor instanceof Date) return valor;
+	const coincidencia = String(valor).match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (coincidencia) {
+		const [, anio, mes, dia] = coincidencia;
+		return new Date(Number(anio), Number(mes) - 1, Number(dia));
+	}
+	return new Date(valor);
+};
+
 export const calcularEdadPaciente = (fechaNacimiento) => {
 	if (!fechaNacimiento) return "";
-	const nacimiento = new Date(fechaNacimiento);
+	const nacimiento = leerFechaCalendario(fechaNacimiento);
 	if (Number.isNaN(nacimiento.getTime())) return "";
 	const hoy = new Date();
 	let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -15,7 +30,7 @@ export const calcularEdadPaciente = (fechaNacimiento) => {
 
 export const formatearFechaNacimiento = (fechaNacimiento) => {
 	if (!fechaNacimiento) return "";
-	const fecha = new Date(fechaNacimiento);
+	const fecha = leerFechaCalendario(fechaNacimiento);
 	if (Number.isNaN(fecha.getTime())) return "";
 	return fecha.toLocaleDateString("es-MX", {
 		day: "2-digit",
