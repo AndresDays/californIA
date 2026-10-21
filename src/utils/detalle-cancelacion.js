@@ -11,6 +11,7 @@
 
 import { esErrorTablaInexistente } from "./supabase-errors";
 import { EVENTOS_SOLICITUD } from "./solicitud-auditoria";
+import { leerFechaCalendario } from "./edad-paciente";
 
 const SELECT_VENTA = `
 	id_venta, folio, fecha_venta, estado, subtotal, descuento, total,
@@ -70,7 +71,7 @@ const fechaHora = (valor) => {
 
 export const calcularEdadDetalle = (fechaNacimiento) => {
 	if (!fechaNacimiento) return "";
-	const nacimiento = new Date(fechaNacimiento);
+	const nacimiento = leerFechaCalendario(fechaNacimiento);
 	if (Number.isNaN(nacimiento.getTime())) return "";
 	const hoy = new Date();
 	let edad = hoy.getFullYear() - nacimiento.getFullYear();

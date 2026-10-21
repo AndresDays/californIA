@@ -6,6 +6,7 @@ import {
   limpiarBorradorPersistente,
   useCampoPersistente,
 } from '../../../hooks/use-campo-persistente';
+import { leerFechaCalendario } from '../../../utils/edad-paciente';
 import './modal-agregar-doctor.css';
 import '../../../components/admin-entity-modal.css';
 
@@ -74,7 +75,7 @@ const ModalAgregarDoctor = ({ isOpen, onClose, onSave, doctorEditar = null }) =>
       setEspecialidad(doctorEditar.especialidad || '');
       
       if (doctorEditar.fechaNacimiento) {
-        const fecha = new Date(doctorEditar.fechaNacimiento);
+        const fecha = leerFechaCalendario(doctorEditar.fechaNacimiento);
         setDia(fecha.getDate().toString());
         setMes(meses[fecha.getMonth()]);
         setAno(fecha.getFullYear().toString());

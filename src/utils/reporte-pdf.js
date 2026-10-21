@@ -9,6 +9,7 @@ import {
 	hidratarArchivoCultivoUrl,
 	separarEstudiosConCultivo,
 } from "./resultados-cultivo";
+import { leerFechaCalendario } from "./edad-paciente";
 
 const PAGINA_ANCHO = 210;
 const PAGINA_ALTO = 297;
@@ -217,7 +218,7 @@ const normalizarPdf = (valor, fallback = "-") =>
 const calcularEdadPdf = (fechaNacimiento) => {
 	if (!fechaNacimiento) return "-";
 	const hoy = new Date();
-	const nacimiento = new Date(fechaNacimiento);
+	const nacimiento = leerFechaCalendario(fechaNacimiento);
 	let edad = hoy.getFullYear() - nacimiento.getFullYear();
 	if (
 		hoy.getMonth() < nacimiento.getMonth() ||

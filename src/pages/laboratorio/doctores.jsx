@@ -28,6 +28,7 @@ import {
 } from "../../utils/doctores-auth.js";
 import ModalAgregarDoctor from "./componentes/modal-agregar-doctor";
 import { useModalPersistente } from "../../hooks/use-campo-persistente";
+import { leerFechaCalendario } from "../../utils/edad-paciente";
 
 const Doctores = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
@@ -62,7 +63,7 @@ const Doctores = () => {
 	const calcularEdad = (fechaNacimiento) => {
 		if (!fechaNacimiento) return 0;
 		const hoy = new Date();
-		const nacimiento = new Date(fechaNacimiento);
+		const nacimiento = leerFechaCalendario(fechaNacimiento);
 		let edad = hoy.getFullYear() - nacimiento.getFullYear();
 		const mes = hoy.getMonth() - nacimiento.getMonth();
 		if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;

@@ -17,6 +17,7 @@ import { htmlReporteRadiologiaParaEditor } from "../utils/reporte-radiologia-htm
 import { abrirPdfEnPestana } from "../utils/abrir-pdf-en-pestana";
 import "./portal-resultados.css";
 import { normalizarFolioConsulta } from "../utils/folios";
+import { leerFechaCalendario } from "../utils/edad-paciente";
 
 const formatearFecha = (fecha) => {
 	if (!fecha) return "-";
@@ -30,7 +31,7 @@ const formatearFecha = (fecha) => {
 const calcularEdad = (fechaNacimiento) => {
 	if (!fechaNacimiento) return "";
 	const hoy = new Date();
-	const nacimiento = new Date(fechaNacimiento);
+	const nacimiento = leerFechaCalendario(fechaNacimiento);
 	let edad = hoy.getFullYear() - nacimiento.getFullYear();
 	const mes = hoy.getMonth() - nacimiento.getMonth();
 	if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;

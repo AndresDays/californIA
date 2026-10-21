@@ -17,7 +17,7 @@ import { supabase } from "../../../lib/supabase-client";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
-import { calcularEdadPaciente } from "../../../utils/edad-paciente";
+import { leerFechaCalendario, calcularEdadPaciente } from "../../../utils/edad-paciente";
 import {
 	construirEstudioCatalogoUnificado,
 	construirPaqueteCatalogoUnificado,
@@ -769,7 +769,7 @@ const EditarSolicitud = () => {
 	const calcularEdad = (fechaNacimiento) => {
 		if (!fechaNacimiento) return "N/A";
 		const hoy = new Date();
-		const nac = new Date(fechaNacimiento);
+		const nac = leerFechaCalendario(fechaNacimiento);
 		let edad = hoy.getFullYear() - nac.getFullYear();
 		const mes = hoy.getMonth() - nac.getMonth();
 		if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;
@@ -847,7 +847,7 @@ const EditarSolicitud = () => {
 		try {
 			const paciente = orden.pacientes;
 			const hoy = new Date();
-			const nac = paciente?.fecha_nacimiento ? new Date(paciente.fecha_nacimiento) : null;
+			const nac = paciente?.fecha_nacimiento ? leerFechaCalendario(paciente.fecha_nacimiento) : null;
 			let edadStr = "";
 			if (nac) {
 				let edad = hoy.getFullYear() - nac.getFullYear();

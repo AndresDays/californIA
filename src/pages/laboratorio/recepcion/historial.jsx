@@ -7,6 +7,7 @@ import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
 import { supabase } from "../../../lib/supabase-client";
 import { cargarAnalitosDeEstudios } from "../../../utils/analitos-de-estudios";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
+import { leerFechaCalendario } from "../../../utils/edad-paciente";
 import "./historial.css";
 
 const Historial = () => {
@@ -153,7 +154,7 @@ const Historial = () => {
 	const calcularEdad = (fechaNacimiento) => {
 		if (!fechaNacimiento) return "N/A";
 		const hoy = new Date();
-		const nac = new Date(fechaNacimiento);
+		const nac = leerFechaCalendario(fechaNacimiento);
 		let edad = hoy.getFullYear() - nac.getFullYear();
 		const mes = hoy.getMonth() - nac.getMonth();
 		if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) edad--;

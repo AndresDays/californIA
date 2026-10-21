@@ -49,6 +49,7 @@ import {
 	filtrarEstudiosSoloLaboratorio,
 	filtrarVentasSoloLaboratorio,
 } from "../../utils/permisos-rol";
+import { leerFechaCalendario } from "../../utils/edad-paciente";
 
 const SELECT_VENTAS = `
 	id_venta, folio, fecha_venta, estado, total, pago_recibido,
@@ -469,7 +470,7 @@ const EntregaResultados = () => {
 	const calcularEdad = (fechaNacimiento) => {
 		if (!fechaNacimiento) return "N/A";
 		const hoy = new Date();
-		const nacimiento = new Date(fechaNacimiento);
+		const nacimiento = leerFechaCalendario(fechaNacimiento);
 		let edad = hoy.getFullYear() - nacimiento.getFullYear();
 		const mes = hoy.getMonth() - nacimiento.getMonth();
 		if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) edad--;
