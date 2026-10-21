@@ -826,16 +826,11 @@ const Cotizacion = () => {
 		...filtrosCatalogo,
 		clavesConPrecio,
 	});
-	// Un convenio sin precio para lo buscado no deja la cotización sin opciones:
-	// se ofrece el catálogo avisando que va al precio por defecto.
-	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
-	const mostrandoEstudiosSinPrecio =
-		Boolean(clavesConPrecio?.size) &&
-		estudiosConPrecio.length === 0 &&
-		estudiosSinFiltroPrecio.length > 0;
-	const estudiosFiltrados = mostrandoEstudiosSinPrecio
-		? estudiosSinFiltroPrecio
-		: estudiosConPrecio;
+	// Sólo se ofrece lo que el cliente tiene con precio: antes, si lo buscado no
+	// estaba en su tarifario, salía el catálogo completo a precio por defecto y
+	// se colaban estudios que no son parte del convenio. Un cliente sin ningún
+	// precio cargado sigue viendo el catálogo completo (clavesConPrecio nulo).
+	const estudiosFiltrados = estudiosConPrecio;
 
 	const opcionesEstudio = estudiosFiltrados.slice(0, 10);
 	const listaEstudiosAbierta =
@@ -1059,12 +1054,6 @@ const Cotizacion = () => {
 									aria-autocomplete="list"
 									className="input-buscar-estudios-cot"
 								/>
-								{mostrandoEstudiosSinPrecio && (
-									<p className="nota-precios-cliente-cot">
-										Este cliente no tiene precio registrado para estos estudios:
-										se cotizan al precio por defecto.
-									</p>
-								)}
 								{listaEstudiosAbierta && (
 									<div
 										id="cotizacion-resultados-estudios"

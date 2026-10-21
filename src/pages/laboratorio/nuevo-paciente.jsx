@@ -2124,17 +2124,11 @@ const NuevoPaciente = () => {
 		...filtrosCatalogo,
 		clavesConPrecio,
 	});
-	// Si el convenio no tiene precio para lo que se está buscando, se ofrece el
-	// catálogo avisando que ese estudio no está en su tarifario: dejar la
-	// búsqueda vacía impedía capturar la solicitud.
-	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
-	const mostrandoEstudiosSinPrecio =
-		Boolean(clavesConPrecio?.size) &&
-		estudiosConPrecio.length === 0 &&
-		estudiosSinFiltroPrecio.length > 0;
-	const estudiosFiltrados = mostrandoEstudiosSinPrecio
-		? estudiosSinFiltroPrecio
-		: estudiosConPrecio;
+	// Sólo se ofrece lo que el cliente tiene con precio: antes, si lo buscado no
+	// estaba en su tarifario, salía el catálogo completo a precio por defecto y
+	// se colaban estudios que no son parte del convenio. Un cliente sin ningún
+	// precio cargado sigue viendo el catálogo completo (clavesConPrecio nulo).
+	const estudiosFiltrados = estudiosConPrecio;
 
 	useEffect(() => {
 		if (!showBusquedaEstudios || buscarEstudio.trim().length < 2) return;
@@ -2548,14 +2542,8 @@ const NuevoPaciente = () => {
 
 								{clienteSeleccionado && clavesConPrecio?.size > 0 && (
 									<p
-										className={
-											mostrandoEstudiosSinPrecio
-												? "nota-precios-cliente nota-precios-cliente-aviso"
-												: "nota-precios-cliente"
-										}>
-										{mostrandoEstudiosSinPrecio
-											? `${clienteActual?.nombre || "El cliente"} no tiene precio registrado para estos estudios: se cobrarán al precio por defecto.`
-											: `Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
+										className="nota-precios-cliente">
+										{`Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
 									</p>
 								)}
 

@@ -452,11 +452,10 @@ const NuevaCitaModal = ({
     ...filtrosCatalogo,
     clavesConPrecio: resolverClavesConPrecio(preciosCliente, estudios),
   });
-  // Si el convenio no tiene precio para lo que se busca se ofrece el catálogo
-  // de todos modos: dejar la búsqueda vacía impedía agendar la cita.
-  const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
-  const estudiosFiltrados =
-    estudiosConPrecio.length > 0 ? estudiosConPrecio : estudiosSinFiltroPrecio;
+  // Sólo se ofrece lo que el cliente tiene con precio, como en la captura de
+  // la orden: antes, si lo buscado no estaba en su tarifario, salía el catálogo
+  // completo y se colaban estudios que no son parte del convenio.
+  const estudiosFiltrados = estudiosConPrecio;
   const opcionesEstudio = estudiosFiltrados.slice(0, 10);
   // La lista de resultados se recorre con las flechas y se elige con Enter,
   // igual que un select; el hook va antes de la salida temprana porque los

@@ -807,16 +807,11 @@ const EditarSolicitud = () => {
 		reglasConvenio,
 	};
 	const estudiosConPrecio = filtrarEstudiosCatalogo({ ...filtrosCatalogo, clavesConPrecio });
-	// Si el convenio no tiene precio para lo que se busca se ofrece el catálogo
-	// igual: dejar la lista vacía impide corregir la orden.
-	const estudiosSinFiltroPrecio = filtrarEstudiosCatalogo(filtrosCatalogo);
-	const mostrandoEstudiosSinPrecio =
-		Boolean(clavesConPrecio?.size) &&
-		estudiosConPrecio.length === 0 &&
-		estudiosSinFiltroPrecio.length > 0;
-	const estudiosFiltrados = mostrandoEstudiosSinPrecio
-		? estudiosSinFiltroPrecio
-		: estudiosConPrecio;
+	// Sólo se ofrece lo que el cliente tiene con precio: antes, si lo buscado no
+	// estaba en su tarifario, salía el catálogo completo a precio por defecto y
+	// se colaban estudios que no son parte del convenio. Un cliente sin ningún
+	// precio cargado sigue viendo el catálogo completo (clavesConPrecio nulo).
+	const estudiosFiltrados = estudiosConPrecio;
 	const listaEstudiosAbierta = Boolean(
 		catalogoEstudiosAbierto || (showBusquedaEstudios && buscarEstudio.length >= 2),
 	);
@@ -1229,14 +1224,8 @@ const EditarSolicitud = () => {
 							<label className="lista-precios-label">Lista de precios</label>
 							{clavesConPrecio?.size > 0 && (
 								<p
-									className={
-										mostrandoEstudiosSinPrecio
-											? "nota-precios-cliente nota-precios-cliente-aviso"
-											: "nota-precios-cliente"
-									}>
-									{mostrandoEstudiosSinPrecio
-										? `${clienteActual?.nombre || "El cliente"} no tiene precio registrado para estos estudios: se cobrarán al precio por defecto.`
-										: `Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
+									className="nota-precios-cliente">
+									{`Sólo se muestran los estudios con precio registrado para ${clienteActual?.nombre || "el cliente"}.`}
 								</p>
 							)}
 							<div className="buscar-estudios-row">
