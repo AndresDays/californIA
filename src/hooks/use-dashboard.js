@@ -40,7 +40,7 @@ export const useStatsDashboard = () =>
         supabase
           .from('citas')
           .select('tipo_estudio, fecha_estudio')
-          .in('estado', [CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA]),
+          .in('estado', [CITA_ESTADOS.LISTA_ENTREGA, CITA_ESTADOS.ENTREGADA, CITA_ESTADOS.REALIZADA]),
         supabase
           .from('ventas')
           .select('fecha_venta, estado, total, pago_recibido')

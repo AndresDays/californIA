@@ -15,6 +15,7 @@ import NuevaCitaModal from "../../components/nueva-cita-modal";
 import EditarCitaModal from "../../components/editar-cita-modal";
 import MiniCalendarioMes from "./componentes/mini-calendario-mes";
 import { supabase } from "../../lib/supabase-client";
+import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import "./calendario-citas.css";
 
 // `tipoEstudio` es lo que se le pone a la cita nueva abierta desde esa columna:
@@ -113,6 +114,12 @@ const obtenerHoraCita = (cita) => {
 	return Number.isNaN(fecha.getTime()) ? null : `${String(fecha.getHours()).padStart(2, "0")}:${fecha.getMinutes() < 30 ? "00" : "30"}`;
 };
 
+// La cita cancelada se queda en la agenda tachada, para que se vea qué se
+// canceló; sólo ya cancelada se puede eliminar. La realizada se marca como
+// hecha. Ninguna de las dos cuenta como cita por atender.
+const esCancelada = (cita) => cita?.estado === CITA_ESTADOS.CANCELADA;
+const esRealizada = (cita) => cita?.estado === CITA_ESTADOS.REALIZADA;
+
 const obtenerNombrePaciente = (cita) =>
 	cita?.pacientes?.nombre || cita?.nombre_paciente || "Sin paciente";
 
@@ -123,7 +130,9 @@ const CalendarioCitas = () => {
 	const [fechaSeleccionada, setFechaSeleccionada] = useState(() => obtenerFechaLocalHoy());
 	const [horarioNuevaCita, setHorarioNuevaCita] = useState(null);
 	const [citaActiva, setCitaActiva] = useState(null);
-	const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
+	// "cancelar" o "eliminar" mientras se pide confirmación.
+	const [confirmando, setConfirmando] = useState(null);
+	const [errorAccion, setErrorAccion] = useState("");
 	const [editandoCita, setEditandoCita] = useState(false);
 	const [sucursalCalendario, setSucursalCalendario] = useState("");
 	const [mesAbierto, setMesAbierto] = useState(false);
@@ -212,25 +221,48 @@ const CalendarioCitas = () => {
 
 	const abrirNuevaCita = (horaInicial, tipoEstudioInicial = "") =>
 		setHorarioNuevaCita({ fechaInicial: fechaSeleccionada, horaInicial, tipoEstudioInicial });
-	const cancelarCita = async () => {
-		if (!citaActiva) return;
-		const { error: errorCancelacion } = await supabase.from("citas").update({ estado: "cancelada" }).eq("id_cita", citaActiva.id_cita);
-		if (!errorCancelacion) {
-			queryClient.invalidateQueries({ queryKey: ["citas"] });
-			setCitaActiva(null);
-			setConfirmandoCancelacion(false);
+	const abrirAcciones = (cita) => {
+		setCitaActiva(cita);
+		setConfirmando(null);
+		setErrorAccion("");
+	};
+	const cerrarAcciones = () => {
+		setCitaActiva(null);
+		setConfirmando(null);
+		setErrorAccion("");
+	};
+	const terminarAccion = (errorSupabase) => {
+		if (errorSupabase) {
+			setErrorAccion("No se pudo guardar el cambio. Intenta de nuevo.");
+			return;
 		}
+		queryClient.invalidateQueries({ queryKey: ["citas"] });
+		cerrarAcciones();
+	};
+	const cambiarEstadoCita = async (estado) => {
+		if (!citaActiva) return;
+		const { error: errorEstado } = await supabase
+			.from("citas")
+			.update({ estado, updated_at: new Date().toISOString() })
+			.eq("id_cita", citaActiva.id_cita);
+		terminarAccion(errorEstado);
+	};
+	const eliminarCita = async () => {
+		if (!esCancelada(citaActiva)) return;
+		const { error: errorEliminar } = await supabase.from("citas").delete().eq("id_cita", citaActiva.id_cita);
+		terminarAccion(errorEliminar);
 	};
 
-	const totalCitas = citas.length;
+	const citasVigentes = useMemo(() => citas.filter((cita) => !esCancelada(cita)), [citas]);
+	const totalCitas = citasVigentes.length;
 	const conteoPorTipo = useMemo(() => {
 		const conteos = new Map(TIPOS_ESTUDIO_CALENDARIO.map((tipo) => [tipo.id, 0]));
-		citas.forEach((cita) => {
+		citasVigentes.forEach((cita) => {
 			const tipo = obtenerTipoCalendario(cita);
 			conteos.set(tipo.id, (conteos.get(tipo.id) || 0) + 1);
 		});
 		return conteos;
-	}, [citas]);
+	}, [citasVigentes]);
 
 	return (
 		<PageLayout
@@ -354,11 +386,8 @@ const CalendarioCitas = () => {
 													{lineaAhora?.bloque === bloque.valor && (
 														<div className="cal-ahora-linea" style={{ top: `${lineaAhora.porcentaje}%` }} aria-hidden="true" />
 													)}
-													{citasHora.length === 0 ? (
-														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
-													) : (
-														citasHora.map((cita) => (
-															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => setCitaActiva(cita)}>
+													{citasHora.map((cita) => (
+															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}${esCancelada(cita) ? " cancelada" : ""}${esRealizada(cita) ? " realizada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => abrirAcciones(cita)}>
 																<div className="cal-card-time">
 																	{new Date(cita.fecha_estudio).toLocaleTimeString("es-MX", {
 																		hour: "2-digit",
@@ -367,9 +396,16 @@ const CalendarioCitas = () => {
 																</div>
 																<strong>{obtenerEstudioDeLaTarjeta(cita)}</strong>
 																<span>{obtenerNombrePaciente(cita)}</span>
-																{cita.estado && <small>{cita.estado}</small>}
+																{esRealizada(cita) ? (
+																	<small className="cal-card-realizada">✓ Realizada</small>
+																) : (
+																	cita.estado && <small>{cita.estado}</small>
+																)}
 															</button>
-														))
+														))}
+													{/* Un horario con sólo citas canceladas sigue libre. */}
+													{citasHora.every(esCancelada) && (
+														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													)}
 												</div>
 											);
@@ -382,7 +418,57 @@ const CalendarioCitas = () => {
 				</section>
 			</main>
 			<NuevaCitaModal isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} tipoEstudioInicial={horarioNuevaCita?.tipoEstudioInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
-			{citaActiva && <div className="modal-overlay" onClick={() => setCitaActiva(null)}><div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}><div className="modal-header-cita"><h2 className="modal-title-cita">Acciones de cita</h2><button className="modal-close-btn" onClick={() => setCitaActiva(null)}>✕</button></div><div className="cal-action-body">{confirmandoCancelacion ? <><p className="cal-cancel-question">¿Seguro que deseas cancelar esta cita?</p><div className="modal-footer-cita"><button type="button" className="btn-cancel-cita" onClick={() => setConfirmandoCancelacion(false)}>Volver</button><button type="button" className="btn-submit-cita" onClick={cancelarCita}>Confirmar cancelación</button></div></> : <div className="modal-footer-cita"><button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button><button type="button" className="btn-cancel-cita" onClick={() => setConfirmandoCancelacion(true)}>Cancelar cita</button><button type="button" className="btn-submit-cita" onClick={() => navigate(`/nuevo-paciente?citaId=${citaActiva.id_cita}`, { state: { citaId: citaActiva.id_cita } })}>Pasar a estudio</button></div>}</div></div></div>}
+			{citaActiva && (
+				<div className="modal-overlay" onClick={cerrarAcciones}>
+					<div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}>
+						<div className="modal-header-cita">
+							<h2 className="modal-title-cita">Acciones de cita</h2>
+							<button className="modal-close-btn" onClick={cerrarAcciones}>✕</button>
+						</div>
+						<div className="cal-action-body">
+							{errorAccion && <p className="cal-action-error" role="alert">{errorAccion}</p>}
+							{confirmando === "cancelar" && (
+								<>
+									<p className="cal-cancel-question">¿Seguro que deseas cancelar esta cita? Quedará tachada en la agenda.</p>
+									<div className="modal-footer-cita">
+										<button type="button" className="btn-cancel-cita" onClick={() => setConfirmando(null)}>Volver</button>
+										<button type="button" className="btn-submit-cita" onClick={() => cambiarEstadoCita(CITA_ESTADOS.CANCELADA)}>Confirmar cancelación</button>
+									</div>
+								</>
+							)}
+							{confirmando === "eliminar" && (
+								<>
+									<p className="cal-cancel-question">¿Eliminar esta cita de la agenda? Ya no se podrá recuperar.</p>
+									<div className="modal-footer-cita">
+										<button type="button" className="btn-cancel-cita" onClick={() => setConfirmando(null)}>Volver</button>
+										<button type="button" className="btn-submit-cita cal-btn-eliminar" onClick={eliminarCita}>Confirmar eliminación</button>
+									</div>
+								</>
+							)}
+							{!confirmando && esCancelada(citaActiva) && (
+								<div className="modal-footer-cita">
+									<button type="button" className="btn-cancel-cita" onClick={() => cambiarEstadoCita(CITA_ESTADOS.PENDIENTE)}>Restaurar cita</button>
+									<button type="button" className="btn-submit-cita cal-btn-eliminar" onClick={() => setConfirmando("eliminar")}>Eliminar</button>
+								</div>
+							)}
+							{!confirmando && esRealizada(citaActiva) && (
+								<div className="modal-footer-cita">
+									<button type="button" className="btn-cancel-cita" onClick={() => cambiarEstadoCita(CITA_ESTADOS.PENDIENTE)}>Desmarcar realizada</button>
+									<button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button>
+								</div>
+							)}
+							{!confirmando && !esCancelada(citaActiva) && !esRealizada(citaActiva) && (
+								<div className="modal-footer-cita">
+									<button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button>
+									<button type="button" className="btn-cancel-cita" onClick={() => setConfirmando("cancelar")}>Cancelar cita</button>
+									<button type="button" className="btn-cancel-cita cal-btn-realizada" onClick={() => cambiarEstadoCita(CITA_ESTADOS.REALIZADA)}>Realizada</button>
+									<button type="button" className="btn-submit-cita" onClick={() => navigate(`/nuevo-paciente?citaId=${citaActiva.id_cita}`, { state: { citaId: citaActiva.id_cita } })}>Pasar a estudio</button>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 			<EditarCitaModal isOpen={editandoCita} cita={citaActiva} onClose={() => setEditandoCita(false)} onCitaActualizada={() => { queryClient.invalidateQueries({ queryKey: ["citas"] }); setEditandoCita(false); setCitaActiva(null); }} />
 		</PageLayout>
 	);
