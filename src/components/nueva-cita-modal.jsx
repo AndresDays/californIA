@@ -346,13 +346,21 @@ const NuevaCitaModal = ({
         correo: tipoContacto === 'correo' ? contacto : '',
         estudios: estudiosSeleccionados.map((e) => e.descripcion).join(', '),
         monto: calcularTotal(),
+        idCliente: idPorNombre(clientes, clienteSeleccionado, 'id_cliente'),
       };
     }
-    const { nombre, telefono, estudios } = interpretarRenglonCita(renglon);
+    const { nombre, telefono, estudios, cliente } = interpretarRenglonCita(renglon, { clientes });
     // El renglon no lleva precio: el estudio se escribe a mano y puede no estar
     // en el catalogo. Se cotiza al pasar la cita a estudio, que es donde se
     // conoce el convenio.
-    return { nombre, telefono, correo: '', estudios, monto: 0 };
+    return {
+      nombre,
+      telefono,
+      correo: '',
+      estudios,
+      monto: 0,
+      idCliente: cliente ? idPorNombre(clientes, cliente, 'id_cliente') : null,
+    };
   };
 
   const handleSubmit = async (e) => {
@@ -392,7 +400,7 @@ const NuevaCitaModal = ({
         // insert lo rechaza.
         // Lo tecleado se casa con el catalogo para conservar la relacion; si no
         // coincide, la cita se guarda sin el id en lugar de rechazarse.
-        id_cliente: idPorNombre(clientes, clienteSeleccionado, 'id_cliente'),
+        id_cliente: cita.idCliente,
         id_tipo_estudio: idPorNombre(tiposEstudio, tipoEstudioSeleccionado, 'id_tipo_estudio'),
 
         nombre_paciente: cita.nombre || null,
@@ -481,6 +489,7 @@ const NuevaCitaModal = ({
   };
 
   const opcionesCliente = filtrarPorNombre(clientes, clienteSeleccionado).slice(0, 10);
+  const resumenRenglon = modoRenglon ? resumirRenglonCita(renglon, { clientes }) : '';
   const opcionesTipo = filtrarPorNombre(tiposEstudio, tipoEstudioSeleccionado).slice(0, 10);
 
   const elegirCliente = (cliente) => {
@@ -560,7 +569,7 @@ const NuevaCitaModal = ({
           {modoRenglon ? (
             <div className="form-group-cita">
               <label className="form-label-cita" htmlFor="cita-renglon">
-                Paciente y estudio
+                Estudio, paciente, teléfono y cliente
               </label>
               <input
                 id="cita-renglon"
@@ -568,18 +577,20 @@ const NuevaCitaModal = ({
                 value={renglon}
                 onChange={(e) => setRenglon(e.target.value)}
                 className="form-input-cita cita-renglon-input"
+                placeholder="estudio, nombre teléfono cliente"
                 disabled={loading}
                 autoFocus
               />
               <p className="cita-renglon-ayuda">
-                Ejemplo: Laura Mendez Rios 4771234567, biometria hematica. Diez
-                dígitos seguidos son el teléfono. Lo que va antes de la primera
-                coma, guion o diagonal es el nombre; lo de después, el estudio.
+                Ejemplo: biometria hematica, Laura Mendez Rios 4771234567 IMSS.
+                Primero el estudio y una coma; luego el nombre. El teléfono (diez
+                dígitos) y el cliente al final son opcionales. Varios estudios
+                se juntan con +.
               </p>
               {/* Lo que entendio el renglon, a la vista antes de guardar: es la
                   unica forma de notar que el nombre se partio donde no debia. */}
-              {resumirRenglonCita(renglon) && (
-                <p className="cita-renglon-resumen">{resumirRenglonCita(renglon)}</p>
+              {resumenRenglon && (
+                <p className="cita-renglon-resumen">{resumenRenglon}</p>
               )}
             </div>
           ) : (

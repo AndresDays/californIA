@@ -51,6 +51,11 @@ jest.mock("../lib/supabase-client", () => {
 	};
 });
 
+jest.mock("../utils/clientes-seleccionables", () => ({
+	consultarClientesSeleccionables: () =>
+		Promise.resolve({ data: [{ id_cliente: 7, nombre: "IMSS" }], error: null }),
+}));
+
 import NuevaCitaModal from "./nueva-cita-modal";
 
 const abrir = (props = {}) =>
@@ -68,7 +73,7 @@ const elegirUnRenglon = () =>
 	fireEvent.click(screen.getByRole("button", { name: "Un renglón" }));
 
 const escribirRenglon = (texto) =>
-	fireEvent.change(screen.getByLabelText("Paciente y estudio"), {
+	fireEvent.change(screen.getByLabelText("Estudio, paciente, teléfono y cliente"), {
 		target: { value: texto },
 	});
 
@@ -86,7 +91,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 		abrir();
 
 		expect(screen.getByLabelText("Nombre Completo")).toBeInTheDocument();
-		expect(screen.queryByLabelText("Paciente y estudio")).not.toBeInTheDocument();
+		expect(screen.queryByLabelText("Estudio, paciente, teléfono y cliente")).not.toBeInTheDocument();
 	});
 
 	test("al elegir un renglón desaparecen los seis campos", () => {
@@ -94,7 +99,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 
 		elegirUnRenglon();
 
-		expect(screen.getByLabelText("Paciente y estudio")).toBeInTheDocument();
+		expect(screen.getByLabelText("Estudio, paciente, teléfono y cliente")).toBeInTheDocument();
 		expect(screen.queryByLabelText("Nombre Completo")).not.toBeInTheDocument();
 		expect(screen.queryByLabelText("Teléfono")).not.toBeInTheDocument();
 		expect(screen.queryByLabelText("Empresa")).not.toBeInTheDocument();
@@ -116,7 +121,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 	test("guarda el nombre, el teléfono y el estudio del renglón", async () => {
 		abrir();
 		elegirUnRenglon();
-		escribirRenglon("Laura Mendez Rios 4771234567, biometria hematica");
+		escribirRenglon("biometria hematica, Laura Mendez Rios 4771234567");
 
 		fireEvent.submit(screen.getByRole("button", { name: "Crear Cita" }).closest("form"));
 
@@ -129,11 +134,28 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 		});
 	});
 
+	// El cliente se escribe al final del renglón y se guarda por su id.
+	test("guarda el cliente del renglón", async () => {
+		abrir();
+		elegirUnRenglon();
+		escribirRenglon("rayos x, Ana Lopez 3221220777 imss");
+
+		expect(await screen.findByText(/Cliente: IMSS/)).toBeInTheDocument();
+		fireEvent.submit(screen.getByRole("button", { name: "Crear Cita" }).closest("form"));
+
+		await waitFor(() => expect(mockInserts).toHaveLength(1));
+		expect(mockInserts[0]).toMatchObject({
+			nombre_paciente: "Ana Lopez",
+			telefono_paciente: "3221220777",
+			id_cliente: 7,
+		});
+	});
+
 	// El hueco donde se abrio el modal manda: en este modo no se teclea la fecha.
 	test("la cita cae en el hueco del calendario", async () => {
 		abrir();
 		elegirUnRenglon();
-		escribirRenglon("Juan Perez - rayos x");
+		escribirRenglon("rayos x - Juan Perez");
 
 		fireEvent.submit(screen.getByRole("button", { name: "Crear Cita" }).closest("form"));
 
@@ -145,7 +167,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 	test("busca al paciente con el teléfono que sacó del renglón", async () => {
 		abrir();
 		elegirUnRenglon();
-		escribirRenglon("Ana Lopez 322 122 0777, ultrasonido");
+		escribirRenglon("ultrasonido, Ana Lopez 322 122 0777");
 
 		fireEvent.submit(screen.getByRole("button", { name: "Crear Cita" }).closest("form"));
 
@@ -158,7 +180,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 	test("sin teléfono no consulta pacientes", async () => {
 		abrir();
 		elegirUnRenglon();
-		escribirRenglon("Juan Perez, rayos x");
+		escribirRenglon("rayos x, Juan Perez");
 
 		fireEvent.submit(screen.getByRole("button", { name: "Crear Cita" }).closest("form"));
 
@@ -172,7 +194,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 	test("la cita del renglón se guarda sin importe", async () => {
 		abrir();
 		elegirUnRenglon();
-		escribirRenglon("Ana Lopez, tomografia de craneo");
+		escribirRenglon("tomografia de craneo, Ana Lopez");
 
 		fireEvent.submit(screen.getByRole("button", { name: "Crear Cita" }).closest("form"));
 
@@ -184,7 +206,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 	test("muestra lo que entendió antes de guardar", () => {
 		abrir();
 		elegirUnRenglon();
-		escribirRenglon("Ana Lopez 3221220777, rayos x");
+		escribirRenglon("rayos x, Ana Lopez 3221220777");
 
 		// getByText normaliza los espacios, asi que se compara por partes.
 		const resumen = screen.getByText(/Paciente: Ana Lopez/);
@@ -207,7 +229,7 @@ describe("NuevaCitaModal: capturar la cita en un renglón", () => {
 		primera.unmount();
 
 		abrir();
-		expect(screen.getByLabelText("Paciente y estudio")).toBeInTheDocument();
+		expect(screen.getByLabelText("Estudio, paciente, teléfono y cliente")).toBeInTheDocument();
 	});
 
 	test("volver al formulario completo también se recuerda", () => {
