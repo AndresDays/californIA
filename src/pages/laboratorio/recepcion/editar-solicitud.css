@@ -953,3 +953,23 @@
 .nota-precios-cliente-aviso {
 	color: var(--texto);
 }
+
+.btn-medico-accion {
+	flex-shrink: 0;
+	width: 1.75rem;
+	height: 1.75rem;
+	margin-left: 0.35rem;
+	padding: 0;
+	border: 1px solid var(--borde-fuerte);
+	border-radius: 6px;
+	background: transparent;
+	color: var(--texto);
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: background 0.15s;
+}
+
+.btn-medico-accion:hover {
+	background: var(--superficie-hover);
+}
