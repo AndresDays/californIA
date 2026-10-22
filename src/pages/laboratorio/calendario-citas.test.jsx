@@ -265,3 +265,57 @@ describe("la tarjeta dice el estudio, no el tipo", () => {
 		expect(container.querySelector(".cal-card.tipo-ultrasonido")).toBeInTheDocument();
 	});
 });
+
+describe("línea de la hora actual", () => {
+	test("cruza la fila de la media hora en curso, a su altura", () => {
+		jest.setSystemTime(new Date(2026, 6, 15, 10, 45));
+		render(<CalendarioCitas />);
+
+		const linea = screen.getByTestId("cal-ahora");
+		expect(linea.closest("[role='rowheader']")).toHaveTextContent("10:30 AM");
+		expect(linea.style.top).toBe("50%");
+		// Una línea por columna de estudio más la de la hora.
+		expect(document.querySelectorAll(".cal-ahora-linea")).toHaveLength(7);
+	});
+
+	test("sólo aparece al ver el día de hoy", () => {
+		jest.setSystemTime(new Date(2026, 6, 15, 10, 45));
+		render(<CalendarioCitas />);
+
+		fireEvent.click(screen.getByLabelText("Dia siguiente"));
+		expect(screen.queryByTestId("cal-ahora")).toBeNull();
+	});
+
+	test("fuera del horario de la agenda no se dibuja", () => {
+		jest.setSystemTime(new Date(2026, 6, 15, 22, 0));
+		render(<CalendarioCitas />);
+
+		expect(screen.queryByTestId("cal-ahora")).toBeNull();
+	});
+});
+
+describe("calendario del mes", () => {
+	test("al elegir un día salta directo a la agenda de ese día", () => {
+		render(<CalendarioCitas />);
+
+		fireEvent.click(screen.getByLabelText("Elegir fecha en el calendario del mes"));
+		expect(screen.getByRole("dialog", { name: "Elegir fecha" })).toHaveTextContent("Julio 2026");
+
+		fireEvent.click(screen.getByLabelText("Mes siguiente"));
+		fireEvent.click(screen.getByLabelText("2026-08-20"));
+
+		expect(useCalendarioCitas).toHaveBeenLastCalledWith("2026-08-20", "2");
+		expect(screen.getByText("20 Agosto, 2026")).toBeInTheDocument();
+		expect(screen.queryByRole("dialog", { name: "Elegir fecha" })).toBeNull();
+	});
+
+	test("se cierra con Escape sin cambiar la fecha", () => {
+		render(<CalendarioCitas />);
+
+		fireEvent.click(screen.getByLabelText("Elegir fecha en el calendario del mes"));
+		fireEvent.keyDown(document, { key: "Escape" });
+
+		expect(screen.queryByRole("dialog", { name: "Elegir fecha" })).toBeNull();
+		expect(screen.getByText("15 Julio, 2026")).toBeInTheDocument();
+	});
+});

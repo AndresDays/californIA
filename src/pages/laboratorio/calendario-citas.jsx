@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import TodayIcon from "@mui/icons-material/Today";
 import IconButton from "@mui/material/IconButton";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,6 +13,7 @@ import { useCalendarioCitas } from "../../hooks/use-citas";
 import { useSucursales } from "../../hooks/use-sucursales";
 import NuevaCitaModal from "../../components/nueva-cita-modal";
 import EditarCitaModal from "../../components/editar-cita-modal";
+import MiniCalendarioMes from "./componentes/mini-calendario-mes";
 import { supabase } from "../../lib/supabase-client";
 import "./calendario-citas.css";
 
@@ -39,6 +41,20 @@ const BLOQUES_CALENDARIO = Array.from({ length: 26 }, (_, indice) => {
 const obtenerFechaLocalHoy = () => {
 	const hoy = new Date();
 	return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+};
+
+// Dónde va la línea de "ahora": en qué bloque de media hora cae y a qué altura
+// dentro de él. Fuera del horario de la agenda no se dibuja.
+const posicionHoraActual = (ahora) => {
+	const minutos = ahora.getHours() * 60 + ahora.getMinutes();
+	const desdeInicio = minutos - (BLOQUES_CALENDARIO[0].hora * 60 + BLOQUES_CALENDARIO[0].minuto);
+	const indice = Math.floor(desdeInicio / 30);
+	if (desdeInicio < 0 || indice >= BLOQUES_CALENDARIO.length) return null;
+	return {
+		bloque: BLOQUES_CALENDARIO[indice].valor,
+		porcentaje: ((desdeInicio % 30) / 30) * 100,
+		etiqueta: ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+	};
 };
 
 const normalizar = (texto = "") =>
@@ -110,6 +126,23 @@ const CalendarioCitas = () => {
 	const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
 	const [editandoCita, setEditandoCita] = useState(false);
 	const [sucursalCalendario, setSucursalCalendario] = useState("");
+	const [mesAbierto, setMesAbierto] = useState(false);
+	const botonMesRef = useRef(null);
+	const cerrarMes = useCallback(() => setMesAbierto(false), []);
+	const seleccionarDiaDelMes = (fecha) => {
+		setFechaSeleccionada(fecha);
+		setMesAbierto(false);
+	};
+
+	// La línea de la hora actual va bajando sola: se recalcula cada medio minuto.
+	const [ahora, setAhora] = useState(() => new Date());
+	useEffect(() => {
+		const intervalo = setInterval(() => setAhora(new Date()), 30000);
+		return () => clearInterval(intervalo);
+	}, []);
+	const lineaAhoraRef = useRef(null);
+	const hoy = obtenerFechaLocalHoy();
+	const lineaAhora = fechaSeleccionada === hoy ? posicionHoraActual(ahora) : null;
 	const rolNormalizado = normalizar(empleadoData?.rol);
 	const puedeCambiarSucursal = ["admin", "administrador", "radiologo", "desarrollador"].includes(rolNormalizado);
 	useEffect(() => setSucursalCalendario(empleadoData?.id_sucursal ? String(empleadoData.id_sucursal) : ""), [empleadoData?.id_sucursal]);
@@ -164,6 +197,18 @@ const CalendarioCitas = () => {
 
 		return grupos;
 	}, [citas]);
+
+	// Al abrir el día de hoy la agenda se coloca en la hora actual, con un par de
+	// renglones arriba para ver la cita que acaba de pasar.
+	const hayLineaAhora = Boolean(lineaAhora);
+	useEffect(() => {
+		const celda = lineaAhoraRef.current;
+		const tablero = celda?.closest(".cal-board");
+		if (!celda || !tablero) return;
+		const encabezado = tablero.querySelector(".cal-corner")?.offsetHeight || 0;
+		const alturaEnTablero = celda.getBoundingClientRect().top - tablero.getBoundingClientRect().top + tablero.scrollTop;
+		tablero.scrollTop = Math.max(0, alturaEnTablero - encabezado - celda.offsetHeight * 2);
+	}, [fechaSeleccionada, hayLineaAhora, isLoading]);
 
 	const abrirNuevaCita = (horaInicial, tipoEstudioInicial = "") =>
 		setHorarioNuevaCita({ fechaInicial: fechaSeleccionada, horaInicial, tipoEstudioInicial });
@@ -238,7 +283,28 @@ const CalendarioCitas = () => {
 							>
 								<ChevronRightIcon fontSize="small" />
 							</IconButton>
-							<strong>{formatearFechaTitulo(fechaSeleccionada)}</strong>
+							<div className="cal-fecha-picker">
+								<button
+									type="button"
+									ref={botonMesRef}
+									className="cal-fecha-boton"
+									aria-label="Elegir fecha en el calendario del mes"
+									aria-expanded={mesAbierto}
+									onClick={() => setMesAbierto((abierto) => !abierto)}
+								>
+									<CalendarMonthIcon fontSize="small" />
+									<strong>{formatearFechaTitulo(fechaSeleccionada)}</strong>
+								</button>
+								{mesAbierto && (
+									<MiniCalendarioMes
+										fechaSeleccionada={fechaSeleccionada}
+										hoy={hoy}
+										onSeleccionar={seleccionarDiaDelMes}
+										onCerrar={cerrarMes}
+										anclaRef={botonMesRef}
+									/>
+								)}
+							</div>
 						</div>
 					</div>
 
@@ -275,11 +341,19 @@ const CalendarioCitas = () => {
 
 								{BLOQUES_CALENDARIO.map((bloque) => (
 									<div className="cal-row-fragment" role="row" key={bloque.valor}>
-										<div className="cal-hour" role="rowheader">{formatearHora(bloque)}</div>
+										<div className="cal-hour" role="rowheader" ref={lineaAhora?.bloque === bloque.valor ? lineaAhoraRef : undefined}>
+											{formatearHora(bloque)}
+											{lineaAhora?.bloque === bloque.valor && (
+												<div className="cal-ahora-linea con-hora" style={{ top: `${lineaAhora.porcentaje}%` }} data-testid="cal-ahora" title={`Hora actual ${lineaAhora.etiqueta}`} />
+											)}
+										</div>
 										{TIPOS_ESTUDIO_CALENDARIO.map((tipo) => {
 											const citasHora = citasPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
 											return (
 												<div key={`${tipo.id}-${bloque.valor}`} className="cal-slot" role="cell">
+													{lineaAhora?.bloque === bloque.valor && (
+														<div className="cal-ahora-linea" style={{ top: `${lineaAhora.porcentaje}%` }} aria-hidden="true" />
+													)}
 													{citasHora.length === 0 ? (
 														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													) : (
