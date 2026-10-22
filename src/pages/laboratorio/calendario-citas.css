@@ -104,6 +104,30 @@
 	padding: 0 6px 0 10px;
 }
 
+/* La fecha abre el calendario del mes para saltar a cualquier día. */
+.cal-fecha-picker {
+	position: relative;
+}
+
+.cal-fecha-boton {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 8px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--texto);
+	font: inherit;
+	cursor: pointer;
+}
+
+.cal-fecha-boton:hover,
+.cal-fecha-boton[aria-expanded="true"] {
+	background: var(--superficie-hover);
+	border-color: var(--borde-fuerte);
+}
+
 .cal-search {
 	min-width: 210px;
 	padding: 7px 11px;
@@ -249,6 +273,7 @@
 }
 
 .cal-slot {
+	position: relative;
 	min-height: 52px;
 	padding: 7px;
 	border-right: 1px solid var(--borde);
@@ -446,4 +471,38 @@
 	.cal-controls {
 		justify-content: flex-start;
 	}
+}
+
+/* La línea de "ahora" cruza toda la fila a la altura de la hora actual, para
+   ver de un vistazo qué cita está en curso y cuál sigue. Va encima de las
+   tarjetas pero no estorba el clic. */
+.cal-page {
+	--cal-ahora: #6d28d9;
+}
+
+.cal-ahora-linea {
+	position: absolute;
+	left: 0;
+	right: 0;
+	z-index: 1;
+	height: 2px;
+	margin-top: -1px;
+	background: var(--cal-ahora);
+	pointer-events: none;
+}
+
+/* En la columna de horas sólo va el punto, para no tapar la hora del renglón. */
+.cal-ahora-linea.con-hora {
+	background: transparent;
+}
+
+.cal-ahora-linea.con-hora::after {
+	content: "";
+	position: absolute;
+	right: -5px;
+	top: -4px;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--cal-ahora);
 }
