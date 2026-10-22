@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import TodayIcon from "@mui/icons-material/Today";
 import IconButton from "@mui/material/IconButton";
 import { useQueryClient } from "@tanstack/react-query";
@@ -12,7 +13,9 @@ import { useCalendarioCitas } from "../../hooks/use-citas";
 import { useSucursales } from "../../hooks/use-sucursales";
 import NuevaCitaModal from "../../components/nueva-cita-modal";
 import EditarCitaModal from "../../components/editar-cita-modal";
+import MiniCalendarioMes from "./componentes/mini-calendario-mes";
 import { supabase } from "../../lib/supabase-client";
+import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
 import "./calendario-citas.css";
 
 // `tipoEstudio` es lo que se le pone a la cita nueva abierta desde esa columna:
@@ -39,6 +42,20 @@ const BLOQUES_CALENDARIO = Array.from({ length: 26 }, (_, indice) => {
 const obtenerFechaLocalHoy = () => {
 	const hoy = new Date();
 	return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+};
+
+// Dónde va la línea de "ahora": en qué bloque de media hora cae y a qué altura
+// dentro de él. Fuera del horario de la agenda no se dibuja.
+const posicionHoraActual = (ahora) => {
+	const minutos = ahora.getHours() * 60 + ahora.getMinutes();
+	const desdeInicio = minutos - (BLOQUES_CALENDARIO[0].hora * 60 + BLOQUES_CALENDARIO[0].minuto);
+	const indice = Math.floor(desdeInicio / 30);
+	if (desdeInicio < 0 || indice >= BLOQUES_CALENDARIO.length) return null;
+	return {
+		bloque: BLOQUES_CALENDARIO[indice].valor,
+		porcentaje: ((desdeInicio % 30) / 30) * 100,
+		etiqueta: ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+	};
 };
 
 const normalizar = (texto = "") =>
@@ -97,6 +114,12 @@ const obtenerHoraCita = (cita) => {
 	return Number.isNaN(fecha.getTime()) ? null : `${String(fecha.getHours()).padStart(2, "0")}:${fecha.getMinutes() < 30 ? "00" : "30"}`;
 };
 
+// La cita cancelada se queda en la agenda tachada, para que se vea qué se
+// canceló; sólo ya cancelada se puede eliminar. La realizada se marca como
+// hecha. Ninguna de las dos cuenta como cita por atender.
+const esCancelada = (cita) => cita?.estado === CITA_ESTADOS.CANCELADA;
+const esRealizada = (cita) => cita?.estado === CITA_ESTADOS.REALIZADA;
+
 const obtenerNombrePaciente = (cita) =>
 	cita?.pacientes?.nombre || cita?.nombre_paciente || "Sin paciente";
 
@@ -107,9 +130,28 @@ const CalendarioCitas = () => {
 	const [fechaSeleccionada, setFechaSeleccionada] = useState(() => obtenerFechaLocalHoy());
 	const [horarioNuevaCita, setHorarioNuevaCita] = useState(null);
 	const [citaActiva, setCitaActiva] = useState(null);
-	const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
+	// "cancelar" o "eliminar" mientras se pide confirmación.
+	const [confirmando, setConfirmando] = useState(null);
+	const [errorAccion, setErrorAccion] = useState("");
 	const [editandoCita, setEditandoCita] = useState(false);
 	const [sucursalCalendario, setSucursalCalendario] = useState("");
+	const [mesAbierto, setMesAbierto] = useState(false);
+	const botonMesRef = useRef(null);
+	const cerrarMes = useCallback(() => setMesAbierto(false), []);
+	const seleccionarDiaDelMes = (fecha) => {
+		setFechaSeleccionada(fecha);
+		setMesAbierto(false);
+	};
+
+	// La línea de la hora actual va bajando sola: se recalcula cada medio minuto.
+	const [ahora, setAhora] = useState(() => new Date());
+	useEffect(() => {
+		const intervalo = setInterval(() => setAhora(new Date()), 30000);
+		return () => clearInterval(intervalo);
+	}, []);
+	const lineaAhoraRef = useRef(null);
+	const hoy = obtenerFechaLocalHoy();
+	const lineaAhora = fechaSeleccionada === hoy ? posicionHoraActual(ahora) : null;
 	const rolNormalizado = normalizar(empleadoData?.rol);
 	const puedeCambiarSucursal = ["admin", "administrador", "radiologo", "desarrollador"].includes(rolNormalizado);
 	useEffect(() => setSucursalCalendario(empleadoData?.id_sucursal ? String(empleadoData.id_sucursal) : ""), [empleadoData?.id_sucursal]);
@@ -165,27 +207,62 @@ const CalendarioCitas = () => {
 		return grupos;
 	}, [citas]);
 
+	// Al abrir el día de hoy la agenda se coloca en la hora actual, con un par de
+	// renglones arriba para ver la cita que acaba de pasar.
+	const hayLineaAhora = Boolean(lineaAhora);
+	useEffect(() => {
+		const celda = lineaAhoraRef.current;
+		const tablero = celda?.closest(".cal-board");
+		if (!celda || !tablero) return;
+		const encabezado = tablero.querySelector(".cal-corner")?.offsetHeight || 0;
+		const alturaEnTablero = celda.getBoundingClientRect().top - tablero.getBoundingClientRect().top + tablero.scrollTop;
+		tablero.scrollTop = Math.max(0, alturaEnTablero - encabezado - celda.offsetHeight * 2);
+	}, [fechaSeleccionada, hayLineaAhora, isLoading]);
+
 	const abrirNuevaCita = (horaInicial, tipoEstudioInicial = "") =>
 		setHorarioNuevaCita({ fechaInicial: fechaSeleccionada, horaInicial, tipoEstudioInicial });
-	const cancelarCita = async () => {
-		if (!citaActiva) return;
-		const { error: errorCancelacion } = await supabase.from("citas").update({ estado: "cancelada" }).eq("id_cita", citaActiva.id_cita);
-		if (!errorCancelacion) {
-			queryClient.invalidateQueries({ queryKey: ["citas"] });
-			setCitaActiva(null);
-			setConfirmandoCancelacion(false);
+	const abrirAcciones = (cita) => {
+		setCitaActiva(cita);
+		setConfirmando(null);
+		setErrorAccion("");
+	};
+	const cerrarAcciones = () => {
+		setCitaActiva(null);
+		setConfirmando(null);
+		setErrorAccion("");
+	};
+	const terminarAccion = (errorSupabase) => {
+		if (errorSupabase) {
+			setErrorAccion("No se pudo guardar el cambio. Intenta de nuevo.");
+			return;
 		}
+		queryClient.invalidateQueries({ queryKey: ["citas"] });
+		cerrarAcciones();
+	};
+	const cambiarEstadoCita = async (estado) => {
+		if (!citaActiva) return;
+		const { error: errorEstado } = await supabase
+			.from("citas")
+			.update({ estado, updated_at: new Date().toISOString() })
+			.eq("id_cita", citaActiva.id_cita);
+		terminarAccion(errorEstado);
+	};
+	const eliminarCita = async () => {
+		if (!esCancelada(citaActiva)) return;
+		const { error: errorEliminar } = await supabase.from("citas").delete().eq("id_cita", citaActiva.id_cita);
+		terminarAccion(errorEliminar);
 	};
 
-	const totalCitas = citas.length;
+	const citasVigentes = useMemo(() => citas.filter((cita) => !esCancelada(cita)), [citas]);
+	const totalCitas = citasVigentes.length;
 	const conteoPorTipo = useMemo(() => {
 		const conteos = new Map(TIPOS_ESTUDIO_CALENDARIO.map((tipo) => [tipo.id, 0]));
-		citas.forEach((cita) => {
+		citasVigentes.forEach((cita) => {
 			const tipo = obtenerTipoCalendario(cita);
 			conteos.set(tipo.id, (conteos.get(tipo.id) || 0) + 1);
 		});
 		return conteos;
-	}, [citas]);
+	}, [citasVigentes]);
 
 	return (
 		<PageLayout
@@ -238,7 +315,28 @@ const CalendarioCitas = () => {
 							>
 								<ChevronRightIcon fontSize="small" />
 							</IconButton>
-							<strong>{formatearFechaTitulo(fechaSeleccionada)}</strong>
+							<div className="cal-fecha-picker">
+								<button
+									type="button"
+									ref={botonMesRef}
+									className="cal-fecha-boton"
+									aria-label="Elegir fecha en el calendario del mes"
+									aria-expanded={mesAbierto}
+									onClick={() => setMesAbierto((abierto) => !abierto)}
+								>
+									<CalendarMonthIcon fontSize="small" />
+									<strong>{formatearFechaTitulo(fechaSeleccionada)}</strong>
+								</button>
+								{mesAbierto && (
+									<MiniCalendarioMes
+										fechaSeleccionada={fechaSeleccionada}
+										hoy={hoy}
+										onSeleccionar={seleccionarDiaDelMes}
+										onCerrar={cerrarMes}
+										anclaRef={botonMesRef}
+									/>
+								)}
+							</div>
 						</div>
 					</div>
 
@@ -275,16 +373,21 @@ const CalendarioCitas = () => {
 
 								{BLOQUES_CALENDARIO.map((bloque) => (
 									<div className="cal-row-fragment" role="row" key={bloque.valor}>
-										<div className="cal-hour" role="rowheader">{formatearHora(bloque)}</div>
+										<div className="cal-hour" role="rowheader" ref={lineaAhora?.bloque === bloque.valor ? lineaAhoraRef : undefined}>
+											{formatearHora(bloque)}
+											{lineaAhora?.bloque === bloque.valor && (
+												<div className="cal-ahora-linea con-hora" style={{ top: `${lineaAhora.porcentaje}%` }} data-testid="cal-ahora" title={`Hora actual ${lineaAhora.etiqueta}`} />
+											)}
+										</div>
 										{TIPOS_ESTUDIO_CALENDARIO.map((tipo) => {
 											const citasHora = citasPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
 											return (
 												<div key={`${tipo.id}-${bloque.valor}`} className="cal-slot" role="cell">
-													{citasHora.length === 0 ? (
-														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
-													) : (
-														citasHora.map((cita) => (
-															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => setCitaActiva(cita)}>
+													{lineaAhora?.bloque === bloque.valor && (
+														<div className="cal-ahora-linea" style={{ top: `${lineaAhora.porcentaje}%` }} aria-hidden="true" />
+													)}
+													{citasHora.map((cita) => (
+															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}${esCancelada(cita) ? " cancelada" : ""}${esRealizada(cita) ? " realizada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => abrirAcciones(cita)}>
 																<div className="cal-card-time">
 																	{new Date(cita.fecha_estudio).toLocaleTimeString("es-MX", {
 																		hour: "2-digit",
@@ -293,9 +396,16 @@ const CalendarioCitas = () => {
 																</div>
 																<strong>{obtenerEstudioDeLaTarjeta(cita)}</strong>
 																<span>{obtenerNombrePaciente(cita)}</span>
-																{cita.estado && <small>{cita.estado}</small>}
+																{esRealizada(cita) ? (
+																	<small className="cal-card-realizada">✓ Realizada</small>
+																) : (
+																	cita.estado && <small>{cita.estado}</small>
+																)}
 															</button>
-														))
+														))}
+													{/* Un horario con sólo citas canceladas sigue libre. */}
+													{citasHora.every(esCancelada) && (
+														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													)}
 												</div>
 											);
@@ -308,7 +418,57 @@ const CalendarioCitas = () => {
 				</section>
 			</main>
 			<NuevaCitaModal isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} tipoEstudioInicial={horarioNuevaCita?.tipoEstudioInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
-			{citaActiva && <div className="modal-overlay" onClick={() => setCitaActiva(null)}><div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}><div className="modal-header-cita"><h2 className="modal-title-cita">Acciones de cita</h2><button className="modal-close-btn" onClick={() => setCitaActiva(null)}>✕</button></div><div className="cal-action-body">{confirmandoCancelacion ? <><p className="cal-cancel-question">¿Seguro que deseas cancelar esta cita?</p><div className="modal-footer-cita"><button type="button" className="btn-cancel-cita" onClick={() => setConfirmandoCancelacion(false)}>Volver</button><button type="button" className="btn-submit-cita" onClick={cancelarCita}>Confirmar cancelación</button></div></> : <div className="modal-footer-cita"><button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button><button type="button" className="btn-cancel-cita" onClick={() => setConfirmandoCancelacion(true)}>Cancelar cita</button><button type="button" className="btn-submit-cita" onClick={() => navigate(`/nuevo-paciente?citaId=${citaActiva.id_cita}`, { state: { citaId: citaActiva.id_cita } })}>Pasar a estudio</button></div>}</div></div></div>}
+			{citaActiva && (
+				<div className="modal-overlay" onClick={cerrarAcciones}>
+					<div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}>
+						<div className="modal-header-cita">
+							<h2 className="modal-title-cita">Acciones de cita</h2>
+							<button className="modal-close-btn" onClick={cerrarAcciones}>✕</button>
+						</div>
+						<div className="cal-action-body">
+							{errorAccion && <p className="cal-action-error" role="alert">{errorAccion}</p>}
+							{confirmando === "cancelar" && (
+								<>
+									<p className="cal-cancel-question">¿Seguro que deseas cancelar esta cita? Quedará tachada en la agenda.</p>
+									<div className="modal-footer-cita">
+										<button type="button" className="btn-cancel-cita" onClick={() => setConfirmando(null)}>Volver</button>
+										<button type="button" className="btn-submit-cita" onClick={() => cambiarEstadoCita(CITA_ESTADOS.CANCELADA)}>Confirmar cancelación</button>
+									</div>
+								</>
+							)}
+							{confirmando === "eliminar" && (
+								<>
+									<p className="cal-cancel-question">¿Eliminar esta cita de la agenda? Ya no se podrá recuperar.</p>
+									<div className="modal-footer-cita">
+										<button type="button" className="btn-cancel-cita" onClick={() => setConfirmando(null)}>Volver</button>
+										<button type="button" className="btn-submit-cita cal-btn-eliminar" onClick={eliminarCita}>Confirmar eliminación</button>
+									</div>
+								</>
+							)}
+							{!confirmando && esCancelada(citaActiva) && (
+								<div className="modal-footer-cita">
+									<button type="button" className="btn-cancel-cita" onClick={() => cambiarEstadoCita(CITA_ESTADOS.PENDIENTE)}>Restaurar cita</button>
+									<button type="button" className="btn-submit-cita cal-btn-eliminar" onClick={() => setConfirmando("eliminar")}>Eliminar</button>
+								</div>
+							)}
+							{!confirmando && esRealizada(citaActiva) && (
+								<div className="modal-footer-cita">
+									<button type="button" className="btn-cancel-cita" onClick={() => cambiarEstadoCita(CITA_ESTADOS.PENDIENTE)}>Desmarcar realizada</button>
+									<button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button>
+								</div>
+							)}
+							{!confirmando && !esCancelada(citaActiva) && !esRealizada(citaActiva) && (
+								<div className="modal-footer-cita">
+									<button type="button" className="btn-cancel-cita" onClick={() => setEditandoCita(true)}>Editar cita</button>
+									<button type="button" className="btn-cancel-cita" onClick={() => setConfirmando("cancelar")}>Cancelar cita</button>
+									<button type="button" className="btn-cancel-cita cal-btn-realizada" onClick={() => cambiarEstadoCita(CITA_ESTADOS.REALIZADA)}>Realizada</button>
+									<button type="button" className="btn-submit-cita" onClick={() => navigate(`/nuevo-paciente?citaId=${citaActiva.id_cita}`, { state: { citaId: citaActiva.id_cita } })}>Pasar a estudio</button>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 			<EditarCitaModal isOpen={editandoCita} cita={citaActiva} onClose={() => setEditandoCita(false)} onCitaActualizada={() => { queryClient.invalidateQueries({ queryKey: ["citas"] }); setEditandoCita(false); setCitaActiva(null); }} />
 		</PageLayout>
 	);

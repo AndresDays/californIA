@@ -37,19 +37,19 @@ test("una petición que nunca contesta no deja el formulario muerto", async () =
 	render(<NuevaCitaModal isOpen onClose={jest.fn()} fechaInicial="2026-09-10" horaInicial="10:00" />);
 
 	fireEvent.click(screen.getByRole("button", { name: "Un renglón" }));
-	const campo = screen.getByLabelText("Paciente y estudio");
-	fireEvent.change(campo, { target: { value: "Laura Mendez, biometria" } });
+	const campo = screen.getByLabelText("Estudio, paciente, teléfono y cliente");
+	fireEvent.change(campo, { target: { value: "biometria, Laura Mendez" } });
 
 	await act(async () => {
 		fireEvent.click(screen.getByRole("button", { name: /Crear Cita/i }));
 	});
-	expect(screen.getByLabelText("Paciente y estudio")).toBeDisabled();
+	expect(screen.getByLabelText("Estudio, paciente, teléfono y cliente")).toBeDisabled();
 
 	await act(async () => {
 		jest.advanceTimersByTime(20000);
 	});
 
-	expect(screen.getByLabelText("Paciente y estudio")).not.toBeDisabled();
+	expect(screen.getByLabelText("Estudio, paciente, teléfono y cliente")).not.toBeDisabled();
 	expect(screen.getByText(/Error al crear la cita/i)).toBeInTheDocument();
 	jest.useRealTimers();
 });

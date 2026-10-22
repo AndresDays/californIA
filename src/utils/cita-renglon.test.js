@@ -1,111 +1,166 @@
 import { interpretarRenglonCita, resumirRenglonCita } from "./cita-renglon";
 
+const clientes = [
+	{ id_cliente: 1, nombre: "IMSS" },
+	{ id_cliente: 2, nombre: "IMSS Bienestar" },
+	{ id_cliente: 3, nombre: "Particular" },
+];
+
 describe("interpretarRenglonCita", () => {
-	test("nombre, teléfono y estudio de corrido", () => {
-		expect(interpretarRenglonCita("Laura Mendez Rios 4771234567, biometria hematica")).toEqual({
+	test("estudio, nombre, teléfono y cliente de corrido", () => {
+		expect(
+			interpretarRenglonCita("biometria hematica, Laura Mendez Rios 4771234567 IMSS", { clientes }),
+		).toEqual({
+			estudios: "biometria hematica",
 			nombre: "Laura Mendez Rios",
 			telefono: "4771234567",
-			estudios: "biometria hematica",
+			cliente: "IMSS",
+		});
+	});
+
+	test("el teléfono y el cliente son opcionales", () => {
+		expect(interpretarRenglonCita("ultrasonido de abdomen, Juan Perez")).toEqual({
+			estudios: "ultrasonido de abdomen",
+			nombre: "Juan Perez",
+			telefono: "",
+			cliente: "",
 		});
 	});
 
 	test.each([
-		["coma", "Juan Perez, ultrasonido de abdomen"],
-		["guion", "Juan Perez - ultrasonido de abdomen"],
-		["diagonal", "Juan Perez / ultrasonido de abdomen"],
-		["raya", "Juan Perez — ultrasonido de abdomen"],
-	])("separa con %s", (_caso, renglon) => {
+		["coma", "ultrasonido de abdomen, Juan Perez"],
+		["guion", "ultrasonido de abdomen - Juan Perez"],
+		["diagonal", "ultrasonido de abdomen / Juan Perez"],
+		["raya", "ultrasonido de abdomen — Juan Perez"],
+	])("separa el estudio con %s", (_caso, renglon) => {
 		expect(interpretarRenglonCita(renglon)).toMatchObject({
-			nombre: "Juan Perez",
 			estudios: "ultrasonido de abdomen",
+			nombre: "Juan Perez",
+		});
+	});
+
+	// Después del teléfono, lo que quede es el cliente aunque no esté en el
+	// catálogo: así se le avisa a quien escribe en lugar de pegarlo al nombre.
+	test("lo que sigue al teléfono es el cliente", () => {
+		expect(interpretarRenglonCita("rayos x, Ana Lopez 3221220777 Seguros Monterrey")).toMatchObject({
+			nombre: "Ana Lopez",
+			telefono: "3221220777",
+			cliente: "Seguros Monterrey",
+		});
+	});
+
+	test("sin teléfono, otra coma separa al cliente", () => {
+		expect(interpretarRenglonCita("rayos x, Ana Lopez, Seguros Monterrey")).toMatchObject({
+			nombre: "Ana Lopez",
+			telefono: "",
+			cliente: "Seguros Monterrey",
+		});
+	});
+
+	test("sin teléfono ni coma, reconoce al cliente del catálogo al final", () => {
+		expect(interpretarRenglonCita("rayos x, Ana Lopez imss", { clientes })).toMatchObject({
+			nombre: "Ana Lopez",
+			cliente: "imss",
+		});
+	});
+
+	test("del catálogo gana el nombre de cliente más largo", () => {
+		expect(interpretarRenglonCita("rayos x, Ana Lopez IMSS Bienestar", { clientes })).toMatchObject({
+			nombre: "Ana Lopez",
+			cliente: "IMSS Bienestar",
+		});
+	});
+
+	// Sin catálogo que lo confirme, las últimas palabras son apellido, no cliente.
+	test("sin teléfono ni coma, un nombre que no es cliente se queda entero", () => {
+		expect(interpretarRenglonCita("rayos x, Ana Lopez Garcia", { clientes })).toMatchObject({
+			nombre: "Ana Lopez Garcia",
+			cliente: "",
+		});
+	});
+
+	test("el cliente del catálogo no se lleva al paciente completo", () => {
+		expect(interpretarRenglonCita("rayos x, Particular", { clientes })).toMatchObject({
+			nombre: "Particular",
+			cliente: "",
 		});
 	});
 
 	// El guion tiene que ir separado por espacios: hay apellidos y estudios que
 	// lo llevan pegado y partirlos ahí seria peor que no partir nada.
 	test("un guion pegado no parte el renglón", () => {
-		expect(interpretarRenglonCita("Ana Perez-Lopez")).toMatchObject({
-			nombre: "Ana Perez-Lopez",
-			estudios: "",
-		});
-		expect(interpretarRenglonCita("Juan Perez, rayos-x de torax")).toMatchObject({
+		expect(interpretarRenglonCita("rayos-x de torax, Ana Perez-Lopez")).toMatchObject({
 			estudios: "rayos-x de torax",
+			nombre: "Ana Perez-Lopez",
 		});
 	});
 
 	// El telefono se dicta como sale, y quien escribe no lo va a limpiar.
 	test.each([
-		["seguido", "Ana Lopez 3221220777"],
-		["con espacios", "Ana Lopez 322 122 0777"],
-		["con guiones", "Ana Lopez 322-122-0777"],
-		["con parentesis", "Ana Lopez (322) 122 0777"],
+		["seguido", "rayos x, Ana Lopez 3221220777"],
+		["con espacios", "rayos x, Ana Lopez 322 122 0777"],
+		["con guiones", "rayos x, Ana Lopez 322-122-0777"],
+		["con parentesis", "rayos x, Ana Lopez (322) 122 0777"],
 	])("reconoce el teléfono %s", (_caso, renglon) => {
 		expect(interpretarRenglonCita(renglon)).toMatchObject({
 			nombre: "Ana Lopez",
 			telefono: "3221220777",
+			cliente: "",
 		});
 	});
 
-	test("el teléfono puede ir al principio", () => {
-		expect(interpretarRenglonCita("3221220777 Maria Lopez / rayos x de torax")).toEqual({
-			nombre: "Maria Lopez",
-			telefono: "3221220777",
-			estudios: "rayos x de torax",
-		});
-	});
-
-	// Dicho en medio, entre el nombre y el estudio: no puede quedarse pegado a
-	// ninguno de los dos.
-	test("el teléfono en medio no ensucia el nombre ni el estudio", () => {
-		expect(interpretarRenglonCita("Maria Lopez 3221220777 - rayos x")).toEqual({
-			nombre: "Maria Lopez",
-			telefono: "3221220777",
+	test("el teléfono separado por coma no ensucia nombre ni cliente", () => {
+		expect(interpretarRenglonCita("rayos x, Maria Lopez, 3221220777, IMSS")).toEqual({
 			estudios: "rayos x",
+			nombre: "Maria Lopez",
+			telefono: "3221220777",
+			cliente: "IMSS",
 		});
 	});
 
 	// Un numero mas largo no es un telefono de diez digitos: mejor no tomarlo
 	// que guardar diez digitos arrancados de en medio.
 	test("no confunde un número más largo con un teléfono", () => {
-		expect(interpretarRenglonCita("Ana Lopez 123456789012").telefono).toBe("");
+		expect(interpretarRenglonCita("rayos x, Ana Lopez 123456789012").telefono).toBe("");
 	});
 
 	test("un número corto no es teléfono", () => {
-		expect(interpretarRenglonCita("Ana Lopez 12345").telefono).toBe("");
+		expect(interpretarRenglonCita("rayos x, Ana Lopez 12345").telefono).toBe("");
 	});
 
-	// Sin separador todo es nombre: partir un nombre largo a la mitad y guardar
-	// la segunda parte como estudio es peor que dejar el estudio vacio, que se
-	// ve de inmediato.
+	// Sin separador todo es nombre: guardar un nombre como estudio es peor que
+	// dejar el estudio vacio, que se ve de inmediato.
 	test("sin separador todo el renglón es el nombre", () => {
 		expect(interpretarRenglonCita("De La Torre Flores Jennifer Xitlali")).toEqual({
+			estudios: "",
 			nombre: "De La Torre Flores Jennifer Xitlali",
 			telefono: "",
-			estudios: "",
+			cliente: "",
 		});
 	});
 
 	test("solo el estudio, sin nombre", () => {
-		expect(interpretarRenglonCita(", biometria hematica")).toMatchObject({
-			nombre: "",
+		expect(interpretarRenglonCita("biometria hematica,")).toMatchObject({
 			estudios: "biometria hematica",
+			nombre: "",
 		});
 	});
 
-	test("varios estudios se conservan tal cual", () => {
+	test("varios estudios se juntan con +", () => {
 		expect(
-			interpretarRenglonCita("Ana Lopez, biometria hematica, quimica sanguinea"),
+			interpretarRenglonCita("biometria hematica + quimica sanguinea, Ana Lopez"),
 		).toMatchObject({
+			estudios: "biometria hematica + quimica sanguinea",
 			nombre: "Ana Lopez",
-			estudios: "biometria hematica, quimica sanguinea",
 		});
 	});
 
 	test("los espacios de sobra se recortan", () => {
-		expect(interpretarRenglonCita("   Ana   Lopez   ,   rayos x   ")).toEqual({
+		expect(interpretarRenglonCita("   rayos   x   ,   Ana   Lopez   ")).toEqual({
+			estudios: "rayos x",
 			nombre: "Ana Lopez",
 			telefono: "",
-			estudios: "rayos x",
+			cliente: "",
 		});
 	});
 
@@ -113,9 +168,10 @@ describe("interpretarRenglonCita", () => {
 		"un renglón %s no inventa nada",
 		(_caso, valor) => {
 			expect(interpretarRenglonCita(valor)).toEqual({
+				estudios: "",
 				nombre: "",
 				telefono: "",
-				estudios: "",
+				cliente: "",
 			});
 		},
 	);
@@ -123,9 +179,15 @@ describe("interpretarRenglonCita", () => {
 
 describe("resumirRenglonCita", () => {
 	// Quien escribe tiene que ver qué entendió el renglón antes de guardar.
-	test("muestra lo que se entendió", () => {
-		expect(resumirRenglonCita("Ana Lopez 3221220777, rayos x")).toBe(
-			"Paciente: Ana Lopez  ·  Tel: 3221220777  ·  Estudio: rayos x",
+	test("muestra lo que se entendió, en el orden en que se escribe", () => {
+		expect(resumirRenglonCita("rayos x, Ana Lopez 3221220777 imss", { clientes })).toBe(
+			"Estudio: rayos x  ·  Paciente: Ana Lopez  ·  Tel: 3221220777  ·  Cliente: IMSS",
+		);
+	});
+
+	test("avisa cuando el cliente no está en el catálogo", () => {
+		expect(resumirRenglonCita("rayos x, Ana Lopez 3221220777 Patito", { clientes })).toContain(
+			"Cliente: Patito (no está en el catálogo, no se guardará)",
 		);
 	});
 

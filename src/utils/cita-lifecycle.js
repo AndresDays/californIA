@@ -5,6 +5,8 @@ export const CITA_ESTADOS = {
 	EN_PROCESO: "en_proceso",
 	LISTA_ENTREGA: "lista_entrega",
 	ENTREGADA: "entregada",
+	// Marcada a mano desde el calendario: el estudio de la cita ya se hizo.
+	REALIZADA: "realizada",
 	CANCELADA: "cancelada",
 };
 
