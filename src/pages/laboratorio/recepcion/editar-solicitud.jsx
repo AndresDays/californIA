@@ -9,6 +9,7 @@ import imprimirIcono from "../../../assets/imprimirIcono.png";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import muestrasBtn from "../../../assets/muestrasBtn.png";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
+import ModalConfirmarEliminacion from "../../../components/ModalConfirmarEliminacion.jsx";
 import ModalMotivoCancelacion from "../../../components/modal-motivo-cancelacion";
 import ModalNotificacion from "../../../components/ModalNotificacion";
 import PageLayout from "../../../components/page-layout.jsx";
@@ -61,6 +62,12 @@ import {
 import { cancelarVenta } from "../../../utils/cancelacion-venta";
 import { empresaDeSerie, normalizarFolio, separarFolio } from "../../../utils/folios";
 import { esSoloAbono, resolverMotivoEdicion } from "../../../utils/edicion-solicitud";
+import { crearDoctorConAuthentication } from "../../../utils/doctores-auth";
+import {
+	buscarDuplicadoRegistro,
+	crearMensajeRegistroDuplicado,
+} from "../../../utils/duplicados-registro.js";
+import ModalAgregarDoctor from "../componentes/modal-agregar-doctor";
 import ModalMuestrasPendientes from "../componentes/modal-muestras-pendientes";
 import "./editar-solicitud.css";
 
@@ -84,6 +91,8 @@ const EditarSolicitud = () => {
 	const [medicosEncontrados, setMedicosEncontrados] = useState([]);
 	const [medicoSeleccionado, setMedicoSeleccionado] = useState(null);
 	const [showBusquedaMedicos, setShowBusquedaMedicos] = useState(false);
+	const [modalAgregarDoctorOpen, setModalAgregarDoctorOpen] = useState(false);
+	const [doctorDuplicadoPendiente, setDoctorDuplicadoPendiente] = useState(null);
 	const [recepcionistas, setRecepcionistas] = useState([]);
 	const [recepcionistaSeleccionado, setRecepcionistaSeleccionado] = useState("");
 	const [buscarEstudio, setBuscarEstudio] = useBusquedaPersistente("editar-solicitud:estudio");
@@ -322,6 +331,42 @@ const EditarSolicitud = () => {
 		setShowBusquedaMedicos(false);
 	};
 
+	const quitarMedico = () => {
+		setMedicoSeleccionado(null);
+		setMedicoBusqueda("");
+		setMedicosEncontrados([]);
+		setShowBusquedaMedicos(false);
+	};
+
+	// Si el médico de la orden no está en el catálogo se da de alta aquí mismo
+	// y queda asignado; se guarda en la orden al guardar la edición.
+	const handleGuardarDoctorModal = async (doctorData) => {
+		const insertarDoctor = async () => {
+			const data = await crearDoctorConAuthentication(supabase, doctorData);
+			const doctor = data?.doctor || data;
+			mostrarNotificacion("Médico agregado. Guarde la orden para asignarlo.");
+			seleccionarMedico({ id_doctor: doctor.id_doctor, nombre: doctor.nombre });
+		};
+		const duplicado = await buscarDuplicadoRegistro({
+			supabase,
+			tabla: "doctores",
+			registro: doctorData,
+			idCampo: "id_doctor",
+		});
+		if (duplicado) {
+			setDoctorDuplicadoPendiente({
+				mensaje: crearMensajeRegistroDuplicado({ tipo: "doctor", duplicado }),
+				onConfirm: () =>
+					insertarDoctor().catch((error) => {
+						console.error("Error al guardar médico:", error);
+						mostrarNotificacion(`Error al guardar médico: ${error.message}`, "error");
+					}),
+			});
+			return;
+		}
+		await insertarDoctor();
+	};
+
 	const cargarAuditoriaOrden = async (idVenta) => {
 		if (!idVenta) {
 			setTimelineAuditoria([]);
@@ -526,6 +571,14 @@ const EditarSolicitud = () => {
 		});
 		if (!motivoEdicion) {
 			mostrarNotificacion("Ingrese el motivo de modificación", "advertencia");
+			return;
+		}
+		// Texto escrito sin elegir de la lista: guardar quitaría al médico sin avisar.
+		if (medicoBusqueda.trim() && !medicoSeleccionado) {
+			mostrarNotificacion(
+				"Seleccione el médico de la lista, agréguelo con el botón + o borre el campo",
+				"advertencia",
+			);
 			return;
 		}
 		const validacionTarjeta = validarPagoTarjeta({
@@ -1182,11 +1235,31 @@ const EditarSolicitud = () => {
 									placeholder="Buscar Médico..."
 									value={medicoBusqueda}
 									onChange={(e) => {
+										// Al escribir se está cambiando de médico: el anterior deja de contar.
+										setMedicoSeleccionado(null);
 										setMedicoBusqueda(e.target.value);
 										buscarMedicos(e.target.value);
 									}}
 									className="input-medico"
 								/>
+								{(medicoSeleccionado || medicoBusqueda) && (
+									<button
+										type="button"
+										className="btn-medico-accion"
+										onClick={quitarMedico}
+										title="Quitar médico"
+										aria-label="Quitar médico">
+										✕
+									</button>
+								)}
+								<button
+									type="button"
+									className="btn-medico-accion"
+									onClick={() => setModalAgregarDoctorOpen(true)}
+									title="Agregar nuevo médico"
+									aria-label="Agregar nuevo médico">
+									+
+								</button>
 								{showBusquedaMedicos && (
 									<div className="dropdown-medicos">
 										{medicosEncontrados.map((m) => (
@@ -1605,6 +1678,21 @@ const EditarSolicitud = () => {
 					estudios={estudiosSeleccionados}
 					onClose={() => setModalMuestrasPendientesOpen(false)}
 					onToggleMuestraPendiente={toggleMuestraPendiente}
+				/>
+				<ModalAgregarDoctor
+					isOpen={modalAgregarDoctorOpen}
+					onClose={() => setModalAgregarDoctorOpen(false)}
+					onSave={handleGuardarDoctorModal}
+				/>
+				<ModalConfirmarEliminacion
+					isOpen={Boolean(doctorDuplicadoPendiente)}
+					onClose={() => setDoctorDuplicadoPendiente(null)}
+					onConfirm={() => doctorDuplicadoPendiente?.onConfirm?.()}
+					titulo="Registro duplicado"
+					mensaje={doctorDuplicadoPendiente?.mensaje}
+					textoConfirmar="Agregar de todos modos"
+					textoCancelar="Cancelar"
+					mostrarAdvertencia={false}
 				/>
 				<ModalMotivoCancelacion
 					isOpen={modalCancelacionAbierto}
