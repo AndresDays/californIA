@@ -61,6 +61,7 @@ export const useCalendarioCitas = (fecha, idSucursal) =>
     queryFn: async () => {
 			const rango = crearRangoFechaMexico(fecha);
 
+      // Las canceladas también vienen: la agenda las muestra tachadas.
       let query = supabase
         .from('citas')
         .select(`
@@ -74,8 +75,7 @@ export const useCalendarioCitas = (fecha, idSucursal) =>
           tipos_estudio ( id_tipo_estudio, nombre )
         `)
 				.gte('fecha_estudio', rango.inicio)
-				.lt('fecha_estudio', rango.fin)
-        .not('estado', 'eq', 'cancelada');
+				.lt('fecha_estudio', rango.fin);
 
       if (idSucursal) query = query.eq('id_sucursal', idSucursal);
       const { data, error } = await query.order('fecha_estudio', { ascending: true });

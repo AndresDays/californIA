@@ -611,6 +611,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
               <option value="en_proceso">En Proceso</option>
               <option value="lista_entrega">Lista para entrega</option>
               <option value="entregada">Entregada</option>
+              <option value="realizada">Realizada</option>
               <option value="completada">Completada (anterior)</option>
               <option value="cancelada">Cancelada</option>
             </select>

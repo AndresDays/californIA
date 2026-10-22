@@ -506,3 +506,56 @@
 	border-radius: 50%;
 	background: var(--cal-ahora);
 }
+
+/* Cita realizada: se pinta en verde con su palomita, ya no pide atención. */
+.cal-card.realizada {
+	--cal-color: var(--exito);
+	opacity: 0.85;
+}
+
+.cal-card.realizada .cal-card-realizada {
+	background: var(--exito);
+	color: #fff;
+}
+
+/* Cita cancelada: se queda en su horario pero tachada y apagada, y el hueco
+   sigue disponible para otra cita. */
+.cal-card.cancelada {
+	--cal-color: #94a3b8;
+	opacity: 0.6;
+	box-shadow: inset 5px 0 0 var(--cal-color);
+}
+
+.cal-card.cancelada strong,
+.cal-card.cancelada span,
+.cal-card.cancelada .cal-card-time {
+	text-decoration: line-through;
+}
+
+.cal-card + .cal-empty-slot {
+	margin-top: 6px;
+	min-height: 28px;
+}
+
+/* Las acciones van en cuadrícula de dos: con cuatro botones en fila se
+   partían en renglones disparejos. */
+.cal-action-body .modal-footer-cita {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+}
+
+.cal-action-error {
+	margin: 0 0 1rem;
+	color: var(--peligro);
+	font-weight: 700;
+}
+
+.cal-action-body .cal-btn-realizada {
+	border-color: var(--exito);
+	color: var(--exito);
+}
+
+.cal-action-body .cal-btn-eliminar {
+	background: var(--peligro);
+	border-color: var(--peligro);
+}

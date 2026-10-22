@@ -18,6 +18,27 @@ jest.mock("../../context/auth-context", () => ({
 	}),
 }));
 
+const mockUpdateCita = jest.fn();
+const mockDeleteCita = jest.fn();
+jest.mock("../../lib/supabase-client", () => ({
+	supabase: {
+		from: () => ({
+			update: (payload) => ({
+				eq: (campo, valor) => {
+					mockUpdateCita(payload, valor);
+					return Promise.resolve({ error: null });
+				},
+			}),
+			delete: () => ({
+				eq: (campo, valor) => {
+					mockDeleteCita(valor);
+					return Promise.resolve({ error: null });
+				},
+			}),
+		}),
+	},
+}));
+
 jest.mock("../../hooks/use-sucursales", () => ({ useSucursales: () => ({ data: [] }) }));
 
 jest.mock("../../hooks/use-citas", () => ({
@@ -317,5 +338,72 @@ describe("calendario del mes", () => {
 
 		expect(screen.queryByRole("dialog", { name: "Elegir fecha" })).toBeNull();
 		expect(screen.getByText("15 Julio, 2026")).toBeInTheDocument();
+	});
+});
+
+describe("estado de la cita desde sus acciones", () => {
+	const conEstados = (estados) =>
+		useCalendarioCitas.mockReturnValue({
+			data: citas.map((cita) => ({ ...cita, estado: estados[cita.id_cita] ?? cita.estado })),
+			isLoading: false,
+			error: null,
+		});
+	const abrirAcciones = (paciente) =>
+		fireEvent.click(screen.getByLabelText(`Abrir acciones de cita de ${paciente}`));
+
+	beforeEach(() => {
+		mockUpdateCita.mockClear();
+		mockDeleteCita.mockClear();
+	});
+
+	test("marcar como realizada guarda el estado", async () => {
+		render(<CalendarioCitas />);
+		abrirAcciones("Lucia Root");
+
+		expect(screen.queryByRole("button", { name: "Eliminar" })).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "Realizada" }));
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(expect.objectContaining({ estado: "realizada" }), 1);
+	});
+
+	test("la cita realizada se distingue en la agenda", () => {
+		conEstados({ 1: "realizada" });
+		render(<CalendarioCitas />);
+
+		const tarjeta = screen.getByLabelText("Abrir acciones de cita de Lucia Root");
+		expect(tarjeta).toHaveClass("realizada");
+		expect(tarjeta).toHaveTextContent("✓ Realizada");
+	});
+
+	test("cancelar deja la cita tachada en lugar de borrarla", async () => {
+		render(<CalendarioCitas />);
+		abrirAcciones("Lucia Root");
+		fireEvent.click(screen.getByRole("button", { name: "Cancelar cita" }));
+		fireEvent.click(screen.getByRole("button", { name: "Confirmar cancelación" }));
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(expect.objectContaining({ estado: "cancelada" }), 1);
+		expect(mockDeleteCita).not.toHaveBeenCalled();
+	});
+
+	test("la cancelada se ve tachada, no cuenta y su horario sigue libre", () => {
+		conEstados({ 1: "cancelada" });
+		render(<CalendarioCitas />);
+
+		expect(screen.getByLabelText("Abrir acciones de cita de Lucia Root")).toHaveClass("cancelada");
+		expect(screen.getByText("2 citas programadas por hora y tipo de estudio")).toBeInTheDocument();
+		expect(screen.getByLabelText("Crear cita de TAC el 2026-07-15 a las 09:00")).toBeInTheDocument();
+	});
+
+	test("sólo la cancelada ofrece eliminar, y pide confirmación", () => {
+		conEstados({ 1: "cancelada" });
+		render(<CalendarioCitas />);
+		abrirAcciones("Lucia Root");
+
+		expect(screen.queryByRole("button", { name: "Pasar a estudio" })).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "Eliminar" }));
+		expect(mockDeleteCita).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+
+		expect(mockDeleteCita).toHaveBeenCalledWith(1);
 	});
 });
