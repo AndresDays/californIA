@@ -65,3 +65,24 @@ test("el archivo se nombra con el folio de la cotización", () => {
 	expect(crearNombreArchivoCotizacion("COT-01")).toBe("Cotizacion COT-01.pdf");
 	expect(crearNombreArchivoCotizacion("")).toBe("Cotizacion sin folio.pdf");
 });
+
+// Con descuento el "Total" llevaba el subtotal: el precio final, el que sale en
+// la tabla de la cotización, no aparecía en el ticket.
+test("con descuento el total es el precio final", async () => {
+	await generarPDFCotizacion(
+		{ ...DATOS, subtotal: 500, descuento: 100, total: 400 },
+		{ salida: "blob" },
+	);
+
+	const despuesDe = (etiqueta) => mockTextos[mockTextos.indexOf(etiqueta) + 1];
+	expect(despuesDe("Subtotal")).toBe("$ 500.00");
+	expect(despuesDe("Descuento")).toBe("- $ 100.00");
+	expect(despuesDe("Total")).toBe("$ 400.00");
+});
+
+test("sin descuento sale sólo el total", async () => {
+	await generarPDFCotizacion(DATOS, { salida: "blob" });
+
+	expect(mockTextos).not.toContain("Subtotal");
+	expect(mockTextos[mockTextos.indexOf("Total") + 1]).toBe("$ 500.00");
+});
