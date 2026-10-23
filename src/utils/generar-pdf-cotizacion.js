@@ -160,7 +160,8 @@ export const generarPDFCotizacion = async (datosTicket, { salida = "abrir" } = {
 	// Con descuento, el renglón de "Total" llevaba el subtotal y abajo sólo se
 	// decía cuánto se descontó: el precio final, el que cuadra con la tabla de
 	// la cotización, no salía en ningún lado. Ahora van subtotal, descuento y
-	// total; sin descuento basta con el total.
+	// total, y con eso sobra la leyenda de "Ha recibido descuento"; sin
+	// descuento basta con el total.
 	if (descuento > 0) {
 		pdf.setFont('helvetica', 'normal');
 		pdf.setFontSize(9);
@@ -177,14 +178,6 @@ export const generarPDFCotizacion = async (datosTicket, { salida = "abrir" } = {
 	pdf.text('Total', 10, y);
 	pdf.text(`$ ${(descuento > 0 ? total : subtotal).toFixed(2)}`, 70, y, { align: 'right' });
 	y += 7;
-
-	if (descuento > 0) {
-		pdf.setFont('helvetica', 'bold');
-		pdf.setFontSize(9);
-		const textoDescuento = `Ha Recibido Descuento de $ ${descuento.toFixed(2)}`;
-		pdf.text(textoDescuento, 40, y, { align: 'center' });
-		y += 7;
-	}
 
 	pdf.setLineWidth(0.3);
 	pdf.line(5, y, 75, y);

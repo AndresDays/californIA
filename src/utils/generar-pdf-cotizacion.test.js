@@ -78,6 +78,7 @@ test("con descuento el total es el precio final", async () => {
 	expect(despuesDe("Subtotal")).toBe("$ 500.00");
 	expect(despuesDe("Descuento")).toBe("- $ 100.00");
 	expect(despuesDe("Total")).toBe("$ 400.00");
+	expect(mockTextos.some((texto) => texto.includes("Ha Recibido Descuento"))).toBe(false);
 });
 
 test("sin descuento sale sólo el total", async () => {
