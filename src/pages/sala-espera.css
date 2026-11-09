@@ -174,3 +174,48 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* Promociones: mientras no hay un llamado reciente la TV las pasa en ciclo, a
+   pantalla completa y con un fundido entre una y otra. La imagen se ve entera
+   (16:9 llena la TV) aunque venga en otra proporción. */
+.sala-promociones {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	background: #000;
+}
+
+.sala-promocion {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	opacity: 0;
+	transition: opacity 900ms ease;
+}
+
+.sala-promocion.activa {
+	opacity: 1;
+}
+
+.sala-promociones-reloj {
+	position: absolute;
+	right: 24px;
+	bottom: 20px;
+	z-index: 2;
+	padding: 6px 16px;
+	border-radius: 999px;
+	background: rgba(0, 0, 0, 0.55);
+	color: #fff;
+	font-size: clamp(16px, 1.6vw, 26px);
+	font-weight: 700;
+}
+
+.sala-promociones .sala-activar-sonido {
+	position: absolute;
+	top: 20px;
+	left: 50%;
+	z-index: 2;
+	transform: translateX(-50%);
+}

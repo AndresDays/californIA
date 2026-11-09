@@ -65,6 +65,7 @@ describe("sidebar shared menu", () => {
 			"Técnicas",
 			"Recipientes",
 			"Nivel del Mar",
+			"Promociones sala",
 			"Versión de la app",
 		]);
 	});
