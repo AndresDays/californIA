@@ -266,12 +266,13 @@
 	left: 0;
 	z-index: 2;
 	min-height: 52px;
-	padding: 12px 6px;
+	padding: 12px 4px 12px 6px;
+	white-space: nowrap;
 	background: var(--superficie);
 	border-right: 1px solid var(--borde);
 	border-bottom: 1px solid var(--borde);
 	color: var(--texto);
-	font-size: 0.75rem;
+	font-size: 0.6875rem;
 	font-weight: 800;
 	box-sizing: border-box;
 }
@@ -322,28 +323,21 @@
 	margin-top: 6px;
 }
 
-/* La cita de una hora se ve como una sola tarjeta que cruza la línea entre
-   las dos medias horas: la parte de arriba pierde sus esquinas de abajo y la
-   continuación, las de arriba, y se pega al borde de su renglón. */
+/* La celda de una cita de una hora abarca los dos renglones y la tarjeta
+   larga se estira para llenarla: se ve como una sola cita, sin la línea de la
+   media hora atravesándola. */
+.cal-slot.combinada {
+	display: flex;
+	flex-direction: column;
+}
+
+.cal-card-wrap.larga {
+	display: flex;
+	flex: 1 1 auto;
+}
+
 .cal-card-wrap.larga .cal-card {
-	border-bottom-left-radius: 0;
-	border-bottom-right-radius: 0;
-}
-
-.cal-card-wrap.continuacion {
-	margin-top: -6px;
-}
-
-.cal-card.cal-card-continuacion {
-	min-height: 32px;
-	justify-content: center;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
-	box-shadow: inset 5px 0 0 var(--cal-color, var(--borde-fuerte));
-}
-
-.cal-card.cal-card-continuacion span {
-	opacity: 0.75;
+	flex: 1 1 auto;
 }
 
 /* Las orillas de la tarjeta se jalan para pasar la cita de media hora a una
@@ -423,7 +417,7 @@
 .cal-card-time {
 	width: fit-content;
 	padding: 2px 6px;
-	border-radius: 999px;
+	border-radius: 8px;
 	background: var(--superficie-2);
 	color: var(--texto);
 	font-size: 0.6562rem;

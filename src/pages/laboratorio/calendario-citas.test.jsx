@@ -428,14 +428,16 @@ describe("duración de la cita", () => {
 		render(<CalendarioCitas />);
 
 		expect(screen.getByLabelText("Abrir acciones de cita de Lucia Root")).toHaveTextContent(/09:15.*–.*10:15/);
-		expect(screen.getByLabelText(/Cita de Lucia Root continua hasta las 10:15/)).toBeInTheDocument();
+		// Una sola celda que abarca las dos medias horas, no dos pedazos.
+		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "2");
+		expect(screen.queryByTestId("cal-slot-tac-09:30")).not.toBeInTheDocument();
 		expect(screen.queryByLabelText("Crear cita de TAC el 2026-07-15 a las 09:30")).not.toBeInTheDocument();
 	});
 
 	test("la de media hora deja libre el bloque siguiente", () => {
 		render(<CalendarioCitas />);
 
-		expect(screen.queryByLabelText(/continua hasta/)).not.toBeInTheDocument();
+		expect(screen.getByTestId("cal-slot-tac-09:00")).not.toHaveAttribute("aria-rowspan");
 		expect(screen.getByLabelText("Crear cita de TAC el 2026-07-15 a las 09:30")).toBeInTheDocument();
 	});
 
@@ -445,7 +447,7 @@ describe("duración de la cita", () => {
 
 		fireEvent.pointerDown(orilla, { clientY: 100 });
 		fireEvent.pointerMove(window, { clientY: 160 });
-		expect(screen.getByLabelText(/Cita de Lucia Root continua hasta las 10:15/)).toBeInTheDocument();
+		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "2");
 		fireEvent.pointerUp(window, { clientY: 160 });
 
 		expect(mockUpdateCita).toHaveBeenCalledWith(
@@ -486,5 +488,24 @@ describe("duración de la cita", () => {
 		fireEvent.pointerUp(window, { clientY: 110 });
 
 		expect(mockUpdateCita).not.toHaveBeenCalled();
+	});
+
+	test("si en la segunda media hora empieza otra cita larga, la celda crece hasta cubrirla", () => {
+		useCalendarioCitas.mockReturnValue({
+			data: [
+				{ ...citas[0], duracion_minutos: 60 },
+				{ id_cita: 9, fecha_estudio: "2026-06-23T09:30:00", tipo_estudio: "TAC craneo", nombre_paciente: "Otro Paciente", estado: "pendiente", duracion_minutos: 60 },
+			],
+			isLoading: false,
+			error: null,
+		});
+		render(<CalendarioCitas />);
+
+		const celda = screen.getByTestId("cal-slot-tac-09:00");
+		expect(celda).toHaveAttribute("aria-rowspan", "3");
+		expect(celda).toHaveTextContent("Lucia Root");
+		expect(celda).toHaveTextContent("Otro Paciente");
+		expect(screen.queryByTestId("cal-slot-tac-10:00")).not.toBeInTheDocument();
+		expect(screen.getByTestId("cal-slot-tac-10:30")).toBeInTheDocument();
 	});
 });
