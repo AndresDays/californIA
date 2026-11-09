@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import calendarioIcono from "../../../assets/calendarioIcono.png";
+import BotonCalendarioDia from "../componentes/boton-calendario-dia";
 import cancelarBtn from "../../../assets/cancelarBtn.png";
 import doctorIcono from "../../../assets/doctorIcono.png";
 import eliminarIconoV2 from "../../../assets/eliminarIconoV2.png";
@@ -77,6 +78,9 @@ const EditarSolicitud = () => {
 
 	const [empleadoData, setEmpleadoData] = useState(null);
 	const [rangoFecha, setRangoFecha] = useState("hoy");
+	// El día elegido con el ícono de calendario (AAAA-MM-DD): con él el rango
+	// pasa a "dia" y la lista muestra sólo las órdenes de esa fecha.
+	const [diaFiltro, setDiaFiltro] = useState("");
 	const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente("editar-solicitud:paciente");
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
@@ -152,7 +156,7 @@ const EditarSolicitud = () => {
 
 	useEffect(() => {
 		cargarOrdenes();
-	}, [rangoFecha]);
+	}, [rangoFecha, diaFiltro]);
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, abono, pago]);
@@ -191,6 +195,13 @@ const EditarSolicitud = () => {
 	};
 
 	const obtenerRangoFechas = () => {
+		if (rangoFecha === "dia") {
+			if (!diaFiltro) return null;
+			return {
+				inicio: new Date(`${diaFiltro}T00:00:00`).toISOString(),
+				fin: new Date(`${diaFiltro}T23:59:59.999`).toISOString(),
+			};
+		}
 		const hoy = new Date();
 		const inicio = new Date(hoy);
 		const fin = new Date(hoy);
@@ -1098,15 +1109,32 @@ const EditarSolicitud = () => {
 								/>
 							</div>
 							<div className="rango-fecha-grupo">
-								<img
-									src={calendarioIcono}
-									alt="Calendario"
-									className="icono-campo"
+								<BotonCalendarioDia
+									fecha={diaFiltro}
+									icono={calendarioIcono}
+									etiqueta="Filtrar por un día del calendario"
+									onSeleccionar={(dia) => {
+										setDiaFiltro(dia);
+										setRangoFecha("dia");
+									}}
 								/>
 								<select
 									value={rangoFecha}
-									onChange={(e) => setRangoFecha(e.target.value)}
+									aria-label="Rango de fechas"
+									onChange={(e) => {
+										setRangoFecha(e.target.value);
+										if (e.target.value !== "dia") setDiaFiltro("");
+									}}
 									className="select-rango-fecha">
+									{rangoFecha === "dia" && diaFiltro && (
+										<option value="dia">
+											{new Date(`${diaFiltro}T12:00:00`).toLocaleDateString("es-MX", {
+												day: "numeric",
+												month: "short",
+												year: "numeric",
+											})}
+										</option>
+									)}
 									<option value="hoy">Hoy</option>
 									<option value="semana">Esta Semana</option>
 									<option value="mes">Este Mes</option>
