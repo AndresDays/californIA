@@ -19,6 +19,7 @@ import { supabase } from "../../../lib/supabase-client";
 import { consultarClientesSeleccionables } from "../../../utils/clientes-seleccionables";
 import { invalidarConsultasDeVentas } from "../../../utils/invalidar-consultas-ventas";
 import { useBusquedaPersistente } from "../../../hooks/use-busqueda-persistente";
+import { useDebounce } from "../../../hooks/use-debounce";
 import { leerFechaCalendario, calcularEdadPaciente } from "../../../utils/edad-paciente";
 import {
 	construirEstudioCatalogoUnificado,
@@ -82,6 +83,11 @@ const EditarSolicitud = () => {
 	// pasa a "dia" y la lista muestra sólo las órdenes de esa fecha.
 	const [diaFiltro, setDiaFiltro] = useState("");
 	const [buscarPaciente, setBuscarPaciente] = useBusquedaPersistente("editar-solicitud:paciente");
+	// La búsqueda va a la base, no sólo a las órdenes ya cargadas: la lista trae
+	// las 50 más recientes del rango, y con "Este año" o "Todos" el paciente de
+	// hace dos semanas quedaba fuera de esas 50 y no aparecía aunque existiera.
+	const busquedaDiferida = useDebounce(buscarPaciente, 350);
+	const consultaOrdenesRef = useRef(0);
 	const [ordenes, setOrdenes] = useState([]);
 	const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
 	const [motivoModificacion, setMotivoModificacion] = useState("");
@@ -156,7 +162,7 @@ const EditarSolicitud = () => {
 
 	useEffect(() => {
 		cargarOrdenes();
-	}, [rangoFecha, diaFiltro]);
+	}, [rangoFecha, diaFiltro, busquedaDiferida]);
 	useEffect(() => {
 		calcularTotales();
 	}, [estudiosSeleccionados, ivaPercent, descuentoPercent, abono, pago]);
@@ -226,6 +232,9 @@ const EditarSolicitud = () => {
 	};
 
 	const cargarOrdenes = async () => {
+		// Sólo cuenta la respuesta de la última consulta: al teclear rápido una
+		// búsqueda vieja que llegara tarde pisaría a la nueva.
+		const consulta = ++consultaOrdenesRef.current;
 		try {
 			let query = supabase
 				.from("ventas")
@@ -244,9 +253,32 @@ const EditarSolicitud = () => {
 			const rango = obtenerRangoFechas();
 			if (rango)
 				query = query.gte("fecha_venta", rango.inicio).lte("fecha_venta", rango.fin);
+
+			const termino = busquedaDiferida.trim();
+			if (termino) {
+				// El nombre vive en pacientes: primero se buscan sus ids y luego las
+				// órdenes de esos pacientes o con ese folio.
+				const { data: pacientesCoinciden, error: errorPacientes } = await supabase
+					.from("pacientes")
+					.select("id_paciente")
+					.ilike("nombre", `%${termino}%`)
+					.limit(200);
+				if (errorPacientes) throw errorPacientes;
+				const ids = (pacientesCoinciden || []).map((paciente) => paciente.id_paciente);
+				const folio = normalizarFolio(termino);
+				const condiciones = [];
+				if (folio) condiciones.push(`folio.ilike.%${folio}%`);
+				if (ids.length) condiciones.push(`id_paciente.in.(${ids.join(",")})`);
+				if (!condiciones.length) {
+					if (consulta === consultaOrdenesRef.current) setOrdenes([]);
+					return;
+				}
+				query = query.or(condiciones.join(","));
+			}
+
 			const { data, error } = await query;
 			if (error) throw error;
-			setOrdenes(data || []);
+			if (consulta === consultaOrdenesRef.current) setOrdenes(data || []);
 		} catch (err) {
 			console.error("Error al cargar órdenes:", err);
 		}
