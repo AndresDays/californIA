@@ -248,20 +248,39 @@ const CalendarioCitas = () => {
 		return grupos;
 	}, [citas]);
 
-	// La cita de una hora también ocupa el bloque de media hora que sigue: ahí
-	// se pinta su continuación y ese hueco ya no se ofrece libre. La cancelada
-	// no aparta nada.
-	const continuacionesPorTipoYHora = useMemo(() => {
-		const grupos = new Map(TIPOS_ESTUDIO_CALENDARIO.map((tipo) => [tipo.id, new Map()]));
-		citas.forEach((cita) => {
-			if (esCancelada(cita) || duracionDeCita(cita) <= DURACION_CORTA) return;
-			const siguiente = BLOQUES_CALENDARIO[indiceDeBloque(obtenerHoraCita(cita)) + 1];
-			if (!siguiente || indiceDeBloque(obtenerHoraCita(cita)) < 0) return;
-			const porHora = grupos.get(obtenerTipoCalendario(cita).id);
-			porHora.set(siguiente.valor, [...(porHora.get(siguiente.valor) || []), cita]);
+	// La cita de una hora ocupa también el bloque de media hora que sigue, y se
+	// pinta como una sola celda que abarca los dos renglones: partida en dos por
+	// la línea entre medias horas se veía como dos citas. Si dentro del tramo
+	// combinado empieza otra cita larga, el tramo crece hasta cubrirla. La
+	// cancelada no aparta nada.
+	// Por columna: renglón donde empieza cada tramo -> cuántos renglones abarca,
+	// y los renglones que quedan dentro de un tramo y ya no se dibujan solos.
+	const tramosPorTipo = useMemo(() => {
+		const tramos = new Map();
+		TIPOS_ESTUDIO_CALENDARIO.forEach((tipo) => {
+			const porHora = citasPorTipoYHora.get(tipo.id);
+			const finDeRenglon = BLOQUES_CALENDARIO.map((bloque, indice) =>
+				(porHora.get(bloque.valor) || []).reduce(
+					(fin, cita) => (esCancelada(cita) ? fin : Math.max(fin, indice + duracionDeCita(cita) / 30 - 1)),
+					indice,
+				),
+			);
+			const inicios = new Map();
+			const cubiertos = new Set();
+			for (let indice = 0; indice < BLOQUES_CALENDARIO.length; indice += 1) {
+				let fin = finDeRenglon[indice];
+				for (let siguiente = indice + 1; siguiente <= fin && siguiente < BLOQUES_CALENDARIO.length; siguiente += 1) {
+					fin = Math.max(fin, finDeRenglon[siguiente]);
+					cubiertos.add(siguiente);
+				}
+				fin = Math.min(fin, BLOQUES_CALENDARIO.length - 1);
+				inicios.set(indice, fin - indice + 1);
+				indice = fin;
+			}
+			tramos.set(tipo.id, { inicios, cubiertos });
 		});
-		return grupos;
-	}, [citas]);
+		return tramos;
+	}, [citasPorTipoYHora]);
 
 	const guardarAjuste = async (idCita, ajuste) => {
 		const { error: errorAjuste } = await supabase
@@ -486,32 +505,35 @@ const CalendarioCitas = () => {
 									</div>
 								))}
 
-								{BLOQUES_CALENDARIO.map((bloque) => (
+								{BLOQUES_CALENDARIO.map((bloque, indiceBloque) => (
 									<div className="cal-row-fragment" role="row" key={bloque.valor}>
-										<div className="cal-hour" role="rowheader" ref={lineaAhora?.bloque === bloque.valor ? lineaAhoraRef : undefined}>
+										<div className="cal-hour" role="rowheader" style={{ gridRow: indiceBloque + 2, gridColumn: 1 }} ref={lineaAhora?.bloque === bloque.valor ? lineaAhoraRef : undefined}>
 											{formatearHora(bloque)}
 											{lineaAhora?.bloque === bloque.valor && (
 												<div className="cal-ahora-linea con-hora" style={{ top: `${lineaAhora.porcentaje}%` }} data-testid="cal-ahora" title={`Hora actual ${lineaAhora.etiqueta}`} />
 											)}
 										</div>
-										{TIPOS_ESTUDIO_CALENDARIO.map((tipo) => {
-											const citasHora = citasPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
-											const continuaciones = continuacionesPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
+										{TIPOS_ESTUDIO_CALENDARIO.map((tipo, indiceTipo) => {
+											const tramo = tramosPorTipo.get(tipo.id);
+											if (tramo.cubiertos.has(indiceBloque)) return null;
+											const renglones = tramo.inicios.get(indiceBloque) || 1;
+											const bloquesDelTramo = BLOQUES_CALENDARIO.slice(indiceBloque, indiceBloque + renglones);
+											const citasHora = bloquesDelTramo.flatMap((enTramo) => citasPorTipoYHora.get(tipo.id)?.get(enTramo.valor) || []);
+											// La línea de "ahora" cae en la altura proporcional del tramo.
+											const renglonAhora = bloquesDelTramo.findIndex((enTramo) => enTramo.valor === lineaAhora?.bloque);
 											const clasesTarjeta = (cita) => `cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}${esCancelada(cita) ? " cancelada" : ""}${esRealizada(cita) ? " realizada" : ""}${ajustes[cita.id_cita] ? " ajustando" : ""}`;
 											return (
-												<div key={`${tipo.id}-${bloque.valor}`} className="cal-slot" role="cell">
-													{lineaAhora?.bloque === bloque.valor && (
-														<div className="cal-ahora-linea" style={{ top: `${lineaAhora.porcentaje}%` }} aria-hidden="true" />
+												<div
+													key={`${tipo.id}-${bloque.valor}`}
+													className={`cal-slot${renglones > 1 ? " combinada" : ""}`}
+													role="cell"
+													aria-rowspan={renglones > 1 ? renglones : undefined}
+													data-testid={`cal-slot-${tipo.id}-${bloque.valor}`}
+													style={{ gridRow: `${indiceBloque + 2} / span ${renglones}`, gridColumn: indiceTipo + 2 }}
+												>
+													{renglonAhora >= 0 && (
+														<div className="cal-ahora-linea" style={{ top: `${((renglonAhora + lineaAhora.porcentaje / 100) / renglones) * 100}%` }} aria-hidden="true" />
 													)}
-													{continuaciones.map((cita) => (
-														<div className={`cal-card-wrap continuacion tipo-${tipo.id}`} key={`continua-${cita.id_cita}`}>
-															<button type="button" className={`${clasesTarjeta(cita)} cal-card-continuacion`} aria-label={`Cita de ${obtenerNombrePaciente(cita)} continua hasta las ${horaFinDeCita(cita)}`} onClick={() => abrirAcciones(cita)}>
-																<span>{obtenerNombrePaciente(cita)}</span>
-																<small>hasta {horaFinDeCita(cita)}</small>
-															</button>
-															{orillaArrastrable(cita, "abajo")}
-														</div>
-													))}
 													{citasHora.map((cita) => {
 														const larga = duracionDeCita(cita) > DURACION_CORTA;
 														return (
@@ -530,13 +552,13 @@ const CalendarioCitas = () => {
 																		cita.estado && <small>{cita.estado}</small>
 																	)}
 																</button>
-																{!esCancelada(cita) && !larga && orillaArrastrable(cita, "abajo")}
+																{!esCancelada(cita) && orillaArrastrable(cita, "abajo")}
 															</div>
 														);
 													})}
-													{/* Un horario con sólo citas canceladas sigue libre; el que ocupa
-													    la segunda media hora de una cita larga, no. */}
-													{citasHora.every(esCancelada) && continuaciones.length === 0 && (
+													{/* Un horario con sólo citas canceladas sigue libre; el tramo
+													    combinado de una cita larga, no. */}
+													{renglones === 1 && citasHora.every(esCancelada) && (
 														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													)}
 												</div>
