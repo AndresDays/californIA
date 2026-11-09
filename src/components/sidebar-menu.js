@@ -209,6 +209,12 @@ export const sidebarItems = [
 				path: "/configuracion/nivel",
 			},
 			{
+				id: "promociones-sala",
+				label: "Promociones sala",
+				icon: subIcon,
+				path: "/configuracion/promociones-sala",
+			},
+			{
 				id: "version",
 				label: "Versión de la app",
 				icon: subIcon,
