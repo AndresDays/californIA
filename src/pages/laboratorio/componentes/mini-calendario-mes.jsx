@@ -31,7 +31,7 @@ const construirSemanas = ({ anio, mes }) => {
 
 // `anclaRef` es el botón que lo abre: un clic ahí lo cierra el propio botón, y
 // si también contara como "clic fuera" se cerraría y se volvería a abrir.
-const MiniCalendarioMes = ({ fechaSeleccionada, hoy, onSeleccionar, onCerrar, anclaRef }) => {
+const MiniCalendarioMes = ({ fechaSeleccionada, hoy, onSeleccionar, onCerrar, anclaRef, className = "" }) => {
 	const [mesVisible, setMesVisible] = useState(() => leerMes(fechaSeleccionada));
 	const contenedorRef = useRef(null);
 
@@ -62,7 +62,7 @@ const MiniCalendarioMes = ({ fechaSeleccionada, hoy, onSeleccionar, onCerrar, an
 	const titulo = `${nombreMes.charAt(0).toUpperCase()}${nombreMes.slice(1)} ${mesVisible.anio}`;
 
 	return (
-		<div className="mini-cal" role="dialog" aria-label="Elegir fecha" ref={contenedorRef}>
+		<div className={`mini-cal${className ? ` ${className}` : ""}`} role="dialog" aria-label="Elegir fecha" ref={contenedorRef}>
 			<div className="mini-cal-header">
 				<strong className="mini-cal-titulo">{titulo}</strong>
 				<button type="button" className="mini-cal-nav" aria-label="Mes anterior" onClick={() => moverMes(-1)}>

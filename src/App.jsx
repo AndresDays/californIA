@@ -28,6 +28,7 @@ const Paquetes = lazy(() => import('./pages/laboratorio/configuracion/paquetes')
 const Precios = lazy(() => import('./pages/laboratorio/configuracion/precios'));
 const TipoMuestra = lazy(() => import('./pages/laboratorio/configuracion/tipo_muestra'));
 const VersionApp = lazy(() => import('./pages/configuracion/version-app'));
+const PromocionesSala = lazy(() => import('./pages/configuracion/promociones-sala'));
 const Doctores = lazy(() => import('./pages/laboratorio/doctores'));
 const EntregaResultados = lazy(() => import('./pages/laboratorio/entrega-resultados'));
 const Laboratorio = lazy(() => import('./pages/laboratorio/laboratorio'));
@@ -138,6 +139,7 @@ function App() {
 							<Route path="/configuracion/equipos" element={<P><AdministrarEquipos /></P>} />
 							<Route path="/configuracion/nivel" element={<P><AdministrarNiveles /></P>} />
 							<Route path="/configuracion/version" element={<P><VersionApp /></P>} />
+							<Route path="/configuracion/promociones-sala" element={<P><PromocionesSala /></P>} />
 
 							<Route path="*" element={<Navigate to="/login" replace />} />
 						</Routes>

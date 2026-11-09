@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase-client';
 import { esTelefono10Digitos, normalizarTelefono10 } from '../utils/form-validations';
 import './nueva-cita-modal.css';
 import { useNavegacionLista } from '../hooks/use-navegacion-lista';
+import CampoDuracionCita from './campo-duracion-cita';
+import { duracionDeCita } from '../utils/duracion-cita';
 import editarIcono from '../assets/editarIcono.png';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
@@ -20,6 +22,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     fecha: '',
     hora: '',
     estado: 'pendiente',
+    duracion: 30,
   });
 
   const [clientes, setClientes] = useState([]);
@@ -78,6 +81,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           fecha: fechaPart || '',
           hora,
           estado: cita.estado || 'pendiente',
+          duracion: duracionDeCita(cita),
         });
 
         if (idEmpresa) {
@@ -373,6 +377,9 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
       };
       // Solo se toca la fecha si hay una con que sustituirla.
       if (fechaHora) payload.fecha_estudio = fechaHora;
+      // La duración viaja sólo si cambió: así editar una cita no depende de que
+      // la migración de la duración ya esté aplicada.
+      if (formData.duracion !== duracionDeCita(cita)) payload.duracion_minutos = formData.duracion;
 
       const { error } = await supabase
         .from('citas')
@@ -595,6 +602,12 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
               />
             </div>
           </div>
+
+          <CampoDuracionCita
+            valor={formData.duracion}
+            onChange={(duracion) => setFormData((prev) => ({ ...prev, duracion }))}
+            disabled={loading}
+          />
 
           <div className="form-group-cita">
             <label className="form-label-cita">Estado *</label>

@@ -62,12 +62,14 @@ export const useCalendarioCitas = (fecha, idSucursal) =>
 			const rango = crearRangoFechaMexico(fecha);
 
       // Las canceladas también vienen: la agenda las muestra tachadas.
+      // Va `*` y no la lista de columnas porque la agenda necesita
+      // `duracion_minutos`, y nombrarla rompería la consulta entera en una base
+      // donde la migración aún no se aplica; sin ella la cita cuenta como de
+      // media hora.
       let query = supabase
         .from('citas')
         .select(`
-          id_cita, fecha_estudio, estado, tipo_estudio, monto,
-          id_paciente, id_cliente, id_empresa, id_tipo_estudio,
-          id_sucursal, nombre_paciente, telefono_paciente,
+          *,
           pacientes ( nombre, telefono, id_paciente ),
           sucursales ( id_sucursal, nombre ),
           clientes ( id_cliente, nombre ),

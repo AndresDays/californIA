@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import lupaIcono from "../../../assets/lupaIcono.png";
 import notaIcono from "../../../assets/notaIcono.png";
+import calendarioIcono from "../../../assets/calendarioIcono.png";
+import BotonCalendarioDia from "../componentes/boton-calendario-dia";
 import pacienteIcono from "../../../assets/pacienteIcono.png";
 import PageLayout from "../../../components/page-layout.jsx";
 import { useEmpleadoActual } from "../../../hooks/use-empleado-actual";
@@ -19,6 +21,18 @@ const Historial = () => {
 	const [historialVisitas, setHistorialVisitas] = useState([]);
 	const [visitaSeleccionada, setVisitaSeleccionada] = useState(null);
 	const [estudiosVisita, setEstudiosVisita] = useState([]);
+	// Día elegido con el ícono de calendario (AAAA-MM-DD): la tabla muestra sólo
+	// las visitas de esa fecha, igual que el filtro de editar solicitud.
+	const [diaFiltro, setDiaFiltro] = useState("");
+	const visitasFiltradas = useMemo(() => {
+		if (!diaFiltro) return historialVisitas;
+		return historialVisitas.filter((visita) => {
+			const fecha = new Date(visita.fecha_venta);
+			if (Number.isNaN(fecha.getTime())) return false;
+			const dia = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
+			return dia === diaFiltro;
+		});
+	}, [historialVisitas, diaFiltro]);
 
 	const buscarPaciente = async () => {
 		if (!buscarCliente.trim()) return;
@@ -282,7 +296,30 @@ const Historial = () => {
 						)}
 
 						<div className="historial-visitas-section">
-							<h2 className="section-title-hist turquesa">Historial del Paciente</h2>
+							<div className="historial-visitas-encabezado">
+								<h2 className="section-title-hist turquesa">Historial del Paciente</h2>
+								{diaFiltro && (
+									<button
+										type="button"
+										className="historial-filtro-dia"
+										aria-label="Quitar filtro de día"
+										onClick={() => setDiaFiltro("")}>
+										{new Date(`${diaFiltro}T12:00:00`).toLocaleDateString("es-MX", {
+											day: "numeric",
+											month: "short",
+											year: "numeric",
+										})}{" "}
+										✕
+									</button>
+								)}
+								<BotonCalendarioDia
+									fecha={diaFiltro}
+									icono={calendarioIcono}
+									etiqueta="Filtrar visitas por día"
+									alinear="derecha"
+									onSeleccionar={setDiaFiltro}
+								/>
+							</div>
 							<div className="tabla-historial-container">
 								<table className="tabla-historial">
 									<thead>
@@ -293,16 +330,18 @@ const Historial = () => {
 										</tr>
 									</thead>
 									<tbody>
-										{historialVisitas.length === 0 ? (
+										{visitasFiltradas.length === 0 ? (
 											<tr>
 												<td colSpan="3" className="sin-historial">
 													{pacienteSeleccionado
-														? "Sin visitas registradas"
+														? diaFiltro && historialVisitas.length > 0
+															? "Sin visitas en ese día"
+															: "Sin visitas registradas"
 														: "Busque un paciente"}
 												</td>
 											</tr>
 										) : (
-											historialVisitas.map((visita) => (
+											visitasFiltradas.map((visita) => (
 												<tr
 													key={visita.id_venta}
 													onClick={() => seleccionarVisita(visita)}

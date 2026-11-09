@@ -7,6 +7,13 @@ import {
 } from "../utils/turnos-pacientes";
 import { activarSonido, sonidoBloqueado, tocarTimbreTurno } from "../utils/timbre-turno";
 import logoCalifornIA from "../assets/logoCalifornIA.png";
+import {
+	SEGUNDOS_POR_PROMOCION,
+	SEGUNDOS_TURNO_EN_PANTALLA,
+	fechaLocalIso,
+	promocionesVisibles,
+	urlPromocion,
+} from "../utils/promociones-sala";
 import "./sala-espera.css";
 
 const hoyLocal = () => {
@@ -44,13 +51,89 @@ const SalaEspera = () => {
 	const [sonidoPendiente, setSonidoPendiente] = useState(() => sonidoBloqueado());
 	const llamadoMostradoRef = useRef(undefined);
 	const llaveLlamado = turnoActual ? `${turnoActual.id_turno}:${turnoActual.llamado_en || ""}` : null;
+	// Hasta cuándo se queda el turno en pantalla antes de volver a las
+	// promociones (milisegundos del reloj de la TV).
+	const [turnoVisibleHasta, setTurnoVisibleHasta] = useState(0);
 	useEffect(() => {
 		if (!turnosCargados) return;
 		const anterior = llamadoMostradoRef.current;
 		llamadoMostradoRef.current = llaveLlamado;
-		if (anterior === undefined || !llaveLlamado || llaveLlamado === anterior) return;
+		if (!llaveLlamado || llaveLlamado === anterior) return;
+		if (anterior === undefined) {
+			// Al abrir la pantalla, el turno que ya estaba sólo se muestra si se
+			// acaba de llamar; uno de hace una hora no tapa las promociones.
+			const llamadoEn = new Date(turnoActual?.llamado_en || 0).getTime();
+			if (Number.isFinite(llamadoEn)) setTurnoVisibleHasta(llamadoEn + SEGUNDOS_TURNO_EN_PANTALLA * 1000);
+			return;
+		}
+		setTurnoVisibleHasta(Date.now() + SEGUNDOS_TURNO_EN_PANTALLA * 1000);
 		tocarTimbreTurno();
 	}, [llaveLlamado, turnosCargados]);
+
+	// Promociones: mientras no hay un llamado reciente la pantalla las pasa en
+	// ciclo. Sin promociones vigentes se queda la pantalla de turnos de siempre.
+	const [promociones, setPromociones] = useState([]);
+	const [indicePromocion, setIndicePromocion] = useState(0);
+	const [, setTick] = useState(0);
+	const turnoEnPantalla = Date.now() < turnoVisibleHasta;
+	const mostrarPromociones = promociones.length > 0 && !turnoEnPantalla;
+
+	// Al vencer el tiempo del turno se vuelve a pintar para regresar a las
+	// promociones.
+	useEffect(() => {
+		const restante = turnoVisibleHasta - Date.now();
+		if (restante <= 0) return undefined;
+		const temporizador = setTimeout(() => setTick((valor) => valor + 1), restante + 50);
+		return () => clearTimeout(temporizador);
+	}, [turnoVisibleHasta]);
+
+	useEffect(() => {
+		if (!mostrarPromociones || promociones.length < 2) return undefined;
+		const intervalo = setInterval(
+			() => setIndicePromocion((indice) => (indice + 1) % promociones.length),
+			SEGUNDOS_POR_PROMOCION * 1000,
+		);
+		return () => clearInterval(intervalo);
+	}, [mostrarPromociones, promociones.length]);
+
+	useEffect(() => {
+		const cargarPromociones = async () => {
+			let respuesta;
+			try {
+				respuesta = await supabase
+					.from("promociones_sala")
+					.select("id_promocion, titulo, storage_path, orden, activa, vigente_desde, vigente_hasta")
+					.eq("activa", true)
+					.order("orden", { ascending: true });
+			} catch {
+				respuesta = { error: true };
+			}
+			const { data, error } = respuesta || {};
+			// Si la tabla aún no existe o falla la consulta, la pantalla sigue con
+			// los turnos como siempre.
+			if (error) return;
+			const visibles = promocionesVisibles(data || [], fechaLocalIso()).map((promocion) => ({
+				...promocion,
+				url: urlPromocion(supabase, promocion.storage_path),
+			}));
+			setPromociones(visibles);
+			setIndicePromocion((indice) => (visibles.length ? indice % visibles.length : 0));
+		};
+		cargarPromociones();
+		// Se recargan al cambiar algo en Configuración y cada media hora, para que
+		// la promoción que empieza o termina hoy entre o salga sola.
+		const recarga = setInterval(cargarPromociones, 30 * 60 * 1000);
+		const canal = supabase
+			.channel("promociones-sala")
+			.on("postgres_changes", { event: "*", schema: "public", table: "promociones_sala" }, () =>
+				cargarPromociones(),
+			)
+			.subscribe();
+		return () => {
+			clearInterval(recarga);
+			supabase.removeChannel(canal);
+		};
+	}, []);
 
 	// Cualquier toque o tecla en la pantalla habilita el sonido.
 	useEffect(() => {
@@ -124,6 +207,38 @@ const SalaEspera = () => {
 		}
 	};
 
+	const botonSonido = sonidoPendiente && (
+		<button
+			type="button"
+			className="sala-activar-sonido"
+			onClick={async () => {
+				if (await activarSonido()) {
+					setSonidoPendiente(false);
+					tocarTimbreTurno();
+				}
+			}}>
+			🔔 Activar sonido de turnos
+		</button>
+	);
+
+	if (mostrarPromociones) {
+		return (
+			<main className="sala-promociones" aria-label="Promociones">
+				{promociones.map((promocion, indice) => (
+					<img
+						key={promocion.id_promocion}
+						src={promocion.url}
+						alt={promocion.titulo || "Promoción"}
+						className={`sala-promocion${indice === indicePromocion ? " activa" : ""}`}
+						aria-hidden={indice !== indicePromocion}
+					/>
+				))}
+				<div className="sala-promociones-reloj">{formatHora(hora)}</div>
+				{botonSonido}
+			</main>
+		);
+	}
+
 	return (
 		<main className="sala-espera-page">
 			<header className="sala-espera-topbar">
@@ -141,19 +256,7 @@ const SalaEspera = () => {
 				</div>
 			</header>
 
-			{sonidoPendiente && (
-				<button
-					type="button"
-					className="sala-activar-sonido"
-					onClick={async () => {
-						if (await activarSonido()) {
-							setSonidoPendiente(false);
-							tocarTimbreTurno();
-						}
-					}}>
-					🔔 Activar sonido de turnos
-				</button>
-			)}
+			{botonSonido}
 
 			<section className={`sala-current ${turnoActual ? "has-call" : ""}`}>
 				{turnoActual ? (

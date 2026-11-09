@@ -407,3 +407,105 @@ describe("estado de la cita desde sus acciones", () => {
 		expect(mockDeleteCita).toHaveBeenCalledWith(1);
 	});
 });
+
+describe("duración de la cita", () => {
+	// jsdom no trae PointerEvent y sin él el evento pierde la coordenada.
+	beforeAll(() => {
+		if (!window.PointerEvent) window.PointerEvent = class extends MouseEvent {};
+	});
+
+	const conDuracion = (duraciones) =>
+		useCalendarioCitas.mockReturnValue({
+			data: citas.map((cita) => ({ ...cita, duracion_minutos: duraciones[cita.id_cita] ?? 30 })),
+			isLoading: false,
+			error: null,
+		});
+
+	beforeEach(() => mockUpdateCita.mockClear());
+
+	test("la cita de una hora también ocupa la media hora siguiente", () => {
+		conDuracion({ 1: 60 });
+		render(<CalendarioCitas />);
+
+		expect(screen.getByLabelText("Abrir acciones de cita de Lucia Root")).toHaveTextContent(/09:15.*–.*10:15/);
+		// Una sola celda que abarca las dos medias horas, no dos pedazos.
+		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "2");
+		expect(screen.queryByTestId("cal-slot-tac-09:30")).not.toBeInTheDocument();
+		expect(screen.queryByLabelText("Crear cita de TAC el 2026-07-15 a las 09:30")).not.toBeInTheDocument();
+	});
+
+	test("la de media hora deja libre el bloque siguiente", () => {
+		render(<CalendarioCitas />);
+
+		expect(screen.getByTestId("cal-slot-tac-09:00")).not.toHaveAttribute("aria-rowspan");
+		expect(screen.getByLabelText("Crear cita de TAC el 2026-07-15 a las 09:30")).toBeInTheDocument();
+	});
+
+	test("jalar la orilla de abajo la alarga a una hora", async () => {
+		render(<CalendarioCitas />);
+		const orilla = screen.getByTestId("cal-resize-abajo-1");
+
+		fireEvent.pointerDown(orilla, { clientY: 100 });
+		fireEvent.pointerMove(window, { clientY: 160 });
+		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "2");
+		fireEvent.pointerUp(window, { clientY: 160 });
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(
+			expect.objectContaining({ fecha_estudio: "2026-06-23T09:15:00", duracion_minutos: 60 }),
+			1,
+		);
+	});
+
+	test("jalar la orilla de arriba adelanta el inicio y conserva el final", () => {
+		render(<CalendarioCitas />);
+
+		fireEvent.pointerDown(screen.getByTestId("cal-resize-arriba-1"), { clientY: 200 });
+		fireEvent.pointerMove(window, { clientY: 140 });
+		fireEvent.pointerUp(window, { clientY: 140 });
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(
+			expect.objectContaining({ fecha_estudio: "2026-06-23T08:45:00", duracion_minutos: 60 }),
+			1,
+		);
+	});
+
+	test("la cita de una hora se regresa a media jalando su final hacia arriba", () => {
+		conDuracion({ 1: 60 });
+		render(<CalendarioCitas />);
+
+		fireEvent.pointerDown(screen.getByTestId("cal-resize-abajo-1"), { clientY: 200 });
+		fireEvent.pointerMove(window, { clientY: 140 });
+		fireEvent.pointerUp(window, { clientY: 140 });
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(expect.objectContaining({ duracion_minutos: 30 }), 1);
+	});
+
+	test("un jalón corto no cambia nada", () => {
+		render(<CalendarioCitas />);
+
+		fireEvent.pointerDown(screen.getByTestId("cal-resize-abajo-1"), { clientY: 100 });
+		fireEvent.pointerMove(window, { clientY: 110 });
+		fireEvent.pointerUp(window, { clientY: 110 });
+
+		expect(mockUpdateCita).not.toHaveBeenCalled();
+	});
+
+	test("si en la segunda media hora empieza otra cita larga, la celda crece hasta cubrirla", () => {
+		useCalendarioCitas.mockReturnValue({
+			data: [
+				{ ...citas[0], duracion_minutos: 60 },
+				{ id_cita: 9, fecha_estudio: "2026-06-23T09:30:00", tipo_estudio: "TAC craneo", nombre_paciente: "Otro Paciente", estado: "pendiente", duracion_minutos: 60 },
+			],
+			isLoading: false,
+			error: null,
+		});
+		render(<CalendarioCitas />);
+
+		const celda = screen.getByTestId("cal-slot-tac-09:00");
+		expect(celda).toHaveAttribute("aria-rowspan", "3");
+		expect(celda).toHaveTextContent("Lucia Root");
+		expect(celda).toHaveTextContent("Otro Paciente");
+		expect(screen.queryByTestId("cal-slot-tac-10:00")).not.toBeInTheDocument();
+		expect(screen.getByTestId("cal-slot-tac-10:30")).toBeInTheDocument();
+	});
+});

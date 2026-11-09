@@ -699,3 +699,31 @@
 	font-size: 0.8rem;
 	color: #6b7280;
 }
+
+/* Duración de la cita: 30 minutos o 1 hora. */
+.cita-duracion-opciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.cita-duracion-opcion {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cita-duracion-opcion.activa {
+  border-color: var(--azul);
+  background: color-mix(in srgb, var(--azul) 14%, var(--superficie));
+  box-shadow: inset 0 0 0 1px var(--azul);
+}
+
+.cita-duracion-opcion:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

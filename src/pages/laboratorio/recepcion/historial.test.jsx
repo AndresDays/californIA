@@ -6,6 +6,7 @@ jest.mock("./historial.css", () => ({}));
 jest.mock("../../../assets/lupaIcono.png", () => "lupaIcono.png");
 jest.mock("../../../assets/notaIcono.png", () => "notaIcono.png");
 jest.mock("../../../assets/pacienteIcono.png", () => "pacienteIcono.png");
+jest.mock("../../../assets/calendarioIcono.png", () => "calendarioIcono.png");
 
 jest.mock("../../../components/page-layout.jsx", () => ({
 	__esModule: true,
@@ -83,7 +84,7 @@ describe("Historial", () => {
 		});
 
 		await act(async () => {
-			fireEvent.click(screen.getByRole("button"));
+			fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
 		});
 
 		expect(await screen.findByText("IMG-16")).toBeInTheDocument();
@@ -100,5 +101,39 @@ describe("Historial", () => {
 		expect(visorLink).toHaveAttribute("href", "/visor-paciente/16");
 		expect(visorLink).toHaveAttribute("target", "_blank");
 		expect(visorLink).toHaveAttribute("rel", "noopener noreferrer");
+	});
+
+	// Igual que en editar solicitud: el ícono de calendario deja elegir un día
+	// y la tabla se queda con las visitas de esa fecha.
+	test("el ícono de calendario filtra las visitas por día", async () => {
+		await act(async () => {
+			render(<Historial />);
+		});
+		fireEvent.change(screen.getByPlaceholderText("Buscar Cliente..."), {
+			target: { value: "Paloma" },
+		});
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+		});
+		expect(await screen.findByText("IMG-16")).toBeInTheDocument();
+
+		const elegirDia = (iso) => {
+			fireEvent.click(screen.getByRole("button", { name: "Filtrar visitas por día" }));
+			for (let intento = 0; intento < 36 && !screen.queryByLabelText(iso); intento += 1) {
+				fireEvent.click(screen.getByRole("button", { name: "Mes anterior" }));
+			}
+			fireEvent.click(screen.getByLabelText(iso));
+		};
+
+		elegirDia("2026-07-13");
+		expect(screen.queryByText("IMG-16")).not.toBeInTheDocument();
+		expect(screen.getByText("Sin visitas en ese día")).toBeInTheDocument();
+
+		elegirDia("2026-07-14");
+		expect(screen.getByText("IMG-16")).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Quitar filtro de día" }));
+		expect(screen.getByText("IMG-16")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Quitar filtro de día" })).not.toBeInTheDocument();
 	});
 });
