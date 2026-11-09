@@ -9,6 +9,8 @@ import { esEmailValido, esTelefono10Digitos, normalizarTelefono10 } from '../uti
 import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 import { useNavegacionLista } from '../hooks/use-navegacion-lista';
+import CampoDuracionCita from './campo-duracion-cita';
+import { DURACION_CORTA } from '../utils/duracion-cita';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 import {
@@ -81,6 +83,7 @@ const NuevaCitaModal = ({
   // Quien llama deja un teléfono o un correo, no las dos cosas: un solo campo
   // con el tipo al lado evita pedir un dato que el paciente no dio.
   const [tipoContacto, setTipoContacto] = useState('telefono');
+  const [duracion, setDuracion] = useState(DURACION_CORTA);
 
   const [clientes, setClientes] = useState([]);
   // Empresa, cliente y tipo de estudio se capturan como texto: agendar por
@@ -127,6 +130,7 @@ const NuevaCitaModal = ({
     cargarEstudios();
 
     const ahora = new Date();
+    setDuracion(DURACION_CORTA);
     setFormData(prev => ({
       ...prev,
       fecha: fechaInicial || ahora.toISOString().split('T')[0],
@@ -419,7 +423,11 @@ const NuevaCitaModal = ({
         tipo_estudio: estudiosTexto || tipoEstudioSeleccionado.trim() || null,
         fecha_estudio: fechaHora,
         estado: 'pendiente',
-        monto
+        monto,
+        // Sólo viaja cuando no es la de siempre: la columna tiene 30 por
+        // omisión, y así la cita de media hora se sigue guardando aunque la
+        // migración de la duración aún no esté aplicada.
+        ...(duracion !== DURACION_CORTA && { duracion_minutos: duracion }),
       };
 
       const { data: nuevaCita, error: errorCita } = await conLimiteDeEspera(
@@ -432,6 +440,7 @@ const NuevaCitaModal = ({
       onCitaCreada?.(nuevaCita);
 
       setFormData({ nombreCompleto: '', contacto: '', fecha: '', hora: '' });
+      setDuracion(DURACION_CORTA);
       setRenglon('');
       setClienteSeleccionado('');
       setTipoEstudioSeleccionado('');
@@ -805,6 +814,8 @@ const NuevaCitaModal = ({
                 className="form-input-cita" disabled={loading} />
             </div>
           </div>
+
+          <CampoDuracionCita valor={duracion} onChange={setDuracion} disabled={loading} />
 
           <div className="modal-footer-cita">
             <button type="button" className="btn-cancel-cita" onClick={onClose} disabled={loading}>

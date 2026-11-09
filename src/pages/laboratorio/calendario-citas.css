@@ -207,10 +207,13 @@
 	scrollbar-color: #2f6f8b #071724;
 }
 
+/* Las seis columnas tienen que caber a lo ancho de una pantalla de recepción
+   sin deslizar de lado: antes pedían 188px cada una y la de "Otros" quedaba
+   siempre fuera. Sólo en pantallas muy angostas vuelve a salir la barra. */
 .cal-grid {
 	display: grid;
-	grid-template-columns: 78px repeat(6, minmax(188px, 1fr));
-	min-width: 1582px;
+	grid-template-columns: 64px repeat(6, minmax(112px, 1fr));
+	min-width: 736px;
 }
 
 .cal-corner,
@@ -234,10 +237,11 @@
 	flex-direction: column;
 	justify-content: center;
 	gap: 5px;
-	padding: 0 14px 0 18px;
+	min-width: 0;
+	padding: 0 8px 0 12px;
 	color: var(--texto);
 	text-transform: uppercase;
-	font-size: 0.8125rem;
+	font-size: 0.75rem;
 	font-weight: 800;
 	box-shadow: inset 4px 0 0 #94a3b8;
 }
@@ -262,20 +266,21 @@
 	left: 0;
 	z-index: 2;
 	min-height: 52px;
-	padding: 12px 8px;
+	padding: 12px 6px;
 	background: var(--superficie);
 	border-right: 1px solid var(--borde);
 	border-bottom: 1px solid var(--borde);
 	color: var(--texto);
-	font-size: 0.8125rem;
+	font-size: 0.75rem;
 	font-weight: 800;
 	box-sizing: border-box;
 }
 
 .cal-slot {
 	position: relative;
+	min-width: 0;
 	min-height: 52px;
-	padding: 7px;
+	padding: 6px;
 	border-right: 1px solid var(--borde);
 	border-bottom: 1px solid var(--borde);
 	box-sizing: border-box;
@@ -288,7 +293,12 @@
 	display: flex;
 	flex-direction: column;
 	gap: 3px;
-	padding: 8px 9px 9px;
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
+	text-align: left;
+	padding: 7px 7px 8px 10px;
 	border-radius: 6px;
 	border-left: 5px solid var(--borde-fuerte);
 	background: var(--superficie);
@@ -304,8 +314,88 @@
 	box-shadow: 0 14px 28px rgba(18, 41, 61, 0.14);
 }
 
-.cal-card + .cal-card {
+.cal-card-wrap {
+	position: relative;
+}
+
+.cal-card-wrap + .cal-card-wrap {
 	margin-top: 6px;
+}
+
+/* La cita de una hora se ve como una sola tarjeta que cruza la línea entre
+   las dos medias horas: la parte de arriba pierde sus esquinas de abajo y la
+   continuación, las de arriba, y se pega al borde de su renglón. */
+.cal-card-wrap.larga .cal-card {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+.cal-card-wrap.continuacion {
+	margin-top: -6px;
+}
+
+.cal-card.cal-card-continuacion {
+	min-height: 32px;
+	justify-content: center;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+	box-shadow: inset 5px 0 0 var(--cal-color, var(--borde-fuerte));
+}
+
+.cal-card.cal-card-continuacion span {
+	opacity: 0.75;
+}
+
+/* Las orillas de la tarjeta se jalan para pasar la cita de media hora a una
+   hora, o regresarla. Aparecen al pasar el puntero o al seleccionar la cita. */
+.cal-resize {
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	z-index: 2;
+	height: 10px;
+	cursor: ns-resize;
+	touch-action: none;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.cal-resize::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 28px;
+	height: 4px;
+	margin: -2px 0 0 -14px;
+	border-radius: 999px;
+	background: var(--cal-color, var(--borde-fuerte));
+	box-shadow: 0 0 0 2px var(--superficie);
+}
+
+.cal-resize-arriba {
+	top: -5px;
+}
+
+.cal-resize-abajo {
+	bottom: -5px;
+}
+
+.cal-card-wrap:hover .cal-resize,
+.cal-card-wrap:focus-within .cal-resize,
+.cal-card-wrap:has(.ajustando) .cal-resize {
+	opacity: 1;
+}
+
+@media (hover: none) {
+	.cal-resize {
+		opacity: 1;
+	}
+}
+
+.cal-card.ajustando {
+	outline: 2px dashed var(--cal-color, var(--borde-fuerte));
+	outline-offset: 1px;
 }
 
 .cal-card strong {
@@ -363,32 +453,38 @@
    del texto -azul para casi todas- y no se podía saber de un vistazo a qué
    columna pertenecía la que se estaba mirando. */
 .cal-study-header.tipo-ultrasonido,
-.cal-card.tipo-ultrasonido {
+.cal-card.tipo-ultrasonido,
+.cal-card-wrap.tipo-ultrasonido {
 	--cal-color: #eab308;
 }
 
 .cal-study-header.tipo-tac,
-.cal-card.tipo-tac {
+.cal-card.tipo-tac,
+.cal-card-wrap.tipo-tac {
 	--cal-color: #06b6d4;
 }
 
 .cal-study-header.tipo-resonancia,
-.cal-card.tipo-resonancia {
+.cal-card.tipo-resonancia,
+.cal-card-wrap.tipo-resonancia {
 	--cal-color: var(--exito);
 }
 
 .cal-study-header.tipo-mastografia,
-.cal-card.tipo-mastografia {
+.cal-card.tipo-mastografia,
+.cal-card-wrap.tipo-mastografia {
 	--cal-color: #db2777;
 }
 
 .cal-study-header.tipo-densitometria,
-.cal-card.tipo-densitometria {
+.cal-card.tipo-densitometria,
+.cal-card-wrap.tipo-densitometria {
 	--cal-color: #f97316;
 }
 
 .cal-study-header.tipo-otros,
-.cal-card.tipo-otros {
+.cal-card.tipo-otros,
+.cal-card-wrap.tipo-otros {
 	--cal-color: #64748b;
 }
 
@@ -532,7 +628,7 @@
 	text-decoration: line-through;
 }
 
-.cal-card + .cal-empty-slot {
+.cal-card-wrap + .cal-empty-slot {
 	margin-top: 6px;
 	min-height: 28px;
 }

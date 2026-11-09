@@ -16,6 +16,7 @@ import EditarCitaModal from "../../components/editar-cita-modal";
 import MiniCalendarioMes from "./componentes/mini-calendario-mes";
 import { supabase } from "../../lib/supabase-client";
 import { CITA_ESTADOS } from "../../utils/cita-lifecycle";
+import { DURACION_CORTA, DURACION_LARGA, duracionDeCita, moverFechaEstudio } from "../../utils/duracion-cita";
 import "./calendario-citas.css";
 
 // `tipoEstudio` es lo que se le pone a la cita nueva abierta desde esa columna:
@@ -123,6 +124,36 @@ const esRealizada = (cita) => cita?.estado === CITA_ESTADOS.REALIZADA;
 const obtenerNombrePaciente = (cita) =>
 	cita?.pacientes?.nombre || cita?.nombre_paciente || "Sin paciente";
 
+const indiceDeBloque = (valor) => BLOQUES_CALENDARIO.findIndex((bloque) => bloque.valor === valor);
+
+const formatearHoraTarjeta = (cita) =>
+	new Date(cita.fecha_estudio).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+// A qué hora se desocupa el horario: la de inicio más lo que dura la cita.
+const horaFinDeCita = (cita) => {
+	const fin = moverFechaEstudio(cita.fecha_estudio, duracionDeCita(cita));
+	return fin ? formatearHoraTarjeta({ fecha_estudio: fin }) : "";
+};
+
+// Lo que queda de la cita al jalar una de sus orillas `pasos` bloques de media
+// hora. La orilla de abajo mueve el final; la de arriba mueve el inicio y deja
+// el final donde estaba. La cita no baja de media hora ni pasa de una, y no se
+// sale de la rejilla. Devuelve null si el jalón no cambia nada.
+const ajusteDeOrilla = (cita, borde, pasos) => {
+	const duracion = duracionDeCita(cita);
+	const signo = borde === "abajo" ? 1 : -1;
+	const nuevaDuracion = Math.min(DURACION_LARGA, Math.max(DURACION_CORTA, duracion + signo * pasos * 30));
+	if (nuevaDuracion === duracion) return null;
+	const fechaEstudio = borde === "arriba"
+		? moverFechaEstudio(cita.fecha_estudio, duracion - nuevaDuracion)
+		: cita.fecha_estudio;
+	if (!fechaEstudio) return null;
+	const inicio = indiceDeBloque(obtenerHoraCita({ fecha_estudio: fechaEstudio }));
+	const ultimo = inicio + nuevaDuracion / 30 - 1;
+	if (inicio < 0 || ultimo >= BLOQUES_CALENDARIO.length) return null;
+	return { fecha_estudio: fechaEstudio, duracion_minutos: nuevaDuracion };
+};
+
 const CalendarioCitas = () => {
 	const { empleadoData, formatRol, getPrimerNombre } = useEmpleadoActual();
 	const navigate = useNavigate();
@@ -156,7 +187,17 @@ const CalendarioCitas = () => {
 	const puedeCambiarSucursal = ["admin", "administrador", "radiologo", "desarrollador"].includes(rolNormalizado);
 	useEffect(() => setSucursalCalendario(empleadoData?.id_sucursal ? String(empleadoData.id_sucursal) : ""), [empleadoData?.id_sucursal]);
 	const { data: sucursales = [] } = useSucursales();
-	const { data: citasDelDia = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada, sucursalCalendario);
+	const { data: citasConsultadas = [], isLoading, error } = useCalendarioCitas(fechaSeleccionada, sucursalCalendario);
+
+	// Mientras se jala la orilla de una cita -y hasta que la base confirma el
+	// cambio- la tarjeta se pinta ya con la duración nueva.
+	const [ajustes, setAjustes] = useState({});
+	const [errorCalendario, setErrorCalendario] = useState("");
+	const arrastreRef = useRef(null);
+	const citasDelDia = useMemo(
+		() => citasConsultadas.map((cita) => (ajustes[cita.id_cita] ? { ...cita, ...ajustes[cita.id_cita] } : cita)),
+		[citasConsultadas, ajustes],
+	);
 
 	// Buscar al paciente a ojo en una rejilla de 26 renglones por seis columnas
 	// no es práctico: el buscador acota la agenda del día al paciente capturado,
@@ -206,6 +247,79 @@ const CalendarioCitas = () => {
 
 		return grupos;
 	}, [citas]);
+
+	// La cita de una hora también ocupa el bloque de media hora que sigue: ahí
+	// se pinta su continuación y ese hueco ya no se ofrece libre. La cancelada
+	// no aparta nada.
+	const continuacionesPorTipoYHora = useMemo(() => {
+		const grupos = new Map(TIPOS_ESTUDIO_CALENDARIO.map((tipo) => [tipo.id, new Map()]));
+		citas.forEach((cita) => {
+			if (esCancelada(cita) || duracionDeCita(cita) <= DURACION_CORTA) return;
+			const siguiente = BLOQUES_CALENDARIO[indiceDeBloque(obtenerHoraCita(cita)) + 1];
+			if (!siguiente || indiceDeBloque(obtenerHoraCita(cita)) < 0) return;
+			const porHora = grupos.get(obtenerTipoCalendario(cita).id);
+			porHora.set(siguiente.valor, [...(porHora.get(siguiente.valor) || []), cita]);
+		});
+		return grupos;
+	}, [citas]);
+
+	const guardarAjuste = async (idCita, ajuste) => {
+		const { error: errorAjuste } = await supabase
+			.from("citas")
+			.update({ ...ajuste, updated_at: new Date().toISOString() })
+			.eq("id_cita", idCita);
+		if (errorAjuste) {
+			setErrorCalendario("No se pudo cambiar la duración de la cita. Intenta de nuevo.");
+		} else {
+			setErrorCalendario("");
+			await queryClient.invalidateQueries({ queryKey: ["citas"] });
+		}
+		setAjustes(({ [idCita]: _, ...resto }) => resto);
+	};
+
+	// Jalar la orilla de arriba o de abajo de una cita la alarga a una hora o la
+	// regresa a media. Cada media hora de la rejilla que recorre el puntero es un
+	// paso; al soltar se guarda.
+	const empezarArrastre = (event, cita, borde) => {
+		event.preventDefault();
+		event.stopPropagation();
+		const original = citasConsultadas.find((consultada) => consultada.id_cita === cita.id_cita) || cita;
+		const altoBloque = event.currentTarget.closest(".cal-slot")?.offsetHeight || 52;
+		arrastreRef.current = { original, borde, inicioY: event.clientY, altoBloque, ajuste: null };
+
+		const mover = (movimiento) => {
+			const arrastre = arrastreRef.current;
+			if (!arrastre) return;
+			const recorrido = Math.round((movimiento.clientY - arrastre.inicioY) / arrastre.altoBloque);
+			if (!Number.isFinite(recorrido)) return;
+			const pasos = Math.max(-1, Math.min(1, recorrido));
+			arrastre.ajuste = ajusteDeOrilla(arrastre.original, arrastre.borde, pasos);
+			setAjustes(({ [arrastre.original.id_cita]: _, ...resto }) =>
+				arrastre.ajuste ? { ...resto, [arrastre.original.id_cita]: arrastre.ajuste } : resto,
+			);
+		};
+		const soltar = () => {
+			window.removeEventListener("pointermove", mover);
+			window.removeEventListener("pointerup", soltar);
+			window.removeEventListener("pointercancel", soltar);
+			const arrastre = arrastreRef.current;
+			arrastreRef.current = null;
+			if (arrastre?.ajuste) guardarAjuste(arrastre.original.id_cita, arrastre.ajuste);
+		};
+		window.addEventListener("pointermove", mover);
+		window.addEventListener("pointerup", soltar);
+		window.addEventListener("pointercancel", soltar);
+	};
+
+	const orillaArrastrable = (cita, borde) => (
+		<span
+			className={`cal-resize cal-resize-${borde}`}
+			role="presentation"
+			title={borde === "arriba" ? "Arrastra para mover el inicio de la cita" : "Arrastra para mover el final de la cita"}
+			data-testid={`cal-resize-${borde}-${cita.id_cita}`}
+			onPointerDown={(event) => empezarArrastre(event, cita, borde)}
+		/>
+	);
 
 	// Al abrir el día de hoy la agenda se coloca en la hora actual, con un par de
 	// renglones arriba para ver la cita que acaba de pasar.
@@ -352,6 +466,7 @@ const CalendarioCitas = () => {
 								.join(" · ")}
 						</div>
 					)}
+					{errorCalendario && <div className="cal-state error" role="alert">{errorCalendario}</div>}
 					{isLoading && <div className="cal-state">Cargando citas...</div>}
 					{error && <div className="cal-state error">No se pudieron cargar las citas.</div>}
 
@@ -381,30 +496,47 @@ const CalendarioCitas = () => {
 										</div>
 										{TIPOS_ESTUDIO_CALENDARIO.map((tipo) => {
 											const citasHora = citasPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
+											const continuaciones = continuacionesPorTipoYHora.get(tipo.id)?.get(bloque.valor) || [];
+											const clasesTarjeta = (cita) => `cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}${esCancelada(cita) ? " cancelada" : ""}${esRealizada(cita) ? " realizada" : ""}${ajustes[cita.id_cita] ? " ajustando" : ""}`;
 											return (
 												<div key={`${tipo.id}-${bloque.valor}`} className="cal-slot" role="cell">
 													{lineaAhora?.bloque === bloque.valor && (
 														<div className="cal-ahora-linea" style={{ top: `${lineaAhora.porcentaje}%` }} aria-hidden="true" />
 													)}
-													{citasHora.map((cita) => (
-															<button type="button" className={`cal-card tipo-${tipo.id}${coincidencias.some((encontrada) => encontrada.id === cita.id_cita) ? " encontrada" : ""}${esCancelada(cita) ? " cancelada" : ""}${esRealizada(cita) ? " realizada" : ""}`} key={cita.id_cita} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => abrirAcciones(cita)}>
-																<div className="cal-card-time">
-																	{new Date(cita.fecha_estudio).toLocaleTimeString("es-MX", {
-																		hour: "2-digit",
-																		minute: "2-digit",
-																	})}
-																</div>
-																<strong>{obtenerEstudioDeLaTarjeta(cita)}</strong>
+													{continuaciones.map((cita) => (
+														<div className={`cal-card-wrap continuacion tipo-${tipo.id}`} key={`continua-${cita.id_cita}`}>
+															<button type="button" className={`${clasesTarjeta(cita)} cal-card-continuacion`} aria-label={`Cita de ${obtenerNombrePaciente(cita)} continua hasta las ${horaFinDeCita(cita)}`} onClick={() => abrirAcciones(cita)}>
 																<span>{obtenerNombrePaciente(cita)}</span>
-																{esRealizada(cita) ? (
-																	<small className="cal-card-realizada">✓ Realizada</small>
-																) : (
-																	cita.estado && <small>{cita.estado}</small>
-																)}
+																<small>hasta {horaFinDeCita(cita)}</small>
 															</button>
-														))}
-													{/* Un horario con sólo citas canceladas sigue libre. */}
-													{citasHora.every(esCancelada) && (
+															{orillaArrastrable(cita, "abajo")}
+														</div>
+													))}
+													{citasHora.map((cita) => {
+														const larga = duracionDeCita(cita) > DURACION_CORTA;
+														return (
+															<div className={`cal-card-wrap tipo-${tipo.id}${larga ? " larga" : ""}`} key={cita.id_cita}>
+																{!esCancelada(cita) && orillaArrastrable(cita, "arriba")}
+																<button type="button" className={clasesTarjeta(cita)} aria-label={`Abrir acciones de cita de ${obtenerNombrePaciente(cita)}`} onClick={() => abrirAcciones(cita)}>
+																	<div className="cal-card-time">
+																		{formatearHoraTarjeta(cita)}
+																		{larga && ` – ${horaFinDeCita(cita)}`}
+																	</div>
+																	<strong>{obtenerEstudioDeLaTarjeta(cita)}</strong>
+																	<span>{obtenerNombrePaciente(cita)}</span>
+																	{esRealizada(cita) ? (
+																		<small className="cal-card-realizada">✓ Realizada</small>
+																	) : (
+																		cita.estado && <small>{cita.estado}</small>
+																	)}
+																</button>
+																{!esCancelada(cita) && !larga && orillaArrastrable(cita, "abajo")}
+															</div>
+														);
+													})}
+													{/* Un horario con sólo citas canceladas sigue libre; el que ocupa
+													    la segunda media hora de una cita larga, no. */}
+													{citasHora.every(esCancelada) && continuaciones.length === 0 && (
 														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													)}
 												</div>
