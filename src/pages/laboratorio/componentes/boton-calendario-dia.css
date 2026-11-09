@@ -1,0 +1,31 @@
+.boton-calendario-dia {
+	position: relative;
+	display: inline-flex;
+	flex-shrink: 0;
+}
+
+.boton-calendario-dia-icono {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.boton-calendario-dia-icono img {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	opacity: 0.8;
+	filter: var(--icono-tinte);
+}
+
+.boton-calendario-dia-icono:hover,
+.boton-calendario-dia-icono:focus-visible,
+.boton-calendario-dia-icono.activo {
+	border-color: var(--borde-fuerte);
+	background: var(--superficie-hover);
+}

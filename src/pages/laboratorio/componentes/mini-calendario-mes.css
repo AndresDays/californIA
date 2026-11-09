@@ -103,3 +103,10 @@
 	font-weight: 700;
 	cursor: pointer;
 }
+
+/* Abierto desde un ícono a la izquierda de su campo: se despliega hacia la
+   derecha para no salirse de la pantalla. */
+.mini-cal.mini-cal-izquierda {
+	left: 0;
+	right: auto;
+}
