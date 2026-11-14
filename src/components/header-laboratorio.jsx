@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/auth-context';
-import { esRecepcionista } from '../utils/role-permissions';
+import { atiendeRecepcion } from '../utils/role-permissions';
 import './header-lab.css';
 import californIA from '../assets/CalifornIA.png';
 import usericon from '../assets/usericon.png';
@@ -34,7 +34,7 @@ const HeaderLab = ({ tipo = 'default' }) => {
   };
 
   const headerClass = tipo === 'azul' ? 'app-header azul' : 'app-header';
-  const recepcionista = esRecepcionista(empleadoData?.rol);
+  const recepcionista = atiendeRecepcion(empleadoData?.rol);
 
   return (
     <header className={headerClass}>
