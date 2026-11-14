@@ -31,7 +31,16 @@ export const filtrarEstudiosSoloLaboratorio = (estudios = [], rol = "") =>
 // resuelve aquí -y no en la pantalla- porque de él dependen las consultas, la
 // impresión y el nombre del archivo exportado, y bastaba olvidar uno para que
 // se colara un periodo entero.
-const ROLES_REPORTE_SOLO_HOY = ["recepcionista", "recepcion", "recepción"];
+// Técnico - Recepción entra al reporte sólo por su lado de recepción, así que
+// hereda la misma restricción.
+const ROLES_REPORTE_SOLO_HOY = [
+	"recepcionista",
+	"recepcion",
+	"recepción",
+	"tecnico_recepcion",
+	"tecnico - recepcion",
+	"tecnico recepcion",
+];
 
 export const esRolReporteSoloHoy = (rol = "") =>
 	ROLES_REPORTE_SOLO_HOY.includes(

@@ -19,7 +19,7 @@ import '../components/nueva-cita-modal.css';
 import PageLayout from '../components/page-layout';
 import { useEmpleadoActual } from '../hooks/use-empleado-actual';
 import { supabase } from '../lib/supabase-client';
-import { esDashboardRayosX, esDoctorExternoPermisos, esQuimico, esRecepcionista } from '../utils/role-permissions';
+import { esDashboardRayosX, esDoctorExternoPermisos, esQuimico, esRecepcionista, esTecnicoRecepcion } from '../utils/role-permissions';
 import './CalifornIA.css';
 
 const Dashboard = () => {
@@ -185,7 +185,9 @@ const Dashboard = () => {
 	const esDashboardRestringido =
 		esRolRecepcionista || esQuimico(rolEmpleado) || esRolDashboardRayosX;
 	const mostrarModuloRadiologia = !esDashboardRestringido || esRolDashboardRayosX;
-	const mostrarAccionesRapidas = !esRolDashboardRayosX;
+	// Técnico - Recepción ve el tablero de rayos X y, por su lado de recepción,
+	// también las acciones rápidas.
+	const mostrarAccionesRapidas = !esRolDashboardRayosX || esTecnicoRecepcion(rolEmpleado);
 	const puedeVerIngresos = !esDashboardRestringido;
 	const tipoGraficaActual = puedeVerIngresos ? tipoGrafica : "pacientes";
 	const esAdmin =
@@ -198,7 +200,7 @@ const Dashboard = () => {
 			descripcion: "Pendientes de capturar",
 			conteo: bandejasTrabajo.capturaPendiente,
 			ruta: "/captura",
-			roles: ["quimico", "capturista", "recepcionista"],
+			roles: ["quimico", "capturista", "recepcionista", "tecnico_recepcion"],
 		},
 		{
 			id: "captura-validar",
@@ -214,7 +216,7 @@ const Dashboard = () => {
 			descripcion: "Pendientes de tomar/subir",
 			conteo: bandejasTrabajo.radiologiaSubir,
 			ruta: "/radiologia",
-			roles: ["tecnico", "tecnico_radiologia"],
+			roles: ["tecnico", "tecnico_radiologia", "tecnico_recepcion"],
 		},
 		{
 			id: "radiologo-interpretar",
@@ -230,7 +232,7 @@ const Dashboard = () => {
 			descripcion: "Listos para entregar",
 			conteo: bandejasTrabajo.entregaLista,
 			ruta: "/entrega-resultados",
-			roles: ["recepcionista", "entrega"],
+			roles: ["recepcionista", "tecnico_recepcion", "entrega"],
 		},
 	];
 	const bandejasVisibles = esAdmin
