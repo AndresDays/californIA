@@ -193,6 +193,7 @@ const CortesDia = () => {
 			administrador: "Administrador",
 			desarrollador: "Desarrollador",
 			recepcionista: "Recepcionista",
+			tecnico_recepcion: "Técnico - Recepción",
 			quimico: "Químico",
 			tecnico: "Técnico",
 			tecnico_radiologia: "Técnico en Radiología",

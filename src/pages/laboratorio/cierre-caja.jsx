@@ -430,7 +430,7 @@ const CierreCaja = () => {
 			admin: "Administrador", administrador: "Administrador",
 			radiologo: "Radiólogo - Director", doctor: "Médico", medico: "Médico",
 			tecnico_radiologia: "Técnico en Radiología", tecnico: "Técnico",
-			quimico: "Químico", recepcionista: "Recepcionista", desarrollador: "Desarrollador",
+			quimico: "Químico", recepcionista: "Recepcionista", tecnico_recepcion: "Técnico - Recepción", desarrollador: "Desarrollador",
 		}[rol] || rol;
 	};
 
