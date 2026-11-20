@@ -10,6 +10,7 @@ const ROLES = {
 	tecnico: "Técnico",
 	quimico: "Químico",
 	recepcionista: "Recepcionista",
+	tecnico_recepcion: "Técnico - Recepción",
 	desarrollador: "Desarrollador",
 };
 

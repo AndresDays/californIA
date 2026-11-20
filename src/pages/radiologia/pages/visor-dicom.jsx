@@ -3508,6 +3508,7 @@ const VisorDicom = () => {
 			tecnico_radiologia: "Técnico en Radiología",
 			quimico: "Químico",
 			recepcionista: "Recepcionista",
+			tecnico_recepcion: "Técnico - Recepción",
 			desarrollador: "Desarrollador",
 		};
 		return roles[rol] || rol || "Usuario";

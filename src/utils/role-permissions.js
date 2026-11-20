@@ -31,6 +31,10 @@ const ROLES_MODULO_VISITADORA = new Set([
 	"radiologo_director",
 ]);
 const ROL_TECNICO_RADIOLOGIA = "tecnico_radiologia";
+// "Técnico - Recepción" cubre los dos puestos a la vez: toma y sube estudios
+// como el técnico en radiología y atiende el mostrador como recepción. No
+// tiene reglas propias: sus permisos son la suma de los de esos dos roles.
+const ROL_TECNICO_RECEPCION = "tecnico_recepcion";
 const ROLES_MENU_TIPO_QUIMICO = new Set([
 	"quimico",
 	"tecnico",
@@ -44,8 +48,20 @@ const ROLES_DASHBOARD_RAYOS_X = new Set([
 	...ROLES_DOCTOR_EXTERNO,
 ]);
 
+export const esTecnicoRecepcion = (rol) =>
+	normalizarRolPermisos(rol) === ROL_TECNICO_RECEPCION;
+
 export const esRecepcionista = (rol) =>
 	ROLES_RECEPCIONISTA.has(normalizarRolPermisos(rol));
+
+// Quien atiende recepción, sea de tiempo completo o como técnico - recepción.
+export const atiendeRecepcion = (rol) => esRecepcionista(rol) || esTecnicoRecepcion(rol);
+
+// Quien toma y sube estudios de imagen como técnico.
+export const esTecnicoRadiologia = (rol) => {
+	const rolNormalizado = normalizarRolPermisos(rol);
+	return rolNormalizado === ROL_TECNICO_RADIOLOGIA || rolNormalizado === ROL_TECNICO_RECEPCION;
+};
 
 export const esQuimico = (rol) => normalizarRolPermisos(rol) === "quimico";
 
@@ -68,7 +84,7 @@ export const esMenuTipoQuimico = (rol) =>
 	ROLES_MENU_TIPO_QUIMICO.has(normalizarRolPermisos(rol));
 
 export const esDashboardRayosX = (rol) =>
-	ROLES_DASHBOARD_RAYOS_X.has(normalizarRolPermisos(rol));
+	ROLES_DASHBOARD_RAYOS_X.has(normalizarRolPermisos(rol)) || esTecnicoRecepcion(rol);
 
 export const esVisitadora = (rol) => ROLES_VISITADORA.has(normalizarRolPermisos(rol));
 
@@ -180,6 +196,14 @@ export const puedeAccederRuta = (rol, pathname = "") => {
 		);
 	}
 
+	// Entra a donde entraría cualquiera de los dos roles que reúne.
+	if (esTecnicoRecepcion(rol)) {
+		return (
+			puedeAccederRuta(ROL_TECNICO_RADIOLOGIA, pathname) ||
+			puedeAccederRuta("recepcionista", pathname)
+		);
+	}
+
 	if (normalizarRolPermisos(rol) === ROL_TECNICO_RADIOLOGIA) {
 		return !TECNICO_RADIOLOGIA_PATHS_BLOQUEADOS.some(
 			(path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -234,6 +258,32 @@ const sinClientesConvenio = (items = []) =>
 			: item,
 	);
 
+// Junta dos menús ya filtrados respetando el orden del menú original: un ítem
+// aparece si está en cualquiera de los dos, con la unión de sus submenús.
+const unirMenus = (items = [], menuA = [], menuB = []) => {
+	const porIdA = new Map(menuA.map((item) => [item.id, item]));
+	const porIdB = new Map(menuB.map((item) => [item.id, item]));
+	return items
+		.map((item) => {
+			const a = porIdA.get(item.id);
+			const b = porIdB.get(item.id);
+			if (!a && !b) return null;
+			if (!a || !b) return a || b;
+			if (!item.submenu) return a;
+			const subIds = new Set(
+				[...(a.submenu || []), ...(b.submenu || [])].map((subItem) => subItem.id),
+			);
+			return {
+				...a,
+				// Si alguno de los dos navegaba con el ítem padre, se conserva el
+				// path original del menú.
+				path: a.path === b.path ? a.path : item.path,
+				submenu: item.submenu.filter((subItem) => subIds.has(subItem.id)),
+			};
+		})
+		.filter(Boolean);
+};
+
 const filtrarMenuPorRolBase = (items = [], rol) => {
 	// Para la visitadora el módulo es casi todo su menú; de Administración se le
 	// deja únicamente el catálogo de doctores.
@@ -257,6 +307,13 @@ const filtrarMenuPorRolBase = (items = [], rol) => {
 	if (normalizarRolPermisos(rol) === ROL_RADIOLOGO_CLINICO) return [];
 	if (esDoctorExternoPermisos(rol)) {
 		return items.filter((item) => item.id === "inicio");
+	}
+	if (esTecnicoRecepcion(rol)) {
+		return unirMenus(
+			items,
+			filtrarMenuPorRolBase(items, ROL_TECNICO_RADIOLOGIA),
+			filtrarMenuPorRolBase(items, "recepcionista"),
+		);
 	}
 	if (normalizarRolPermisos(rol) === ROL_TECNICO_RADIOLOGIA) {
 		return filtrarMenuPorRolBase(

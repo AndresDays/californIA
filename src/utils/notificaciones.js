@@ -4,13 +4,14 @@ const CANALES_ROLES = {
 	radiologia: [
 		"radiologo",
 		"tecnico_radiologia",
+		"tecnico_recepcion",
 		"tecnico",
 		"administrador",
 		"admin",
 		"desarrollador",
 	],
-	entrega: ["recepcionista", "administrador", "admin", "desarrollador"],
-	recepcion: ["recepcionista", "administrador", "admin", "desarrollador"],
+	entrega: ["recepcionista", "tecnico_recepcion", "administrador", "admin", "desarrollador"],
+	recepcion: ["recepcionista", "tecnico_recepcion", "administrador", "admin", "desarrollador"],
 	todos: [],
 };
 

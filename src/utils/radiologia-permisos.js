@@ -24,6 +24,7 @@ const ROLES_PUEDEN_SUBIR_IMAGEN = new Set([
 	"radiologo_clinico",
 	"tecnico",
 	"tecnico_radiologia",
+	"tecnico_recepcion",
 ]);
 
 const normalizarRolRadiologia = (rol) => {

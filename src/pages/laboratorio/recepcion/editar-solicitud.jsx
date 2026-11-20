@@ -149,7 +149,7 @@ const EditarSolicitud = () => {
 				if (!error && empleado) {
 					setEmpleadoData(empleado);
 					setVendedor(empleado.nombre || "");
-					if (empleado.rol === "recepcionista")
+					if (["recepcionista", "tecnico_recepcion"].includes(empleado.rol))
 						setRecepcionistaSeleccionado(empleado.nombre);
 				}
 			} catch (err) {
@@ -192,7 +192,7 @@ const EditarSolicitud = () => {
 			const { data, error } = await supabase
 				.from("empleados")
 				.select("id_empleado, nombre, rol")
-				.eq("rol", "recepcionista")
+				.in("rol", ["recepcionista", "tecnico_recepcion"])
 				.order("nombre");
 			if (!error) setRecepcionistas(data || []);
 		} catch (err) {
@@ -929,6 +929,7 @@ const EditarSolicitud = () => {
 			tecnico: "Técnico",
 			quimico: "Químico",
 			recepcionista: "Recepcionista",
+			tecnico_recepcion: "Técnico - Recepción",
 			desarrollador: "Desarrollador",
 		};
 		return roles[rol] || rol;
