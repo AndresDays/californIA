@@ -565,7 +565,7 @@ const NuevaCitaModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-overlay-cita" onClick={onClose}>
       <div className="modal-content-cita" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-cita">
           <h2 className="modal-title-cita">
@@ -675,7 +675,6 @@ const NuevaCitaModal = ({
                 disabled={loading}
                 maxLength={tipoContacto === 'correo' ? 120 : 10}
                 inputMode={tipoContacto === 'correo' ? 'email' : 'numeric'}
-                placeholder={tipoContacto === 'correo' ? 'paciente@correo.com' : '4771234567'}
               />
             </div>
           </div>
@@ -704,7 +703,6 @@ const NuevaCitaModal = ({
                 aria-autocomplete="list"
                 className="form-input-cita"
                 disabled={loading}
-                placeholder="Particular, convenio..."
               />
               {listaClientesAbierta && opcionesCliente.length > 0 && (
                 <div role="listbox" ref={refClientes} className="search-results-estudios-modal">
