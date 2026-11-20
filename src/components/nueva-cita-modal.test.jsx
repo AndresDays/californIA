@@ -352,3 +352,32 @@ describe("NuevaCitaModal: las opciones se despliegan al enfocar", () => {
 		expect(document.querySelector("#cita-cliente").value).toBe("Particular");
 	});
 });
+
+describe("NuevaCitaModal: cada cita empieza en blanco", () => {
+	// Cerrar sin guardar dejaba el nombre y el teléfono del paciente anterior,
+	// y al agendar al siguiente se colaban datos de otra persona.
+	test("al volver a abrirlo no queda nada del paciente anterior", async () => {
+		const props = { onClose: jest.fn(), fechaInicial: "2026-08-27", horaInicial: "10:00", modoInicial: "formulario" };
+		const { rerender } = render(<NuevaCitaModal isOpen {...props} />);
+		await waitFor(() => expect(document.querySelector("#cita-nombre")).not.toBeNull());
+
+		fireEvent.change(document.querySelector("#cita-nombre"), { target: { value: "Juana Paciente Anterior" } });
+		fireEvent.change(document.querySelector("#cita-contacto"), { target: { value: "3221234567" } });
+
+		rerender(<NuevaCitaModal isOpen={false} {...props} />);
+		rerender(<NuevaCitaModal isOpen {...props} horaInicial="11:30" />);
+		await waitFor(() => expect(document.querySelector("#cita-nombre")).not.toBeNull());
+
+		expect(document.querySelector("#cita-nombre").value).toBe("");
+		expect(document.querySelector("#cita-contacto").value).toBe("");
+		expect(document.querySelector("#cita-hora").value).toBe("11:30");
+	});
+
+	test("desde un hueco del calendario abre con los campos aunque se usara el renglón", async () => {
+		localStorage.setItem("california:cita:modo-renglon", "1");
+		render(<NuevaCitaModal isOpen onClose={jest.fn()} fechaInicial="2026-08-27" horaInicial="10:00" modoInicial="formulario" />);
+		await waitFor(() => expect(document.querySelector("#cita-nombre")).not.toBeNull());
+		expect(document.querySelector("#cita-renglon")).toBeNull();
+		localStorage.removeItem("california:cita:modo-renglon");
+	});
+});

@@ -47,11 +47,12 @@ export const duracionSugerida = (estudios = []) =>
 	normalizarDuracion(estudios.reduce((total, estudio) => total + minutosDeEstudio(estudio), 0));
 
 // Los estudios de una cita guardada o de un renglón son texto separado por
-// comas: cada pieza cuenta como un estudio. `area` ayuda cuando el nombre no
+// comas -o por "+", como se juntan en el renglón: "mastografía + USG"-; cada
+// pieza cuenta como un estudio. `area` ayuda cuando el nombre no
 // dice la modalidad -"cráneo simple" abierto desde la columna de Resonancia-.
 export const estudiosDesdeTexto = (texto = "", area = "") =>
 	String(texto ?? "")
-		.split(",")
+		.split(/[,+]/)
 		.map((pieza) => pieza.trim())
 		.filter(Boolean)
 		.map((descripcion) => ({ descripcion, area }));
