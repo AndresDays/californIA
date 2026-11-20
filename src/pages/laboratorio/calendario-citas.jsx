@@ -717,7 +717,7 @@ const CalendarioCitas = () => {
 			</main>
 			<NuevaCitaModal modoInicial="formulario" isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} tipoEstudioInicial={horarioNuevaCita?.tipoEstudioInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
 			{citaActiva && !cambioColumna && (
-				<div className="modal-overlay" onClick={cerrarAcciones}>
+				<div className="modal-overlay modal-overlay-cita" onClick={cerrarAcciones}>
 					<div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}>
 						<div className="modal-header-cita">
 							<h2 className="modal-title-cita">Acciones de cita</h2>

@@ -433,7 +433,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada, cambio = nu
   if (!isOpen || !cita) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-overlay-cita" onClick={onClose}>
       <div className="modal-content-cita" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-cita">
           <h2 className="modal-title-cita">

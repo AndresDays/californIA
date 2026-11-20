@@ -129,6 +129,13 @@
   z-index: 20;
 }
 
+/* Todos los buscadores comparten el mismo nivel y el de abajo tapaba la lista
+   del de arriba: las opciones de Cliente se mezclaban con el campo de
+   Estudios. El que se está usando sube por encima de los demás. */
+.search-group-cita:focus-within {
+  z-index: 40;
+}
+
 .form-label-cita {
   display: block;
   font-size: 0.9rem;
@@ -162,8 +169,10 @@
   transition: all 0.3s ease;
 }
 
+/* El texto de ayuda va claro para no confundirse con algo ya escrito. */
 .form-input-cita::placeholder {
-  color: var(--texto);
+  color: var(--texto-suave);
+  opacity: 0.55;
 }
 
 .form-input-cita:focus,
@@ -761,4 +770,11 @@
   background: var(--azul-palido);
   color: var(--texto);
   font-weight: 600;
+}
+
+/* Los modales de citas se abren encima de la agenda, que se sigue viendo
+   detrás oscurecida, en lugar de taparla con un fondo blanco. */
+.modal-overlay.modal-overlay-cita {
+  background: rgba(18, 41, 61, 0.38);
+  backdrop-filter: blur(1.5px);
 }
