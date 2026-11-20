@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import CalendarioCitas from "./calendario-citas";
 import { useCalendarioCitas } from "../../hooks/use-citas";
 
@@ -45,6 +45,32 @@ jest.mock("../../hooks/use-citas", () => ({
 	useCalendarioCitas: jest.fn(),
 }));
 
+// La edición se sustituye: lo que importa aquí es con qué cita y qué cambio se
+// abre al arrastrar una tarjeta a otra columna.
+jest.mock("../../components/editar-cita-modal", () => (props) =>
+	props.isOpen ? (
+		<div data-testid="editar-cita-modal">
+			<span data-testid="editar-cita-id">{props.cita?.id_cita}</span>
+			<span data-testid="editar-cita-cambio">{JSON.stringify(props.cambio)}</span>
+			<button type="button" onClick={props.onClose}>Cerrar edición</button>
+		</div>
+	) : null,
+);
+
+// Se captura el DndContext para disparar el final del arrastre a mano: jsdom no
+// mide nada y no se puede arrastrar de verdad.
+const mockDnd = {};
+jest.mock("@dnd-kit/core", () => {
+	const real = jest.requireActual("@dnd-kit/core");
+	return {
+		...real,
+		DndContext: (props) => {
+			mockDnd.props = props;
+			return <real.DndContext {...props} />;
+		},
+	};
+});
+
 jest.mock("../../components/nueva-cita-modal", () => (props) =>
 	props.isOpen ? (
 		<div data-testid="nueva-cita-modal">
@@ -76,6 +102,10 @@ const citas = [
 		estado: "pendiente",
 	},
 ];
+
+// dnd-kit deja su propia región para lectores de pantalla con role="status":
+// el aviso de la búsqueda se busca por su clase.
+const avisoBusqueda = () => document.querySelector(".cal-state.found");
 
 beforeEach(() => {
 	jest.useFakeTimers();
@@ -164,7 +194,7 @@ test("el buscador ignora acentos y avisa cuando no hay coincidencias", () => {
 	const buscador = screen.getByRole("searchbox", { name: /buscar cita por paciente/i });
 
 	fireEvent.change(buscador, { target: { value: "andres" } });
-	expect(screen.getByRole("status")).toHaveTextContent(/Jacobo Andres/i);
+	expect(avisoBusqueda()).toHaveTextContent(/Jacobo Andres/i);
 
 	fireEvent.change(buscador, { target: { value: "zzz" } });
 	expect(
@@ -181,7 +211,7 @@ test("el buscador dice a que hora es la cita encontrada", () => {
 		target: { value: "lucia" },
 	});
 
-	const aviso = screen.getByRole("status");
+	const aviso = avisoBusqueda();
 	expect(aviso).toHaveTextContent(/Cita encontrada/i);
 	expect(aviso).toHaveTextContent(/Lucia Root/i);
 	expect(aviso).toHaveTextContent(/09:15/);
@@ -205,7 +235,7 @@ test("resalta la tarjeta de la cita encontrada", () => {
 test("sin busqueda no se anuncia ninguna cita", () => {
 	render(<CalendarioCitas />);
 
-	expect(screen.queryByRole("status")).not.toBeInTheDocument();
+	expect(avisoBusqueda()).toBeNull();
 });
 
 // El hueco donde se hizo clic ya dice de que es la cita: el modal no tiene por
@@ -427,7 +457,7 @@ describe("duración de la cita", () => {
 		conDuracion({ 1: 60 });
 		render(<CalendarioCitas />);
 
-		expect(screen.getByLabelText("Abrir acciones de cita de Lucia Root")).toHaveTextContent(/09:15.*–.*10:15/);
+		expect(screen.getByLabelText("Abrir acciones de cita de Lucia Root")).toHaveTextContent("9:15–10:15");
 		// Una sola celda que abarca las dos medias horas, no dos pedazos.
 		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "2");
 		expect(screen.queryByTestId("cal-slot-tac-09:30")).not.toBeInTheDocument();
@@ -446,9 +476,9 @@ describe("duración de la cita", () => {
 		const orilla = screen.getByTestId("cal-resize-abajo-1");
 
 		fireEvent.pointerDown(orilla, { clientY: 100 });
-		fireEvent.pointerMove(window, { clientY: 160 });
+		fireEvent.pointerMove(window, { clientY: 140 });
 		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "2");
-		fireEvent.pointerUp(window, { clientY: 160 });
+		fireEvent.pointerUp(window, { clientY: 140 });
 
 		expect(mockUpdateCita).toHaveBeenCalledWith(
 			expect.objectContaining({ fecha_estudio: "2026-06-23T09:15:00", duracion_minutos: 60 }),
@@ -460,8 +490,8 @@ describe("duración de la cita", () => {
 		render(<CalendarioCitas />);
 
 		fireEvent.pointerDown(screen.getByTestId("cal-resize-arriba-1"), { clientY: 200 });
-		fireEvent.pointerMove(window, { clientY: 140 });
-		fireEvent.pointerUp(window, { clientY: 140 });
+		fireEvent.pointerMove(window, { clientY: 160 });
+		fireEvent.pointerUp(window, { clientY: 160 });
 
 		expect(mockUpdateCita).toHaveBeenCalledWith(
 			expect.objectContaining({ fecha_estudio: "2026-06-23T08:45:00", duracion_minutos: 60 }),
@@ -474,8 +504,8 @@ describe("duración de la cita", () => {
 		render(<CalendarioCitas />);
 
 		fireEvent.pointerDown(screen.getByTestId("cal-resize-abajo-1"), { clientY: 200 });
-		fireEvent.pointerMove(window, { clientY: 140 });
-		fireEvent.pointerUp(window, { clientY: 140 });
+		fireEvent.pointerMove(window, { clientY: 160 });
+		fireEvent.pointerUp(window, { clientY: 160 });
 
 		expect(mockUpdateCita).toHaveBeenCalledWith(expect.objectContaining({ duracion_minutos: 30 }), 1);
 	});
@@ -507,5 +537,76 @@ describe("duración de la cita", () => {
 		expect(celda).toHaveTextContent("Otro Paciente");
 		expect(screen.queryByTestId("cal-slot-tac-10:00")).not.toBeInTheDocument();
 		expect(screen.getByTestId("cal-slot-tac-10:30")).toBeInTheDocument();
+	});
+
+	test("se puede estirar a más de una hora", () => {
+		render(<CalendarioCitas />);
+
+		fireEvent.pointerDown(screen.getByTestId("cal-resize-abajo-1"), { clientY: 100 });
+		fireEvent.pointerMove(window, { clientY: 180 });
+		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "3");
+		fireEvent.pointerUp(window, { clientY: 180 });
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(expect.objectContaining({ duracion_minutos: 90 }), 1);
+	});
+
+	test("una cita de tres horas ocupa seis renglones", () => {
+		conDuracion({ 1: 180 });
+		render(<CalendarioCitas />);
+
+		expect(screen.getByTestId("cal-slot-tac-09:00")).toHaveAttribute("aria-rowspan", "6");
+		expect(screen.getByLabelText("Abrir acciones de cita de Lucia Root")).toHaveTextContent("9:15–12:15");
+	});
+});
+
+describe("arrastrar la tarjeta", () => {
+	const TAC = { id: "tac", tipoEstudio: "Tomografia", label: "TAC" };
+	const RESONANCIA = { id: "resonancia", tipoEstudio: "Resonancia", label: "Resonancia" };
+	// 10:30 es el renglón 7 de la rejilla, que empieza a las 7:00.
+	const soltar = (tipo, indiceBloque) =>
+		act(() => {
+			mockDnd.props.onDragStart({ active: { data: { current: { cita: citas[0] } } } });
+			mockDnd.props.onDragEnd({
+				active: { data: { current: { cita: citas[0] } }, rect: { current: { initial: { top: 0, height: 40 } } } },
+				over: { data: { current: { tipo, indiceBloque, renglones: 1 } }, rect: { top: 0, height: 40 } },
+				delta: { x: 0, y: 0 },
+				activatorEvent: { clientY: 10 },
+			});
+		});
+
+	beforeEach(() => mockUpdateCita.mockClear());
+
+	test("a otra hora de la misma columna sólo cambia la hora", () => {
+		render(<CalendarioCitas />);
+		soltar(TAC, 7);
+
+		expect(mockUpdateCita).toHaveBeenCalledWith(expect.objectContaining({ fecha_estudio: "2026-06-23T10:30:00" }), 1);
+		expect(screen.queryByTestId("editar-cita-modal")).not.toBeInTheDocument();
+	});
+
+	test("soltarla en su mismo lugar no cambia nada", () => {
+		render(<CalendarioCitas />);
+		soltar(TAC, 4);
+
+		expect(mockUpdateCita).not.toHaveBeenCalled();
+	});
+
+	test("a otra columna abre la edición para elegir el estudio del nuevo tipo", () => {
+		render(<CalendarioCitas />);
+		soltar(RESONANCIA, 7);
+
+		expect(mockUpdateCita).not.toHaveBeenCalled();
+		expect(screen.getByTestId("editar-cita-id")).toHaveTextContent("1");
+		expect(JSON.parse(screen.getByTestId("editar-cita-cambio").textContent)).toEqual({
+			tipoEstudio: "Resonancia",
+			columna: "Resonancia",
+			fecha_estudio: "2026-06-23T10:30:00",
+		});
+		// No se queda abierto el menú de acciones detrás.
+		expect(screen.queryByRole("dialog", { name: "Acciones de cita" })).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Cerrar edición" }));
+		expect(screen.queryByTestId("editar-cita-modal")).not.toBeInTheDocument();
+		expect(screen.queryByRole("dialog", { name: "Acciones de cita" })).not.toBeInTheDocument();
 	});
 });

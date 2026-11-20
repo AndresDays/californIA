@@ -10,7 +10,8 @@ import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 import { useNavegacionLista } from '../hooks/use-navegacion-lista';
 import CampoDuracionCita from './campo-duracion-cita';
-import { DURACION_CORTA } from '../utils/duracion-cita';
+import { DURACION_CORTA, estudiosDesdeTexto } from '../utils/duracion-cita';
+import { useDuracionSugerida } from '../hooks/use-duracion-sugerida';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 import {
@@ -499,6 +500,13 @@ const NuevaCitaModal = ({
 
   const opcionesCliente = filtrarPorNombre(clientes, clienteSeleccionado).slice(0, 10);
   const resumenRenglon = modoRenglon ? resumirRenglonCita(renglon, { clientes }) : '';
+  // Una hora por resonancia y media por cualquier otro estudio. En el modo de
+  // un renglón el estudio es texto; la columna desde la que se abrió dice el
+  // tipo cuando el nombre no lo dice.
+  const estudiosParaDuracion = modoRenglon
+    ? estudiosDesdeTexto(interpretarRenglonCita(renglon, { clientes }).estudios, tipoEstudioSeleccionado)
+    : estudiosSeleccionados;
+  const { sugerida: duracionSugerida } = useDuracionSugerida(estudiosParaDuracion, duracion, setDuracion);
   const opcionesTipo = filtrarPorNombre(tiposEstudio, tipoEstudioSeleccionado).slice(0, 10);
 
   const elegirCliente = (cliente) => {
@@ -815,7 +823,7 @@ const NuevaCitaModal = ({
             </div>
           </div>
 
-          <CampoDuracionCita valor={duracion} onChange={setDuracion} disabled={loading} />
+          <CampoDuracionCita valor={duracion} onChange={setDuracion} sugerida={duracionSugerida} disabled={loading} />
 
           <div className="modal-footer-cita">
             <button type="button" className="btn-cancel-cita" onClick={onClose} disabled={loading}>
