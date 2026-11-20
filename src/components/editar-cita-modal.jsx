@@ -5,6 +5,8 @@ import './nueva-cita-modal.css';
 import { useNavegacionLista } from '../hooks/use-navegacion-lista';
 import CampoDuracionCita from './campo-duracion-cita';
 import { duracionDeCita } from '../utils/duracion-cita';
+import { useDuracionSugerida } from '../hooks/use-duracion-sugerida';
+import { buscarPorNombre } from '../utils/catalogo-por-nombre';
 import editarIcono from '../assets/editarIcono.png';
 import { consultarClientesSeleccionables } from '../utils/clientes-seleccionables';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
@@ -13,9 +15,14 @@ import {
   construirEstudioCatalogoUnificado,
   construirPaqueteCatalogoUnificado,
   normalizarDescripcionEstudio,
+  resolverModalidadDesdeTipo,
 } from '../utils/cita-nuevo-paciente';
 
-const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
+// `cambio` llega cuando la tarjeta se arrastró a otra columna del calendario:
+// trae el tipo de estudio de esa columna (`tipoEstudio`, por nombre) y, si
+// también cambió de renglón, la nueva `fecha_estudio`. Los estudios de la cita
+// eran del tipo anterior, así que se vacían y se pide elegir el del tipo nuevo.
+const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada, cambio = null }) => {
   const [formData, setFormData] = useState({
     nombreCompleto: '',
     telefono: '',
@@ -44,6 +51,14 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
 
   const isInitializingRef = useRef(false);
 
+  const nombreTipoActual =
+    tiposEstudio.find((t) => String(t.id_tipo_estudio) === String(tipoEstudioSeleccionado))?.nombre || '';
+  const { sugerida: duracionSugerida, fijarBase } = useDuracionSugerida(
+    estudiosSeleccionados,
+    formData.duracion,
+    (duracion) => setFormData((prev) => ({ ...prev, duracion })),
+  );
+
   const clienteNombre = useMemo(() => {
     const obj = clientes.find((c) => String(c.id_cliente) === String(clienteSeleccionado));
     return (obj?.nombre || '').trim();
@@ -58,20 +73,25 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
       setError('');
 
       try {
-        const [clientesData, empresasData, catalogoData] = await Promise.all([
+        const [clientesData, , catalogoData, tiposData] = await Promise.all([
           cargarClientes(cita.id_cliente),
           cargarEmpresas(),
           cargarEstudiosCatalogo(),
+          cargarTiposEstudio(),
         ]);
 
         const idCliente = cita.id_cliente != null ? String(cita.id_cliente) : '';
         const idEmpresa = cita.id_empresa != null ? String(cita.id_empresa) : '';
-        const idTipo = cita.id_tipo_estudio != null ? String(cita.id_tipo_estudio) : '';
+        // Arrastrada a otra columna, el tipo es el de esa columna; "Otros" no
+        // nombra ninguno y lo deja vacío.
+        const idTipo = cambio
+          ? String(buscarPorNombre(tiposData, cambio.tipoEstudio || '')?.id_tipo_estudio ?? '')
+          : cita.id_tipo_estudio != null ? String(cita.id_tipo_estudio) : '';
 
         setClienteSeleccionado(idCliente);
         setEmpresaSeleccionada(idEmpresa);
 
-        const fechaHoraStr = cita.fecha_estudio || '';
+        const fechaHoraStr = cambio?.fecha_estudio || cita.fecha_estudio || '';
         const [fechaPart, horaPart] = fechaHoraStr.split('T');
         const hora = horaPart ? horaPart.substring(0, 5) : '00:00';
 
@@ -84,11 +104,6 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           duracion: duracionDeCita(cita),
         });
 
-        if (idEmpresa) {
-          await cargarTiposEstudioPorEmpresa(Number(idEmpresa));
-        } else {
-          setTiposEstudio([]);
-        }
         setTipoEstudioSeleccionado(idTipo);
 
         const nombreClienteInit =
@@ -96,7 +111,13 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           (clientesData || []).find((c) => String(c.id_cliente) === idCliente)?.nombre?.trim() ||
           '';
 
-        await cargarEstudiosDeLaCitaConPrecios(nombreClienteInit, catalogoData);
+        if (cambio) {
+          // Lo que se elija del tipo nuevo vuelve a proponer la duración.
+          fijarBase([]);
+          setEstudiosSeleccionados([]);
+        } else {
+          await cargarEstudiosDeLaCitaConPrecios(nombreClienteInit, catalogoData);
+        }
 
       } catch (e) {
         console.error(e);
@@ -108,23 +129,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     };
 
     init();
-  }, [isOpen, cita]);
-
-  useEffect(() => {
-    const run = async () => {
-      if (!empresaSeleccionada) {
-        setTiposEstudio([]);
-        if (!isInitializingRef.current) setTipoEstudioSeleccionado('');
-        return;
-      }
-
-      await cargarTiposEstudioPorEmpresa(Number(empresaSeleccionada));
-
-      if (!isInitializingRef.current) setTipoEstudioSeleccionado('');
-    };
-
-    run();
-  }, [empresaSeleccionada]);
+  }, [isOpen, cita, cambio]);
 
   useEffect(() => {
     if (!isOpen || !cita) return;
@@ -223,27 +228,23 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     );
   };
 
-  const cargarTiposEstudioPorEmpresa = async (idEmpresa) => {
+  // El tipo de estudio es el que decide la columna del calendario: se ofrece el
+  // catálogo completo, sin pasar por la empresa, para poder corregir una cita
+  // que se agendó en la columna equivocada.
+  const cargarTiposEstudio = async () => {
     const { data, error } = await supabase
-      .from('empresa_tipos_estudio')
-      .select(`id_tipo_estudio, tipos_estudio ( id_tipo_estudio, nombre )`)
-      .eq('id_empresa', idEmpresa);
+      .from('tipos_estudio')
+      .select('id_tipo_estudio, nombre')
+      .order('nombre');
 
     if (error) {
-      console.error('Error cargar tipos por empresa:', error);
+      console.error('Error al cargar tipos de estudio:', error);
       setTiposEstudio([]);
-      return;
+      return [];
     }
-
-    const tipos = (data || [])
-      .map((x) => ({
-        id_tipo_estudio: x.tipos_estudio?.id_tipo_estudio ?? x.id_tipo_estudio,
-        nombre: x.tipos_estudio?.nombre ?? '',
-      }))
-      .filter((t) => t.id_tipo_estudio && t.nombre)
-      .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
+    const tipos = (data || []).filter((t) => t.id_tipo_estudio && t.nombre);
     setTiposEstudio(tipos);
+    return tipos;
   };
 
   const obtenerPrecioEstudio = async (estudio, nombreCliente) => {
@@ -279,6 +280,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
         const precio = await obtenerPrecioEstudio(estudio, nombreClienteSeguro);
 
         return {
+          ...(delCatalogo || {}),
           id: delCatalogo?.id ?? `tmp-${descripcion}`,
           clave: delCatalogo?.clave || 'N/A',
           descripcion: delCatalogo?.descripcion || descripcion,
@@ -287,6 +289,8 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
       })
     );
 
+    // Los estudios guardados llegan después que la duración: no deben moverla.
+    fijarBase(conPrecios);
     setEstudiosSeleccionados(conPrecios);
   };
 
@@ -339,6 +343,9 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
   // crear con solo el nombre, exigir el resto para guardar un cambio la dejaria
   // imposible de editar.
   const validar = () => {
+    if (cambio && estudiosSeleccionados.length === 0) {
+      return setError(`Elige qué estudio de ${nombreTipoActual || 'este tipo'} es la cita`), false;
+    }
     if (formData.telefono.trim() && !esTelefono10Digitos(formData.telefono)) {
       return setError('El teléfono debe tener 10 dígitos numéricos'), false;
     }
@@ -398,10 +405,15 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
     }
   };
 
+  // Con un tipo elegido sólo se ofrecen sus estudios: al pasar una cita a la
+  // columna de TAC, lo que se busca es cuál tomografía es.
+  const modalidadTipo = resolverModalidadDesdeTipo(nombreTipoActual);
   const estudiosFiltrados = estudiosCatalogo.filter(
     (e) =>
-      e.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
-      e.clave.toLowerCase().includes(buscarEstudio.toLowerCase())
+      (!modalidadTipo ||
+        (e.modulo === 'laboratorio' ? modalidadTipo === 'laboratorio' : e.modalidad === modalidadTipo)) &&
+      (e.descripcion.toLowerCase().includes(buscarEstudio.toLowerCase()) ||
+        e.clave.toLowerCase().includes(buscarEstudio.toLowerCase()))
   );
   const opcionesEstudio = estudiosFiltrados.slice(0, 10);
   // Flechas y Enter sobre la lista de resultados. El hook va antes de la salida
@@ -432,6 +444,11 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="cita-form">
+          {cambio && (
+            <p className="cita-cambio-columna" role="status">
+              La cita pasa a {nombreTipoActual || cambio.tipoEstudio || 'Otros'}: elige qué estudio es.
+            </p>
+          )}
           {error && (
             <div className="error-message">
               <span>⚠️</span>
@@ -498,12 +515,11 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
             <select
               className="form-select-cita"
               value={tipoEstudioSeleccionado}
+              aria-label="Tipo de estudio"
               onChange={(e) => setTipoEstudioSeleccionado(e.target.value)}
-              disabled={loading || !empresaSeleccionada}
+              disabled={loading}
             >
-              <option value="">
-                {empresaSeleccionada ? 'Selecciona Tipo de Estudio' : 'Primero selecciona una Empresa'}
-              </option>
+              <option value="">Selecciona Tipo de Estudio</option>
               {tiposEstudio.map((t) => (
                 <option key={t.id_tipo_estudio} value={t.id_tipo_estudio}>{t.nombre}</option>
               ))}
@@ -606,6 +622,7 @@ const EditarCitaModal = ({ isOpen, onClose, cita, onCitaActualizada }) => {
           <CampoDuracionCita
             valor={formData.duracion}
             onChange={(duracion) => setFormData((prev) => ({ ...prev, duracion }))}
+            sugerida={duracionSugerida}
             disabled={loading}
           />
 
