@@ -1,15 +1,17 @@
 .cal-page {
 	width: 100%;
 	min-height: calc(100vh - 80px);
-	padding: 16px 20px 20px 104px;
+	padding: 12px 12px 14px 100px;
 	box-sizing: border-box;
 	background:
 		radial-gradient(circle at top right, var(--superficie-hover), transparent 34%),
 		var(--superficie);
 }
 
+/* La agenda ocupa todo el ancho que deja el menú: en pantallas grandes
+   quedaba un margen blanco a cada lado y las columnas se veían apretadas. */
 .cal-shell {
-	width: min(100%, 1480px);
+	width: 100%;
 	margin: 0 auto;
 	background: var(--superficie);
 	border: 1px solid var(--borde);
@@ -216,6 +218,16 @@
 	min-width: 736px;
 }
 
+/* Blanca y con líneas tenues, como la agenda con la que se trabajaba antes:
+   una línea suave por cada hora y una más clara en la media hora, y las
+   columnas separadas por una línea fina. Los encabezados llevan el nombre en
+   el color de la columna y una raya oscura debajo. */
+.cal-page {
+	--cal-linea-hora: #e3e7ec;
+	--cal-linea-media: #f0f2f5;
+	--cal-raya-encabezado: #2b2a6b;
+}
+
 .cal-corner,
 .cal-study-header {
 	position: sticky;
@@ -223,8 +235,8 @@
 	z-index: 3;
 	min-height: 50px;
 	background: var(--superficie);
-	border-right: 1px solid var(--borde);
-	border-bottom: 1px solid var(--borde);
+	border-right: 1px solid var(--cal-linea-hora);
+	border-bottom: 2px solid var(--cal-raya-encabezado);
 }
 
 .cal-corner {
@@ -239,11 +251,11 @@
 	gap: 3px;
 	min-width: 0;
 	padding: 0 6px 0 10px;
-	color: var(--texto);
+	color: var(--cal-titulo, var(--texto));
 	text-transform: uppercase;
-	font-size: 0.6875rem;
-	font-weight: 800;
-	box-shadow: inset 4px 0 0 #94a3b8;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
 }
 
 .cal-study-header small {
@@ -269,12 +281,24 @@
 	padding: 6px 4px 6px 6px;
 	white-space: nowrap;
 	background: var(--superficie);
-	border-right: 1px solid var(--borde);
-	border-bottom: 1px solid var(--borde);
-	color: var(--texto);
+	border-right: 1px solid var(--cal-linea-hora);
+	border-bottom: 1px solid var(--cal-linea-hora);
+	color: var(--texto-suave);
 	font-size: 0.6875rem;
-	font-weight: 800;
+	font-weight: 600;
 	box-sizing: border-box;
+}
+
+/* La hora en punto se lee; la media hora va más tenue, como en la agenda
+   anterior, donde sólo se marcaban las horas. */
+.cal-hour.es-media {
+	color: color-mix(in srgb, var(--texto-suave) 55%, var(--superficie));
+	font-weight: 500;
+}
+
+.cal-hour.media-hora,
+.cal-slot.media-hora {
+	border-bottom-color: var(--cal-linea-media);
 }
 
 .cal-slot {
@@ -282,8 +306,8 @@
 	min-width: 0;
 	min-height: 40px;
 	padding: 3px;
-	border-right: 1px solid var(--borde);
-	border-bottom: 1px solid var(--borde);
+	border-right: 1px solid var(--cal-linea-hora);
+	border-bottom: 1px solid var(--cal-linea-hora);
 	box-sizing: border-box;
 	background: var(--superficie);
 }
@@ -298,6 +322,7 @@
 	overflow-wrap: anywhere;
 	text-align: left;
 	padding: 2px 5px 3px 9px;
+	border: 0;
 	border-radius: 5px;
 	border-left: 5px solid var(--borde-fuerte);
 	background: var(--superficie);
@@ -488,10 +513,40 @@
 	cursor: pointer;
 }
 
+/* Al pasar el puntero, el hueco dice qué se va a agendar: "+ Agendar
+   Tomografías 10:30". */
+.cal-empty-slot {
+	position: relative;
+	color: transparent;
+	font: inherit;
+	font-size: 0.6875rem;
+	font-weight: 700;
+}
+
+.cal-empty-slot::after {
+	content: attr(data-aviso);
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	padding: 0 8px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--texto-azul);
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.cal-empty-slot:hover::after,
+.cal-empty-slot:focus-visible::after {
+	opacity: 1;
+}
+
 .cal-empty-slot:hover,
 .cal-empty-slot:focus-visible {
 	background: var(--superficie-hover);
-	outline: 2px solid var(--borde-fuerte);
+	outline: 1px dashed var(--borde-fuerte);
 	outline-offset: -2px;
 }
 
@@ -520,13 +575,13 @@
 .cal-study-header.tipo-mastografia,
 .cal-card.tipo-mastografia,
 .cal-card-wrap.tipo-mastografia {
-	--cal-color: #db2777;
+	--cal-color: #a4262c;
 }
 
 .cal-study-header.tipo-densitometria,
 .cal-card.tipo-densitometria,
 .cal-card-wrap.tipo-densitometria {
-	--cal-color: #f97316;
+	--cal-color: #c50f1f;
 }
 
 .cal-study-header.tipo-otros,
@@ -537,9 +592,15 @@
 
 .cal-study-header[class*="tipo-"] {
 	background: var(--superficie);
-	border-left-color: var(--cal-color);
-	box-shadow: inset 4px 0 0 var(--cal-color);
 }
+
+/* Color del nombre de cada columna, como en la agenda anterior. */
+.cal-study-header.tipo-tac { --cal-titulo: #3b3f46; }
+.cal-study-header.tipo-mastografia { --cal-titulo: #a4262c; }
+.cal-study-header.tipo-ultrasonido { --cal-titulo: #2f3b52; }
+.cal-study-header.tipo-densitometria { --cal-titulo: #c50f1f; }
+.cal-study-header.tipo-otros { --cal-titulo: #5b6270; }
+.cal-study-header.tipo-resonancia { --cal-titulo: #23262d; }
 
 /* La tarjeta lleva la barra del color de su columna y un fondo apenas teñido
    del mismo tono: el texto se sigue leyendo sobre blanco. */

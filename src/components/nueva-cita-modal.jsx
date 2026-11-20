@@ -71,6 +71,9 @@ const NuevaCitaModal = ({
   fechaInicial,
   horaInicial,
   tipoEstudioInicial,
+  // "formulario" abre con todos los campos aunque la última vez se usara el
+  // modo de un renglón: desde un hueco del calendario se llenan los campos.
+  modoInicial,
 }) => {
   const { empleadoData } = useAuth();
   const queryClient = useQueryClient();
@@ -122,6 +125,24 @@ const NuevaCitaModal = ({
   // no se veía nunca.
   const [listaClientesAbierta, setListaClientesAbierta] = useState(false);
   const [listaTiposAbierta, setListaTiposAbierta] = useState(false);
+
+  // Cada cita empieza en blanco. Cerrar el modal sin guardar dejaba el nombre,
+  // el teléfono y los estudios del paciente anterior, y al agendar al
+  // siguiente se colaban datos de otra persona.
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData({ nombreCompleto: '', contacto: '', fecha: '', hora: '' });
+    setTipoContacto('telefono');
+    setRenglon('');
+    setClienteSeleccionado('');
+    setTipoEstudioSeleccionado('');
+    setBuscarEstudio('');
+    setShowBusquedaEstudios(false);
+    setEstudiosSeleccionados([]);
+    setError('');
+    if (modoInicial === 'formulario') setModoRenglon(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;

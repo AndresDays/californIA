@@ -33,13 +33,16 @@ import "./calendario-citas.css";
 // a preguntarlo. "Otros" no nombra ningún tipo y por eso no propone ninguno.
 // Laboratorio y Rayos X no llevan columna: no se agendan por horario, y una
 // cita de esos estudios que sí se agende cae en "Otros" en vez de perderse.
+// El orden y los nombres son los de la agenda con la que recepción trabajaba
+// antes: Tomografías, Mastografías, Ultrasonidos, Densitometría, Otros y
+// Resonancias.
 const TIPOS_ESTUDIO_CALENDARIO = [
-	{ id: "ultrasonido", tipoEstudio: "Ultrasonido", label: "Ultrasonido", aliases: ["ultrasonido", "ultrasonidos", "usg", "eco", "ecocardiograma"] },
-	{ id: "tac", tipoEstudio: "Tomografia", label: "TAC", aliases: ["tac", "tomografia", "tomografias"] },
-	{ id: "resonancia", tipoEstudio: "Resonancia", label: "Resonancia", aliases: ["resonancia", "resonancias", "rm", "irm"] },
-	{ id: "mastografia", tipoEstudio: "Mastografia", label: "Mastografia", aliases: ["mastografia", "mastografias", "mamografia", "mamario"] },
-	{ id: "densitometria", tipoEstudio: "Densitometria", label: "Densitometria", aliases: ["densitometria", "densitometria", "densi"] },
+	{ id: "tac", tipoEstudio: "Tomografia", label: "Tomografías", aliases: ["tac", "tomografia", "tomografias"] },
+	{ id: "mastografia", tipoEstudio: "Mastografia", label: "Mastografías", aliases: ["mastografia", "mastografias", "mamografia", "mamografias", "mamario"] },
+	{ id: "ultrasonido", tipoEstudio: "Ultrasonido", label: "Ultrasonidos", aliases: ["ultrasonido", "ultrasonidos", "usg", "eco", "ecocardiograma"] },
+	{ id: "densitometria", tipoEstudio: "Densitometria", label: "Densitometría", aliases: ["densitometria", "densi"] },
 	{ id: "otros", label: "Otros", aliases: [] },
+	{ id: "resonancia", tipoEstudio: "Resonancia", label: "Resonancias", aliases: ["resonancia", "resonancias", "rm", "irm"] },
 ];
 
 const BLOQUES_CALENDARIO = Array.from({ length: 26 }, (_, indice) => {
@@ -101,14 +104,23 @@ const formatearHora = ({ hora, minuto }) => {
 const obtenerEstudioDeLaTarjeta = (cita) =>
 	cita?.tipo_estudio?.trim() || cita?.tipos_estudio?.nombre || "Sin estudio";
 
+const TIPO_OTROS = TIPOS_ESTUDIO_CALENDARIO.find((tipo) => tipo.id === "otros");
+
+// Manda el estudio que se escribió primero: "Mastografía + USG" es una cita de
+// mastografía a la que se le sumó un ultrasonido. Antes ganaba la columna que
+// estuviera antes en la lista y esa cita se iba a Ultrasonidos. Los alias se
+// buscan como palabra completa: "eco" no debe casar dentro de otra palabra.
 const buscarTipoPorTexto = (texto) => {
 	const normalizado = normalizar(texto);
 	if (!normalizado) return null;
-	return (
-		TIPOS_ESTUDIO_CALENDARIO.find((tipo) =>
-			tipo.aliases.some((alias) => normalizado.includes(alias)),
-		) || null
-	);
+	let mejor = null;
+	TIPOS_ESTUDIO_CALENDARIO.forEach((tipo) => {
+		tipo.aliases.forEach((alias) => {
+			const posicion = normalizado.search(new RegExp(`(^|[^a-z0-9])${alias}(?![a-z0-9])`));
+			if (posicion >= 0 && (!mejor || posicion < mejor.posicion)) mejor = { tipo, posicion };
+		});
+	});
+	return mejor?.tipo || null;
 };
 
 // Manda el tipo del catálogo; si la cita no lo trae -o no casa con ninguna
@@ -117,7 +129,7 @@ const buscarTipoPorTexto = (texto) => {
 const obtenerTipoCalendario = (cita) =>
 	buscarTipoPorTexto(cita?.tipos_estudio?.nombre) ||
 	buscarTipoPorTexto(cita?.tipo_estudio) ||
-	TIPOS_ESTUDIO_CALENDARIO[TIPOS_ESTUDIO_CALENDARIO.length - 1];
+	TIPO_OTROS;
 
 const obtenerHoraCita = (cita) => {
 	const fecha = new Date(cita.fecha_estudio);
@@ -614,7 +626,7 @@ const CalendarioCitas = () => {
 
 								{BLOQUES_CALENDARIO.map((bloque, indiceBloque) => (
 									<div className="cal-row-fragment" role="row" key={bloque.valor}>
-										<div className="cal-hour" role="rowheader" style={{ gridRow: indiceBloque + 2, gridColumn: 1 }} ref={lineaAhora?.bloque === bloque.valor ? lineaAhoraRef : undefined}>
+										<div className={`cal-hour${bloque.minuto === 0 ? " media-hora" : " es-media"}`} role="rowheader" style={{ gridRow: indiceBloque + 2, gridColumn: 1 }} ref={lineaAhora?.bloque === bloque.valor ? lineaAhoraRef : undefined}>
 											{formatearHora(bloque)}
 											{lineaAhora?.bloque === bloque.valor && (
 												<div className="cal-ahora-linea con-hora" style={{ top: `${lineaAhora.porcentaje}%` }} data-testid="cal-ahora" title={`Hora actual ${lineaAhora.etiqueta}`} />
@@ -635,7 +647,7 @@ const CalendarioCitas = () => {
 													tipo={tipo}
 													indiceBloque={indiceBloque}
 													renglones={renglones}
-													className={`cal-slot${renglones > 1 ? " combinada" : ""}`}
+													className={`cal-slot${renglones > 1 ? " combinada" : ""}${BLOQUES_CALENDARIO[indiceBloque + renglones - 1].minuto === 0 ? " media-hora" : ""}`}
 													role="cell"
 													aria-rowspan={renglones > 1 ? renglones : undefined}
 													data-testid={`cal-slot-${tipo.id}-${bloque.valor}`}
@@ -677,7 +689,7 @@ const CalendarioCitas = () => {
 													{/* Un horario con sólo citas canceladas sigue libre; el tramo
 													    combinado de una cita larga, no. */}
 													{renglones === 1 && citasHora.every(esCancelada) && (
-														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
+														<button type="button" className="cal-empty-slot" aria-label={`Crear cita de ${tipo.label} el ${fechaSeleccionada} a las ${bloque.valor}`} data-aviso={`+ Agendar ${tipo.label} ${horaCorta(`T${bloque.valor}`)}`} onClick={() => abrirNuevaCita(bloque.valor, tipo.tipoEstudio)} />
 													)}
 												</CeldaSoltable>
 											);
@@ -703,7 +715,7 @@ const CalendarioCitas = () => {
 					)}
 				</section>
 			</main>
-			<NuevaCitaModal isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} tipoEstudioInicial={horarioNuevaCita?.tipoEstudioInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
+			<NuevaCitaModal modoInicial="formulario" isOpen={Boolean(horarioNuevaCita)} fechaInicial={horarioNuevaCita?.fechaInicial} horaInicial={horarioNuevaCita?.horaInicial} tipoEstudioInicial={horarioNuevaCita?.tipoEstudioInicial} onClose={() => setHorarioNuevaCita(null)} onCitaCreada={() => setHorarioNuevaCita(null)} />
 			{citaActiva && !cambioColumna && (
 				<div className="modal-overlay" onClick={cerrarAcciones}>
 					<div className="modal-content-cita cal-action-modal" role="dialog" aria-label="Acciones de cita" onClick={(event) => event.stopPropagation()}>
