@@ -1,15 +1,17 @@
 .cal-page {
 	width: 100%;
 	min-height: calc(100vh - 80px);
-	padding: 28px 28px 32px 108px;
+	padding: 12px 12px 14px 100px;
 	box-sizing: border-box;
 	background:
 		radial-gradient(circle at top right, var(--superficie-hover), transparent 34%),
 		var(--superficie);
 }
 
+/* La agenda ocupa todo el ancho que deja el menú: en pantallas grandes
+   quedaba un margen blanco a cada lado y las columnas se veían apretadas. */
 .cal-shell {
-	width: min(100%, 1480px);
+	width: 100%;
 	margin: 0 auto;
 	background: var(--superficie);
 	border: 1px solid var(--borde);
@@ -22,8 +24,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 20px;
-	padding: 20px 24px;
+	gap: 16px;
+	padding: 10px 16px;
 	border-bottom: 1px solid var(--borde);
 	background: linear-gradient(180deg, var(--superficie) 0%, var(--superficie) 100%);
 }
@@ -36,10 +38,10 @@
 }
 
 .cal-title-icon {
-	width: 42px;
-	height: 42px;
+	width: 34px;
+	height: 34px;
 	object-fit: contain;
-	padding: 8px;
+	padding: 6px;
 	border-radius: 8px;
 	background: var(--superficie-hover);
 	box-shadow: inset 0 0 0 1px rgba(83, 185, 219, 0.35);
@@ -48,15 +50,15 @@
 .cal-title-block h1 {
 	margin: 0;
 	color: var(--texto);
-	font-size: 1.5625rem;
+	font-size: 1.25rem;
 	font-weight: 800;
 	line-height: 1.1;
 }
 
 .cal-title-block p {
-	margin: 4px 0 0;
+	margin: 2px 0 0;
 	color: var(--texto-azul);
-	font-size: 0.875rem;
+	font-size: 0.8125rem;
 }
 
 .cal-controls {
@@ -203,7 +205,7 @@
 .cal-board {
 	overflow: auto;
 	background: var(--superficie);
-	max-height: calc(100vh - 198px);
+	max-height: calc(100vh - 150px);
 	scrollbar-color: #2f6f8b #071724;
 }
 
@@ -216,15 +218,25 @@
 	min-width: 736px;
 }
 
+/* Blanca y con líneas tenues, como la agenda con la que se trabajaba antes:
+   una línea suave por cada hora y una más clara en la media hora, y las
+   columnas separadas por una línea fina. Los encabezados llevan el nombre en
+   el color de la columna y una raya oscura debajo. */
+.cal-page {
+	--cal-linea-hora: #e3e7ec;
+	--cal-linea-media: #f0f2f5;
+	--cal-raya-encabezado: #2b2a6b;
+}
+
 .cal-corner,
 .cal-study-header {
 	position: sticky;
 	top: 0;
 	z-index: 3;
-	min-height: 76px;
+	min-height: 50px;
 	background: var(--superficie);
-	border-right: 1px solid var(--borde);
-	border-bottom: 1px solid var(--borde);
+	border-right: 1px solid var(--cal-linea-hora);
+	border-bottom: 2px solid var(--cal-raya-encabezado);
 }
 
 .cal-corner {
@@ -236,23 +248,23 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	gap: 5px;
+	gap: 3px;
 	min-width: 0;
-	padding: 0 8px 0 12px;
-	color: var(--texto);
+	padding: 0 6px 0 10px;
+	color: var(--cal-titulo, var(--texto));
 	text-transform: uppercase;
 	font-size: 0.75rem;
-	font-weight: 800;
-	box-shadow: inset 4px 0 0 #94a3b8;
+	font-weight: 700;
+	letter-spacing: 0.02em;
 }
 
 .cal-study-header small {
 	width: fit-content;
 	color: var(--texto);
-	font-size: 0.75rem;
+	font-size: 0.6875rem;
 	font-weight: 800;
 	text-transform: none;
-	padding: 3px 8px;
+	padding: 1px 7px;
 	border-radius: 999px;
 	background: var(--superficie-hover);
 }
@@ -265,48 +277,61 @@
 	position: sticky;
 	left: 0;
 	z-index: 2;
-	min-height: 52px;
-	padding: 12px 4px 12px 6px;
+	min-height: 40px;
+	padding: 6px 4px 6px 6px;
 	white-space: nowrap;
 	background: var(--superficie);
-	border-right: 1px solid var(--borde);
-	border-bottom: 1px solid var(--borde);
-	color: var(--texto);
+	border-right: 1px solid var(--cal-linea-hora);
+	border-bottom: 1px solid var(--cal-linea-hora);
+	color: var(--texto-suave);
 	font-size: 0.6875rem;
-	font-weight: 800;
+	font-weight: 600;
 	box-sizing: border-box;
+}
+
+/* La hora en punto se lee; la media hora va más tenue, como en la agenda
+   anterior, donde sólo se marcaban las horas. */
+.cal-hour.es-media {
+	color: color-mix(in srgb, var(--texto-suave) 55%, var(--superficie));
+	font-weight: 500;
+}
+
+.cal-hour.media-hora,
+.cal-slot.media-hora {
+	border-bottom-color: var(--cal-linea-media);
 }
 
 .cal-slot {
 	position: relative;
 	min-width: 0;
-	min-height: 52px;
-	padding: 6px;
-	border-right: 1px solid var(--borde);
-	border-bottom: 1px solid var(--borde);
+	min-height: 40px;
+	padding: 3px;
+	border-right: 1px solid var(--cal-linea-hora);
+	border-bottom: 1px solid var(--cal-linea-hora);
 	box-sizing: border-box;
-	background:
-		linear-gradient(transparent 50%, var(--superficie-hover) 50%) 0 0 / 100% 42px,
-		var(--superficie);
+	background: var(--superficie);
 }
 
 .cal-card {
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
+	gap: 1px;
 	width: 100%;
 	min-width: 0;
 	box-sizing: border-box;
 	overflow-wrap: anywhere;
 	text-align: left;
-	padding: 7px 7px 8px 10px;
-	border-radius: 6px;
+	padding: 2px 5px 3px 9px;
+	border: 0;
+	border-radius: 5px;
 	border-left: 5px solid var(--borde-fuerte);
 	background: var(--superficie);
 	color: var(--texto);
-	font-size: 0.6875rem;
-	line-height: 1.25;
-	box-shadow: 0 10px 22px rgba(18, 41, 61, 0.14);
+	font-size: 0.625rem;
+	line-height: 1.15;
+	box-shadow: 0 4px 10px rgba(18, 41, 61, 0.12);
+	cursor: grab;
+	touch-action: manipulation;
 	transition: transform 140ms ease, box-shadow 140ms ease;
 }
 
@@ -320,7 +345,7 @@
 }
 
 .cal-card-wrap + .cal-card-wrap {
-	margin-top: 6px;
+	margin-top: 3px;
 }
 
 /* La celda de una cita de una hora abarca los dos renglones y la tarjeta
@@ -392,9 +417,43 @@
 	outline-offset: 1px;
 }
 
+/* Dos renglones: hora y paciente arriba, estudio y estado abajo, recortados
+   para que la tarjeta de media hora quepa en un renglón bajo de la agenda. El
+   texto completo sale al pasar el puntero (title). La tarjeta larga tiene
+   espacio y deja que el texto ocupe varios renglones. */
+.cal-card-top,
+.cal-card-bottom {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	min-width: 0;
+}
+
+.cal-card-bottom {
+	justify-content: space-between;
+}
+
+.cal-card strong,
+.cal-card-paciente {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cal-card-wrap.larga .cal-card-top,
+.cal-card-wrap.larga .cal-card-bottom {
+	align-items: flex-start;
+}
+
+.cal-card-wrap.larga .cal-card strong,
+.cal-card-wrap.larga .cal-card-paciente {
+	white-space: normal;
+}
+
 .cal-card strong {
 	color: var(--texto);
-	font-size: 0.7188rem;
+	font-size: 0.65rem;
 	text-transform: uppercase;
 }
 
@@ -404,41 +463,90 @@
 }
 
 .cal-card small {
+	flex-shrink: 0;
 	width: fit-content;
-	margin-top: 2px;
-	padding: 2px 6px;
+	padding: 0 5px;
 	border-radius: 999px;
 	background: var(--superficie-2);
 	color: var(--texto);
+	font-size: 0.55rem;
 	font-weight: 800;
 	text-transform: uppercase;
 }
 
 .cal-card-time {
-	width: fit-content;
-	padding: 2px 6px;
-	border-radius: 8px;
-	background: var(--superficie-2);
+	flex-shrink: 0;
+	white-space: nowrap;
 	color: var(--texto);
-	font-size: 0.6562rem;
+	font-size: 0.6rem;
 	font-weight: 900;
 	letter-spacing: 0;
+}
+
+/* Arrastrar la tarjeta a otra hora o a otra columna: la original se queda
+   tenue en su lugar, la que va con el puntero es una copia, y la celda bajo el
+   puntero se marca. */
+.cal-card.arrastrando {
+	opacity: 0.35;
+}
+
+.cal-card.cal-card-fantasma {
+	width: 150px;
+	cursor: grabbing;
+	box-shadow: 0 16px 32px rgba(18, 41, 61, 0.3);
+	transform: rotate(-2deg);
+}
+
+.cal-slot.soltar-aqui {
+	background: color-mix(in srgb, var(--borde-fuerte) 22%, var(--superficie));
+	outline: 2px dashed var(--borde-fuerte);
+	outline-offset: -2px;
 }
 
 .cal-empty-slot {
 	display: block;
 	width: 100%;
-	min-height: 38px;
+	min-height: 30px;
 	border: 0;
-	border-radius: 6px;
+	border-radius: 5px;
 	background: transparent;
 	cursor: pointer;
+}
+
+/* Al pasar el puntero, el hueco dice qué se va a agendar: "+ Agendar
+   Tomografías 10:30". */
+.cal-empty-slot {
+	position: relative;
+	color: transparent;
+	font: inherit;
+	font-size: 0.6875rem;
+	font-weight: 700;
+}
+
+.cal-empty-slot::after {
+	content: attr(data-aviso);
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	padding: 0 8px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	color: var(--texto-azul);
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.cal-empty-slot:hover::after,
+.cal-empty-slot:focus-visible::after {
+	opacity: 1;
 }
 
 .cal-empty-slot:hover,
 .cal-empty-slot:focus-visible {
 	background: var(--superficie-hover);
-	outline: 2px solid var(--borde-fuerte);
+	outline: 1px dashed var(--borde-fuerte);
 	outline-offset: -2px;
 }
 
@@ -467,13 +575,13 @@
 .cal-study-header.tipo-mastografia,
 .cal-card.tipo-mastografia,
 .cal-card-wrap.tipo-mastografia {
-	--cal-color: #db2777;
+	--cal-color: #a4262c;
 }
 
 .cal-study-header.tipo-densitometria,
 .cal-card.tipo-densitometria,
 .cal-card-wrap.tipo-densitometria {
-	--cal-color: #f97316;
+	--cal-color: #c50f1f;
 }
 
 .cal-study-header.tipo-otros,
@@ -484,9 +592,15 @@
 
 .cal-study-header[class*="tipo-"] {
 	background: var(--superficie);
-	border-left-color: var(--cal-color);
-	box-shadow: inset 4px 0 0 var(--cal-color);
 }
+
+/* Color del nombre de cada columna, como en la agenda anterior. */
+.cal-study-header.tipo-tac { --cal-titulo: #3b3f46; }
+.cal-study-header.tipo-mastografia { --cal-titulo: #a4262c; }
+.cal-study-header.tipo-ultrasonido { --cal-titulo: #2f3b52; }
+.cal-study-header.tipo-densitometria { --cal-titulo: #c50f1f; }
+.cal-study-header.tipo-otros { --cal-titulo: #5b6270; }
+.cal-study-header.tipo-resonancia { --cal-titulo: #23262d; }
 
 /* La tarjeta lleva la barra del color de su columna y un fondo apenas teñido
    del mismo tono: el texto se sigue leyendo sobre blanco. */
@@ -623,8 +737,8 @@
 }
 
 .cal-card-wrap + .cal-empty-slot {
-	margin-top: 6px;
-	min-height: 28px;
+	margin-top: 3px;
+	min-height: 18px;
 }
 
 /* Las acciones van en cuadrícula de dos: con cuatro botones en fila se

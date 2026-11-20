@@ -10,7 +10,8 @@ import calendarioIcono from '../assets/calendarioIcono.png';
 import './nueva-cita-modal.css';
 import { useNavegacionLista } from '../hooks/use-navegacion-lista';
 import CampoDuracionCita from './campo-duracion-cita';
-import { DURACION_CORTA } from '../utils/duracion-cita';
+import { DURACION_CORTA, estudiosDesdeTexto } from '../utils/duracion-cita';
+import { useDuracionSugerida } from '../hooks/use-duracion-sugerida';
 import { clienteParaPrecios } from '../utils/descuento-cliente';
 import { resolverPrecioEstudioCliente } from '../utils/precio-estudio-cliente';
 import {
@@ -70,6 +71,9 @@ const NuevaCitaModal = ({
   fechaInicial,
   horaInicial,
   tipoEstudioInicial,
+  // "formulario" abre con todos los campos aunque la última vez se usara el
+  // modo de un renglón: desde un hueco del calendario se llenan los campos.
+  modoInicial,
 }) => {
   const { empleadoData } = useAuth();
   const queryClient = useQueryClient();
@@ -121,6 +125,24 @@ const NuevaCitaModal = ({
   // no se veía nunca.
   const [listaClientesAbierta, setListaClientesAbierta] = useState(false);
   const [listaTiposAbierta, setListaTiposAbierta] = useState(false);
+
+  // Cada cita empieza en blanco. Cerrar el modal sin guardar dejaba el nombre,
+  // el teléfono y los estudios del paciente anterior, y al agendar al
+  // siguiente se colaban datos de otra persona.
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData({ nombreCompleto: '', contacto: '', fecha: '', hora: '' });
+    setTipoContacto('telefono');
+    setRenglon('');
+    setClienteSeleccionado('');
+    setTipoEstudioSeleccionado('');
+    setBuscarEstudio('');
+    setShowBusquedaEstudios(false);
+    setEstudiosSeleccionados([]);
+    setError('');
+    if (modoInicial === 'formulario') setModoRenglon(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -499,6 +521,13 @@ const NuevaCitaModal = ({
 
   const opcionesCliente = filtrarPorNombre(clientes, clienteSeleccionado).slice(0, 10);
   const resumenRenglon = modoRenglon ? resumirRenglonCita(renglon, { clientes }) : '';
+  // Una hora por resonancia y media por cualquier otro estudio. En el modo de
+  // un renglón el estudio es texto; la columna desde la que se abrió dice el
+  // tipo cuando el nombre no lo dice.
+  const estudiosParaDuracion = modoRenglon
+    ? estudiosDesdeTexto(interpretarRenglonCita(renglon, { clientes }).estudios, tipoEstudioSeleccionado)
+    : estudiosSeleccionados;
+  const { sugerida: duracionSugerida } = useDuracionSugerida(estudiosParaDuracion, duracion, setDuracion);
   const opcionesTipo = filtrarPorNombre(tiposEstudio, tipoEstudioSeleccionado).slice(0, 10);
 
   const elegirCliente = (cliente) => {
@@ -536,7 +565,7 @@ const NuevaCitaModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-overlay-cita" onClick={onClose}>
       <div className="modal-content-cita" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header-cita">
           <h2 className="modal-title-cita">
@@ -646,7 +675,6 @@ const NuevaCitaModal = ({
                 disabled={loading}
                 maxLength={tipoContacto === 'correo' ? 120 : 10}
                 inputMode={tipoContacto === 'correo' ? 'email' : 'numeric'}
-                placeholder={tipoContacto === 'correo' ? 'paciente@correo.com' : '4771234567'}
               />
             </div>
           </div>
@@ -675,7 +703,6 @@ const NuevaCitaModal = ({
                 aria-autocomplete="list"
                 className="form-input-cita"
                 disabled={loading}
-                placeholder="Particular, convenio..."
               />
               {listaClientesAbierta && opcionesCliente.length > 0 && (
                 <div role="listbox" ref={refClientes} className="search-results-estudios-modal">
@@ -815,7 +842,7 @@ const NuevaCitaModal = ({
             </div>
           </div>
 
-          <CampoDuracionCita valor={duracion} onChange={setDuracion} disabled={loading} />
+          <CampoDuracionCita valor={duracion} onChange={setDuracion} sugerida={duracionSugerida} disabled={loading} />
 
           <div className="modal-footer-cita">
             <button type="button" className="btn-cancel-cita" onClick={onClose} disabled={loading}>
